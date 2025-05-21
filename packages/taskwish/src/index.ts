@@ -162,23 +162,6 @@ interface Steps<Scope extends Record<any, any> = {}> {
           ) => Readonly<[S2, S2H]>)
     ]
   ): S0 | S1 | S2;
-  <
-    const S0 extends string,
-    const S0H extends (props: Scope) => any,
-    const S1 extends string,
-    const S1H extends (props: Scope) => any,
-    const S2 extends string,
-    const S2H extends (props: Scope) => any,
-    const S3 extends string,
-    const S3H extends (props: Scope) => any
-  >(
-    ...trumpets: [
-      step: [name: S0, handler: S0H] | ((props: Scope) => Readonly<[S0, S0H]>),
-      step: [name: S1, handler: S1H] | ((props: Scope) => Readonly<[S1, S1H]>),
-      step: [name: S2, handler: S2H] | ((props: Scope) => Readonly<[S2, S2H]>),
-      step: [name: S3, handler: S3H] | ((props: Scope) => Readonly<[S3, S3H]>)
-    ]
-  ): S0 | S1 | S2 | S3;
 }
 
 const Steps = (() => {
