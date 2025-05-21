@@ -5,8 +5,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "MIT",
+  "author": "Bersen Pajaziti",
+  "license": "Elastic-2.0",
   "description": "Opinionated edge-first library for TypeScript",
   "dependencies": {
     "arktype": "^2.1.20"
