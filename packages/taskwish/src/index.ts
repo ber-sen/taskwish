@@ -82,7 +82,30 @@ const Input = <const def>(of: type.validate<def>): type.instantiate<def> =>
 
 //
 
-interface Steps<Scope> {
+type CamelCase<T extends string> =
+  T extends `${infer Left}${infer Delimiter}${infer Right}`
+    ? Delimiter extends " " | "_" | "-" | "." | "," | "!"
+      ? `${Left}${Capitalize<ToCamelCase<Right>>}`
+      : `${Left}${CamelCase<`${Delimiter}${Right}`>}`
+    : T;
+
+type LowercaseFirst<T extends string> = T extends `${infer First}${infer Rest}`
+  ? `${Lowercase<First>}${Rest}`
+  : T;
+
+type ToCamelCase<T extends string> = LowercaseFirst<CamelCase<T>>;
+
+export type PrettyScope<T> = {
+  [K in keyof T as ToCamelCase<Extract<K, string>>]: T[K];
+} & {};
+
+export type Props<T> = {
+  [K in keyof T as ToCamelCase<Extract<K, string>>]: K extends "scope"
+    ? PrettyScope<T[K]>
+    : T[K];
+} & {};
+
+interface Steps<Scope extends Record<any, any> = {}> {
   <const S0 extends string, const S0H extends (props: Scope) => any>(
     ...trumpets: [
       step: [name: S0, handler: S0H] | ((props: Scope) => Readonly<[S0, S0H]>)
@@ -92,25 +115,55 @@ interface Steps<Scope> {
     const S0 extends string,
     const S0H extends (props: Scope) => any,
     const S1 extends string,
-    const S1H extends (props: Scope) => any
+    const S1H extends (
+      props: Props<Scope & Record<"scope", Record<S0, ReturnType<S0H>>>>
+    ) => any
   >(
     ...trumpets: [
       step: [name: S0, handler: S0H] | ((props: Scope) => Readonly<[S0, S0H]>),
-      step: [name: S1, handler: S1H] | ((props: Scope) => Readonly<[S1, S1H]>)
+      step:
+        | [name: S1, handler: S1H]
+        | ((
+            props: Props<
+              Scope & Record<"scope", Record<S0, ReturnType<S0H>>>
+            >
+          ) => Readonly<[S1, S1H]>)
     ]
   ): S0 | S1;
   <
     const S0 extends string,
-    const S0H extends (props: Scope) => any,
+    const S0H extends (props: Props<Scope>) => any,
     const S1 extends string,
-    const S1H extends (props: Scope) => any,
+    const S1H extends (
+      props: Props<Scope & Record<"scope", Record<S0, ReturnType<S0H>>>>
+    ) => any,
     const S2 extends string,
-    const S2H extends (props: Scope) => any
+    const S2H extends (
+      props: Props<
+        Scope &
+          Record<"scope", Record<S0, ReturnType<S0H>>> &
+          Record<"scope", Record<S1, ReturnType<S1H>>>
+      >
+    ) => any
   >(
     ...trumpets: [
       step: [name: S0, handler: S0H] | ((props: Scope) => Readonly<[S0, S0H]>),
-      step: [name: S1, handler: S1H] | ((props: Scope) => Readonly<[S1, S1H]>),
-      step: [name: S2, handler: S2H] | ((props: Scope) => Readonly<[S2, S2H]>)
+      step:
+        | [name: S1, handler: S1H]
+        | ((
+            props: Props<
+              Scope & Record<"scope", Record<S0, ReturnType<S0H>>>
+            >
+          ) => Readonly<[S1, S1H]>),
+      step:
+        | [name: S2, handler: S2H]
+        | ((
+            props: Props<
+              Scope &
+                Record<"scope", Record<S0, ReturnType<S0H>>> &
+                Record<"scope", Record<S1, ReturnType<S1H>>>
+            >
+          ) => Readonly<[S2, S2H]>)
     ]
   ): S0 | S1 | S2;
   <
@@ -129,34 +182,34 @@ interface Steps<Scope> {
       step: [name: S2, handler: S2H] | ((props: Scope) => Readonly<[S2, S2H]>),
       step: [name: S3, handler: S3H] | ((props: Scope) => Readonly<[S3, S3H]>)
     ]
-  ): S2;
+  ): S0 | S1 | S2 | S3;
 }
 
 const Steps = (() => {
   return {} as any;
-}) as Steps<number>;
+}) as Steps;
 
 // Step 3: Final Action stage
 
 Steps(
   ["step 1", () => 3],
 
-  ["step 2", (scope) => scope],
-
-  ["step 3", (scope) => scope]
+  ["step 2", (scope) => scope]
 );
 
 type Pretty<T> = { [K in keyof T]: T[K] } & {};
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export interface Scoped<Scope> {}
+export interface Scoped<Scope extends Record<any, any>> {}
 
 type ConfigurableKey<T> = T extends ConfigurableUseCase<any, infer Used>
   ? Pretty<Omit<T, Used>>
   : never;
 
-interface ConfigurableUseCase<Scope, Used extends string = "">
-  extends Scoped<Scope> {
+interface ConfigurableUseCase<
+  Scope extends Record<any, any>,
+  Used extends string = ""
+> extends Scoped<Scope> {
   handle: <C>(
     callback: (scope: Scope) => C
   ) => ConfigurableKey<ConfigurableUseCase<Scope, Used | "handle">>;
@@ -179,7 +232,7 @@ export interface Inputable<Scope> {
 
 type UseCaseParams = string;
 
-export interface UseCaseFactory<Params, Scope = {}>
+export interface UseCaseFactory<Params, Scope extends Record<any, any> = {}>
   extends Scoped<Scope>,
     Extendable<Scope>,
     Inputable<Scope>,
@@ -204,11 +257,11 @@ const UseCase = <const Params extends UseCaseParams>(
   return name as any;
 };
 
-interface ConfigurableInfra<Scope> {
+interface ConfigurableInfra<Scope extends Record<any, any>> {
   defs: Steps<Scope>;
 }
 
-export interface InfraFactory<Params, Scope = {}>
+export interface InfraFactory<Params, Scope extends Record<any, any> = {}>
   extends Scoped<Scope>,
     Extendable<Scope>,
     Inputable<Scope>,
@@ -245,9 +298,10 @@ const trigger = <const K>(key: K, params: { channel: string; text: string }) =>
   [key, () => params] as const;
 
 const infra = Infra("asd").defs(
-  ["step 2", (scope) => scope],
+  ["get content", () => "asdas"],
 
-  () => File("config", { path: "./src/config.json", content: "{}" }),
+  ({ scope }) =>
+    File("config", { path: "./src/config.json", content: scope.getContent }),
 
   () => File("main", { path: "./src/main.ts", content: "{}" })
 );
@@ -262,10 +316,10 @@ const useCase = UseCase("Say hello")
 
     ({ input }) => Step("asdasd", input),
 
-    ({ input }) =>
+    ({ scope }) =>
       trigger("Slack.sendMessage", {
         channel: "#general",
-        text: `Does someone speak ${input.language}?`,
+        text: `Does someone speak ${scope.asdasd.language}?`,
       })
   );
 
