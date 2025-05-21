@@ -1,0 +1,14 @@
+{
+  "name": "taskwish",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc --noEmit"
+  },
+  "author": "Bersen Pajaziti",
+  "license": "Elastic-2.0",
+  "description": "Opinionated edge-first library for TypeScript",
+  "dependencies": {
+    "arktype": "^2.1.20"
+  }
+}
