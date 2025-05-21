@@ -293,13 +293,13 @@ const useCase = UseCase("Say hello")
   .steps(
     ["asdasd", ($) => $.input],
 
-    ({ input }) => Step("asdasd", input),
-
     ({ scope }) =>
       trigger("Slack.sendMessage", {
         channel: "#general",
         text: `Does someone speak ${scope.asdasd.language}?`,
-      })
+      }),
+
+    ({ scope }) => Step("asdasd", scope.slackSendMessage)
   );
 
 console.log(useCase);
