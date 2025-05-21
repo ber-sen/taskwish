@@ -7,6 +7,10 @@
     "build": "turbo build"
   },
   "devDependencies": {
+    "@types/node": "^22.15.21",
     "turbo": "^2.5.3"
+  },
+  "dependencies": {
+    "unbuild": "^3.5.0"
   }
 }
