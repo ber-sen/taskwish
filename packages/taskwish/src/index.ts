@@ -265,6 +265,8 @@ const Infra = <const Params extends string>(
   return name as any;
 };
 
+const stepOptions: unique symbol = Symbol("stepOptions");
+
 // Modifiers
 
 const File = <const K>(key: K, params: { path: string; content: string }) =>
@@ -273,8 +275,10 @@ const File = <const K>(key: K, params: { path: string; content: string }) =>
 const Step = <const K, const P>(key: K, params: P) =>
   [key, () => params] as const;
 
-const trigger = <const K>(key: K, params: { channel: string; text: string }) =>
-  [key, () => params] as const;
+const trigger = <const K>(
+  key: K,
+  params: { channel: string; text: string; [stepOptions]: any }
+) => [key, () => params] as const;
 
 const infra = Infra("asd").defs(
   ["get content", () => "asdas"],
@@ -297,6 +301,7 @@ const useCase = UseCase("Say hello")
       trigger("Slack.sendMessage", {
         channel: "#general",
         text: `Does someone speak ${scope.asdasd.language}?`,
+        [stepOptions]: {},
       }),
 
     ({ scope }) => Step("asdasd", scope.slackSendMessage)
