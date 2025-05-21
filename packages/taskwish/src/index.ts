@@ -124,9 +124,7 @@ interface Steps<Scope extends Record<any, any> = {}> {
       step:
         | [name: S1, handler: S1H]
         | ((
-            props: Props<
-              Scope & Record<"scope", Record<S0, ReturnType<S0H>>>
-            >
+            props: Props<Scope & Record<"scope", Record<S0, ReturnType<S0H>>>>
           ) => Readonly<[S1, S1H]>)
     ]
   ): S0 | S1;
@@ -151,9 +149,7 @@ interface Steps<Scope extends Record<any, any> = {}> {
       step:
         | [name: S1, handler: S1H]
         | ((
-            props: Props<
-              Scope & Record<"scope", Record<S0, ReturnType<S0H>>>
-            >
+            props: Props<Scope & Record<"scope", Record<S0, ReturnType<S0H>>>>
           ) => Readonly<[S1, S1H]>),
       step:
         | [name: S2, handler: S2H]
