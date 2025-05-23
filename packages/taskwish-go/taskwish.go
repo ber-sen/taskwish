@@ -1,35 +1,30 @@
 package taskwish
 
-import "fmt"
+import (
+	"fmt"
 
-type StringType string
+	core "github.com/ber-sen/taskwish/packages/taskwish-go/core"
+)
 
-type Schema map[string]StringType
+type Schema = core.Schema
 
-type Scope map[string]interface{}
+type Scope = core.Scope
 
-type Params map[string]interface{}
+type Params = core.Scope
 
-type StepHandler func(scope Scope) interface{}
-
-type StepDef struct {
-	Name    string
-	Handler StepHandler
+func Type(t string) core.StringType {
+	return core.StringType(t)
 }
 
-func Type(t string) StringType {
-	return StringType(t)
-}
-
-func Step(name string, handler StepHandler) StepDef {
-	return StepDef{
+func Step(name string, handler core.StepHandler) core.Step {
+	return core.Step{
 		Name:    name,
 		Handler: handler,
 	}
 }
 
-func Trigger(name string, params Params) StepDef {
-	return StepDef{
+func Trigger(name string, params Params) core.Step {
+	return core.Step{
 		Name: name,
 		Handler: func(scope Scope) interface{} {
 			fmt.Printf("Trigger sent to channel %s", params)
@@ -40,25 +35,25 @@ func Trigger(name string, params Params) StepDef {
 
 type UseCaseFactory struct {
 	name  string
-	input Schema
-	steps []StepDef
-	scope Scope
+	input core.Schema
+	steps []core.Step
+	scope core.Scope
 }
 
 func UseCase(name string) UseCaseFactory {
 	return UseCaseFactory{
 		name:  name,
-		input: make(Schema),
-		scope: make(Scope),
+		input: make(core.Schema),
+		scope: make(core.Scope),
 	}
 }
 
-func (uc UseCaseFactory) Input(schema Schema) UseCaseFactory {
+func (uc UseCaseFactory) Input(schema core.Schema) UseCaseFactory {
 	uc.input = schema
 	return uc
 }
 
-func (uc UseCaseFactory) Steps(steps ...StepDef) UseCaseFactory {
+func (uc UseCaseFactory) Steps(steps ...core.Step) UseCaseFactory {
 	uc.steps = steps
 	return uc
 }
