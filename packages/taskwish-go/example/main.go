@@ -13,7 +13,7 @@ func main() {
 				user, _ := scope["user"].(string)
 				return "Hello " + user
 			}),
-			Run("Slack.sendMessage", Params{"channal": "{{ scope.greed }}", "text": "test"}),
+			Run("Slack.sendMessage", Params{"channel": "{{ scope.greed }}", "text": "test"}),
 		)
 
 	uc.Run()
