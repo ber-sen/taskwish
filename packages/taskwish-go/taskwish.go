@@ -10,10 +10,16 @@ type Schema = core.Schema
 
 type Scope = core.Scope
 
-type Params = core.Scope
+type Params = core.Params
+
+type StepProps = core.StepProps
 
 func Type(t string) core.StringType {
 	return core.StringType(t)
+}
+
+func Props(name string) interface{} {
+	return nil
 }
 
 func Step(name string, handler core.StepHandler) core.Step {
@@ -26,7 +32,7 @@ func Step(name string, handler core.StepHandler) core.Step {
 func Run(name string, params Params) core.Step {
 	return core.Step{
 		Name: name,
-		Handler: func(scope Scope) interface{} {
+		Handler: func(props core.StepProps) interface{} {
 			fmt.Printf("Trigger sent to channel %s", params)
 			return nil
 		},
@@ -69,7 +75,8 @@ func (uc *UseCaseFactory) Run() {
 
 	for _, step := range uc.steps {
 		fmt.Printf("Step: %s\n", step.Name)
-		result := step.Handler(uc.scope)
+		result := step.Handler(Props)
+
 		if result != nil {
 			fmt.Printf("Result: %v\n", result)
 		}

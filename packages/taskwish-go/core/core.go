@@ -6,9 +6,11 @@ type Schema map[string]StringType
 
 type Scope map[string]interface{}
 
+type StepProps func(string) interface{}
+
 type Params map[string]interface{}
 
-type StepHandler func(scope Scope) interface{}
+type StepHandler func(props StepProps) interface{}
 
 type Step struct {
 	Name    string
@@ -19,5 +21,5 @@ type UseCaseFactory struct {
 	Name  string
 	Input Schema
 	Steps []Step
-	cope  Scope
+	Scope Scope
 }

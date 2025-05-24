@@ -9,11 +9,12 @@ func main() {
 			"channel": Type("string"),
 		}).
 		Steps(
-			Step("greet", func(scope Scope) interface{} {
-				user, _ := scope["user"].(string)
+			Step("greet", func(props StepProps) interface{} {
+				user, _ := props("user").(string)
+
 				return "Hello " + user
 			}),
-			Run("Slack.sendMessage", Params{"channel": "{{ scope.greed }}", "text": "test"}),
+			Run("Slack.sendMessage", Params{"channel": Props("scope.greed"), "text": "test"}),
 		)
 
 	uc.Run()
