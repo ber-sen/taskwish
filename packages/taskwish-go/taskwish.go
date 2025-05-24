@@ -23,7 +23,7 @@ func Step(name string, handler core.StepHandler) core.Step {
 	}
 }
 
-func Trigger(name string, params Params) core.Step {
+func Run(name string, params Params) core.Step {
 	return core.Step{
 		Name: name,
 		Handler: func(scope Scope) interface{} {
@@ -58,7 +58,7 @@ func (uc UseCaseFactory) Steps(steps ...core.Step) UseCaseFactory {
 	return uc
 }
 
-func (uc *UseCaseFactory) Execute() {
+func (uc *UseCaseFactory) Run() {
 	for k := range uc.input {
 		if _, exists := uc.scope[k]; !exists {
 			uc.scope[k] = nil

@@ -275,7 +275,7 @@ const File = <const K>(key: K, params: { path: string; content: string }) =>
 const Step = <const K, const P>(key: K, params: P) =>
   [key, () => params] as const;
 
-const trigger = <const K>(
+const run = <const K>(
   key: K,
   params: { channel: string; text: string; [stepOptions]: any }
 ) => [key, () => params] as const;
@@ -298,7 +298,7 @@ const useCase = UseCase("Say hello")
     ["asdasd", ($) => $.input],
 
     ({ scope }) =>
-      trigger("Slack.sendMessage", {
+      run("Slack.sendMessage", {
         channel: "#general",
         text: `Does someone speak ${scope.asdasd.language}?`,
         [stepOptions]: {},
