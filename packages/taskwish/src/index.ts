@@ -27,7 +27,7 @@ interface ActionMeta {
   type?: string;
   exceptions?: Array<Exception<any>>;
 }
-export interface Executable<
+export interface Runnable<
   Result,
   Meta extends ActionMeta | undefined = undefined
 > {
@@ -50,7 +50,7 @@ interface ActionMetaParams {
 
 function Action<const Result, const Params>(
   execute: (params: Params, ctx?: Ctx) => Result
-): Params extends object ? Action<Params, Result> : Executable<Result>;
+): Params extends object ? Action<Params, Result> : Runnable<Result>;
 
 function Action<
   const Params,
@@ -69,7 +69,7 @@ function Action<
       }
 ): Params extends object
   ? Action<Params, Result, Meta>
-  : Executable<Result, Meta>;
+  : Runnable<Result, Meta>;
 
 function Action() {
   return {} as any;
