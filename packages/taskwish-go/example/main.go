@@ -14,7 +14,7 @@ func main() {
 
 				return "Hello " + user
 			}),
-			Run("Slack.sendMessage", Params{"channel": Props("scope.greed"), "text": "test"}),
+			Run("Slack.sendMessage", Params{"channel": Props("scope.greet"), "text": "test"}),
 		)
 
 	uc.Run()
