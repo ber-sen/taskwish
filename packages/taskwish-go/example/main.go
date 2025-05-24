@@ -10,7 +10,7 @@ func main() {
 		}).
 		Steps(
 			Step("greet", func(props StepProps) interface{} {
-				user := props("user")
+				user := props("input.user")
 
 				return "Hello " + user.(string)
 			}),
