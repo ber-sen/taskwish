@@ -10,9 +10,9 @@ func main() {
 		}).
 		Steps(
 			Step("greet", func(props StepProps) interface{} {
-				user, _ := props("user").(string)
+				user := props("user")
 
-				return "Hello " + user
+				return "Hello " + user.(string)
 			}),
 			Run("Slack.sendMessage", Params{"channel": Props("scope.greet"), "text": "test"}),
 		)
