@@ -22,6 +22,10 @@ func Props(name string) interface{} {
 	return nil
 }
 
+func Param(name string) interface{} {
+	return nil
+}
+
 func Step(name string, handler core.StepHandler) core.Step {
 	return core.Step{
 		Name:    name,
