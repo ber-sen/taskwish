@@ -17,6 +17,7 @@ func main() {
 			Run("Slack.sendMessage", Params{
 				"channel": Param("scope.greet"),
 				"text":    "test",
+				Options:   nil,
 			}),
 		)
 

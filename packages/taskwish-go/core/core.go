@@ -12,6 +12,8 @@ type Params map[string]interface{}
 
 type StepHandler func(props StepProps) interface{}
 
+const Options = "__tw_options__"
+
 type Step struct {
 	Name    string
 	Handler StepHandler

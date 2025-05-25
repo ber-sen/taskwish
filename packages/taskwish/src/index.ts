@@ -265,7 +265,7 @@ const Infra = <const Params extends string>(
   return name as any;
 };
 
-const stepOptions: unique symbol = Symbol("stepOptions");
+const Options: unique symbol = Symbol("Options");
 
 // Modifiers
 
@@ -277,7 +277,7 @@ const Step = <const K, const P>(key: K, params: P) =>
 
 const run = <const K>(
   key: K,
-  params: { channel: string; text: string; [stepOptions]: any }
+  params: { channel: string; text: string; [Options]: any }
 ) => [key, () => params] as const;
 
 const infra = Infra("asd").defs(
@@ -301,7 +301,7 @@ const useCase = UseCase("Say hello")
       run("Slack.sendMessage", {
         channel: "#general",
         text: `Does someone speak ${scope.asdasd.language}?`,
-        [stepOptions]: {},
+        [Options]: {},
       }),
 
     ({ scope }) => Step("asdasd", scope.slackSendMessage)

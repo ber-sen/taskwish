@@ -14,6 +14,8 @@ type Params = core.Params
 
 type StepProps = core.StepProps
 
+const Options = core.Options
+
 func Type(t string) core.StringType {
 	return core.StringType(t)
 }
