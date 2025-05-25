@@ -15,6 +15,7 @@ func main() {
 				return "Hello " + user.(string)
 			}),
 			Run("Slack.sendMessage", Params{
+				"...":     Param("scope"),
 				"channel": Param("scope.greet"),
 				"text":    "test",
 				Options:   nil,
