@@ -105,10 +105,22 @@ export type Props<T> = {
     : T[K];
 } & {};
 
+interface StepOptions {
+  timeout?: string | number;
+  retries?: {
+    limit: number;
+    delay?: string | number;
+    backoff?: "constant" | "linear" | "exponential";
+  };
+}
+
 interface Steps<Scope extends Record<any, any> = {}> {
   <const S0 extends string, const S0H extends (props: Scope) => any>(
     ...trumpets: [
-      step: [name: S0, handler: S0H] | ((props: Scope) => Readonly<[S0, S0H]>)
+      step:
+        | [name: S0, handler: S0H]
+        | [name: S0, ...options: StepOptions[], handler: S0H]
+        | ((props: Scope) => Readonly<[S0, S0H]>)
     ]
   ): S0;
   <
@@ -120,9 +132,13 @@ interface Steps<Scope extends Record<any, any> = {}> {
     ) => any
   >(
     ...trumpets: [
-      step: [name: S0, handler: S0H] | ((props: Scope) => Readonly<[S0, S0H]>),
+      step:
+        | [name: S0, handler: S0H]
+        | [name: S0, ...options: StepOptions[], handler: S0H]
+        | ((props: Scope) => Readonly<[S0, S0H]>),
       step:
         | [name: S1, handler: S1H]
+        | [name: S1, ...options: StepOptions[], handler: S1H]
         | ((
             props: Props<Scope & Record<"scope", Record<S0, ReturnType<S0H>>>>
           ) => Readonly<[S1, S1H]>)
@@ -145,14 +161,19 @@ interface Steps<Scope extends Record<any, any> = {}> {
     ) => any
   >(
     ...trumpets: [
-      step: [name: S0, handler: S0H] | ((props: Scope) => Readonly<[S0, S0H]>),
+      step:
+        | [name: S0, handler: S0H]
+        | [name: S0, ...options: StepOptions[], handler: S0H]
+        | ((props: Scope) => Readonly<[S0, S0H]>),
       step:
         | [name: S1, handler: S1H]
+        | [name: S1, ...options: StepOptions[], handler: S1H]
         | ((
             props: Props<Scope & Record<"scope", Record<S0, ReturnType<S0H>>>>
           ) => Readonly<[S1, S1H]>),
       step:
         | [name: S2, handler: S2H]
+        | [name: S2, ...options: StepOptions[], handler: S2H]
         | ((
             props: Props<
               Scope &
@@ -267,6 +288,12 @@ const Infra = <const Params extends string>(
 
 const Options: unique symbol = Symbol("Options");
 
+// StepOptions
+
+const timeout = (timeout: number) => ({
+  timeout,
+});
+
 // Modifiers
 
 const File = <const K>(key: K, params: { path: string; content: string }) =>
@@ -277,7 +304,7 @@ const Step = <const K, const P>(key: K, params: P) =>
 
 const run = <const K>(
   key: K,
-  params: { channel: string; text: string; [Options]: any }
+  params: { channel: string; text: string; [Options]?: any }
 ) => [key, () => params] as const;
 
 const infra = Infra("asd").defs(
@@ -295,13 +322,12 @@ const useCase = UseCase("Say hello")
   .input({ language: "string" })
 
   .steps(
-    ["asdasd", ($) => $.input],
+    ["asdasd", timeout(1000), ($) => $.input],
 
     ({ scope }) =>
       run("Slack.sendMessage", {
         channel: "#general",
         text: `Does someone speak ${scope.asdasd.language}?`,
-        [Options]: {},
       }),
 
     ({ scope }) => Step("asdasd", scope.slackSendMessage)
