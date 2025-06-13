@@ -319,12 +319,12 @@ const infra = Infra("asd").defs(
 console.log(infra);
 
 const useCase = UseCase("Say hello")
-  .input({ language: "string" })
+  .input({ language: "string.email" })
 
   .steps(
-    ["asdasd", timeout(1000), ($) => $.input],
+    ["asdasd", ($) => $.input],
 
-    ({ scope }) =>
+    ({ run, scope }) =>
       run("Slack.sendMessage", {
         channel: "#general",
         text: `Does someone speak ${scope.asdasd.language}?`,
