@@ -8,17 +8,11 @@ import (
 	core "github.com/ber-sen/taskwish/packages/taskwish-go/core"
 )
 
-type Schema = core.Schema
-
 type Scope = core.Scope
 
 type Params = core.Params
 
 type StepProps = core.StepProps
-
-func Type(t string) core.StringType {
-	return core.StringType(t)
-}
 
 func Props(name string) interface{} {
 	return nil
@@ -53,7 +47,7 @@ func Run(name string, params Params, options ...core.Option) core.Step {
 
 type UseCaseFactory struct {
 	name  string
-	input core.Schema
+	input any
 	steps []core.Step
 	scope core.Scope
 }
@@ -66,7 +60,7 @@ func UseCase(name string) UseCaseFactory {
 	}
 }
 
-func (uc UseCaseFactory) Input(schema core.Schema) UseCaseFactory {
+func (uc UseCaseFactory) Input(schema any) UseCaseFactory {
 	uc.input = schema
 	return uc
 }
@@ -77,12 +71,6 @@ func (uc UseCaseFactory) Steps(steps ...core.Step) UseCaseFactory {
 }
 
 func (uc *UseCaseFactory) Run() {
-	for k := range uc.input {
-		if _, exists := uc.scope[k]; !exists {
-			uc.scope[k] = nil
-		}
-	}
-
 	fmt.Printf("Running UseCase: %s\n", uc.name)
 
 	for _, step := range uc.steps {

@@ -3,22 +3,30 @@ package main
 import . "github.com/ber-sen/taskwish/packages/taskwish-go"
 
 func main() {
-	uc := UseCase("SayHello").
-		Input(Schema{
-			"user":    Type("string"),
-			"channel": Type("string"),
-		}).
-		Steps(
-			Step("greet", func(props StepProps) interface{} {
-				user := props("input.user")
+	type Input struct {
+		User    string
+		Channel string `json:"channel"`
+	}
 
-				return "Hello " + user.(string)
-			}, WithTimeout(100)),
-			Run("Slack.sendMessage", Params{
-				"...":     Param("scope"),
-				"channel": Param("scope.greet"),
-				"text":    "test",
-			}, WithTimeout(100)),
+	uc := UseCase("SayHello").
+		Input(&Input{}).
+		Steps(
+			Step("greet",
+				func(props StepProps) interface{} {
+					input := props("input").(Input)
+
+					return "Hello " + input.User
+				},
+				WithTimeout(100),
+			),
+			Run("Slack.sendMessage",
+				Params{
+					"...":     Param("scope"),
+					"channel": Param("scope.greet"),
+					"text":    "test",
+				},
+				WithTimeout(100),
+			),
 		)
 
 	uc.Run()
