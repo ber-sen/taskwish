@@ -13,13 +13,12 @@ func main() {
 				user := props("input.user")
 
 				return "Hello " + user.(string)
-			}),
+			}, WithTimeout(100)),
 			Run("Slack.sendMessage", Params{
 				"...":     Param("scope"),
 				"channel": Param("scope.greet"),
 				"text":    "test",
-				Options:   nil,
-			}),
+			}, WithTimeout(100)),
 		)
 
 	uc.Run()

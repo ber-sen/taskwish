@@ -1,7 +1,9 @@
 package taskwish
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	core "github.com/ber-sen/taskwish/packages/taskwish-go/core"
 )
@@ -13,8 +15,6 @@ type Scope = core.Scope
 type Params = core.Params
 
 type StepProps = core.StepProps
-
-const Options = core.Options
 
 func Type(t string) core.StringType {
 	return core.StringType(t)
@@ -28,19 +28,25 @@ func Param(name string) interface{} {
 	return nil
 }
 
-func Step(name string, handler core.StepHandler) core.Step {
+func Step(name string, handler core.StepHandler, options ...core.Option) core.Step {
 	return core.Step{
 		Name:    name,
 		Handler: handler,
+		Customizable: core.Customizable{
+			Options: options,
+		},
 	}
 }
 
-func Run(name string, params Params) core.Step {
+func Run(name string, params Params, options ...core.Option) core.Step {
 	return core.Step{
 		Name: name,
 		Handler: func(props core.StepProps) interface{} {
 			fmt.Printf("Trigger sent to channel %s", params)
 			return nil
+		},
+		Customizable: core.Customizable{
+			Options: options,
 		},
 	}
 }
@@ -86,5 +92,12 @@ func (uc *UseCaseFactory) Run() {
 		if result != nil {
 			fmt.Printf("Result: %v\n", result)
 		}
+	}
+}
+
+func WithTimeout(duration time.Duration) core.Option {
+	return func(ctx context.Context, value interface{}) interface{} {
+		time.Sleep(duration)
+		return value
 	}
 }

@@ -328,6 +328,7 @@ const useCase = UseCase("Say hello")
       run("Slack.sendMessage", {
         channel: "#general",
         text: `Does someone speak ${scope.asdasd.language}?`,
+        [Options]: [timeout(40)],
       }),
 
     ({ scope }) => Step("asdasd", scope.slackSendMessage)

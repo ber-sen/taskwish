@@ -1,5 +1,7 @@
 package core
 
+import "context"
+
 type StringType string
 
 type Schema map[string]StringType
@@ -12,9 +14,14 @@ type Params map[string]interface{}
 
 type StepHandler func(props StepProps) interface{}
 
-const Options = "__tw_options__"
+type Option func(ctx context.Context, value interface{}) interface{}
+
+type Customizable struct {
+	Options []Option
+}
 
 type Step struct {
+	Customizable
 	Name    string
 	Handler StepHandler
 }
