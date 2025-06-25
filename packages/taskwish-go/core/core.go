@@ -8,7 +8,12 @@ type Schema map[string]StringType
 
 type Scope map[string]interface{}
 
-type StepProps func(string) interface{}
+type StepProps struct{}
+
+func (s StepProps) Get(value string) any {
+	var result any
+	return result
+}
 
 type Params map[string]interface{}
 

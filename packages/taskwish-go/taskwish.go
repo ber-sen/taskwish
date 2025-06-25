@@ -14,10 +14,6 @@ type Params = core.Params
 
 type StepProps = core.StepProps
 
-func Props(name string) interface{} {
-	return nil
-}
-
 func Param(name string) interface{} {
 	return nil
 }
@@ -75,7 +71,7 @@ func (uc *UseCaseFactory) Run() {
 
 	for _, step := range uc.steps {
 		fmt.Printf("Step: %s\n", step.Name)
-		result := step.Handler(Props)
+		result := step.Handler(core.StepProps{})
 
 		if result != nil {
 			fmt.Printf("Result: %v\n", result)

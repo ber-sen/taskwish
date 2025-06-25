@@ -13,7 +13,7 @@ func main() {
 		Steps(
 			Step("greet",
 				func(props StepProps) interface{} {
-					input := props("input").(Input)
+					input := props.Get("input").(Input)
 
 					return "Hello " + input.User
 				},
