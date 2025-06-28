@@ -323,8 +323,16 @@ const useCase = UseCase("Say hello")
     ({ scope }) => Step("asdasd", scope.slackSendMessage)
   );
 
-function* getEnv<T extends object>(): Generator<"ctx", T, Record<"env", T>> {
-  const ctx = yield "ctx";
+function* getEnv<T extends object>(): Generator<
+  Meta<{
+    type: "requires";
+    requires: "ctx";
+    data: T;
+  }>,
+  T,
+  Record<"env", T>
+> {
+  const ctx = yield Meta({ type: "requires", requires: "ctx", data: {} as T });
 
   return ctx.env;
 }
@@ -337,9 +345,10 @@ const action = Action(async function* (params: { name: string }) {
 
 async function* steps() {
   const res = yield* action.stream({ name: "asdasd" });
-  
+
   yield Meta({ type: "result", data: res });
   yield Exception({ status: 400 });
+  yield 4
 
   return 3;
 }
