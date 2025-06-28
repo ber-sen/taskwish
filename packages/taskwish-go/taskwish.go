@@ -43,7 +43,7 @@ func Run(name string, params Params, options ...core.Option) core.Step {
 
 type UseCaseFactory struct {
 	name  string
-	input any
+	entry any
 	steps []core.Step
 	scope core.Scope
 }
@@ -51,13 +51,13 @@ type UseCaseFactory struct {
 func UseCase(name string) UseCaseFactory {
 	return UseCaseFactory{
 		name:  name,
-		input: make(core.Schema),
+		entry: make(core.Schema),
 		scope: make(core.Scope),
 	}
 }
 
-func (uc UseCaseFactory) Input(schema any) UseCaseFactory {
-	uc.input = schema
+func (uc UseCaseFactory) Entry(schema any) UseCaseFactory {
+	uc.entry = schema
 	return uc
 }
 

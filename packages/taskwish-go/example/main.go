@@ -9,7 +9,7 @@ func main() {
 	}
 
 	uc := UseCase("SayHello").
-		Input(&Input{}).
+		Entry(&Input{}).
 		Steps(
 			Step("greet",
 				func(props StepProps) interface{} {

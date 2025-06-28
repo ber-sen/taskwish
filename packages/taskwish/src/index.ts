@@ -64,9 +64,9 @@ function Action<Params extends Array<any>, Stream, Result, Ctx>(
   return execute as any;
 }
 
-export type Input<T extends object> = Type<T>;
+export type Entry<T extends object> = Type<T>;
 
-const Input = <const def>(of: type.validate<def>): type.instantiate<def> =>
+const Entry = <const def>(of: type.validate<def>): type.instantiate<def> =>
   type.raw(of) as never;
 
 //
@@ -209,14 +209,14 @@ export interface Extendable<Scope> {
   use<const NewScope>(newScope: NewScope): Extendable<NewScope & Scope>;
 }
 
-export interface Inputable<Scope> {
-  input<const Schema>(
-    input: Schema extends Type<infer Schema>
+export interface Startable<Scope> {
+  entry<const Schema>(
+    entry: Schema extends Type<infer Schema>
       ? Type<Schema>
       : Schema extends object
       ? type.validate<Schema>
       : object
-  ): Scoped<Scope & Record<"input", type.instantiate<Schema>["infer"]>>;
+  ): Scoped<Scope & Record<"entry", type.instantiate<Schema>["infer"]>>;
 }
 
 type UseCaseParams = string;
@@ -224,16 +224,16 @@ type UseCaseParams = string;
 export interface UseCaseFactory<Params, Scope extends Record<any, any> = {}>
   extends Scoped<Scope>,
     Extendable<Scope>,
-    Inputable<Scope>,
+    Startable<Scope>,
     ConfigurableUseCase<Scope> {
-  input<const Schema>(
-    input: Schema extends Type<infer Schema>
+  entry<const Schema>(
+    entry: Schema extends Type<infer Schema>
       ? Type<Schema>
       : Schema extends object
       ? type.validate<Schema>
       : object
   ): ConfigurableUseCase<
-    Scope & Record<"input", type.instantiate<Schema>["infer"]>
+    Scope & Record<"entry", type.instantiate<Schema>["infer"]>
   >;
   use<const NewScope>(
     newScope: NewScope
@@ -253,16 +253,16 @@ interface ConfigurableInfra<Scope extends Record<any, any>> {
 export interface InfraFactory<Params, Scope extends Record<any, any> = {}>
   extends Scoped<Scope>,
     Extendable<Scope>,
-    Inputable<Scope>,
+    Startable<Scope>,
     ConfigurableInfra<Scope> {
-  input<const Schema>(
-    input: Schema extends Type<infer Schema>
+  entry<const Schema>(
+    entry: Schema extends Type<infer Schema>
       ? Type<Schema>
       : Schema extends object
       ? type.validate<Schema>
       : object
   ): ConfigurableInfra<
-    Scope & Record<"input", type.instantiate<Schema>["infer"]>
+    Scope & Record<"entry", type.instantiate<Schema>["infer"]>
   >;
   use<const NewScope>(
     newScope: NewScope
@@ -296,6 +296,8 @@ const run = <const K>(
   params: { channel: string; text: string; [Options]?: any }
 ) => [key, () => params] as const;
 
+const triggers = (asd: string) => ({ language: "string" }) as const;
+
 const infra = Infra("asd").defs(
   ["get content", () => "asdas"],
 
@@ -305,15 +307,29 @@ const infra = Infra("asd").defs(
   () => File("main", { path: "./src/main.ts", content: "{}" })
 );
 
-console.log(infra);
-
 const useCase = UseCase("Say hello")
-  .input({ language: "string.email" })
+  .entry({ language: "string" })
 
   .steps(
-    ["asdasd", ($) => $.input],
+    ["asdasd", ($) => $.entry],
 
-    ({ run, scope }) =>
+    ({ scope }) =>
+      run("Slack.sendMessage", {
+        channel: "#general",
+        text: `Does someone speak ${scope.asdasd.language}?`,
+        [Options]: [timeout(40)],
+      }),
+
+    ({ scope }) => Step("asdasd", scope.slackSendMessage)
+  );
+
+const workflow = UseCase("Say hello")
+  .entry(triggers("Gmail.newEmail"))
+
+  .steps(
+    ["asdasd", ($) => $.entry],
+
+    ({ scope }) =>
       run("Slack.sendMessage", {
         channel: "#general",
         text: `Does someone speak ${scope.asdasd.language}?`,
