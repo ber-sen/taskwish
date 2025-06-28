@@ -186,6 +186,10 @@ Steps(
   ["step 2", (scope) => scope]
 );
 
+const App = (() => {
+  return {} as any;
+}) as any;
+
 type Pretty<T> = { [K in keyof T]: T[K] } & {};
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -296,7 +300,7 @@ const Run = <const K>(
   params: { channel: string; text: string; [Options]?: any }
 ) => [key, () => params] as const;
 
-const Triggers = (asd: string) => ({ language: "string" }) as const;
+const Triggers = (asd: string) => ({ language: "string" } as const);
 
 const infra = Infra("asd").defs(
   ["get content", () => "asdas"],
@@ -338,6 +342,18 @@ const workflow = UseCase("Say hello")
 
     ({ scope }) => Step("asdasd", scope.slackSendMessage)
   );
+
+const app = App("My Awesome app")
+  .infras(infra)
+  .workflows(workflow)
+  .commands(["lorem --lang :language", useCase])
+  .routes(["/lang/:language", useCase]);
+
+app.up()
+app.down()
+app.cli();
+app.listen(3000);
+app.trigger();
 
 function* getEnv<T extends object>(): Generator<
   Meta<{
