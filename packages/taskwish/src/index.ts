@@ -279,7 +279,7 @@ const Options: unique symbol = Symbol("Options");
 
 // StepOptions
 
-const timeout = (timeout: number) => ({
+const Timeout = (timeout: number) => ({
   timeout,
 });
 
@@ -291,12 +291,12 @@ const File = <const K>(key: K, params: { path: string; content: string }) =>
 const Step = <const K, const P>(key: K, params: P) =>
   [key, () => params] as const;
 
-const run = <const K>(
+const Run = <const K>(
   key: K,
   params: { channel: string; text: string; [Options]?: any }
 ) => [key, () => params] as const;
 
-const triggers = (asd: string) => ({ language: "string" }) as const;
+const Triggers = (asd: string) => ({ language: "string" }) as const;
 
 const infra = Infra("asd").defs(
   ["get content", () => "asdas"],
@@ -314,26 +314,26 @@ const useCase = UseCase("Say hello")
     ["asdasd", ($) => $.entry],
 
     ({ scope }) =>
-      run("Slack.sendMessage", {
+      Run("Slack.sendMessage", {
         channel: "#general",
         text: `Does someone speak ${scope.asdasd.language}?`,
-        [Options]: [timeout(40)],
+        [Options]: [Timeout(40)],
       }),
 
     ({ scope }) => Step("asdasd", scope.slackSendMessage)
   );
 
 const workflow = UseCase("Say hello")
-  .entry(triggers("Gmail.newEmail"))
+  .entry(Triggers("Gmail.newEmail"))
 
   .steps(
     ["asdasd", ($) => $.entry],
 
     ({ scope }) =>
-      run("Slack.sendMessage", {
+      Run("Slack.sendMessage", {
         channel: "#general",
         text: `Does someone speak ${scope.asdasd.language}?`,
-        [Options]: [timeout(40)],
+        [Options]: [Timeout(40)],
       }),
 
     ({ scope }) => Step("asdasd", scope.slackSendMessage)
