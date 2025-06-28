@@ -435,7 +435,7 @@ async function* steps() {
   const res = yield* fetchUsers.stream({ name: "asdasd" });
 
   yield Meta({ type: "result", data: res });
-  yield Exception({ status: 400 });
+  yield Exception({ status: 400, errors: null });
   yield 4;
 
   return 3;
