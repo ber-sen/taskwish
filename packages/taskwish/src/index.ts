@@ -307,12 +307,10 @@ const Infra = <const Params extends string>(
   return name as any;
 };
 
-const Options: unique symbol = Symbol("Options");
-
-// StepOptions
-
-const withTimeout = (timeout: number) => ({
-  timeout,
+const Options = Object.assign(Symbol("Options"), {
+  timeout: (timeout: number) => ({
+    timeout,
+  }),
 });
 
 // Modifiers
@@ -359,7 +357,7 @@ const useCase = UseCase("Say hello")
       run("Slack.sendMessage", {
         channel: "#general",
         text: `Does someone speak ${scope.asdasd.language}?`,
-        [Options]: [withTimeout(40)],
+        [Options]: [Options.timeout(40)],
       }),
 
     ({ scope }) => Step("asdasd", scope.slackSendMessage)
@@ -375,7 +373,7 @@ const workflow = UseCase("Say hello")
       run("Slack.sendMessage", {
         channel: "#general",
         text: `Does someone speak ${scope.asdasd.language}?`,
-        [Options]: [withTimeout(40)],
+        [Options]: [Options.timeout(40)],
       }),
 
     ({ scope }) => Step("asdasd", scope.slackSendMessage)
