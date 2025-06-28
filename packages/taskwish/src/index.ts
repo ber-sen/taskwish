@@ -391,7 +391,7 @@ app.down();
 app.cli();
 app.listen(3000);
 app.trigger();
-app.chat;
+app.chat();
 
 function* Env<const def>(of: type.validate<def>): Generator<
   | Meta<{
