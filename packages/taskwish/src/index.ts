@@ -289,7 +289,7 @@ const withTimeout = (timeout: number) => ({
 
 // Modifiers
 
-const File = <const K>(key: K, params: { path: string; content: string }) =>
+const Resources = <const K>(key: K, params: { path: string; content: string }) =>
   [key, () => params] as const;
 
 const Step = <const K, const P>(key: K, params: P) =>
@@ -306,9 +306,12 @@ const infra = Infra("asd").defs(
   ["get content", () => "asdas"],
 
   ({ scope }) =>
-    File("config", { path: "./src/config.json", content: scope.getContent }),
+    Resources("file:config", {
+      path: "./src/config.json",
+      content: scope.getContent,
+    }),
 
-  () => File("main", { path: "./src/main.ts", content: "{}" })
+  () => Resources("file:main", { path: "./src/main.ts", content: "{}" })
 );
 
 const useCase = UseCase("Say hello")
@@ -349,8 +352,8 @@ const app = App("My Awesome app")
   .commands(["lorem --lang :language", useCase])
   .routes(["/lang/:language", useCase]);
 
-app.up()
-app.down()
+app.up();
+app.down();
 app.cli();
 app.listen(3000);
 app.trigger();
