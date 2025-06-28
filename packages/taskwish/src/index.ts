@@ -1,22 +1,43 @@
 import { type Type, type } from "arktype";
 
+interface Meta<
+  Params extends {
+    type: string;
+  }
+> {
+  meta: Params;
+  toString: () => string;
+}
+
+export const Meta = <
+  const Params extends {
+    type: string;
+  }
+>(
+  meta: Params
+): Meta<Params> => ({
+  meta,
+  toString: () => JSON.stringify(meta),
+});
+
 interface Exception<
-  Type extends {
+  Params extends {
     status: number;
   }
 > {
-  type: Type;
+  exception: Params;
   throw: () => void;
+  toString: () => string;
 }
 
 export const Exception = <
-  const Type extends {
+  const Params extends {
     status: number;
   }
 >(
-  type: Type
-): Exception<Type> => ({
-  type,
+  exception: Params
+): Exception<Params> => ({
+  exception,
   throw: () => {
     throw new Error(JSON.stringify(type));
   },
@@ -315,8 +336,10 @@ const action = Action(async function* (params: { name: string }) {
 });
 
 async function* steps() {
-  yield* action.stream({ name: "asdasd" });
-  yield 4;
+  const res = yield* action.stream({ name: "asdasd" });
+  
+  yield Meta({ type: "result", data: res });
+  yield Exception({ status: 400 });
 
   return 3;
 }
