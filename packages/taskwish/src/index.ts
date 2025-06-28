@@ -223,7 +223,35 @@ export interface Startable<Scope> {
   ): Scoped<Scope & Record<"entry", type.instantiate<Schema>["infer"]>>;
 }
 
-type UseCaseParams = string;
+export interface AgentFactory<Params, Scope extends Record<any, any> = {}>
+  extends Scoped<Scope>,
+    Extendable<Scope>,
+    Startable<Scope>,
+    ConfigurableAgent<Scope> {
+  entry<const Schema>(
+    entry: Schema extends Type<infer Schema>
+      ? Type<Schema>
+      : Schema extends object
+      ? type.validate<Schema>
+      : object
+  ): ConfigurableAgent<
+    Scope & Record<"entry", type.instantiate<Schema>["infer"]>
+  >;
+  use<const NewScope>(
+    newScope: NewScope
+  ): UseCaseFactory<Params, NewScope & Scope>;
+}
+
+interface ConfigurableAgent<Scope extends Record<any, any>>
+  extends Scoped<Scope> {
+  skills(...skills: any): any;
+}
+
+const Agent = <const Params extends string>(
+  name: Params
+): AgentFactory<Params> => {
+  return name as any;
+};
 
 export interface UseCaseFactory<Params, Scope extends Record<any, any> = {}>
   extends Scoped<Scope>,
@@ -244,7 +272,7 @@ export interface UseCaseFactory<Params, Scope extends Record<any, any> = {}>
   ): UseCaseFactory<Params, NewScope & Scope>;
 }
 
-const UseCase = <const Params extends UseCaseParams>(
+const UseCase = <const Params extends string>(
   name: Params
 ): UseCaseFactory<Params> => {
   return name as any;
@@ -316,6 +344,11 @@ const infra = Infra("asd").defs(
   () => resources("file:main", { path: "./src/main.ts", content: "{}" })
 );
 
+const agent = Agent("My agent")
+  .entry({ language: "string" })
+
+  .skills();
+
 const useCase = UseCase("Say hello")
   .entry({ language: "string" })
 
@@ -351,14 +384,16 @@ const workflow = UseCase("Say hello")
 const app = App("My Awesome app")
   .infras(infra)
   .workflows(workflow)
+  .agents(agent)
   .commands(["lorem --lang :language", useCase])
-  .routes(["/lang/:language", useCase]);
+  .routes(["/lang/:language", useCase], ["/agent/:langunage", agent]);
 
 app.up();
 app.down();
 app.cli();
 app.listen(3000);
 app.trigger();
+app.chat;
 
 function* Env<const def>(of: type.validate<def>): Generator<
   | Meta<{
