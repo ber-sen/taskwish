@@ -289,7 +289,7 @@ const withTimeout = (timeout: number) => ({
 
 // Modifiers
 
-const Resources = <const K>(
+const resources = <const K>(
   key: K,
   params: { path: string; content: string }
 ) => [key, () => params] as const;
@@ -297,23 +297,23 @@ const Resources = <const K>(
 const Step = <const K, const P>(key: K, params: P) =>
   [key, () => params] as const;
 
-const Run = <const K>(
+const run = <const K>(
   key: K,
   params: { channel: string; text: string; [Options]?: any }
 ) => [key, () => params] as const;
 
-const Triggers = (asd: string) => ({ language: "string" } as const);
+const triggers = (asd: string) => ({ language: "string" } as const);
 
 const infra = Infra("asd").defs(
   ["get content", () => "asdas"],
 
   ({ scope }) =>
-    Resources("file:config", {
+    resources("file:config", {
       path: "./src/config.json",
       content: scope.getContent,
     }),
 
-  () => Resources("file:main", { path: "./src/main.ts", content: "{}" })
+  () => resources("file:main", { path: "./src/main.ts", content: "{}" })
 );
 
 const useCase = UseCase("Say hello")
@@ -323,7 +323,7 @@ const useCase = UseCase("Say hello")
     ["asdasd", ($) => $.entry],
 
     ({ scope }) =>
-      Run("Slack.sendMessage", {
+      run("Slack.sendMessage", {
         channel: "#general",
         text: `Does someone speak ${scope.asdasd.language}?`,
         [Options]: [withTimeout(40)],
@@ -333,13 +333,13 @@ const useCase = UseCase("Say hello")
   );
 
 const workflow = UseCase("Say hello")
-  .entry(Triggers("Gmail.newEmail"))
+  .entry(triggers("Gmail.newEmail"))
 
   .steps(
     ["asdasd", ($) => $.entry],
 
     ({ scope }) =>
-      Run("Slack.sendMessage", {
+      run("Slack.sendMessage", {
         channel: "#general",
         text: `Does someone speak ${scope.asdasd.language}?`,
         [Options]: [withTimeout(40)],
