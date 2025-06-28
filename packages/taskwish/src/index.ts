@@ -279,7 +279,7 @@ const Options: unique symbol = Symbol("Options");
 
 // StepOptions
 
-const Timeout = (timeout: number) => ({
+const withTimeout = (timeout: number) => ({
   timeout,
 });
 
@@ -317,7 +317,7 @@ const useCase = UseCase("Say hello")
       Run("Slack.sendMessage", {
         channel: "#general",
         text: `Does someone speak ${scope.asdasd.language}?`,
-        [Options]: [Timeout(40)],
+        [Options]: [withTimeout(40)],
       }),
 
     ({ scope }) => Step("asdasd", scope.slackSendMessage)
@@ -333,7 +333,7 @@ const workflow = UseCase("Say hello")
       Run("Slack.sendMessage", {
         channel: "#general",
         text: `Does someone speak ${scope.asdasd.language}?`,
-        [Options]: [Timeout(40)],
+        [Options]: [withTimeout(40)],
       }),
 
     ({ scope }) => Step("asdasd", scope.slackSendMessage)
