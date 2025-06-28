@@ -1,7 +1,5 @@
 import { type Type, type } from "arktype";
 
-type Ctx = Map<any, any>;
-
 interface Exception<
   Type extends {
     status: number;
@@ -23,56 +21,26 @@ export const Exception = <
     throw new Error(JSON.stringify(type));
   },
 });
-interface ActionMeta {
-  type?: string;
-  exceptions?: Array<Exception<any>>;
+
+export interface Runnable<Stream, Result, Ctx> {
+  use: (ctx: Ctx) => Omit<Runnable<Stream, Result, Ctx>, "ctx">;
+  run(): Result;
+  stream(): AsyncGenerator<Stream, Result, undefined>;
 }
-export interface Runnable<
-  Result,
-  Meta extends ActionMeta | undefined = undefined
-> {
-  (ctx?: Ctx): Result;
-  meta?: Meta;
-}
-export interface Action<
-  Params,
-  Result,
-  Meta extends ActionMeta | undefined = undefined
-> {
-  (params: Params, ctx?: Ctx): Result;
-  meta?: Meta;
+export interface Action<Params extends Array<any>, Stream, Result, Ctx> {
+  use: (ctx: Ctx) => Omit<Action<Params, Stream, Result, Ctx>, "ctx">;
+  run(...params: Params): Result;
+  stream(...params: Params): AsyncGenerator<Stream, Result, undefined>;
 }
 
-interface ActionMetaParams {
-  type: string;
-  exceptions?: Array<Exception<any>>;
-}
-
-function Action<const Result, const Params>(
-  execute: (params: Params, ctx?: Ctx) => Result
-): Params extends object ? Action<Params, Result> : Runnable<Result>;
-
-function Action<
-  const Params,
-  const Result,
-  const Meta extends ActionMetaParams
->(
-  meta: Meta,
-  execute: Params extends object
-    ? {
-        (params: Params, ctx: Ctx): Result;
-        meta?: Meta;
-      }
-    : {
-        (ctx: Ctx): Result;
-        meta?: Meta;
-      }
+function Action<Params extends Array<any>, Stream, Result, Ctx>(
+  execute: (
+    ...params: Params
+  ) => AsyncGenerator<Stream, Result, Ctx> | Generator<Stream, Result, Ctx>
 ): Params extends object
-  ? Action<Params, Result, Meta>
-  : Runnable<Result, Meta>;
-
-function Action() {
-  return {} as any;
+  ? Action<Params, Stream, Result, Ctx>
+  : Runnable<Stream, Result, Ctx> {
+  return execute as any;
 }
 
 export type Input<T extends object> = Type<T>;
@@ -334,4 +302,21 @@ const useCase = UseCase("Say hello")
     ({ scope }) => Step("asdasd", scope.slackSendMessage)
   );
 
-console.log(useCase);
+function* getEnv<T extends object>(): Generator<"ctx", T, Record<"env", T>> {
+  const ctx = yield "ctx";
+
+  return ctx.env;
+}
+
+const action = Action(async function* (params: { name: string }) {
+  const env = yield* getEnv<{ API_KEY: string }>();
+
+  return await Promise.resolve(env.API_KEY + params.name);
+});
+
+async function* steps() {
+  yield* action.stream({ name: "asdasd" });
+  yield 4;
+
+  return 3;
+}
