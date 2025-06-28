@@ -289,8 +289,10 @@ const withTimeout = (timeout: number) => ({
 
 // Modifiers
 
-const Resources = <const K>(key: K, params: { path: string; content: string }) =>
-  [key, () => params] as const;
+const Resources = <const K>(
+  key: K,
+  params: { path: string; content: string }
+) => [key, () => params] as const;
 
 const Step = <const K, const P>(key: K, params: P) =>
   [key, () => params] as const;
@@ -358,22 +360,26 @@ app.cli();
 app.listen(3000);
 app.trigger();
 
-function* getEnv<T extends object>(): Generator<
+function* Env<const def>(of: type.validate<def>): Generator<
   Meta<{
     type: "requires";
     requires: "ctx";
-    data: T;
+    data: type.instantiate<def>;
   }>,
-  T,
-  Record<"env", T>
+  type.instantiate<def>["infer"],
+  Record<"env", type.instantiate<def>>
 > {
-  const ctx = yield Meta({ type: "requires", requires: "ctx", data: {} as T });
+  const ctx = yield Meta({
+    type: "requires",
+    requires: "ctx",
+    data: {} as type.instantiate<def>,
+  });
 
-  return ctx.env;
+  return ctx.env as any;
 }
 
 const fetchUsers = Action(async function* (params: { name: string }) {
-  const env = yield* getEnv<{ DATABASE_API_KEY: string }>();
+  const env = yield* Env({ DATABASE_API_KEY: "string" });
 
   return await Promise.resolve(env.DATABASE_API_KEY + params.name);
 });
