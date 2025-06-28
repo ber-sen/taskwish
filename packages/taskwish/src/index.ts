@@ -45,12 +45,12 @@ export const Exception = <
 
 export interface Runnable<Stream, Result, Ctx> {
   use: (ctx: Ctx) => Omit<Runnable<Stream, Result, Ctx>, "ctx">;
-  run(): Result;
+  run(): Promise<Result>;
   stream(): AsyncGenerator<Stream, Result, undefined>;
 }
 export interface Action<Params extends Array<any>, Stream, Result, Ctx> {
   use: (ctx: Ctx) => Omit<Action<Params, Stream, Result, Ctx>, "ctx">;
-  run(...params: Params): Result;
+  run(...params: Params): Promise<Result>;
   stream(...params: Params): AsyncGenerator<Stream, Result, undefined>;
 }
 
@@ -337,18 +337,18 @@ function* getEnv<T extends object>(): Generator<
   return ctx.env;
 }
 
-const action = Action(async function* (params: { name: string }) {
-  const env = yield* getEnv<{ API_KEY: string }>();
+const fetchUsers = Action(async function* (params: { name: string }) {
+  const env = yield* getEnv<{ DATABASE_API_KEY: string }>();
 
-  return await Promise.resolve(env.API_KEY + params.name);
+  return await Promise.resolve(env.DATABASE_API_KEY + params.name);
 });
 
 async function* steps() {
-  const res = yield* action.stream({ name: "asdasd" });
+  const res = yield* fetchUsers.stream({ name: "asdasd" });
 
   yield Meta({ type: "result", data: res });
   yield Exception({ status: 400 });
-  yield 4
+  yield 4;
 
   return 3;
 }
