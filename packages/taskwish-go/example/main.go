@@ -4,7 +4,7 @@ import . "github.com/ber-sen/taskwish/packages/taskwish-go"
 
 func main() {
 	type Input struct {
-		User    string
+		User    string `validate:"required,email"`
 		Channel string `json:"channel"`
 	}
 
