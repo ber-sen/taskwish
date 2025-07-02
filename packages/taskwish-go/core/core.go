@@ -15,9 +15,9 @@ type Customizable struct {
 }
 
 type Step[T any] struct {
-	Customizable
 	Name    string
 	Handler StepHandler[T]
+	Customizable
 }
 
 type UseCaseFactory struct {
