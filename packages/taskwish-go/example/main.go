@@ -17,7 +17,7 @@ func main() {
 		Steps(
 			Step("greet",
 				func(scope Scope) string {
-					input := Get("input", scope).(Input)
+					input := Get("entry", scope).(Input)
 
 					return "Hello " + input.User
 				},
