@@ -3,7 +3,6 @@ import { getQueryInfo } from "./helpers";
 import * as schema from "./schema";
 import { taskWishPackages } from "./schema";
 import { Store } from ".";
-import { useLoadQuery } from "./hooks";
 
 const { store, setData } = Store({ schema });
 
@@ -60,14 +59,14 @@ const updatePackageName = (id: string, name: string) =>
   store
     .update(taskWishPackages)
     .set({ name })
-    .where(eq(taskWishPackages.id, id));
+    .where(eq(taskWishPackages.id, id))
 
 const listPackages = (limit: number = 20) =>
   store
     .select({
       id: taskWishPackages.id,
-      createdAt: taskWishPackages.createdAt,
       name: taskWishPackages.name,
+      createdAt: taskWishPackages.createdAt,
     })
     .from(taskWishPackages)
     .limit(limit)
@@ -80,24 +79,22 @@ const PackageQueries = {
   updatePackageName,
 };
 
-const { key } = getQueryInfo(PackageQueries.updatePackageName);
+// const { key } = getQueryInfo(PackageQueries.updatePackageName);
 
-console.log("QUERY", key);
+// console.log("QUERY", key);
 
 // const packageResolver = Resolver(Queries).resolve({
 //   listPackages: () => {},
 // });
 
-const result = useLoadQuery(PackageQueries.listPackages());
+const result = await PackageQueries.listPackages();
 
 console.table(result);
 
-const result2 = useLoadQuery(
-  PackageQueries.updatePackageName(result.at(0)!.id, "asd")
-);
+const result2 = await PackageQueries.updatePackageName(result.at(0)!.id, "asd")
 
-console.table(result2);
+console.log(result2);
 
-const finalResult = useLoadQuery(PackageQueries.listPackages());
+const finalResult = await PackageQueries.listPackages();
 
 console.table(finalResult);

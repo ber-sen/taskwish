@@ -26,7 +26,7 @@
         "drizzle-orm": "^0.44.2",
       },
     },
-    "packages/taskwish-store": {
+    "packages/taskwish-db copy": {
       "name": "taskwish-store",
       "version": "0.0.1",
       "dependencies": {
@@ -399,7 +399,7 @@
 
     "taskwish-db": ["taskwish-db@workspace:packages/taskwish-db"],
 
-    "taskwish-store": ["taskwish-store@workspace:packages/taskwish-store"],
+    "taskwish-store": ["taskwish-store@workspace:packages/taskwish-db copy"],
 
     "tinyglobby": ["tinyglobby@0.2.13", "", { "dependencies": { "fdir": "^6.4.4", "picomatch": "^4.0.2" } }, "sha512-mEwzpUgrLySlveBwEVDMKk5B57bhLPYovRfPAXD5gA/98Opn0rCDj3GtLwFvCvH5RK9uPCExUROW5NjDwvqkxw=="],
 

@@ -3,12 +3,11 @@ import { sql } from "drizzle-orm";
 import alasql from "alasql";
 
 export const taskWishPackages = sqliteTable("package", {
-  id: text("id").primaryKey().notNull(),
-  name: text("name").notNull(),
+  id: text("id").primaryKey(),
+  name: text("name"),
   description: text("description"),
   main: text("main"),
   createdAt: text("created_at")
-    .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text("updated_at"),
 });
