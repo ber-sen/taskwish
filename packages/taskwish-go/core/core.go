@@ -2,31 +2,27 @@ package core
 
 import "context"
 
-type StringType string
-
-type Schema map[string]StringType
-
 type Scope context.Context
 
-type Params map[string]interface{}
+type Params map[string]any
 
-type StepHandler func(scope Scope) interface{}
+type StepHandler[T any] func(scope Scope) T
 
-type Option func(scope Scope, value interface{}) interface{}
+type Option func(scope Scope, value any) any
 
 type Customizable struct {
 	Options []Option
 }
 
-type Step struct {
+type Step[T any] struct {
 	Customizable
 	Name    string
-	Handler StepHandler
+	Handler StepHandler[T]
 }
 
 type UseCaseFactory struct {
 	Name  string
-	Input Schema
-	Steps []Step
+	Input any
+	Steps []Step[any]
 	Scope Scope
 }

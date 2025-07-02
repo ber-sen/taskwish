@@ -11,26 +11,31 @@ type Scope = core.Scope
 
 type Params = core.Params
 
-func Get(key string, scopes ...Scope) interface{} {
+func Get(key string, scopes ...Scope) any {
 	ctx := scopes[0]
 
 	return ctx.Value(key)
 }
 
-func Step(name string, handler core.StepHandler, options ...core.Option) core.Step {
-	return core.Step{
+func Step[T any](name string, handler core.StepHandler[T], options ...core.Option) core.Step[any] {
+	wrappedHandler := func(scope core.Scope) any {
+		result := handler(scope)
+		return any(result)
+	}
+
+	return core.Step[any]{
 		Name:    name,
-		Handler: handler,
+		Handler: wrappedHandler,
 		Customizable: core.Customizable{
 			Options: options,
 		},
 	}
 }
 
-func Run(name string, params Params, options ...core.Option) core.Step {
-	return core.Step{
+func Run(name string, params Params, options ...core.Option) core.Step[any] {
+	return core.Step[any]{
 		Name: name,
-		Handler: func(props core.Scope) interface{} {
+		Handler: func(props core.Scope) any {
 			fmt.Printf("Trigger sent to channel %s", params)
 			return nil
 		},
@@ -43,13 +48,12 @@ func Run(name string, params Params, options ...core.Option) core.Step {
 type UseCaseFactory struct {
 	name  string
 	entry any
-	steps []core.Step
+	steps []core.Step[any]
 }
 
 func UseCase(name string) UseCaseFactory {
 	return UseCaseFactory{
-		name:  name,
-		entry: make(core.Schema),
+		name: name,
 	}
 }
 
@@ -58,7 +62,7 @@ func (uc UseCaseFactory) Entry(schema any) UseCaseFactory {
 	return uc
 }
 
-func (uc UseCaseFactory) Steps(steps ...core.Step) UseCaseFactory {
+func (uc UseCaseFactory) Steps(steps ...core.Step[any]) UseCaseFactory {
 	uc.steps = steps
 	return uc
 }
@@ -77,7 +81,7 @@ func (uc *UseCaseFactory) Run(scope core.Scope) {
 }
 
 func WithTimeout(duration time.Duration) core.Option {
-	return func(ctx core.Scope, value interface{}) interface{} {
+	return func(ctx core.Scope, value any) any {
 		time.Sleep(duration)
 		return value
 	}

@@ -16,7 +16,7 @@ func main() {
 		Entry(&Input{}).
 		Steps(
 			Step("greet",
-				func(scope Scope) interface{} {
+				func(scope Scope) string {
 					input := Get("input", scope).(Input)
 
 					return "Hello " + input.User
