@@ -1,6 +1,10 @@
 package main
 
-import . "github.com/ber-sen/taskwish/packages/taskwish-go"
+import (
+	"context"
+
+	. "github.com/ber-sen/taskwish/packages/taskwish-go"
+)
 
 func main() {
 	type Input struct {
@@ -12,8 +16,8 @@ func main() {
 		Entry(&Input{}).
 		Steps(
 			Step("greet",
-				func(props StepProps) interface{} {
-					input := props.Get("input").(Input)
+				func(scope Scope) interface{} {
+					input := Get("input", scope).(Input)
 
 					return "Hello " + input.User
 				},
@@ -21,13 +25,13 @@ func main() {
 			),
 			Run("Slack.sendMessage",
 				Params{
-					"...":     Param("scope"),
-					"channel": Param("scope.greet"),
+					"...":     Get("scope"),
+					"channel": Get("scope.greet"),
 					"text":    "test",
 				},
 				WithTimeout(100),
 			),
 		)
 
-	uc.Run()
+	uc.Run(context.Background())
 }

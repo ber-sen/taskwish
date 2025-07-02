@@ -6,20 +6,13 @@ type StringType string
 
 type Schema map[string]StringType
 
-type Scope map[string]interface{}
-
-type StepProps struct{}
-
-func (s StepProps) Get(value string) any {
-	var result any
-	return result
-}
+type Scope context.Context
 
 type Params map[string]interface{}
 
-type StepHandler func(props StepProps) interface{}
+type StepHandler func(scope Scope) interface{}
 
-type Option func(ctx context.Context, value interface{}) interface{}
+type Option func(scope Scope, value interface{}) interface{}
 
 type Customizable struct {
 	Options []Option

@@ -1,7 +1,6 @@
 package taskwish
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -12,10 +11,10 @@ type Scope = core.Scope
 
 type Params = core.Params
 
-type StepProps = core.StepProps
+func Get(key string, scopes ...Scope) interface{} {
+	ctx := scopes[0]
 
-func Param(name string) interface{} {
-	return nil
+	return ctx.Value(key)
 }
 
 func Step(name string, handler core.StepHandler, options ...core.Option) core.Step {
@@ -31,7 +30,7 @@ func Step(name string, handler core.StepHandler, options ...core.Option) core.St
 func Run(name string, params Params, options ...core.Option) core.Step {
 	return core.Step{
 		Name: name,
-		Handler: func(props core.StepProps) interface{} {
+		Handler: func(props core.Scope) interface{} {
 			fmt.Printf("Trigger sent to channel %s", params)
 			return nil
 		},
@@ -45,14 +44,12 @@ type UseCaseFactory struct {
 	name  string
 	entry any
 	steps []core.Step
-	scope core.Scope
 }
 
 func UseCase(name string) UseCaseFactory {
 	return UseCaseFactory{
 		name:  name,
 		entry: make(core.Schema),
-		scope: make(core.Scope),
 	}
 }
 
@@ -66,12 +63,12 @@ func (uc UseCaseFactory) Steps(steps ...core.Step) UseCaseFactory {
 	return uc
 }
 
-func (uc *UseCaseFactory) Run() {
+func (uc *UseCaseFactory) Run(scope core.Scope) {
 	fmt.Printf("Running UseCase: %s\n", uc.name)
 
 	for _, step := range uc.steps {
 		fmt.Printf("Step: %s\n", step.Name)
-		result := step.Handler(core.StepProps{})
+		result := step.Handler(scope)
 
 		if result != nil {
 			fmt.Printf("Result: %v\n", result)
@@ -80,7 +77,7 @@ func (uc *UseCaseFactory) Run() {
 }
 
 func WithTimeout(duration time.Duration) core.Option {
-	return func(ctx context.Context, value interface{}) interface{} {
+	return func(ctx core.Scope, value interface{}) interface{} {
 		time.Sleep(duration)
 		return value
 	}
