@@ -1,0 +1,27 @@
+{
+  "name": "taskwish-store",
+  "version": "0.0.1",
+  "description": "Taskwish store",
+  "license": "Elastic-2.0",
+  "author": "Bersen Pajaziti",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "unbuild"
+  },
+  "dependencies": {
+    "alasql": "^4.6.6",
+    "arktype": "^2.1.20",
+    "drizzle-orm": "^0.44.2"
+  }
+}
