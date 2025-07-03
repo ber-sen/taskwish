@@ -17,6 +17,20 @@ func Get(key string, scopes ...Scope) any {
 	return ctx.Value(key)
 }
 
+func AsyncStep(name string, handler func(yield chan<- any, scope Scope), options ...core.Option) core.Step[any] {
+	wrappedHandler := func(scope core.Scope) any {
+		return 3
+	}
+
+	return core.Step[any]{
+		Name:    name,
+		Handler: wrappedHandler,
+		Customizable: core.Customizable{
+			Options: options,
+		},
+	}
+}
+
 func Step[T any](name string, handler core.StepHandler[T], options ...core.Option) core.Step[any] {
 	wrappedHandler := func(scope core.Scope) any {
 		result := handler(scope)
