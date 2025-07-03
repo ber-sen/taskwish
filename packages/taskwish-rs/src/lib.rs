@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
 macro_rules! steps {
-    ( $( $name:ident : $ret:ty => $func:expr ),* $(,)? ) => {{
+    ( $( $name:ident -> $ret:ty => $func:expr ),* $(,)? ) => {{
         let mut steps = AnyMap::new();
         let mut json_map: HashMap<&'static str, String> = HashMap::new();
 
@@ -43,28 +43,28 @@ macro_rules! steps {
 pub fn hello() -> String {
     let (_steps, json_map) = steps!(
 
-        HelloWorld: String =>
+        HelloWorld -> String =>
             |_scope| "Hello, Bersen!".to_string(),
 
-        AgeStep: String =>
+        AgeStep -> String =>
             |scope: &AnyMap| {
                 let step = scope.get::<HelloWorld>().expect("Not found");
                 step.value.to_string()
 
         },
 
-        IsAdmin: String =>
+        IsAdmin -> String =>
             |_scope| {
                 let (_steps, json_map) = steps!(
 
-                    Asd: String =>
+                    Asd -> String =>
                         |scope: &AnyMap| {
                             let res = scope.get::<AgeStep>()
                                 .map(|s| s.value.clone())
                                 .unwrap_or_else(|| "default".to_string());
                             res
                     }
-                    
+
                 );
 
                 let combined_json = serde_json::to_string(&json_map).unwrap();
