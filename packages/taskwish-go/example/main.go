@@ -16,11 +16,12 @@ func main() {
 	uc := UseCase("SayHello").
 		Entry(&Input{}).
 		Steps(
-			AsyncStep("async", func(yield chan<- any, scope Scope) {
-				time.Sleep(1 * time.Second)
-				result := 42
-				yield <- result
-			}),
+			AsyncStep("async",
+				func(yield chan<- any, scope Scope) {
+					time.Sleep(1 * time.Second)
+					result := 42
+					yield <- result
+				}),
 			Step("greet",
 				func(scope Scope) string {
 					input := Get("entry", scope).(Input)
