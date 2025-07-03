@@ -353,14 +353,11 @@ const useCase = UseCase("Say hello")
   .steps(
     ["asdasd", ($) => $.entry],
 
-    ({ scope }) =>
-      run("Slack.sendMessage", {
-        channel: "#general",
-        text: `Does someone speak ${scope.asdasd.language}?`,
-        [Options]: [Options.timeout(40)],
-      }),
+    ({ flow: { when } }) =>
+      when(1 < 2)
+        .is(true, Step("asdasd", "asdds"))
 
-    ({ scope }) => Step("asdasd", scope.slackSendMessage)
+        .else(Step("asdasd", "asdds"))
   );
 
 const workflow = UseCase("Say hello")
