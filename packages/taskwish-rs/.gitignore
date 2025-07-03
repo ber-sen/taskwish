@@ -1,0 +1,42 @@
+# === Rust ===
+/target/
+**/*.rs.bk
+
+# === Cargo package manager ===
+/Cargo.lock
+/.cargo/
+/.cargo/
+
+# === Rustup ===
+/rustup/
+
+# === IntelliJ & CLion (JetBrains) ===
+.idea/
+*.iml
+
+# === VS Code ===
+.vscode/
+
+# === macOS ===
+.DS_Store
+
+# === Windows ===
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# === Logs & temp ===
+*.log
+*.tmp
+
+# === Test output ===
+/tests/output/
+
+# === Coverage ===
+/coverage/
+
+# === Misc ===
+*.swp
+*.swo
+*.bak
+*.orig
