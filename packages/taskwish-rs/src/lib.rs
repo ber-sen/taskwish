@@ -42,6 +42,7 @@ macro_rules! steps {
 #[wasm_bindgen]
 pub fn hello() -> String {
     let (_steps, json_map) = steps!(
+
         HelloWorld: String =>
             |_scope| "Hello, Bersen!".to_string(),
 
@@ -55,6 +56,7 @@ pub fn hello() -> String {
         IsAdmin: String =>
             |_scope| {
                 let (_steps, json_map) = steps!(
+
                     Asd: String =>
                         |scope: &AnyMap| {
                             let res = scope.get::<AgeStep>()
@@ -62,6 +64,7 @@ pub fn hello() -> String {
                                 .unwrap_or_else(|| "default".to_string());
                             res
                     }
+                    
                 );
 
                 let combined_json = serde_json::to_string(&json_map).unwrap();
