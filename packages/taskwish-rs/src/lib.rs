@@ -1,9 +1,9 @@
 use anymap::AnyMap;
 use serde::Serialize;
 use serde_json;
-use serde_json::{Map, Value};
-use wasm_bindgen::prelude::*;
+use serde_json::Map;
 type Scope = AnyMap;
+use worker::*;
 
 macro_rules! step {
     ($closure:expr) => {
@@ -43,7 +43,7 @@ macro_rules! steps {
             }
 
             let step_instance = $name::new(&steps);
-            json_map.insert(stringify!($name).to_string(), Value::String(serde_json::to_string(&step_instance.value).unwrap()));
+            json_map.insert(stringify!($name).to_string(), serde_json::to_value(&step_instance.value).unwrap());
             steps.insert(step_instance);
         )*
 
@@ -100,8 +100,10 @@ pub mod taskwish {
     }
 }
 
-#[wasm_bindgen]
-pub fn hello() -> String {
+#[event(fetch)]
+async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
+    console_error_panic_hook::set_once();
+
     let steps = steps!(
         (HelloWorld, taskwish::slack::SendMessage),
         step!(|_scope| taskwish::slack::SendMessage::build()
@@ -116,6 +118,5 @@ pub fn hello() -> String {
         step!(|_scope| 3)
     );
 
-    let combined_json = serde_json::to_string(&steps.1).unwrap();
-    combined_json
+    Response::from_json(&steps.1)
 }

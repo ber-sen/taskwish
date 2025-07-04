@@ -40,3 +40,5 @@ Desktop.ini
 *.swo
 *.bak
 *.orig
+
+.env.local
