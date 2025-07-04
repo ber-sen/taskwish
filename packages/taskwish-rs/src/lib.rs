@@ -1,13 +1,13 @@
 use anymap::AnyMap;
 use serde::Serialize;
 use serde_json;
-use std::collections::HashMap;
+use serde_json::{Map, Value};
 use wasm_bindgen::prelude::*;
 
 macro_rules! steps {
     ( $( $name:ident -> $ret:ty => $func:expr ),* $(,)? ) => {{
         let mut steps = AnyMap::new();
-        let mut json_map: HashMap<&'static str, String> = HashMap::new();
+        let mut json_map = Map::new();
 
         $(
             #[derive(Serialize)]
@@ -31,7 +31,7 @@ macro_rules! steps {
             }
 
             let step_instance = $name::new(&steps);
-            json_map.insert(stringify!($name), serde_json::to_string(&step_instance.value).unwrap());
+            json_map.insert(stringify!($name).to_string(), Value::String(serde_json::to_string(&step_instance.value).unwrap()));
             steps.insert(step_instance);
         )*
 
@@ -39,24 +39,38 @@ macro_rules! steps {
     }};
 }
 
+pub mod taskwish {
+    pub mod slack {
+        use serde::Serialize;
+        #[derive(Serialize)]
+        pub struct SendMessage {
+            pub channel: String,
+            pub message: String,
+        }
+
+        impl SendMessage {
+            pub fn run(channel: &str, message: &str) -> Self {
+                Self {
+                    channel: channel.to_string(),
+                    message: message.to_string(),
+                }
+            }
+        }
+    }
+}
+
 #[wasm_bindgen]
 pub fn hello() -> String {
-    let (_steps, json_map) = steps!(
+    let steps = steps!(
+        HelloWorld -> taskwish::slack::SendMessage =>
+            |_scope| taskwish::slack::SendMessage::run("#general", "Hello World!"),
 
-        HelloWorld -> String =>
-            |_scope| "Hello, Bersen!".to_string(),
-
-        AgeStep -> String =>
-            |scope: &AnyMap| {
-                let step = scope.get::<HelloWorld>().expect("Not found");
-                step.value.to_string()
-
-        },
+        AgeStep -> String => |scope: &AnyMap|
+            scope.get::<HelloWorld>().expect("Not found").value.message.clone(),
 
         IsAdmin -> String =>
             |_scope| {
-                let (_steps, json_map) = steps!(
-
+                let steps = steps!(
                     Asd -> String =>
                         |scope: &AnyMap| {
                             let res = scope.get::<AgeStep>()
@@ -64,15 +78,14 @@ pub fn hello() -> String {
                                 .unwrap_or_else(|| "default".to_string());
                             res
                     }
-
                 );
 
-                let combined_json = serde_json::to_string(&json_map).unwrap();
+                let combined_json = serde_json::to_string(&steps.1).unwrap();
                 combined_json
         },
     );
 
-    let combined_json = serde_json::to_string(&json_map).unwrap();
+    let combined_json = serde_json::to_string(&steps.1).unwrap();
 
     combined_json
 }
