@@ -6,9 +6,17 @@ type Scope = AnyMap;
 use worker::*;
 
 macro_rules! step {
+    (|$input:ident : ($($ty:ty),+)| $body:block) => {{
+        move |scope: &Scope| {
+            let $input = (
+                $(scope.get::<$ty>().unwrap().get()),+
+            );
+            $body
+        }
+    }};
     (|$var:ident : $inp:ty| $body:block) => {{
         move |scope: &Scope| {
-            let $var = scope.get::<$inp>().unwrap();
+            let $var = scope.get::<$inp>().unwrap().get();
             $body
         }
     }};
@@ -119,11 +127,11 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
                 .run()
         ),
         //
-        (AgeStep, String),
-        step!(|input: HelloWorld| { input.get().message.clone() }),
-        //
         (Final, i128),
-        step!(3)
+        step!(3),
+        //
+        (AgeStep, String),
+        step!(|input: (HelloWorld, Final)| { input.0.message.clone() }),
     );
 
     Response::from_json(&steps.1)
