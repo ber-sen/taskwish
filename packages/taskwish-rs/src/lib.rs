@@ -62,7 +62,7 @@ pub mod taskwish {
         }
 
         impl SendMessage {
-            pub fn new() -> SendMessageBuilder {
+            pub fn build() -> SendMessageBuilder {
                 SendMessageBuilder::new()
             }
         }
@@ -104,7 +104,7 @@ pub mod taskwish {
 pub fn hello() -> String {
     let steps = steps!(
         (HelloWorld, taskwish::slack::SendMessage),
-        step!(|_scope| taskwish::slack::SendMessage::new()
+        step!(|_scope| taskwish::slack::SendMessage::build()
             .channel("#general")
             .message("HelloWorld")
             .run()),
