@@ -6,13 +6,11 @@ type Scope = AnyMap;
 use worker::*;
 
 macro_rules! step {
-    ($inp:ty, $closure:expr) => {{
-        let wrapped = move |scope: &Scope| {
-            let input = scope.get::<$inp>().unwrap();
-
-            ($closure)(input)
-        };
-        wrapped
+    (|$var:ident : $inp:ty| $body:block) => {{
+        move |scope: &Scope| {
+            let $var = scope.get::<$inp>().unwrap();
+            $body
+        }
     }};
     ($closure:expr) => {
         |_scope: &Scope| $closure
@@ -122,7 +120,7 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
         ),
         //
         (AgeStep, String),
-        step!(HelloWorld, |input: &HelloWorld| input.get().message.clone()),
+        step!(|input: HelloWorld| { input.get().message.clone() }),
         //
         (Final, i128),
         step!(3)
