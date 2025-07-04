@@ -42,17 +42,46 @@ macro_rules! steps {
 pub mod taskwish {
     pub mod slack {
         use serde::Serialize;
-        #[derive(Serialize)]
+
+        #[derive(Serialize, Debug)]
         pub struct SendMessage {
-            pub channel: String,
-            pub message: String,
+            channel: String,
+            pub(crate) message: String,
         }
 
         impl SendMessage {
-            pub fn run(channel: &str, message: &str) -> Self {
+            pub fn new() -> SendMessageBuilder {
+                SendMessageBuilder::new()
+            }
+        }
+
+        pub struct SendMessageBuilder {
+            channel: Option<String>,
+            message: Option<String>,
+        }
+
+        impl SendMessageBuilder {
+            pub fn new() -> Self {
                 Self {
-                    channel: channel.to_string(),
-                    message: message.to_string(),
+                    channel: None,
+                    message: None,
+                }
+            }
+
+            pub fn channel(mut self, channel: &str) -> Self {
+                self.channel = Some(channel.to_string());
+                self
+            }
+
+            pub fn message(mut self, message: &str) -> Self {
+                self.message = Some(message.to_string());
+                self
+            }
+
+            pub fn run(self) -> SendMessage {
+                SendMessage {
+                    channel: self.channel.unwrap(),
+                    message: self.message.unwrap(),
                 }
             }
         }
@@ -63,7 +92,10 @@ pub mod taskwish {
 pub fn hello() -> String {
     let steps = steps!(
         HelloWorld -> taskwish::slack::SendMessage =>
-            |_scope| taskwish::slack::SendMessage::run("#general", "Hello World!"),
+            |_scope| taskwish::slack::SendMessage::new()
+                .channel("#general")
+                .message("HelloWorld")
+                .run(),
 
         AgeStep -> String => |scope: &AnyMap|
             scope.get::<HelloWorld>().expect("Not found").value.message.clone(),
@@ -86,6 +118,5 @@ pub fn hello() -> String {
     );
 
     let combined_json = serde_json::to_string(&steps.1).unwrap();
-
     combined_json
 }
