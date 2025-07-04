@@ -104,15 +104,13 @@ pub mod taskwish {
 pub fn hello() -> String {
     let steps = steps!(
         (HelloWorld, taskwish::slack::SendMessage),
-        step!(|_scope| {
-            taskwish::slack::SendMessage::new()
-                .channel("#general")
-                .message("HelloWorld")
-                .run()
-        }),
+        step!(|_scope| taskwish::slack::SendMessage::new()
+            .channel("#general")
+            .message("HelloWorld")
+            .run()),
         //
         (AgeStep, String),
-        step!(|scope: &Scope| { scope.get::<HelloWorld>().unwrap().get().message.clone() }),
+        step!(|scope: &Scope| scope.get::<HelloWorld>().unwrap().get().message.clone()),
         //
         (Final, i128),
         step!(|_scope| 3)
