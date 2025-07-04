@@ -3,15 +3,12 @@ use serde::Serialize;
 use serde_json;
 use serde_json::{Map, Value};
 use wasm_bindgen::prelude::*;
-
 type Scope = AnyMap;
 
-#[allow(dead_code)]
-fn step<F, V>(input: F) -> F
-where
-    F: Fn(&Scope) -> V,
-{
-    input
+macro_rules! step {
+    ($closure:expr) => {
+        $closure
+    };
 }
 
 macro_rules! steps {
@@ -107,16 +104,18 @@ pub mod taskwish {
 pub fn hello() -> String {
     let steps = steps!(
         (HelloWorld, taskwish::slack::SendMessage),
-        step(|_scope| {
+        step!(|_scope| {
             taskwish::slack::SendMessage::new()
                 .channel("#general")
                 .message("HelloWorld")
                 .run()
         }),
+        //
         (AgeStep, String),
-        step(|scope| { scope.get::<HelloWorld>().unwrap().get().message.clone() }),
-        (Lorem, i128),
-        step(|_scope| 4),
+        step!(|scope: &Scope| { scope.get::<HelloWorld>().unwrap().get().message.clone() }),
+        //
+        (Final, i128),
+        step!(|_scope| 3)
     );
 
     let combined_json = serde_json::to_string(&steps.1).unwrap();
