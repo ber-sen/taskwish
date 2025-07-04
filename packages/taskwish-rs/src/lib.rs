@@ -15,7 +15,12 @@ where
 }
 
 macro_rules! steps {
-    ( $( $name:ident -> $ret:ty => $func:expr ),* $(,)? ) => {{
+    (
+        $(
+            ($name:ident, $ret:ty),
+            $func:expr
+        ),* $(,)?
+    ) => {{
         let mut steps = Scope::new();
         let mut json_map = Map::new();
 
@@ -101,34 +106,17 @@ pub mod taskwish {
 #[wasm_bindgen]
 pub fn hello() -> String {
     let steps = steps!(
-        HelloWorld -> taskwish::slack::SendMessage =>
-            step(|_scope| {
-                taskwish::slack::SendMessage::new()
-                    .channel("#general")
-                    .message("HelloWorld")
-                    .run()
-            }),
-
-        AgeStep -> String =>
-            step(|scope| {
-                scope.get::<HelloWorld>().expect("Not found").value.message.clone()
-            }), 
-
-        IsAdmin -> String =>
-            step(|_scope| {
-                let steps = steps!(
-                    Asd -> String =>
-                        |scope: &AnyMap| {
-                            let res = scope.get::<AgeStep>()
-                                .map(|s| s.value.clone())
-                                .unwrap_or_else(|| "default".to_string());
-                            res
-                    }
-                );
-
-                let combined_json = serde_json::to_string(&steps.1).unwrap();
-                combined_json
-            })
+        (HelloWorld, taskwish::slack::SendMessage),
+        step(|_scope| {
+            taskwish::slack::SendMessage::new()
+                .channel("#general")
+                .message("HelloWorld")
+                .run()
+        }),
+        (AgeStep, String),
+        step(|scope| { scope.get::<HelloWorld>().unwrap().get().message.clone() }),
+        (Lorem, i128),
+        step(|_scope| 4),
     );
 
     let combined_json = serde_json::to_string(&steps.1).unwrap();
