@@ -5,7 +5,7 @@ use serde_json::Map;
 type Scope = AnyMap;
 use worker::*;
 
-macro_rules! step_input {
+macro_rules! step {
     ($inp:ty, $closure:expr) => {{
         let wrapped = move |scope: &Scope| {
             let input = scope.get::<$inp>().unwrap();
@@ -14,9 +14,6 @@ macro_rules! step_input {
         };
         wrapped
     }};
-}
-
-macro_rules! step {
     ($closure:expr) => {
         |_scope: &Scope| $closure
     };
@@ -125,7 +122,7 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
         ),
         //
         (AgeStep, String),
-        step_input!(HelloWorld, |input: &HelloWorld| input.get().message.clone()),
+        step!(HelloWorld, |input: &HelloWorld| input.get().message.clone()),
         //
         (Final, i128),
         step!(3)
