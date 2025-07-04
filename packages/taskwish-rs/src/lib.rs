@@ -97,8 +97,9 @@ pub fn hello() -> String {
                 .message("HelloWorld")
                 .run(),
 
-        AgeStep -> String => |scope: &AnyMap|
-            scope.get::<HelloWorld>().expect("Not found").value.message.clone(),
+        AgeStep -> String =>
+            |scope: &AnyMap|
+                scope.get::<HelloWorld>().expect("Not found").value.message.clone(),
 
         IsAdmin -> String =>
             |_scope| {
