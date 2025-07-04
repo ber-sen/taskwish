@@ -4,9 +4,19 @@ use serde_json;
 use serde_json::{Map, Value};
 use wasm_bindgen::prelude::*;
 
+type Scope = AnyMap;
+
+#[allow(dead_code)]
+fn step<F, V>(input: F) -> F
+where
+    F: Fn(&Scope) -> V,
+{
+    input
+}
+
 macro_rules! steps {
     ( $( $name:ident -> $ret:ty => $func:expr ),* $(,)? ) => {{
-        let mut steps = AnyMap::new();
+        let mut steps = Scope::new();
         let mut json_map = Map::new();
 
         $(
@@ -16,11 +26,11 @@ macro_rules! steps {
             }
 
             impl $name {
-                pub fn run(scope: &AnyMap) -> $ret {
+                pub fn run(scope: &Scope) -> $ret {
                     ($func)(scope)
                 }
 
-                pub fn new(scope: &AnyMap) -> Self {
+                pub fn new(scope: &Scope) -> Self {
                     Self { value: Self::run(scope) }
                 }
 
@@ -92,17 +102,20 @@ pub mod taskwish {
 pub fn hello() -> String {
     let steps = steps!(
         HelloWorld -> taskwish::slack::SendMessage =>
-            |_scope| taskwish::slack::SendMessage::new()
-                .channel("#general")
-                .message("HelloWorld")
-                .run(),
+            step(|_scope| {
+                taskwish::slack::SendMessage::new()
+                    .channel("#general")
+                    .message("HelloWorld")
+                    .run()
+            }),
 
         AgeStep -> String =>
-            |scope: &AnyMap|
-                scope.get::<HelloWorld>().expect("Not found").value.message.clone(),
+            step(|scope| {
+                scope.get::<HelloWorld>().expect("Not found").value.message.clone()
+            }), 
 
         IsAdmin -> String =>
-            |_scope| {
+            step(|_scope| {
                 let steps = steps!(
                     Asd -> String =>
                         |scope: &AnyMap| {
@@ -115,7 +128,7 @@ pub fn hello() -> String {
 
                 let combined_json = serde_json::to_string(&steps.1).unwrap();
                 combined_json
-        },
+            })
     );
 
     let combined_json = serde_json::to_string(&steps.1).unwrap();
