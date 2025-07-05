@@ -31,7 +31,7 @@ macro_rules! step {
     }};
     (|$var:ident : $inp:ident| $body:block) => {{
         move |scope: &Scope| {
-            let a = use_value(&$inp, &scope.clone()).unwrap();
+            let a = use_value(&$inp.clone(), &scope.clone()).unwrap();
 
             let $var = handler(|| (a.handler)(&Scope::new()));
 
@@ -55,7 +55,7 @@ macro_rules! steps {
 
         $(
             let $name = Rc::new(Step{ handler: $func });
-            let value = ($func)(&steps);
+            let value = ($name.handler)(&steps);
             json_map.insert(stringify!($name).to_string(), serde_json::to_value(&value).unwrap());
             steps.insert($name.clone());
 
