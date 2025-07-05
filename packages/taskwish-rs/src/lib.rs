@@ -1,8 +1,8 @@
 use anymap::AnyMap;
-use serde::Serialize;
 use serde_json;
 use serde_json::Map;
 type Scope = AnyMap;
+use std::rc::Rc;
 use worker::*;
 
 fn handler<F, R>(f: F) -> R
@@ -10,6 +10,14 @@ where
     F: FnOnce() -> R,
 {
     f()
+}
+
+struct Step<T> {
+    handler: T,
+}
+
+fn use_value<'a, T: 'static>(_: &T, map: &'a AnyMap) -> Option<&'a T> {
+    map.get::<T>()
 }
 
 macro_rules! step {
@@ -21,9 +29,12 @@ macro_rules! step {
             $body
         }
     }};
-    (|$var:ident : $inp:ty| $body:block) => {{
+    (|$var:ident : $inp:ident| $body:block) => {{
         move |scope: &Scope| {
-            let $var = scope.get::<$inp>().unwrap().get();
+            let a = use_value(&$inp.clone(), &scope.clone()).unwrap();
+
+            let $var = handler(|| (a.handler)(&Scope::new()));
+
             $body
         }
     }};
@@ -43,12 +54,12 @@ macro_rules! steps {
         let mut json_map = Map::new();
 
         $(
-            let $name = handler(|| $func(&Scope::new()));
-
+            let $name = Rc::new(Step{ handler: $func });
 
             // let step_instance = $name::new(&steps);
-            json_map.insert(stringify!($name).to_string(), serde_json::to_value(&$name).unwrap());
-            // steps.insert(step_instance);
+            json_map.insert(stringify!($name).to_string(), serde_json::to_value(3).unwrap());
+            steps.insert($name.clone());
+
         )*
 
         (steps, json_map)
@@ -118,9 +129,8 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
         ),
         asd,
         step!(3),
-        //
-        // (asd),
-        // step!({ input.0.message.clone() }),
+        end,
+        step!(|input: hello_wold| { input.message }),
     );
 
     Response::from_json(&steps.1)
