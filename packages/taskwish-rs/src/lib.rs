@@ -5,6 +5,13 @@ use serde_json::Map;
 type Scope = AnyMap;
 use worker::*;
 
+fn handler<F, R>(f: F) -> R
+where
+    F: FnOnce() -> R,
+{
+    f()
+}
+
 macro_rules! step {
     (|$input:ident : ($($ty:ty),+)| $body:block) => {{
         move |scope: &Scope| {
@@ -28,7 +35,7 @@ macro_rules! step {
 macro_rules! steps {
     (
         $(
-            ($name:ident, $ret:ty),
+            $name:ident,
             $func:expr
         ),* $(,)?
     ) => {{
@@ -36,29 +43,12 @@ macro_rules! steps {
         let mut json_map = Map::new();
 
         $(
-            #[derive(Serialize)]
-            struct $name {
-                value: $ret,
-            }
+            let $name = handler(|| $func(&Scope::new()));
 
-            impl $name {
-                pub fn run(scope: &Scope) -> $ret {
-                    ($func)(scope)
-                }
 
-                pub fn new(scope: &Scope) -> Self {
-                    Self { value: Self::run(scope) }
-                }
-
-                #[allow(dead_code)]
-                pub fn get(&self) -> &$ret {
-                    &self.value
-                }
-            }
-
-            let step_instance = $name::new(&steps);
-            json_map.insert(stringify!($name).to_string(), serde_json::to_value(&step_instance.value).unwrap());
-            steps.insert(step_instance);
+            // let step_instance = $name::new(&steps);
+            json_map.insert(stringify!($name).to_string(), serde_json::to_value(&$name).unwrap());
+            // steps.insert(step_instance);
         )*
 
         (steps, json_map)
@@ -119,19 +109,18 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     console_error_panic_hook::set_once();
 
     let steps = steps!(
-        (HelloWorld, taskwish::slack::SendMessage),
+        hello_wold,
         step!(
             taskwish::slack::SendMessage::build()
                 .channel("#general")
                 .message("HelloWorld")
                 .run()
         ),
-        //
-        (Final, i128),
+        asd,
         step!(3),
         //
-        (AgeStep, String),
-        step!(|input: (HelloWorld, Final)| { input.0.message.clone() }),
+        // (asd),
+        // step!({ input.0.message.clone() }),
     );
 
     Response::from_json(&steps.1)
