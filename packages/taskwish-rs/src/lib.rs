@@ -119,7 +119,7 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     console_error_panic_hook::set_once();
 
     let steps = steps!(
-        hello_wold,
+        hello_world,
         step!(
             taskwish::slack::SendMessage::build()
                 .channel("#general")
@@ -129,7 +129,7 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
         asd,
         step!(3),
         end,
-        step!(|input: hello_wold| { input.message }),
+        step!(|input: hello_world| { input.message }),
     );
 
     Response::from_json(&steps.1)
