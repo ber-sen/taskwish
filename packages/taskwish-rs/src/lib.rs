@@ -128,7 +128,7 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
             true => 3,
             _ => 2,
         }),
-        // (end, step!(|input: hello_world| input.message)),
+        end = step!("end")
     );
 
     Response::from_json(&steps.1)
