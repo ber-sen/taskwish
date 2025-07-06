@@ -29,7 +29,7 @@ macro_rules! step {
             $body
         }
     }};
-    (|$var:ident : $inp:ident| $body:block) => {{
+    (|$var:ident : $inp:ident| $body:expr) => {{
         move |scope: &Scope| {
             let a = use_value(&$inp.clone(), &scope.clone()).unwrap();
 
@@ -128,8 +128,14 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
                     .run()
             )
         ),
-        (asd, step!(3)),
-        (end, step!(|input: hello_world| { input.message })),
+        (
+            second_step,
+            step!(|input: hello_world| match input.message == "HelloWorld" {
+                true => 3,
+                _ => 2,
+            })
+        ),
+        // (end, step!(|input: hello_world| input.message)),
     );
 
     Response::from_json(&steps.1)
