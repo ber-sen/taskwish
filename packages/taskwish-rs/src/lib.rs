@@ -45,10 +45,9 @@ macro_rules! step {
 
 macro_rules! steps {
     (
-        $((
-            $name:ident,
-            $func:expr
-        )),* $(,)?
+        $(
+            $name:ident = $func:expr
+        ),* $(,)?
     ) => {{
         let mut steps = Scope::new();
         let mut json_map = Map::new();
@@ -119,22 +118,16 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     console_error_panic_hook::set_once();
 
     let steps = steps!(
-        (
-            hello_world,
-            step!(
-                taskwish::slack::SendMessage::build()
-                    .channel("#general")
-                    .message("HelloWorld")
-                    .run()
-            )
+        hello_world = step!(
+            taskwish::slack::SendMessage::build()
+                .channel("#general")
+                .message("HelloWorld")
+                .run()
         ),
-        (
-            second_step,
-            step!(|input: hello_world| match input.message == "HelloWorld" {
-                true => 3,
-                _ => 2,
-            })
-        ),
+        last = step!(|input: hello_world| match input.message == "HelloWorld" {
+            true => 3,
+            _ => 2,
+        }),
         // (end, step!(|input: hello_world| input.message)),
     );
 
