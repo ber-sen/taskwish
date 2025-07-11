@@ -4,3 +4,4 @@ async function main() {
   console.log(wasm.hello());
 }
 main();
+

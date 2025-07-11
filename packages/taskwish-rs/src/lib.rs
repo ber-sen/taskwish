@@ -2,6 +2,7 @@ use anymap::AnyMap;
 use serde_json;
 use serde_json::Map;
 type Scope = AnyMap;
+use paste::paste;
 use std::rc::Rc;
 use worker::*;
 
@@ -41,6 +42,29 @@ macro_rules! step {
     ($closure:expr) => {
         |_scope: &Scope| $closure
     };
+}
+
+macro_rules! make {
+    (
+        $enum:ty, $(
+            $name:ident = $func:expr
+        ),* $(,)?
+    ) => {{
+        type Field = $enum;
+        let mut steps = Scope::new();
+
+        $(
+            paste! {
+                let _ = Field::[<$name:camel>];
+            }
+
+            let $name = Rc::new(Step{ handler: $func });
+            steps.insert($name.clone());
+
+        )*
+
+        (steps)
+    }};
 }
 
 macro_rules! steps {
@@ -113,22 +137,37 @@ pub mod taskwish {
     }
 }
 
+enum UseCase {
+    Name,
+    Run,
+}
+
+enum Agent {
+    Name,
+    Description,
+    Run,
+}
+
 #[event(fetch)]
 async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     console_error_panic_hook::set_once();
 
-    let steps = steps!(
-        hello_world = step!(
-            taskwish::slack::SendMessage::build()
-                .channel("#general")
-                .message("HelloWorld")
-                .run()
-        ),
-        last = step!(|input: hello_world| match input.message == "HelloWorld" {
-            true => 3,
-            _ => 2,
-        }),
-        end = step!("end")
+    let steps = make!(
+        UseCase,
+        name = "asdasd",
+        run = steps!(
+            hello_world = step!(
+                taskwish::slack::SendMessage::build()
+                    .channel("#general")
+                    .message("HelloWorld")
+                    .run()
+            ),
+            last = step!(|input: hello_world| match input.message == "HelloWorld" {
+                true => 3,
+                _ => 2,
+            }),
+            end = step!("end")
+        )
     );
 
     Response::from_json(&steps.1)
