@@ -2,7 +2,7 @@ use anymap::AnyMap;
 use serde_json::Map;
 use serde_json::{self};
 type Scope = AnyMap;
-use std::any::Any;
+use bon::Builder;
 use std::rc::Rc;
 use worker::*;
 
@@ -50,21 +50,13 @@ macro_rules! make {
             $name:ident = $value:expr
         ),* $(,)?
     ) => {{
-        let mut a = $struct::default();
-
+        let instance = $struct::builder().
         $(
-            a.$name = $value;
-            #[allow(unused_variables)]
-            let $name = a.$name;
+            $name($value).
         )*
+        build();
 
-        let entity = $struct{
-            $(
-                $name: $value,
-            )*
-        };
-
-        entity
+        instance
     }};
 }
 
@@ -89,67 +81,19 @@ macro_rules! steps {
     }};
 }
 
-pub mod taskwish {
-    pub mod slack {
-        use serde::Serialize;
-
-        #[derive(Serialize, Debug)]
-        pub struct SendMessage {
-            channel: String,
-            pub(crate) message: String,
-        }
-
-        impl SendMessage {
-            pub fn build() -> SendMessageBuilder {
-                SendMessageBuilder::new()
-            }
-        }
-
-        pub struct SendMessageBuilder {
-            channel: Option<String>,
-            message: Option<String>,
-        }
-
-        impl SendMessageBuilder {
-            pub fn new() -> Self {
-                Self {
-                    channel: None,
-                    message: None,
-                }
-            }
-
-            pub fn channel(mut self, channel: &str) -> Self {
-                self.channel = Some(channel.to_string());
-                self
-            }
-
-            pub fn message(mut self, message: &str) -> Self {
-                self.message = Some(message.to_string());
-                self
-            }
-
-            pub fn run(self) -> SendMessage {
-                SendMessage {
-                    channel: self.channel.unwrap(),
-                    message: self.message.unwrap(),
-                }
-            }
-        }
+mod slack {
+    use bon::Builder;
+    use serde::Serialize;
+    #[derive(Builder, Serialize, Debug)]
+    pub struct SendMessage {
+        pub channel: String,
+        pub message: String,
     }
 }
-
+#[derive(Builder)]
 struct UseCase<T> {
-    name: String,
+    name: Option<String>,
     run: T,
-}
-
-impl Default for UseCase<Box<dyn Any>> {
-    fn default() -> Self {
-        Self {
-            name: "".to_string(),
-            run: Box::new(0),
-        }
-    }
 }
 
 #[event(fetch)]
@@ -161,10 +105,10 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
         name = "asdasd".into(),
         run = steps!(
             hello_world = step!(
-                taskwish::slack::SendMessage::build()
-                    .channel("#general")
-                    .message("HelloWorld")
-                    .run()
+                slack::SendMessage::builder()
+                    .channel("#general".into())
+                    .message("HelloWorld".into())
+                    .build()
             ),
             last = step!(|input: hello_world| match input.message == "HelloWorld" {
                 true => 3,
