@@ -353,8 +353,8 @@ const useCase = UseCase("Say hello")
   .steps(
     ["asdasd", ($) => $.entry],
 
-    ({ flow: { when } }) =>
-      when(1 < 2)
+    ({ flow: { match } }) =>
+      match(1 < 2)
         .is(true, Step("asdasd", "asdds"))
 
         .else(Step("asdasd", "asdds"))

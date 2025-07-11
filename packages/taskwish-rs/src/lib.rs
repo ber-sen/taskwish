@@ -2,6 +2,7 @@ use anymap::AnyMap;
 use serde_json;
 use serde_json::Map;
 type Scope = AnyMap;
+use paste::paste;
 use std::rc::Rc;
 use worker::*;
 
@@ -29,7 +30,7 @@ macro_rules! step {
             $body
         }
     }};
-    (|$var:ident : $inp:ident| $body:block) => {{
+    (|$var:ident : $inp:ident| $body:expr) => {{
         move |scope: &Scope| {
             let a = use_value(&$inp.clone(), &scope.clone()).unwrap();
 
@@ -43,11 +44,33 @@ macro_rules! step {
     };
 }
 
+macro_rules! make {
+    (
+        $enum:ty, $(
+            $name:ident = $func:expr
+        ),* $(,)?
+    ) => {{
+        type Field = $enum;
+        let mut steps = Scope::new();
+
+        $(
+            paste! {
+                let _ = Field::[<$name:camel>];
+            }
+
+            let $name = Rc::new(Step{ handler: $func });
+            steps.insert($name.clone());
+
+        )*
+
+        (steps)
+    }};
+}
+
 macro_rules! steps {
     (
         $(
-            $name:ident,
-            $func:expr
+            $name:ident = $func:expr
         ),* $(,)?
     ) => {{
         let mut steps = Scope::new();
@@ -114,22 +137,37 @@ pub mod taskwish {
     }
 }
 
+enum UseCase {
+    Name,
+    Run,
+}
+
+enum Agent {
+    Name,
+    Description,
+    Run,
+}
+
 #[event(fetch)]
 async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     console_error_panic_hook::set_once();
 
-    let steps = steps!(
-        hello_wold,
-        step!(
-            taskwish::slack::SendMessage::build()
-                .channel("#general")
-                .message("HelloWorld")
-                .run()
-        ),
-        asd,
-        step!(3),
-        end,
-        step!(|input: hello_wold| { input.message }),
+    let steps = make!(
+        UseCase,
+        name = "asdasd",
+        run = steps!(
+            hello_world = step!(
+                taskwish::slack::SendMessage::build()
+                    .channel("#general")
+                    .message("HelloWorld")
+                    .run()
+            ),
+            last = step!(|input: hello_world| match input.message == "HelloWorld" {
+                true => 3,
+                _ => 2,
+            }),
+            end = step!("end")
+        )
     );
 
     Response::from_json(&steps.1)
