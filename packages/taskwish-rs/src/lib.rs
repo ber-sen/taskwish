@@ -1,8 +1,8 @@
 use anymap::AnyMap;
-use serde_json;
 use serde_json::Map;
+use serde_json::{self};
 type Scope = AnyMap;
-use paste::paste;
+use std::any::Any;
 use std::rc::Rc;
 use worker::*;
 
@@ -46,24 +46,25 @@ macro_rules! step {
 
 macro_rules! make {
     (
-        $enum:ty, $(
-            $name:ident = $func:expr
+        $struct:ident, $(
+            $name:ident = $value:expr
         ),* $(,)?
     ) => {{
-        type Field = $enum;
-        let mut steps = Scope::new();
+        let mut a = $struct::default();
 
         $(
-            paste! {
-                let _ = Field::[<$name:camel>];
-            }
-
-            let $name = Rc::new(Step{ handler: $func });
-            steps.insert($name.clone());
-
+            a.$name = $value;
+            #[allow(unused_variables)]
+            let $name = a.$name;
         )*
 
-        (steps)
+        let entity = $struct{
+            $(
+                $name: $value,
+            )*
+        };
+
+        entity
     }};
 }
 
@@ -84,7 +85,7 @@ macro_rules! steps {
 
         )*
 
-        (steps, json_map)
+        Box::new((steps, json_map))
     }};
 }
 
@@ -137,24 +138,27 @@ pub mod taskwish {
     }
 }
 
-enum UseCase {
-    Name,
-    Run,
+struct UseCase<T> {
+    name: String,
+    run: T,
 }
 
-enum Agent {
-    Name,
-    Description,
-    Run,
+impl Default for UseCase<Box<dyn Any>> {
+    fn default() -> Self {
+        Self {
+            name: "".to_string(),
+            run: Box::new(0),
+        }
+    }
 }
 
 #[event(fetch)]
 async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     console_error_panic_hook::set_once();
 
-    let steps = make!(
+    let use_case = make!(
         UseCase,
-        name = "asdasd",
+        name = "asdasd".into(),
         run = steps!(
             hello_world = step!(
                 taskwish::slack::SendMessage::build()
@@ -170,5 +174,5 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
         )
     );
 
-    Response::from_json(&steps.1)
+    Response::from_json(&use_case.name)
 }
