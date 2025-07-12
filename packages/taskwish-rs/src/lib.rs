@@ -155,11 +155,11 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
                     .message("HelloWorld".into())
                     .build()
             ),
-            last = step!(|input: hello_world| match input.message == "HelloWorld" {
+            __ = step!(|input: hello_world| match input.message == "HelloWorld" {
                 true => 3,
                 _ => 2,
             }),
-            end = step!("end")
+            __ = step!("end")
         )
     );
 
