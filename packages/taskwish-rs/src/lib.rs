@@ -1,8 +1,8 @@
 use anymap::AnyMap;
-use serde_json;
 use serde_json::Map;
+use serde_json::{self};
 type Scope = AnyMap;
-use paste::paste;
+use bon::Builder;
 use std::rc::Rc;
 use worker::*;
 
@@ -19,6 +19,47 @@ struct Step<T> {
 
 fn use_value<'a, T: 'static>(_: &T, map: &'a AnyMap) -> Option<&'a T> {
     map.get::<T>()
+}
+
+trait IntoOwned {
+    type Owned;
+    fn into_owned(self) -> Self::Owned;
+}
+
+// For &str → String
+impl<'a> IntoOwned for &'a str {
+    type Owned = String;
+    fn into_owned(self) -> Self::Owned {
+        self.to_owned()
+    }
+}
+
+// For &str → String
+impl<'a> IntoOwned for String {
+    type Owned = String;
+    fn into_owned(self) -> Self::Owned {
+        self
+    }
+}
+
+// For &T → T where T: Clone
+impl<'a, T: Clone> IntoOwned for &'a T {
+    type Owned = T;
+    fn into_owned(self) -> Self::Owned {
+        self.clone()
+    }
+}
+
+impl<T> IntoOwned for Box<T> {
+    type Owned = Box<T>;
+
+    fn into_owned(self) -> Self::Owned {
+        self
+    }
+}
+
+fn to_owned<T: IntoOwned>(value: T) -> T::Owned {
+    value.into_owned()
 }
 
 macro_rules! step {
@@ -46,24 +87,21 @@ macro_rules! step {
 
 macro_rules! make {
     (
-        $enum:ty, $(
-            $name:ident = $func:expr
+        $struct:ident, $(
+            $name:ident = $value:expr
         ),* $(,)?
     ) => {{
-        type Field = $enum;
-        let mut steps = Scope::new();
-
         $(
-            paste! {
-                let _ = Field::[<$name:camel>];
-            }
-
-            let $name = Rc::new(Step{ handler: $func });
-            steps.insert($name.clone());
-
+            let $name = to_owned($value);
         )*
 
-        (steps)
+        let instance = $struct::builder().
+        $(
+            $name($name).
+        )*
+        build();
+
+        instance
     }};
 }
 
@@ -84,83 +122,38 @@ macro_rules! steps {
 
         )*
 
-        (steps, json_map)
+        Box::new((steps, json_map))
     }};
 }
 
-pub mod taskwish {
-    pub mod slack {
-        use serde::Serialize;
-
-        #[derive(Serialize, Debug)]
-        pub struct SendMessage {
-            channel: String,
-            pub(crate) message: String,
-        }
-
-        impl SendMessage {
-            pub fn build() -> SendMessageBuilder {
-                SendMessageBuilder::new()
-            }
-        }
-
-        pub struct SendMessageBuilder {
-            channel: Option<String>,
-            message: Option<String>,
-        }
-
-        impl SendMessageBuilder {
-            pub fn new() -> Self {
-                Self {
-                    channel: None,
-                    message: None,
-                }
-            }
-
-            pub fn channel(mut self, channel: &str) -> Self {
-                self.channel = Some(channel.to_string());
-                self
-            }
-
-            pub fn message(mut self, message: &str) -> Self {
-                self.message = Some(message.to_string());
-                self
-            }
-
-            pub fn run(self) -> SendMessage {
-                SendMessage {
-                    channel: self.channel.unwrap(),
-                    message: self.message.unwrap(),
-                }
-            }
-        }
+mod slack {
+    use bon::Builder;
+    use serde::Serialize;
+    #[derive(Builder, Serialize, Debug)]
+    pub struct SendMessage {
+        pub channel: String,
+        pub message: String,
     }
 }
-
-enum UseCase {
-    Name,
-    Run,
-}
-
-enum Agent {
-    Name,
-    Description,
-    Run,
+#[derive(Builder)]
+struct UseCase<T> {
+    name: Option<String>,
+    run: T,
 }
 
 #[event(fetch)]
 async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     console_error_panic_hook::set_once();
 
-    let steps = make!(
+    let use_case = make!(
         UseCase,
         name = "asdasd",
         run = steps!(
             hello_world = step!(
-                taskwish::slack::SendMessage::build()
-                    .channel("#general")
-                    .message("HelloWorld")
-                    .run()
+                slack::SendMessage::builder()
+                    .channel("#general".into())
+                    .message("HelloWorld".into())
+                    .build()
             ),
             last = step!(|input: hello_world| match input.message == "HelloWorld" {
                 true => 3,
@@ -170,5 +163,5 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
         )
     );
 
-    Response::from_json(&steps.1)
+    Response::from_json(&use_case.name)
 }
