@@ -21,6 +21,47 @@ fn use_value<'a, T: 'static>(_: &T, map: &'a AnyMap) -> Option<&'a T> {
     map.get::<T>()
 }
 
+trait IntoOwned {
+    type Owned;
+    fn into_owned(self) -> Self::Owned;
+}
+
+// For &str → String
+impl<'a> IntoOwned for &'a str {
+    type Owned = String;
+    fn into_owned(self) -> Self::Owned {
+        self.to_owned()
+    }
+}
+
+// For &str → String
+impl<'a> IntoOwned for String {
+    type Owned = String;
+    fn into_owned(self) -> Self::Owned {
+        self
+    }
+}
+
+// For &T → T where T: Clone
+impl<'a, T: Clone> IntoOwned for &'a T {
+    type Owned = T;
+    fn into_owned(self) -> Self::Owned {
+        self.clone()
+    }
+}
+
+impl<T> IntoOwned for Box<T> {
+    type Owned = Box<T>;
+
+    fn into_owned(self) -> Self::Owned {
+        self
+    }
+}
+
+fn to_owned<T: IntoOwned>(value: T) -> T::Owned {
+    value.into_owned()
+}
+
 macro_rules! step {
     (|$input:ident : ($($ty:ty),+)| $body:block) => {{
         move |scope: &Scope| {
@@ -50,9 +91,13 @@ macro_rules! make {
             $name:ident = $value:expr
         ),* $(,)?
     ) => {{
+        $(
+            let $name = to_owned($value);
+        )*
+
         let instance = $struct::builder().
         $(
-            $name($value).
+            $name($name).
         )*
         build();
 
@@ -102,7 +147,7 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
 
     let use_case = make!(
         UseCase,
-        name = "asdasd".into(),
+        name = "asdasd",
         run = steps!(
             hello_world = step!(
                 slack::SendMessage::builder()
