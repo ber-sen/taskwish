@@ -1,4 +1,6 @@
+#![feature(macro_metavar_expr)]
 use anymap::AnyMap;
+use paste::paste;
 use serde_json::Map;
 use serde_json::{self};
 type Scope = AnyMap;
@@ -106,22 +108,18 @@ macro_rules! make {
 }
 
 macro_rules! steps {
-    (
-        $(
-            $name:ident = $func:expr
-        ),* $(,)?
-    ) => {{
+    ( $( $name:ident = $func:expr ),* $(,)? ) => {{
         let mut steps = Scope::new();
         let mut json_map = Map::new();
-
-        $(
-            let $name = Rc::new(Step{ handler: $func });
-            let value = ($name.handler)(&steps);
-            json_map.insert(stringify!($name).to_string(), serde_json::to_value(&value).unwrap());
-            steps.insert($name.clone());
-
-        )*
-
+        paste! {
+            $(
+                let [<step_ ${index()}>] = Rc::new(Step { handler: $func });
+                let value = ([<step_ ${index()}>].handler)(&steps);
+                json_map.insert(stringify!([<step_ ${index()}>]).to_string(), serde_json::to_value(&value).unwrap());
+                steps.insert([<step_ ${index()}>].clone());
+                let $name = [<step_ ${index()}>];
+            )*
+        }
         Box::new((steps, json_map))
     }};
 }
@@ -145,23 +143,13 @@ struct UseCase<T> {
 async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     console_error_panic_hook::set_once();
 
-    let use_case = make!(
-        UseCase,
-        name = "asdasd",
-        run = steps!(
-            hello_world = step!(
-                slack::SendMessage::builder()
-                    .channel("#general".into())
-                    .message("HelloWorld".into())
-                    .build()
-            ),
-            __ = step!(|input: hello_world| match input.message == "HelloWorld" {
-                true => 3,
-                _ => 2,
-            }),
-            __ = step!("end")
-        )
+    let steps = steps!(
+        hello_world = step!(4),
+        __ = step!(|input: hello_world| input),
+        __ = step!("end")
     );
 
-    Response::from_json(&use_case.name)
+    // let _use_case = make!(UseCase, name = "asdasd", run = steps);
+
+    Response::from_json(&steps.1)
 }
