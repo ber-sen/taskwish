@@ -75,12 +75,6 @@ macro_rules! steps {
     }};
 }
 
-macro_rules! step_if {
-    ($cond:expr, $val:expr) => {
-        if $cond { Some($val) } else { None }
-    };
-}
-
 macro_rules! steps_parse_item {
     // Case: (name, expr)
     ( $steps:ident, $json_map:ident, [$name:ident = $func:expr] ) => {
@@ -191,10 +185,10 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
         name = "Send message and save to db",
         run = steps!(
             [container = View!(class = "flex flex-col gap-4")],
-            [step_if!(
-                name == "asdasd",
-                container + View!(class = "flex flex-col gap-4")
-            )]
+            [match name == "asdasd" {
+                true => container + View!(class = "flex flex-col gap-4"),
+                false => View!(),
+            }]
         )
     );
 
