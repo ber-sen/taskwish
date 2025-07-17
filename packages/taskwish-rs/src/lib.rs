@@ -64,15 +64,7 @@ fn to_owned<T: IntoOwned>(value: T) -> T::Owned {
     value.into_owned()
 }
 
-macro_rules! step {
-    (|$input:ident : ($($ty:ty),+)| $body:block) => {{
-        move |scope: &Scope| {
-            let $input = (
-                $(scope.get::<$ty>().unwrap().get()),+
-            );
-            $body
-        }
-    }};
+macro_rules! use_input {
     (|$var:ident : $inp:ident| $body:expr) => {{
         move |scope: &Scope| {
             let a = use_value(&$inp.clone(), &scope.clone()).unwrap();
@@ -82,9 +74,6 @@ macro_rules! step {
             $body
         }
     }};
-    ($closure:expr) => {
-        |_scope: &Scope| $closure
-    };
 }
 
 macro_rules! make {
@@ -130,6 +119,13 @@ macro_rules! steps_parse_item {
         // }
     };
     // Case: (name) only
+    ( $func:block, $steps:ident, $json_map:ident ) => {
+        // paste::paste! {
+        // Provide a default expression or handle missing func
+        let step = $func;
+        $steps.insert(step.clone());
+        // }
+    };
     ( ($func:expr), $steps:ident, $json_map:ident ) => {
         // paste::paste! {
         // Provide a default expression or handle missing func
@@ -143,6 +139,7 @@ mod slack {
     use bon::Builder;
     use serde::Serialize;
     #[derive(Builder, Serialize, Debug)]
+    #[builder(on(String, into))]
     pub struct SendMessage {
         pub channel: String,
         pub message: String,
@@ -162,11 +159,14 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
         UseCase,
         name = "asdasd",
         run = steps!(
-            (step!(4)),
-            (step!(4)),
-            (step!(4)),
-            (title, step!(4)),
-            (step!(|input: title| input)),
+            (title, "Hello World"),
+            (message, {
+                slack::SendMessage::builder()
+                    .channel("#general")
+                    .message("Hello")
+                    .build()
+            }),
+            (use_input!(|input: message| input))
         )
     );
 
