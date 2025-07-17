@@ -1,11 +1,8 @@
 #![feature(macro_metavar_expr)]
 use anymap::AnyMap;
-use paste::paste;
-use serde_json::Map;
 use serde_json::{self};
 type Scope = AnyMap;
 use bon::Builder;
-use std::rc::Rc;
 use worker::*;
 
 fn handler<F, R>(f: F) -> R
@@ -64,38 +61,6 @@ fn to_owned<T: IntoOwned>(value: T) -> T::Owned {
     value.into_owned()
 }
 
-macro_rules! with {
-    (|$var:ident : $inp:ident| $body:expr) => {{
-        move |scope: &Scope| {
-            let a = use_value(&$inp.clone(), &scope.clone()).unwrap();
-
-            let $var = handler(|| (a.handler)(&Scope::new()));
-
-            $body
-        }
-    }};
-}
-
-macro_rules! make {
-    (
-        $struct:ident, $(
-            $name:ident = $value:expr
-        ),* $(,)?
-    ) => {{
-        $(
-            let $name = to_owned($value);
-        )*
-
-        let instance = $struct::builder().
-        $(
-            $name($name).
-        )*
-        build();
-
-        instance
-    }};
-}
-
 macro_rules! steps {
     ( $( $item:tt ),* $(,)? ) => {{
         let mut steps = Scope::new();
@@ -111,14 +76,21 @@ macro_rules! steps {
 
 macro_rules! steps_parse_item {
     // Case: (name, expr)
-    ( $steps:ident, $json_map:ident, [$name:ident, $func:expr] ) => {
+    ( $steps:ident, $json_map:ident, [$name:ident = $func:expr] ) => {
         // paste::paste! {
         let $name = $func;
         $json_map.insert(stringify!($name).to_string(), "".into());
         $steps.insert($name.clone());
         // }
     };
-    (  $steps:ident, $json_map:ident, [$func:expr]) => {
+    ( $steps:ident, $json_map:ident, [$func:expr, $t:tt]) => {
+        // paste::paste! {
+        // Provide a default expression or handle missing func
+        let step = $func;
+        $steps.insert(step.clone());
+        // }
+    };
+    ( $steps:ident, $json_map:ident, [$func:expr]) => {
         // paste::paste! {
         // Provide a default expression or handle missing func
         let step = $func;
@@ -143,23 +115,46 @@ struct UseCase<T> {
     run: T,
 }
 
+#[derive(Builder)]
+#[builder(on(String, into))]
+struct DB {
+    update: Option<String>,
+    set: Option<String>,
+}
+
+macro_rules! UseCase {
+    (
+        $(
+            $name:ident = $value:expr
+        ),* $(,)?
+    ) => {{
+        $(
+            let $name = to_owned($value);
+        )*
+
+        let instance = UseCase::builder().
+        $(
+            $name($name).
+        )*
+        build();
+
+        instance
+    }};
+}
+
 #[event(fetch)]
 async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     console_error_panic_hook::set_once();
 
-    let use_case = make!(
-        UseCase,
-        name = "asdasd",
+    let use_case = UseCase!(
+        name = "Send message and save to db",
         run = steps!(
-            [title, "Hello World"],
-            [
-                message,
-                slack::SendMessage::builder()
-                    .channel("#general")
-                    .message("Hello")
-                    .build()
-            ],
-            [with!(|input: message| input)]
+            [generate_text = "asdasdasd asdasd"],
+            [delv = slack::SendMessage::builder()
+                .channel("#general")
+                .message(generate_text)
+                .build()],
+            [DB::builder().update("messages").set(name)],
         )
     );
 
