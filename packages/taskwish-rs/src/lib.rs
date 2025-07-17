@@ -102,7 +102,7 @@ macro_rules! steps {
         let mut json_map = serde_json::Map::new();
 
         $(
-            steps_parse_item!($item, steps, json_map);
+            steps_parse_item!(steps, json_map, $item);
         )*
 
         Box::new((steps, json_map))
@@ -111,22 +111,14 @@ macro_rules! steps {
 
 macro_rules! steps_parse_item {
     // Case: (name, expr)
-    ( ($name:ident, $func:expr), $steps:ident, $json_map:ident ) => {
+    ( $steps:ident, $json_map:ident, [$name:ident, $func:expr] ) => {
         // paste::paste! {
         let $name = $func;
         $json_map.insert(stringify!($name).to_string(), "".into());
         $steps.insert($name.clone());
         // }
     };
-    // Case: (name) only
-    ( $func:block, $steps:ident, $json_map:ident ) => {
-        // paste::paste! {
-        // Provide a default expression or handle missing func
-        let step = $func;
-        $steps.insert(step.clone());
-        // }
-    };
-    ( ($func:expr), $steps:ident, $json_map:ident ) => {
+    (  $steps:ident, $json_map:ident, [$func:expr]) => {
         // paste::paste! {
         // Provide a default expression or handle missing func
         let step = $func;
@@ -159,14 +151,15 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
         UseCase,
         name = "asdasd",
         run = steps!(
-            (title, "Hello World"),
-            (message, {
+            [title, "Hello World"],
+            [
+                message,
                 slack::SendMessage::builder()
                     .channel("#general")
                     .message("Hello")
                     .build()
-            }),
-            (with!(|input: message| input))
+            ],
+            [with!(|input: message| input)]
         )
     );
 
