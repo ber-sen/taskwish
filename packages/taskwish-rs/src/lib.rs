@@ -64,7 +64,7 @@ fn to_owned<T: IntoOwned>(value: T) -> T::Owned {
     value.into_owned()
 }
 
-macro_rules! use_input {
+macro_rules! with {
     (|$var:ident : $inp:ident| $body:expr) => {{
         move |scope: &Scope| {
             let a = use_value(&$inp.clone(), &scope.clone()).unwrap();
@@ -166,7 +166,7 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
                     .message("Hello")
                     .build()
             }),
-            (use_input!(|input: message| input))
+            (with!(|input: message| input))
         )
     );
 
