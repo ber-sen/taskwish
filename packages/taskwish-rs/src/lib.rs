@@ -3,6 +3,7 @@ use anymap::AnyMap;
 use serde_json::{self};
 type Scope = AnyMap;
 use bon::Builder;
+use std::ops::Add;
 use worker::*;
 
 fn handler<F, R>(f: F) -> R
@@ -74,6 +75,12 @@ macro_rules! steps {
     }};
 }
 
+macro_rules! step_if {
+    ($cond:expr, $val:expr) => {
+        if $cond { Some($val) } else { None }
+    };
+}
+
 macro_rules! steps_parse_item {
     // Case: (name, expr)
     ( $steps:ident, $json_map:ident, [$name:ident = $func:expr] ) => {
@@ -81,13 +88,6 @@ macro_rules! steps_parse_item {
         let $name = $func;
         $json_map.insert(stringify!($name).to_string(), "".into());
         $steps.insert($name.clone());
-        // }
-    };
-    ( $steps:ident, $json_map:ident, [$func:expr, $t:tt]) => {
-        // paste::paste! {
-        // Provide a default expression or handle missing func
-        let step = $func;
-        $steps.insert(step.clone());
         // }
     };
     ( $steps:ident, $json_map:ident, [$func:expr]) => {
@@ -116,7 +116,6 @@ struct UseCase<T> {
 }
 
 #[derive(Builder)]
-#[builder(on(String, into))]
 struct DB {
     update: Option<String>,
     set: Option<String>,
@@ -142,9 +141,62 @@ macro_rules! UseCase {
     }};
 }
 
+#[derive(Builder)]
+struct View {
+    class: Option<String>,
+}
+
+macro_rules! View {
+    (
+        $(
+            $name:ident = $value:expr
+        ),* $(,)?
+    ) => {{
+        $(
+            let $name = to_owned($value);
+        )*
+
+        let instance = View::builder().
+        $(
+            $name($name).
+        )*
+        build();
+
+        instance
+    }};
+}
+
+impl Add for View {
+    type Output = View;
+
+    fn add(self, other: View) -> View {
+        let combined_class = match (self.class, other.class) {
+            (Some(c1), Some(c2)) => Some(format!("{} {}", c1, c2)),
+            (Some(c1), None) => Some(c1),
+            (None, Some(c2)) => Some(c2),
+            (None, None) => None,
+        };
+
+        View {
+            class: combined_class,
+        }
+    }
+}
+
 #[event(fetch)]
 async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     console_error_panic_hook::set_once();
+
+    let ui = UseCase!(
+        name = "Send message and save to db",
+        run = steps!(
+            [container = View!(class = "flex flex-col gap-4")],
+            [step_if!(
+                name == "asdasd",
+                container + View!(class = "flex flex-col gap-4")
+            )]
+        )
+    );
 
     let use_case = UseCase!(
         name = "Send message and save to db",
