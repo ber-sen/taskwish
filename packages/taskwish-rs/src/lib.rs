@@ -108,20 +108,35 @@ macro_rules! make {
 }
 
 macro_rules! steps {
-    ( $( $name:ident = $func:expr ),* $(,)? ) => {{
+    ( $( $item:tt ),* $(,)? ) => {{
         let mut steps = Scope::new();
-        let mut json_map = Map::new();
-        paste! {
-            $(
-                let [<step_ ${index()}>] = Rc::new(Step { handler: $func });
-                let value = ([<step_ ${index()}>].handler)(&steps);
-                json_map.insert(stringify!([<step_ ${index()}>]).to_string(), serde_json::to_value(&value).unwrap());
-                steps.insert([<step_ ${index()}>].clone());
-                let $name = [<step_ ${index()}>];
-            )*
-        }
+        let mut json_map = serde_json::Map::new();
+
+        $(
+            steps_parse_item!($item, steps, json_map);
+        )*
+
         Box::new((steps, json_map))
     }};
+}
+
+macro_rules! steps_parse_item {
+    // Case: (name, expr)
+    ( ($name:ident, $func:expr), $steps:ident, $json_map:ident ) => {
+        // paste::paste! {
+        let $name = $func;
+        $json_map.insert(stringify!($name).to_string(), "".into());
+        $steps.insert($name.clone());
+        // }
+    };
+    // Case: (name) only
+    ( ($func:expr), $steps:ident, $json_map:ident ) => {
+        // paste::paste! {
+        // Provide a default expression or handle missing func
+        let step = $func;
+        $steps.insert(step.clone());
+        // }
+    };
 }
 
 mod slack {
@@ -143,13 +158,17 @@ struct UseCase<T> {
 async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     console_error_panic_hook::set_once();
 
-    let steps = steps!(
-        hello_world = step!(4),
-        __ = step!(|input: hello_world| input),
-        __ = step!("end")
+    let use_case = make!(
+        UseCase,
+        name = "asdasd",
+        run = steps!(
+            (step!(4)),
+            (step!(4)),
+            (step!(4)),
+            (title, step!(4)),
+            (step!(|input: title| input)),
+        )
     );
 
-    // let _use_case = make!(UseCase, name = "asdasd", run = steps);
-
-    Response::from_json(&steps.1)
+    Response::from_json(&use_case.name)
 }
