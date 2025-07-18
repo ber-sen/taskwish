@@ -138,16 +138,17 @@ macro_rules! UseCase {
 #[derive(Builder)]
 struct View {
     class: Option<String>,
+    model: Option<String>,
 }
 
 macro_rules! View {
     (
         $(
             $name:ident = $value:expr,
-        ),* $(,)?
+        )*
         $(
-            [$child:expr]
-        ),* $(,)?
+            [$($child:expr),* $(,)?]
+        )?
     ) => {{
         $(
             let $name = to_owned($value);
@@ -163,31 +164,17 @@ macro_rules! View {
     }};
 }
 
-impl Add for View {
-    type Output = View;
-
-    fn add(self, other: View) -> View {
-        let combined_class = match (self.class, other.class) {
-            (Some(c1), Some(c2)) => Some(format!("{} {}", c1, c2)),
-            (Some(c1), None) => Some(c1),
-            (None, Some(c2)) => Some(c2),
-            (None, None) => None,
-        };
-
-        View {
-            class: combined_class,
-        }
-    }
-}
-
 #[event(fetch)]
 async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     console_error_panic_hook::set_once();
 
     let ui = View!(
+        model = "sad",
         class = "flex flex-col gap-4",
-        [View!(class = "flex flex-col gap-4")],
-        [View!(class = "flex flex-col gap-4")],
+        [
+            View!(class = "flex flex-col gap-4"),
+            View!(class = "flex flex-col gap-4")
+        ]
     );
 
     let use_case = UseCase!(
