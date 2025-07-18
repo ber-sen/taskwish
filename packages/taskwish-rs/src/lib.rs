@@ -143,7 +143,10 @@ struct View {
 macro_rules! View {
     (
         $(
-            $name:ident = $value:expr
+            $name:ident = $value:expr,
+        ),* $(,)?
+        $(
+            [$child:expr]
         ),* $(,)?
     ) => {{
         $(
@@ -181,15 +184,10 @@ impl Add for View {
 async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     console_error_panic_hook::set_once();
 
-    let ui = UseCase!(
-        name = "Send message and save to db",
-        run = steps!(
-            [container = View!(class = "flex flex-col gap-4")],
-            [match name == "asdasd" {
-                true => container + View!(class = "flex flex-col gap-4"),
-                false => View!(),
-            }]
-        )
+    let ui = View!(
+        class = "flex flex-col gap-4",
+        [View!(class = "flex flex-col gap-4")],
+        [View!(class = "flex flex-col gap-4")],
     );
 
     let use_case = UseCase!(
