@@ -179,14 +179,14 @@ async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
 
     let use_case = UseCase!(
         name = "Send message and save to db",
-        run = steps!(
+        run = steps![
             [generate_text = "asdasdasd asdasd"],
             [delv = slack::SendMessage::builder()
                 .channel("#general")
                 .message(generate_text)
                 .build()],
             [DB::builder().update("messages").set(name)],
-        )
+        ]
     );
 
     Response::from_json(&use_case.name)
