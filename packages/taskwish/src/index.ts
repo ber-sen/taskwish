@@ -387,7 +387,7 @@ app.up();
 app.down();
 app.cli();
 app.listen(3000);
-app.trigger();
+app.run("useCase");
 app.chat();
 
 function* Env<const def>(of: type.validate<def>): Generator<
