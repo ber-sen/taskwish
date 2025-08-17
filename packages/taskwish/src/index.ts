@@ -348,7 +348,7 @@ const agent = Agent("My agent")
   .skills();
 
 const useCase = UseCase("Say hello")
-  .on({ language: "string" })
+  .on("POST:/api/v1/say-hello", { language: "string" })
 
   .steps(
     ["asdasd", ($) => $.input],
@@ -377,11 +377,8 @@ const workflow = UseCase("Say hello")
   );
 
 const app = App("My Awesome app")
-  .infras(infra)
-  .workflows(workflow)
-  .agents(agent)
-  .commands(["lorem --lang :language", useCase])
-  .routes(["/lang/:language", useCase], ["/agent/:langunage", agent]);
+  .infras([infra])
+  .useCases([useCase, agent])
 
 app.up();
 app.down();
