@@ -378,7 +378,9 @@ const workflow = UseCase("Say hello")
 
 const app = App("My Awesome app")
   .infras([infra])
-  .useCases([useCase, agent])
+  .useCases([useCase])
+  .agents([agent])
+  .pages([])
 
 app.up();
 app.down();
