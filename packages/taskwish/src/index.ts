@@ -44,12 +44,10 @@ export const Exception = <
 });
 
 export interface Runnable<Stream, Result, Ctx> {
-  use: (ctx: Ctx) => Omit<Runnable<Stream, Result, Ctx>, "ctx">;
   run(): Promise<Result>;
   stream(): AsyncGenerator<Stream, Result, undefined>;
 }
 export interface Action<Params extends Array<any>, Stream, Result, Ctx> {
-  use: (ctx: Ctx) => Omit<Action<Params, Stream, Result, Ctx>, "ctx">;
   run(...params: Params): Promise<Result>;
   stream(...params: Params): AsyncGenerator<Stream, Result, undefined>;
 }
@@ -388,10 +386,10 @@ const home = Page("Home page")
   .render("<p>hello</p>")
   
 const app = App("My Awesome app")
-  .infras([infra])
-  .usecases([useCase])
-  .agents([agent])
-  .pages([home])
+  .infras(infra)
+  .usecases(useCase)
+  .agents(agent)
+  .pages(home)
 
 app.up();
 app.down();
