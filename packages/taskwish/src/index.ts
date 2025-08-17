@@ -307,6 +307,10 @@ const Infra = <const Params extends string>(
   return name as any;
 };
 
+const Page = (asd: string) => {
+  return asd  as any;
+}
+
 const Options = Object.assign(Symbol("Options"), {
   timeout: (timeout: number) => ({
     timeout,
@@ -376,11 +380,18 @@ const workflow = UseCase("Say hello")
     ({ scope }) => Step("asdasd", scope.slackSendMessage)
   );
 
+  const MainLayout = () => {}
+
+const home = Page("Home page")
+  .on('/')
+  .layout(MainLayout)
+  .render("<p>hello</p>")
+  
 const app = App("My Awesome app")
   .infras([infra])
-  .useCases([useCase])
+  .usecases([useCase])
   .agents([agent])
-  .pages([])
+  .pages([home])
 
 app.up();
 app.down();
