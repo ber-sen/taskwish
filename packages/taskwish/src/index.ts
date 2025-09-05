@@ -270,7 +270,7 @@ export interface UseCaseFactory<Params, Scope extends Record<any, any> = {}>
   ): UseCaseFactory<Params, NewScope & Scope>;
 }
 
-const UseCase = <const Params extends string>(
+export const UseCase = <const Params extends string>(
   name: Params
 ): UseCaseFactory<Params> => {
   return name as any;
@@ -309,7 +309,7 @@ const Page = (asd: string) => {
   return asd  as any;
 }
 
-const Options = Object.assign(Symbol("Options"), {
+export const Options = Object.assign(Symbol("Options"), {
   timeout: (timeout: number) => ({
     timeout,
   }),
@@ -322,15 +322,15 @@ const resources = <const K>(
   params: { path: string; content: string }
 ) => [key, () => params] as const;
 
-const Step = <const K, const P>(key: K, params: P) =>
+export const Step = <const K, const P>(key: K, params: P) =>
   [key, () => params] as const;
 
-const run = <const K>(
+export const run = <const K>(
   key: K,
   params: { channel: string; text: string; [Options]?: any }
 ) => [key, () => params] as const;
 
-const events = (asd: string) => ({ language: "string" } as const);
+export const events = (asd: string) => ({ language: "string" } as const);
 
 const infra = Infra("asd").defs(
   ["get content", () => "asdas"],
