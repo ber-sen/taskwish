@@ -108,6 +108,7 @@ interface Steps<Scope extends Record<any, any> = {}> {
         | [name: S0, handler: S0H]
         | [name: S0, ...options: StepOptions[], handler: S0H]
         | ((props: Scope) => Readonly<[S0, S0H]>)
+        | Readonly<[S0, S0H]>
     ]
   ): S0;
   <
@@ -122,13 +123,15 @@ interface Steps<Scope extends Record<any, any> = {}> {
       step:
         | [name: S0, handler: S0H]
         | [name: S0, ...options: StepOptions[], handler: S0H]
-        | ((props: Scope) => Readonly<[S0, S0H]>),
+        | ((props: Scope) => Readonly<[S0, S0H]>)
+        | Readonly<[S0, S0H]>,
       step:
         | [name: S1, handler: S1H]
         | [name: S1, ...options: StepOptions[], handler: S1H]
         | ((
             props: Props<Scope & Record<"scope", Record<S0, ReturnType<S0H>>>>
           ) => Readonly<[S1, S1H]>)
+        | Readonly<[S1, S1H]>
     ]
   ): S0 | S1;
   <
@@ -151,13 +154,16 @@ interface Steps<Scope extends Record<any, any> = {}> {
       step:
         | [name: S0, handler: S0H]
         | [name: S0, ...options: StepOptions[], handler: S0H]
-        | ((props: Scope) => Readonly<[S0, S0H]>),
+        | ((props: Scope) => Readonly<[S0, S0H]>)
+        | Readonly<[S0, S0H]>,
       step:
         | [name: S1, handler: S1H]
         | [name: S1, ...options: StepOptions[], handler: S1H]
         | ((
             props: Props<Scope & Record<"scope", Record<S0, ReturnType<S0H>>>>
-          ) => Readonly<[S1, S1H]>),
+          ) => Readonly<[S1, S1H]>)
+        | Readonly<[S1, S1H]>,
+
       step:
         | [name: S2, handler: S2H]
         | [name: S2, ...options: StepOptions[], handler: S2H]
@@ -168,6 +174,7 @@ interface Steps<Scope extends Record<any, any> = {}> {
                 Record<"scope", Record<S1, ReturnType<S1H>>>
             >
           ) => Readonly<[S2, S2H]>)
+        | Readonly<[S2, S2H]>
     ]
   ): S0 | S1 | S2;
 }
@@ -201,9 +208,6 @@ interface ConfigurableUseCase<
   Scope extends Record<any, any>,
   Used extends string = ""
 > extends Scoped<Scope> {
-  handle: <C>(
-    callback: (scope: Scope) => C
-  ) => ConfigurableKey<ConfigurableUseCase<Scope, Used | "handle">>;
   steps: Steps<Scope>;
 }
 
@@ -291,9 +295,7 @@ export interface InfraFactory<Params, Scope extends Record<any, any> = {}>
       : Schema extends object
       ? type.validate<Schema>
       : object
-  ): ConfigurableInfra<
-    Scope & Record<"on", type.instantiate<Schema>["infer"]>
-  >;
+  ): ConfigurableInfra<Scope & Record<"on", type.instantiate<Schema>["infer"]>>;
   use<const NewScope>(
     newScope: NewScope
   ): InfraFactory<Params, NewScope & Scope>;
@@ -306,8 +308,8 @@ const Infra = <const Params extends string>(
 };
 
 const Page = (asd: string) => {
-  return asd  as any;
-}
+  return asd as any;
+};
 
 export const Options = Object.assign(Symbol("Options"), {
   timeout: (timeout: number) => ({
@@ -317,10 +319,8 @@ export const Options = Object.assign(Symbol("Options"), {
 
 // Modifiers
 
-const resources = <const K>(
-  key: K,
-  params: { path: string; content: string }
-) => [key, () => params] as const;
+const resource = <const K>(key: K, params: { path: string; content: string }) =>
+  [key, () => params] as const;
 
 export const Step = <const K, const P>(key: K, params: P) =>
   [key, () => params] as const;
@@ -336,12 +336,12 @@ const infra = Infra("asd").defs(
   ["get content", () => "asdas"],
 
   ({ scope }) =>
-    resources("file:config", {
+    resource("file:config", {
       path: "./src/config.json",
       content: scope.getContent,
     }),
 
-  () => resources("file:main", { path: "./src/main.ts", content: "{}" })
+  resource("file:main", { path: "./src/main.ts", content: "{}" })
 );
 
 const agent = Agent("My agent")
@@ -355,7 +355,7 @@ const useCase = UseCase("Say hello")
   .steps(
     ["asdasd", ($) => $.input],
 
-    ({ flow: { match } }) =>
+    ({ match }) =>
       match(1 < 2)
         .is(true, Step("asdasd", "asdds"))
 
@@ -378,18 +378,18 @@ const workflow = UseCase("Say hello")
     ({ scope }) => Step("asdasd", scope.slackSendMessage)
   );
 
-  const MainLayout = () => {}
+const MainLayout = () => {};
 
 const home = Page("Home page")
-  .on('/')
+  .on("/")
   .layout(MainLayout)
-  .render("<p>hello</p>")
-  
+  .render("<p>hello</p>");
+
 const app = App("My Awesome app")
   .infras(infra)
   .usecases(useCase)
   .agents(agent)
-  .pages(home)
+  .pages(home);
 
 app.up();
 app.down();
