@@ -3,6 +3,7 @@ import { Steps } from "./steps";
 import { Meta } from "./meta";
 import { Exception } from "./exception";
 import { Action } from "./action";
+import { Triggerable, Extendable, Scoped } from "./types";
 
 export type Entry<T extends object> = Type<T>;
 
@@ -21,37 +22,10 @@ const App = (() => {
 
 type Pretty<T> = { [K in keyof T]: T[K] } & {};
 
-export interface Scoped<Scope extends Record<any, any>> {}
-
-type ConfigurableKey<T> = T extends ConfigurableUseCase<any, infer Used>
-  ? Pretty<Omit<T, Used>>
-  : never;
-
-interface ConfigurableUseCase<
-  Scope extends Record<any, any>,
-  Used extends string = ""
-> extends Scoped<Scope> {
-  steps: Steps<Scope>;
-}
-
-export interface Extendable<Scope> {
-  use<const NewScope>(newScope: NewScope): Extendable<NewScope & Scope>;
-}
-
-export interface Startable<Scope> {
-  on<const Schema>(
-    on: Schema extends Type<infer Schema>
-      ? Type<Schema>
-      : Schema extends object
-      ? type.validate<Schema>
-      : object
-  ): Scoped<Scope & Record<"input", type.instantiate<Schema>["infer"]>>;
-}
-
 export interface AgentFactory<Params, Scope extends Record<any, any> = {}>
   extends Scoped<Scope>,
     Extendable<Scope>,
-    Startable<Scope>,
+    Triggerable<Scope>,
     ConfigurableAgent<Scope> {
   on<const Schema>(
     on: Schema extends Type<infer Schema>
@@ -78,31 +52,6 @@ const Agent = <const Params extends string>(
   return name as any;
 };
 
-export interface UseCaseFactory<Params, Scope extends Record<any, any> = {}>
-  extends Scoped<Scope>,
-    Extendable<Scope>,
-    Startable<Scope>,
-    ConfigurableUseCase<Scope> {
-  on<const Schema>(
-    on: Schema extends Type<infer Schema>
-      ? Type<Schema>
-      : Schema extends object
-      ? type.validate<Schema>
-      : object
-  ): ConfigurableUseCase<
-    Scope & Record<"input", type.instantiate<Schema>["infer"]>
-  >;
-  use<const NewScope>(
-    newScope: NewScope
-  ): UseCaseFactory<Params, NewScope & Scope>;
-}
-
-export const UseCase = <const Params extends string>(
-  name: Params
-): UseCaseFactory<Params> => {
-  return name as any;
-};
-
 interface ConfigurableInfra<Scope extends Record<any, any>> {
   defs: Steps<Scope>;
 }
@@ -110,7 +59,7 @@ interface ConfigurableInfra<Scope extends Record<any, any>> {
 export interface InfraFactory<Params, Scope extends Record<any, any> = {}>
   extends Scoped<Scope>,
     Extendable<Scope>,
-    Startable<Scope>,
+    Triggerable<Scope>,
     ConfigurableInfra<Scope> {
   on<const Schema>(
     on: Schema extends Type<infer Schema>
