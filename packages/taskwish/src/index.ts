@@ -1,189 +1,13 @@
 import { ArkErrors, Type, type } from "arktype";
-
-interface Meta<
-  Params extends {
-    type: string;
-  }
-> {
-  meta: Params;
-  toString: () => string;
-}
-
-export const Meta = <
-  const Params extends {
-    type: string;
-  }
->(
-  meta: Params
-): Meta<Params> => ({
-  meta,
-  toString: () => JSON.stringify(meta),
-});
-
-interface Exception<
-  Params extends {
-    status: number;
-  }
-> {
-  exception: Params;
-  throw: () => void;
-  toString: () => string;
-}
-
-export const Exception = <
-  const Params extends {
-    status: number;
-  }
->(
-  exception: Params
-): Exception<Params> => ({
-  exception,
-  throw: () => {
-    throw new Error(JSON.stringify(type));
-  },
-});
-
-export interface Runnable<Stream, Result, Ctx> {
-  run(): Promise<Result>;
-  stream(): AsyncGenerator<Stream, Result, undefined>;
-}
-export interface Action<Params extends Array<any>, Stream, Result, Ctx> {
-  run(...params: Params): Promise<Result>;
-  stream(...params: Params): AsyncGenerator<Stream, Result, undefined>;
-}
-
-function Action<Params extends Array<any>, Stream, Result, Ctx>(
-  execute: (
-    ...params: Params
-  ) => AsyncGenerator<Stream, Result, Ctx> | Generator<Stream, Result, Ctx>
-): Params extends object
-  ? Action<Params, Stream, Result, Ctx>
-  : Runnable<Stream, Result, Ctx> {
-  return execute as any;
-}
+import { Steps } from "./steps";
+import { Meta } from "./meta";
+import { Exception } from "./exception";
+import { Action } from "./action";
 
 export type Entry<T extends object> = Type<T>;
 
 const Entry = <const def>(of: type.validate<def>): type.instantiate<def> =>
   type.raw(of) as never;
-
-//
-
-type CamelCase<T extends string> =
-  T extends `${infer Left}${infer Delimiter}${infer Right}`
-    ? Delimiter extends " " | "_" | "-" | "." | "," | "!"
-      ? `${Left}${Capitalize<ToCamelCase<Right>>}`
-      : `${Left}${CamelCase<`${Delimiter}${Right}`>}`
-    : T;
-
-type LowercaseFirst<T extends string> = T extends `${infer First}${infer Rest}`
-  ? `${Lowercase<First>}${Rest}`
-  : T;
-
-type ToCamelCase<T extends string> = LowercaseFirst<CamelCase<T>>;
-
-export type PrettyScope<T> = {
-  [K in keyof T as ToCamelCase<Extract<K, string>>]: T[K];
-} & {};
-
-export type Props<T> = {
-  [K in keyof T as ToCamelCase<Extract<K, string>>]: K extends "scope"
-    ? PrettyScope<T[K]>
-    : T[K];
-} & {};
-
-interface StepOptions {
-  timeout?: string | number;
-  retries?: {
-    limit: number;
-    delay?: string | number;
-    backoff?: "constant" | "linear" | "exponential";
-  };
-}
-
-interface Steps<Scope extends Record<any, any> = {}> {
-  <const S0 extends string, const S0H extends (props: Scope) => any>(
-    ...trumpets: [
-      step:
-        | [name: S0, handler: S0H]
-        | [name: S0, ...options: StepOptions[], handler: S0H]
-        | ((props: Scope) => Readonly<[S0, S0H]>)
-        | Readonly<[S0, S0H]>
-    ]
-  ): S0;
-  <
-    const S0 extends string,
-    const S0H extends (props: Scope) => any,
-    const S1 extends string,
-    const S1H extends (
-      props: Props<Scope & Record<"scope", Record<S0, ReturnType<S0H>>>>
-    ) => any
-  >(
-    ...trumpets: [
-      step:
-        | [name: S0, handler: S0H]
-        | [name: S0, ...options: StepOptions[], handler: S0H]
-        | ((props: Scope) => Readonly<[S0, S0H]>)
-        | Readonly<[S0, S0H]>,
-      step:
-        | [name: S1, handler: S1H]
-        | [name: S1, ...options: StepOptions[], handler: S1H]
-        | ((
-            props: Props<Scope & Record<"scope", Record<S0, ReturnType<S0H>>>>
-          ) => Readonly<[S1, S1H]>)
-        | Readonly<[S1, S1H]>
-    ]
-  ): S0 | S1;
-  <
-    const S0 extends string,
-    const S0H extends (props: Props<Scope>) => any,
-    const S1 extends string,
-    const S1H extends (
-      props: Props<Scope & Record<"scope", Record<S0, ReturnType<S0H>>>>
-    ) => any,
-    const S2 extends string,
-    const S2H extends (
-      props: Props<
-        Scope &
-          Record<"scope", Record<S0, ReturnType<S0H>>> &
-          Record<"scope", Record<S1, ReturnType<S1H>>>
-      >
-    ) => any
-  >(
-    ...trumpets: [
-      step:
-        | [name: S0, handler: S0H]
-        | [name: S0, ...options: StepOptions[], handler: S0H]
-        | ((props: Scope) => Readonly<[S0, S0H]>)
-        | Readonly<[S0, S0H]>,
-      step:
-        | [name: S1, handler: S1H]
-        | [name: S1, ...options: StepOptions[], handler: S1H]
-        | ((
-            props: Props<Scope & Record<"scope", Record<S0, ReturnType<S0H>>>>
-          ) => Readonly<[S1, S1H]>)
-        | Readonly<[S1, S1H]>,
-
-      step:
-        | [name: S2, handler: S2H]
-        | [name: S2, ...options: StepOptions[], handler: S2H]
-        | ((
-            props: Props<
-              Scope &
-                Record<"scope", Record<S0, ReturnType<S0H>>> &
-                Record<"scope", Record<S1, ReturnType<S1H>>>
-            >
-          ) => Readonly<[S2, S2H]>)
-        | Readonly<[S2, S2H]>
-    ]
-  ): S0 | S1 | S2;
-}
-
-const Steps = (() => {
-  return {} as any;
-}) as Steps;
-
-// Step 3: Final Action stage
 
 Steps(
   ["step 1", () => 3],
@@ -197,7 +21,6 @@ const App = (() => {
 
 type Pretty<T> = { [K in keyof T]: T[K] } & {};
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export interface Scoped<Scope extends Record<any, any>> {}
 
 type ConfigurableKey<T> = T extends ConfigurableUseCase<any, infer Used>
