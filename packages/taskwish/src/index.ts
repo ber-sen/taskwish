@@ -4,7 +4,10 @@
 //     | |/ _` / __| |/ /\ \/  \/ / | / __| '_ \ 
 //     | | (_| \__ \   <  \  /\  /  | \__ \ | | |
 //     |_|\__,_|___/_|\_\  \/  \/   |_|___/_| |_|
-                                              
+//
+//  Elastic License 2.0
+//  Copyright (c) 2025 - present Eightbits LLC
+
 export * from './utils/env'
 export * from './utils/exception'
 export * from './utils/meta'
