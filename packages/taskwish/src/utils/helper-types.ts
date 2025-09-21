@@ -22,3 +22,5 @@ export type ToCamelCase<T extends string> = LowercaseFirst<CamelCase<T>>;
 export type PrettyScope<T> = {
   [K in keyof T as ToCamelCase<Extract<K, string>>]: T[K];
 } & {};
+
+export type Pretty<T> = { [K in keyof T]: T[K] } & {};

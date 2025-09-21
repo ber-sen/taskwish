@@ -4,7 +4,6 @@ import { Steps } from "./steps";
 
 interface ConfigurableUseCase<
   Scope extends Record<any, any>,
-  Used extends string = ""
 > extends Scoped<Scope> {
   steps: Steps<Scope>;
 }

@@ -1,4 +1,4 @@
-import { PrettyScope, ToCamelCase } from "./type-helpers";
+import { PrettyScope, ToCamelCase } from "./utils/helper-types";
 
 type Props<T> = {
   [K in keyof T as ToCamelCase<Extract<K, string>>]: K extends "scope"
@@ -96,3 +96,6 @@ export interface Steps<Scope extends Record<any, any> = {}> {
 export const Steps = (() => {
   return {} as any;
 }) as Steps;
+
+export const Step = <const K, const P>(key: K, params: P) =>
+  [key, () => params] as const;

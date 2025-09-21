@@ -1,6 +1,8 @@
 import { Type, type } from "arktype";
 
-export interface Scoped<Scope extends Record<any, any>> {}
+export interface Scoped<Scope extends Record<any, any>> {
+  scope: Scope;
+}
 
 export interface Extendable<Scope> {
   use<const NewScope>(newScope: NewScope): Extendable<NewScope & Scope>;

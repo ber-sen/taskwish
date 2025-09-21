@@ -1,83 +1,29 @@
-import { ArkErrors, Type, type } from "arktype";
-import { Steps } from "./steps";
-import { Meta } from "./meta";
-import { Exception } from "./exception";
+export * from './utils/env'
+export * from './utils/exception'
+export * from './utils/meta'
+export * from './runnable'
+export * from './action'
+export * from './steps'
+export * from './use-case'
+export * from './agent'
+export * from './infra'
+export * from './app'
+
+import { Step, Steps } from "./steps";
+import { Meta } from "./utils/meta";
+import { Exception } from "./utils/exception";
 import { Action } from "./action";
-import { Triggerable, Extendable, Scoped } from "./types";
-
-export type Entry<T extends object> = Type<T>;
-
-const Entry = <const def>(of: type.validate<def>): type.instantiate<def> =>
-  type.raw(of) as never;
+import { Infra } from "./infra";
+import { Agent } from "./agent";
+import { UseCase } from "./use-case";
+import { App } from "./app";
+import { Env } from "./utils/env";
 
 Steps(
   ["step 1", () => 3],
 
   ["step 2", (scope) => scope]
 );
-
-const App = (() => {
-  return {} as any;
-}) as any;
-
-type Pretty<T> = { [K in keyof T]: T[K] } & {};
-
-export interface AgentFactory<Params, Scope extends Record<any, any> = {}>
-  extends Scoped<Scope>,
-    Extendable<Scope>,
-    Triggerable<Scope>,
-    ConfigurableAgent<Scope> {
-  on<const Schema>(
-    on: Schema extends Type<infer Schema>
-      ? Type<Schema>
-      : Schema extends object
-      ? type.validate<Schema>
-      : object
-  ): ConfigurableAgent<
-    Scope & Record<"input", type.instantiate<Schema>["infer"]>
-  >;
-  use<const NewScope>(
-    newScope: NewScope
-  ): UseCaseFactory<Params, NewScope & Scope>;
-}
-
-interface ConfigurableAgent<Scope extends Record<any, any>>
-  extends Scoped<Scope> {
-  skills(...skills: any): any;
-}
-
-const Agent = <const Params extends string>(
-  name: Params
-): AgentFactory<Params> => {
-  return name as any;
-};
-
-interface ConfigurableInfra<Scope extends Record<any, any>> {
-  defs: Steps<Scope>;
-}
-
-export interface InfraFactory<Params, Scope extends Record<any, any> = {}>
-  extends Scoped<Scope>,
-    Extendable<Scope>,
-    Triggerable<Scope>,
-    ConfigurableInfra<Scope> {
-  on<const Schema>(
-    on: Schema extends Type<infer Schema>
-      ? Type<Schema>
-      : Schema extends object
-      ? type.validate<Schema>
-      : object
-  ): ConfigurableInfra<Scope & Record<"on", type.instantiate<Schema>["infer"]>>;
-  use<const NewScope>(
-    newScope: NewScope
-  ): InfraFactory<Params, NewScope & Scope>;
-}
-
-const Infra = <const Params extends string>(
-  name: Params
-): InfraFactory<Params> => {
-  return name as any;
-};
 
 const Page = (asd: string) => {
   return asd as any;
@@ -92,9 +38,6 @@ export const Options = Object.assign(Symbol("Options"), {
 // Modifiers
 
 const resource = <const K>(key: K, params: { path: string; content: string }) =>
-  [key, () => params] as const;
-
-export const Step = <const K, const P>(key: K, params: P) =>
   [key, () => params] as const;
 
 export const run = <const K>(
@@ -169,38 +112,6 @@ app.cli();
 app.listen(3000);
 app.run("useCase");
 app.chat();
-
-function* Env<const def>(of: type.validate<def>): Generator<
-  | Meta<{
-      type: "requires";
-      requires: "ctx";
-      data: type.instantiate<def>["infer"];
-    }>
-  | Exception<{
-      readonly status: 400;
-      readonly errors: ArkErrors;
-    }>,
-  type.instantiate<def>["infer"] | undefined,
-  Record<"env", type.instantiate<def>["infer"]>
-> {
-  const ctx = yield Meta({
-    type: "requires",
-    requires: "ctx",
-    data: {} as type.instantiate<def>["infer"],
-  });
-
-  const env = type(of);
-
-  const out = env(ctx.env);
-
-  if (out instanceof type.errors) {
-    yield Exception({ status: 400, errors: out });
-
-    return undefined;
-  }
-
-  return out;
-}
 
 const fetchUsers = Action(async function* (params: { name: string }) {
   const env = yield* Env({ DATABASE_API_KEY: "string" });
