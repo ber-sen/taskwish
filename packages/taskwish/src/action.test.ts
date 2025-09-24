@@ -6,6 +6,23 @@ import { Meta } from "./utils/meta";
 import { Exception } from "./utils/exception";
 
 describe("Action", () => {
+  it("works with arrow functions", () => {
+    const action = Action(() => ({ success: true }));
+
+    type T = typeof action;
+
+    type action = Action<
+      never,
+      {
+        success: boolean;
+      },
+      {
+        success: boolean;
+      },
+      unknown
+    >;
+  });
+
   it("works with generators", () => {
     const action = Action(async function* () {
       const env = yield* Env({ DATABASE_API_KEY: "string" });
