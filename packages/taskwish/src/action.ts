@@ -1,23 +1,18 @@
-import { Operation } from "./operation";
+import { TaskWish } from "./types";
 
-export interface Action<Params extends Array<any>, Stream, Result, Ctx> {
-  run(...params: Params): Promise<Result>;
-  stream(...params: Params): AsyncGenerator<Stream, Result, Ctx>;
-}
-
-export function Action<Params extends Array<any>, Stream, Result, Ctx>(
+export function Action<Params, Stream, Result, Ctx>(
   execute: (
-    ...params: Params
+    params: [Params]
   ) => AsyncGenerator<Stream, Result, Ctx> | Generator<Stream, Result, Ctx>
 ): Params extends object
-  ? Action<Params, Stream, Result, Ctx>
-  : Operation<Stream, Result, Ctx>;
+  ? TaskWish.Action<Params, Stream, Result, Ctx>
+  : TaskWish.Runnable<Stream, Result, Ctx>;
 
-export function Action<Params extends Array<any>, Result>(
-  execute: (...params: Params) => Result
+export function Action<Params, Result>(
+  execute: (params: [Params]) => Result
 ): Params extends object
-  ? Action<never, Result, Result, unknown>
-  : Operation<never, Result, unknown>;
+  ? TaskWish.Action<never, Result, Result, unknown>
+  : TaskWish.Runnable<never, Result, unknown>;
 
 export function Action(execute: any) {
   return execute as any;

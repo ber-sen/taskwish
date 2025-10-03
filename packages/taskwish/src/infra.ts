@@ -1,16 +1,16 @@
 import { Steps } from "./steps";
-import { Scoped, Extendable, Triggerable } from "./types";
+import { TaskWish } from "./types";
 import { Type, type } from "arktype";
 
 interface ConfigurableInfra<Scope extends Record<any, any>>
-  extends Scoped<Scope> {
+  extends TaskWish.Scoped<Scope> {
   defs: Steps<Scope>;
 }
 
 export interface InfraFactory<Params, Scope extends Record<any, any> = {}>
-  extends Scoped<Scope>,
-    Extendable<Scope>,
-    Triggerable<Scope>,
+  extends TaskWish.Scoped<Scope>,
+    TaskWish.Extendable<Scope>,
+    TaskWish.Triggerable<Scope>,
     ConfigurableInfra<Scope> {
   on<const Schema>(
     on: Schema extends Type<infer Schema>

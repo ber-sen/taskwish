@@ -1,11 +1,4 @@
-export interface Meta<
-  Params extends {
-    type: string;
-  }
-> {
-  meta: Params;
-  toString: () => string;
-}
+import { TaskWish } from "../types";
 
 export const Meta = <
   const Params extends {
@@ -13,7 +6,7 @@ export const Meta = <
   }
 >(
   meta: Params
-): Meta<Params> => ({
+): TaskWish.Meta<Params> => ({
   meta,
   toString: () => JSON.stringify(meta),
 });

@@ -1,4 +1,4 @@
-import { PrettyScope, ToCamelCase } from "./utils/helper-types";
+import { PrettyScope, ToCamelCase } from "./helper-types";
 
 type Props<T> = {
   [K in keyof T as ToCamelCase<Extract<K, string>>]: K extends "scope"

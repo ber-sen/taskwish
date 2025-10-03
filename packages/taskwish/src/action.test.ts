@@ -1,9 +1,8 @@
-import { Expect, Equal } from "./utils/helper-types";
+import { Expect, Equal } from "./helper-types";
 import { Action } from "./action";
 import { Env } from "./utils/env";
 import { ArkErrors } from "arktype";
-import { Meta } from "./utils/meta";
-import { Exception } from "./utils/exception";
+import { TaskWish } from "./types";
 
 describe("Action", () => {
   it("works with arrow functions", () => {
@@ -11,15 +10,17 @@ describe("Action", () => {
 
     type T = typeof action;
 
-    type action = Action<
-      never,
-      {
-        success: boolean;
-      },
-      {
-        success: boolean;
-      },
-      unknown
+    type action = Expect<
+      Equal<
+        TaskWish.Runnable<
+          never,
+          {
+            success: boolean;
+          },
+          unknown
+        >,
+        T
+      >
     >;
   });
 
@@ -35,13 +36,12 @@ describe("Action", () => {
     type action = Expect<
       Equal<
         T,
-        Action<
-          [],
-          | Exception<{
+        TaskWish.Runnable<
+          | TaskWish.Exception<{
               readonly status: 400;
               readonly errors: ArkErrors;
             }>
-          | Meta<{
+          | TaskWish.Meta<{
               type: "requires";
               requires: "ctx";
               data: {

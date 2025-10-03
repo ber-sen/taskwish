@@ -1,12 +1,4 @@
-export interface Exception<
-  Params extends {
-    status: number;
-  }
-> {
-  exception: Params;
-  throw: () => void;
-  toString: () => string;
-}
+import { TaskWish } from "../types";
 
 export const Exception = <
   const Params extends {
@@ -14,7 +6,7 @@ export const Exception = <
   }
 >(
   exception: Params
-): Exception<Params> => ({
+): TaskWish.Exception<Params> => ({
   exception,
   throw: () => {
     throw new Error(JSON.stringify(exception));

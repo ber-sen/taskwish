@@ -1,17 +1,17 @@
 import { Type, type } from "arktype";
-import { Scoped, Triggerable, Extendable } from "./types";
+import { TaskWish } from "./types";
 import { Steps } from "./steps";
 
 interface ConfigurableUseCase<
   Scope extends Record<any, any>,
-> extends Scoped<Scope> {
+> extends TaskWish.Scoped<Scope> {
   steps: Steps<Scope>;
 }
 
 export interface UseCaseFactory<Params, Scope extends Record<any, any> = {}>
-  extends Scoped<Scope>,
-    Extendable<Scope>,
-    Triggerable<Scope>,
+  extends TaskWish.Scoped<Scope>,
+    TaskWish.Extendable<Scope>,
+    TaskWish.Triggerable<Scope>,
     ConfigurableUseCase<Scope> {
   on<const Schema>(
     on: Schema extends Type<infer Schema>

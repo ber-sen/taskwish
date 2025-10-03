@@ -1,14 +1,15 @@
 import { ArkErrors, type } from "arktype";
 import { Exception } from "./exception";
 import { Meta } from "./meta";
+import { TaskWish } from "../types";
 
 export function* Env<const def>(of: type.validate<def>): Generator<
-  | Meta<{
+  | TaskWish.Meta<{
       type: "requires";
       requires: "ctx";
       data: type.instantiate<def>["infer"];
     }>
-  | Exception<{
+  | TaskWish.Exception<{
       readonly status: 400;
       readonly errors: ArkErrors;
     }>,
