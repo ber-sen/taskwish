@@ -5,7 +5,7 @@ import { ArkErrors } from "arktype";
 import { TaskWish } from "./types";
 
 describe("Action", () => {
-  it("works with arrow functions", () => {
+  it("works with arrow functions", async () => {
     const action = Action(() => ({ success: true }));
 
     type T = typeof action;
@@ -22,6 +22,10 @@ describe("Action", () => {
         T
       >
     >;
+
+    const result = await action.run();
+
+    expect(result).toEqual({ success: true });
   });
 
   it("works with generators", () => {

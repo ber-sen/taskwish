@@ -14,6 +14,9 @@ export function Action<Params, Result>(
   ? TaskWish.Action<never, Result, Result, unknown>
   : TaskWish.Runnable<never, Result, unknown>;
 
-export function Action(execute: any) {
-  return execute as any;
+export function Action(execute: unknown) {
+  return {
+    run: execute,
+    stream: execute
+  }
 }
