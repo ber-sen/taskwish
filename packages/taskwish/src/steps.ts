@@ -16,81 +16,46 @@ export interface StepOptions {
 }
 
 export interface Steps<Scope extends Record<any, any> = {}> {
-  <const S0 extends string, const S0H extends (props: Scope) => any>(
+  <const S0, const S0R>(
     ...trumpets: [
       step:
-        | [name: S0, handler: S0H]
-        | [name: S0, ...options: StepOptions[], handler: S0H]
-        | ((props: Scope) => Readonly<[S0, S0H]>)
-        | Readonly<[S0, S0H]>
+        | [name: S0, handler: ((props: Props<Scope>) => S0R) | S0R]
+        | S0R
+        | ((props: Props<Scope>) => S0R)
+        | S0R
     ]
   ): S0;
-  <
-    const S0 extends string,
-    const S0H extends (props: Scope) => any,
-    const S1 extends string,
-    const S1H extends (
-      props: Props<Scope & Record<"scope", Record<S0, ReturnType<S0H>>>>
-    ) => any
-  >(
+  <const S0, const S0R, const S1, const S1R>(
     ...trumpets: [
       step:
-        | [name: S0, handler: S0H]
-        | [name: S0, ...options: StepOptions[], handler: S0H]
-        | ((props: Scope) => Readonly<[S0, S0H]>)
-        | Readonly<[S0, S0H]>,
+        | [name: S0, handler: ((props: Props<Scope>) => S0R) | S0R]
+        | ((props: Props<Scope>) => S0R)
+        | S0R,
       step:
-        | [name: S1, handler: S1H]
-        | [name: S1, ...options: StepOptions[], handler: S1H]
-        | ((
-            props: Props<Scope & Record<"scope", Record<S0, ReturnType<S0H>>>>
-          ) => Readonly<[S1, S1H]>)
-        | Readonly<[S1, S1H]>
-    ]
-  ): S0 | S1;
-  <
-    const S0 extends string,
-    const S0H extends (props: Props<Scope>) => any,
-    const S1 extends string,
-    const S1H extends (
-      props: Props<Scope & Record<"scope", Record<S0, ReturnType<S0H>>>>
-    ) => any,
-    const S2 extends string,
-    const S2H extends (
-      props: Props<
-        Scope &
-          Record<"scope", Record<S0, ReturnType<S0H>>> &
-          Record<"scope", Record<S1, ReturnType<S1H>>>
-      >
-    ) => any
-  >(
-    ...trumpets: [
-      step:
-        | [name: S0, handler: S0H]
-        | [name: S0, ...options: StepOptions[], handler: S0H]
-        | ((props: Scope) => Readonly<[S0, S0H]>)
-        | Readonly<[S0, S0H]>,
-      step:
-        | [name: S1, handler: S1H]
-        | [name: S1, ...options: StepOptions[], handler: S1H]
-        | ((
-            props: Props<Scope & Record<"scope", Record<S0, ReturnType<S0H>>>>
-          ) => Readonly<[S1, S1H]>)
-        | Readonly<[S1, S1H]>,
-
-      step:
-        | [name: S2, handler: S2H]
-        | [name: S2, ...options: StepOptions[], handler: S2H]
+        | [
+            name: S0,
+            (
+              | ((
+                  props: Props<
+                    Scope &
+                      Record<
+                        "scope",
+                        Record<S0 extends string ? S0 : "step-0", S0R>
+                      >
+                  >
+                ) => S1R)
+              | S1R
+            )
+          ]
         | ((
             props: Props<
               Scope &
-                Record<"scope", Record<S0, ReturnType<S0H>>> &
-                Record<"scope", Record<S1, ReturnType<S1H>>>
+                Record<"scope", Record<S0 extends string ? S0 : "step-0", S0R>>
             >
-          ) => Readonly<[S2, S2H]>)
-        | Readonly<[S2, S2H]>
+          ) => S1R)
+        | S1R
     ]
-  ): S0 | S1 | S2;
+  ): S0 | S1;
 }
 
 export const Steps = (() => {
