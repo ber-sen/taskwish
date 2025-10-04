@@ -1,4 +1,4 @@
-import { Loop, Range, UseCase } from "../../src";
+import { Loop, End, Range, UseCase } from "../../src";
 
 export default UseCase("Say hello")
   .on({ language: "string" })
@@ -6,5 +6,7 @@ export default UseCase("Say hello")
   .steps(
     Loop(Range(0, 10)),
 
-    ["asdasd", ($) => $.input]
+    ["asdasd", ($) => $.input.language],
+
+    End(Loop)
   );
