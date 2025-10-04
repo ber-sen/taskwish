@@ -28,6 +28,32 @@ describe("Action", () => {
     expect(result).toEqual({ success: true });
   });
 
+  it("works with params", async () => {
+    const action = Action((params: { language: string }) => {
+      return params.language;
+    });
+
+    type T = typeof action;
+
+    type action = Expect<
+      Equal<
+        TaskWish.Action<
+          {
+            language: string;
+          },
+          never,
+          string,
+          unknown
+        >,
+        T
+      >
+    >;
+
+    const result = await action.run({ language: "Spanish" });
+
+    expect(result).toEqual("Spanish");
+  });
+
   it("works with generators", () => {
     const action = Action(async function* () {
       const env = yield* Env({ DATABASE_API_KEY: "string" });
