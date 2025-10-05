@@ -1,10 +1,19 @@
 import { PrettyScope, ToCamelCase } from "./helper-types";
+import { TaskWish } from "./types";
 
 type Props<T> = {
   [K in keyof T as ToCamelCase<Extract<K, string>>]: K extends "scope"
     ? PrettyScope<T[K]>
     : T[K];
 } & {};
+
+type Return = TaskWish.Runnable<
+  never,
+  {
+    success: boolean;
+  },
+  unknown
+>;
 
 type Step0<Scope, S0, S0R> =
   | [name: S0, handler: (props: Props<Scope>) => S0R]
@@ -66,20 +75,20 @@ type Step3<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R> =
   | StepOption<any, null>;
 
 export interface Steps<Scope extends Record<any, any> = {}> {
-  <const S0, const S0R>(...trumpets: [step: Step0<Scope, S0, S0R>]): S0;
+  <const S0, const S0R>(...trumpets: [step: Step0<Scope, S0, S0R>]): Return;
   <const S0, const S0R, const S1, const S1R>(
     ...trumpets: [
       step: Step0<Scope, S0, S0R>,
       step: Step1<Scope, S0, S0R, S1, S1R>
     ]
-  ): S0 | S1;
+  ): Return;
   <const S0, const S0R, const S1, const S1R, const S2, const S2R>(
     ...trumpets: [
       step: Step0<Scope, S0, S0R>,
       step: Step1<Scope, S0, S0R, S1, S1R>,
       step: Step2<Scope, S0, S0R, S1, S1R, S2, S2R>
     ]
-  ): S0 | S1;
+  ): Return;
   <
     const S0,
     const S0R,
@@ -94,9 +103,9 @@ export interface Steps<Scope extends Record<any, any> = {}> {
       step: Step0<Scope, S0, S0R>,
       step: Step1<Scope, S0, S0R, S1, S1R>,
       step: Step2<Scope, S0, S0R, S1, S1R, S2, S2R>,
-      step: Step3<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R>,
+      step: Step3<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R>
     ]
-  ): S0 | S1;
+  ): Return;
 }
 
 export const Steps = (() => {

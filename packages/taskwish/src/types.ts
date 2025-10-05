@@ -23,6 +23,13 @@ export namespace TaskWish {
     use<const NewScope>(newScope: NewScope): Extendable<NewScope & Scope>;
   }
 
+  export interface Describable<Scope extends Record<any, any>> {
+    describe(
+      description: string,
+      meta?: { input: Scope["input"] }
+    ): Scoped<Scope>;
+  }
+
   export interface Triggerable<Scope extends Record<any, any>> {
     on<const Schema>(
       on: Schema extends Type<infer Schema>

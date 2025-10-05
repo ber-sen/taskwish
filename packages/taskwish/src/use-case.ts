@@ -1,30 +1,54 @@
 import { Type, type } from "arktype";
-import { TaskWish } from "./types";
 import { Steps } from "./steps";
+import { TaskWish } from "./types";
 
 interface ConfigurableUseCase<
   Scope extends Record<any, any>,
+  Used extends "describe" | null = null
 > extends TaskWish.Scoped<Scope> {
   steps: Steps<Scope>;
+  describe(
+    description: string,
+    meta?: { input: Scope["input"] }
+  ): ConfigurableUseCase<Scope, Used & "describe">;
 }
 
-export interface UseCaseFactory<Params, Scope extends Record<any, any> = {}>
-  extends TaskWish.Scoped<Scope>,
+export interface UseCaseFactory<
+  Params,
+  Scope extends Record<any, any> = {},
+  Used extends "describe" | null = null
+> extends TaskWish.Scoped<Scope>,
     TaskWish.Extendable<Scope>,
     TaskWish.Triggerable<Scope>,
-    ConfigurableUseCase<Scope> {
+    TaskWish.Describable<Scope> {
   on<const Schema>(
     on: Schema extends Type<infer Schema>
       ? Type<Schema>
       : Schema extends object
       ? type.validate<Schema>
       : object
-  ): ConfigurableUseCase<
-    Scope & Record<"input", type.instantiate<Schema>["infer"]>
-  >;
+  ): Used extends string
+    ? Omit<
+        ConfigurableUseCase<
+          Scope & Record<"input", type.instantiate<Schema>["infer"]>,
+          Used
+        >,
+        Used
+      >
+    : ConfigurableUseCase<
+        Scope & Record<"input", type.instantiate<Schema>["infer"]>,
+        Used
+      >;
   use<const NewScope>(
     newScope: NewScope
-  ): UseCaseFactory<Params, NewScope & Scope>;
+  ): Used extends string
+    ? Omit<UseCaseFactory<Params, NewScope & Scope, Used>, Used>
+    : UseCaseFactory<Params, NewScope & Scope, Used>;
+  describe(
+    description: string,
+    meta?: { input: Scope["input"] }
+  ): Omit<UseCaseFactory<Params, Scope, "describe">, "describe">;
+  steps: Steps<Scope>;
 }
 
 export const UseCase = <const Params extends string>(
