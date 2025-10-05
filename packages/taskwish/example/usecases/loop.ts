@@ -8,5 +8,7 @@ export default UseCase("Say hello")
 
     ["asdasd", ({ input }) => input.language],
 
-    End(Loop)
+    End(Loop),
+
+    scope => scope.asdasd
   );
