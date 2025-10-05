@@ -27,3 +27,17 @@ type C = { other: number };
 type ResultA = AdjustNumber<B, AdjustNumber<A, 10>>;
 type ResultB = AdjustNumber<B, 10>;
 type ResultC = AdjustNumber<C, 10>;
+
+type InScope<
+  B extends number,
+  A extends number,
+  Arr extends unknown[] = []
+> = Arr["length"] extends B
+  ? A extends Arr["length"]
+    ? true
+    : false
+  : Arr["length"] extends A
+  ? true
+  : InScope<A, B, [unknown, ...Arr]>;
+
+type X = InScope<12, 11> extends true ? string : never;
