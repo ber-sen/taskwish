@@ -6,7 +6,7 @@ export default UseCase("Say hello")
   .steps(
     ["asdasd", ($) => $.input],
 
-    ({ scope }) =>
+    (scope) =>
       run("Slack.sendMessage", {
         channel: "#general",
         text: `Does someone speak ${scope.asdasd.language}?`,

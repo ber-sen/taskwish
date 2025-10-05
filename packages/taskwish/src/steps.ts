@@ -6,108 +6,37 @@ type Props<T> = {
     : T[K];
 } & {};
 
-export interface Steps<Scope extends Record<any, any> = {}> {
-  <const S0, const S0R>(
-    ...trumpets: [
-      step:
-        | [name: S0, handler: ((props: Props<Scope>) => S0R) | S0R]
+type Step0<Scope, S0, S0R> =
+  | [name: S0, handler: (props: Props<Scope>) => S0R | StepOption<any, null>]
+  | ((props: Props<Scope>) => S0R | StepOption<any, null>)
+  | StepOption<any, null>;
+
+type Step1<Scope, S0, S0R, S1, S1R> =
+  | [
+      name: S1,
+      handler:
         | ((
-            props: Props<Scope>
-          ) => Exclude<S0R, StepOption<any, string>> | StepOption<any, null>)
-        | Exclude<S0R, StepOption<any, string>>
+            props: Props<S0 extends string ? Scope & Record<S0, S0R> : Scope>
+          ) => S1R | StepOption<any, null>)
         | StepOption<any, null>
     ]
-  ): S0;
+  | ((
+      props: Props<S0 extends string ? Scope & Record<S0, S0R> : Scope>
+    ) => S1R | StepOption<any, null>)
+  | StepOption<any, null>;
+
+export interface Steps<Scope extends Record<any, any> = {}> {
+  <const S0, const S0R>(...trumpets: [step: Step0<Scope, S0, S0R>]): S0;
   <const S0, const S0R, const S1, const S1R>(
     ...trumpets: [
-      step:
-        | [name: S0, handler: ((props: Props<Scope>) => S0R) | S0R]
-        | ((props: Props<Scope>) => Exclude<S0R, StepOption<any, string>>)
-        | Exclude<S0R, StepOption<any, string>>
-        | StepOption<any, null>,
-      step:
-        | [
-            name: S0,
-            (
-              | ((
-                  props: Props<
-                    Scope &
-                      Record<
-                        "scope",
-                        Record<S0 extends string ? S0 : "step-0", S0R>
-                      >
-                  >
-                ) => S1R)
-              | S1R
-            )
-          ]
-        | ((
-            props: Props<
-              Scope &
-                Record<"scope", Record<S0 extends string ? S0 : "step-0", S0R>>
-            >
-          ) => S1R | StepOption<any, null>)
-        | S1R
-        | StepOption<any, null>
-        | StepOption<any, null>
+      step: Step0<Scope, S0, S0R>,
+      step: Step1<Scope, S0, S0R, S1, S1R>
     ]
   ): S0 | S1;
   <const S0, const S0R, const S1, const S1R, const S2, const S2R>(
     ...trumpets: [
-      step:
-        | [name: S0, handler: ((props: Props<Scope>) => S0R) | S0R]
-        | ((props: Props<Scope>) => Exclude<S0R, StepOption<any, string>>)
-        | Exclude<S0R, StepOption<any, string>>
-        | StepOption<any, null>,
-      step:
-        | [
-            name: S0,
-            (
-              | ((
-                  props: Props<
-                    Scope &
-                      Record<
-                        "scope",
-                        Record<S0 extends string ? S0 : "step-0", S0R>
-                      >
-                  >
-                ) => S1R)
-            )
-          ]
-        | ((
-            props: Props<
-              Scope &
-                Record<"scope", Record<S0 extends string ? S0 : "step-0", S0R>>
-            >
-          ) => StepOption<any, null>)
-    
-        | StepOption<any, null>
-        | StepOption<any, null>,
-      step:
-        | [
-            name: S0,
-            (
-              | ((
-                  props: Props<
-                    Scope &
-                      Record<
-                        "scope",
-                        Record<S0 extends string ? S0 : "step-0", S0R>
-                      >
-                  >
-                ) => S1R)
-              | S1R
-            )
-          ]
-        | ((
-            props: Props<
-              Scope &
-                Record<"scope", Record<S0 extends string ? S0 : "step-0", S0R>>
-            >
-          ) => S1R | StepOption<any, null>)
-        | S1R
-        | StepOption<any, null>
-        | StepOption<any, null>
+      step: Step0<Scope, S0, S0R>,
+      step: Step1<Scope, S0, S0R, S1, S1R>
     ]
   ): S0 | S1;
 }
@@ -115,6 +44,9 @@ export interface Steps<Scope extends Record<any, any> = {}> {
 export const Steps = (() => {
   return {} as any;
 }) as Steps;
+
+export const Step = <const K, const P>(key: K, params: P) =>
+  [key, () => params] as const;
 
 export interface StepOption<T extends string, G extends null | string> {
   stepOptionType: T;
