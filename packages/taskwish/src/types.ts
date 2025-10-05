@@ -1,13 +1,19 @@
 import { Type, type } from "arktype";
 
 export namespace TaskWish {
-  export interface Runnable<Stream, Result, Ctx> {
-    run(): Promise<Result>;
-    stream(): AsyncGenerator<Stream, Result, Ctx>;
+  export interface RunCtx {
+    abortSignal?: AbortSignal;
   }
-  export interface Action<Params extends Object, Stream, Result, Ctx> {
-    run(params: Params): Promise<Result>;
-    stream(params: Params): AsyncGenerator<Stream, Result, Ctx>;
+  export interface RunnableCtx {
+    abortSignal?: AbortSignal;
+  }
+  export interface Runnable<Stream, Result, Ctx = RunCtx> {
+    run(ctx?: Ctx): Promise<Result>;
+    stream(ctx?: Ctx): AsyncGenerator<Stream, Result, Ctx>;
+  }
+  export interface Action<Params extends Object, Stream, Result, Ctx = RunCtx> {
+    run(params: Params, ctx?: Ctx): Promise<Result>;
+    stream(params: Params, ctx?: Ctx): AsyncGenerator<Stream, Result, Ctx>;
   }
   export interface Scoped<Scope extends Record<any, any>> {
     scope: Scope;
