@@ -3,6 +3,10 @@ import { Options, run, UseCase } from "../../src";
 export default UseCase("Say hello")
   .on({ language: "string" })
 
+  .describe("Send message to slack", {
+    input: { language: "hello messge language" },
+  })
+
   .steps(
     ["asdasd", ({ input }) => input],
 
