@@ -6,7 +6,7 @@ export default UseCase("Say hello")
   .steps(
     Loop(Range(0, 10)),
 
-    ["asdasd", ($) => $.input.language],
+    ["asdasd", ({ input }) => input.language],
 
-    // End(Loop)
+    End(Loop)
   );
