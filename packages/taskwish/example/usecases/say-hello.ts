@@ -4,7 +4,7 @@ export default UseCase("Say hello")
   .on({ language: "string" })
 
   .steps(
-    ["asdasd", ($) => $.input],
+    ["asdasd", ({ input }) => input],
 
     ({ asdasd }) =>
       run("Slack.sendMessage", {
