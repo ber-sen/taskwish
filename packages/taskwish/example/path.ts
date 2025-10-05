@@ -29,8 +29,8 @@ type ResultB = AdjustNumber<B, 10>;
 type ResultC = AdjustNumber<C, 10>;
 
 type InScope<
-  B extends number,
   A extends number,
+  B extends number,
   Arr extends unknown[] = []
 > = Arr["length"] extends B
   ? A extends Arr["length"]
@@ -40,4 +40,4 @@ type InScope<
   ? true
   : InScope<A, B, [unknown, ...Arr]>;
 
-type X = InScope<12, 11> extends true ? string : never;
+type X = InScope<8, 11> extends true ? string : never;
