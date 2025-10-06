@@ -148,3 +148,22 @@ export const End = (
   group: null,
   params,
 });
+
+export const If = (condition: boolean): StepOption<"condition-if", null> => ({
+  stepOptionType: "condition-if",
+  group: null,
+  params: { condition },
+});
+
+export const ElseIf = (
+  condition: boolean
+): StepOption<"condition-else-if", null> => ({
+  stepOptionType: "condition-else-if",
+  group: null,
+  params: { condition },
+});
+
+export const Else = (): StepOption<"condition-else-else", null> => ({
+  stepOptionType: "condition-else-else",
+  group: null,
+});
