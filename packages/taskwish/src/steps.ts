@@ -167,3 +167,8 @@ export const Else = (): StepOption<"condition-else-else", null> => ({
   stepOptionType: "condition-else-else",
   group: null,
 });
+
+export const Return = (): StepOption<"return", null> => ({
+  stepOptionType: "return",
+  group: null,
+});
