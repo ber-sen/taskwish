@@ -1,32 +1,29 @@
-type BuildTuple<L extends number, T extends any[] = []> = T["length"] extends L
-  ? T
-  : BuildTuple<L, [...T, unknown]>;
+type BuildTuple<L extends number, T extends any[] = []> =
+  T['length'] extends L ? T : BuildTuple<L, [...T, any]>;
 
-type Add<A extends number, B extends number> = [
-  ...BuildTuple<A>,
-  ...BuildTuple<B>
-]["length"];
+type Add<A extends number, B extends number> =
+  [...BuildTuple<A>, ...BuildTuple<B>]['length'];
 
-type Subtract<A extends number, B extends number> = BuildTuple<A> extends [
-  ...infer R,
-  ...BuildTuple<B>
-]
-  ? R["length"]
-  : never;
+type Subtract<A extends number, B extends number> =
+  BuildTuple<A> extends [...infer Rest, ...BuildTuple<B>] ? Rest['length'] : never;
 
-type AdjustNumber<T, N extends number> = "lorem" extends keyof T
-  ? Add<N, 1>
-  : "ipsum" extends keyof T
-  ? Subtract<N, 1>
-  : N;
+type AdjustNumber<T, N extends number> =
+  T extends object
+    ? "lorem" extends keyof T ? Add<N, 1> :
+      "ipsum" extends keyof T ? Subtract<N, 1> :
+      N
+    : N;
+
+type AdjustSequence<Arr extends any[], N extends number = 0> =
+  Arr extends [infer Head, ...infer Tail]
+    ? AdjustSequence<Tail, Extract<AdjustNumber<Head, N>, number>>
+    : N;
 
 type A = { lorem: string };
 type B = { ipsum: boolean };
 type C = { other: number };
 
-type ResultA = AdjustNumber<B, AdjustNumber<A, 10>>;
-type ResultB = AdjustNumber<B, 10>;
-type ResultC = AdjustNumber<C, 10>;
+type ResultA = AdjustSequence<[A, B], 0>;
 
 type InScope<
   A extends number,
