@@ -1,6 +1,37 @@
 import { PrettyScope, ToCamelCase } from "./helper-types";
 import { TaskWish } from "./types";
 
+type BuildTuple<L extends number, T extends any[] = []> = T["length"] extends L
+  ? T
+  : BuildTuple<L, [...T, any]>;
+
+type Add<A extends number, B extends number> = [
+  ...BuildTuple<A>,
+  ...BuildTuple<B>
+]["length"];
+
+type Subtract<A extends number, B extends number> = BuildTuple<A> extends [
+  ...infer Rest,
+  ...BuildTuple<B>
+]
+  ? Rest["length"]
+  : never;
+
+type IndentStep<T, N extends number> = T extends StepOption<"loop" | "if", null>
+  ? Add<N, 1>
+  : T extends StepOption<"end", null>
+  ? Subtract<N, 1>
+  : N;
+
+type Indent<Arr extends any[], N extends number = 0> = Arr extends [
+  infer Head,
+  ...infer Tail
+]
+  ? Indent<Tail, Extract<IndentStep<Head, N>, number>>
+  : N;
+
+type ResultA = Indent<[StepOption<"if", null>, StepOption<"end", null>], 0>;
+
 type Props<T> = {
   [K in keyof T as ToCamelCase<Extract<K, string>>]: K extends "scope"
     ? PrettyScope<T[K]>
@@ -147,7 +178,7 @@ export interface Steps<Scope extends Record<any, any> = {}> {
       step: Step1<Scope, S0, S0R, S1, S1R>,
       step: Step2<Scope, S0, S0R, S1, S1R, S2, S2R>,
       step: Step3<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R>,
-      step: Step4<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R, S4, S4R>,
+      step: Step4<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R, S4, S4R>
     ]
   ): Return;
 }
@@ -193,22 +224,20 @@ export const End = (
   params,
 });
 
-export const If = (condition: boolean): StepOption<"condition-if", null> => ({
-  stepOptionType: "condition-if",
+export const If = (condition: boolean): StepOption<"if", null> => ({
+  stepOptionType: "if",
   group: null,
   params: { condition },
 });
 
-export const ElseIf = (
-  condition: boolean
-): StepOption<"condition-else-if", null> => ({
-  stepOptionType: "condition-else-if",
+export const ElseIf = (condition: boolean): StepOption<"else-if", null> => ({
+  stepOptionType: "else-if",
   group: null,
   params: { condition },
 });
 
-export const Else = (): StepOption<"condition-else-else", null> => ({
-  stepOptionType: "condition-else-else",
+export const Else = (): StepOption<"else", null> => ({
+  stepOptionType: "else",
   group: null,
 });
 
