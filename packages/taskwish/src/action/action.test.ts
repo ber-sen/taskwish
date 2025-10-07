@@ -1,8 +1,8 @@
-import { Expect, Equal } from "./helper-types";
-import { Action } from "./action/action";
-import { Env } from "./action/env";
+import { Expect, Equal } from "../helper-types";
+import { Action } from "./action";
+import { Env } from "./env";
 import { ArkErrors } from "arktype";
-import { TaskWish } from "./types";
+import { TaskWish } from "../types";
 
 describe("Action", () => {
   it("works with arrow functions", async () => {
