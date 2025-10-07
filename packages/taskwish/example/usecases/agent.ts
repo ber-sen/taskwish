@@ -1,12 +1,16 @@
 import { End, UseCase, If, Agent } from "../../src";
 
-export default UseCase("Say hello")
-  .on({ user: { name: "string", age: "number" } })
+export default UseCase("Chat bot")
+  .on({ messages: { name: "string", age: "number" } })
 
-  .steps(
-    If(2 > 1),
+  .steps(($) =>
+    Agent("lorem", {
+      model: "openai/gpt-4o",
+      system: "You are a helpful assistant.",
+    })
+      .abilities()
 
-    Agent("lorem").abilities(),
+      .chat()
 
-    End(If)
+      .on(["user reject", $.input])
   );
