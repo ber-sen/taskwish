@@ -183,10 +183,6 @@ export interface Steps<Scope extends Record<any, any> = {}> {
   ): Return;
 }
 
-export const Steps = (() => {
-  return {} as any;
-}) as Steps;
-
 export const Step = <const K, const P>(key: K, params: P) =>
   [key, () => params] as const;
 
@@ -228,6 +224,12 @@ export const If = (condition: boolean): StepOption<"if", null> => ({
   stepOptionType: "if",
   group: null,
   params: { condition },
+});
+
+export const Parallel = (name?: string): StepOption<"parallel", null> => ({
+  stepOptionType: "parallel",
+  group: null,
+  params: { name },
 });
 
 export const ElseIf = (condition: boolean): StepOption<"else-if", null> => ({
