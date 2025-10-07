@@ -9,8 +9,11 @@ export default UseCase("Chat bot")
       system: "You are a helpful assistant.",
     })
       .abilities()
+      .on(["user reject", $.input])
 
       .chat()
-
-      .on(["user reject", $.input])
+      // or
+      .respond({ prompt: "asdasd" })
+      // or
+      .handle({ task: "asdasd" })
   );
