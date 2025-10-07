@@ -1,4 +1,4 @@
-import { Type, type } from "arktype";
+import { JsonSchema, Type, type } from "arktype";
 
 export namespace TaskWish {
   export interface Named<Name extends string> {
@@ -8,6 +8,9 @@ export namespace TaskWish {
     abortSignal?: AbortSignal;
   }
   export interface RunnableCtx {
+    abortSignal?: AbortSignal;
+  }
+  export interface ToolCtx {
     abortSignal?: AbortSignal;
   }
   export interface Runnable<Stream, Result, Ctx = RunCtx> {
@@ -20,6 +23,14 @@ export namespace TaskWish {
   }
   export interface Scoped<Scope extends Record<any, any>> {
     scope: Scope;
+  }
+
+  export interface Tool {
+    name: string;
+    description?: string;
+    inputSchema: JsonSchema;
+    outputSchema?: JsonSchema;
+    handler: (args: unknown, context: ToolCtx) => Promise<unknown>;
   }
 
   export interface Extendable<Scope> {
