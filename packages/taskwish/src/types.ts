@@ -1,6 +1,9 @@
 import { Type, type } from "arktype";
 
 export namespace TaskWish {
+  export interface Named<Name extends string> {
+    name: Name;
+  }
   export interface RunCtx {
     abortSignal?: AbortSignal;
   }
