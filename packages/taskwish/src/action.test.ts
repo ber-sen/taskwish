@@ -1,6 +1,6 @@
 import { Expect, Equal } from "./helper-types";
-import { Action } from "./action";
-import { Env } from "./utils/env";
+import { Action } from "./action/action";
+import { Env } from "./action/env";
 import { ArkErrors } from "arktype";
 import { TaskWish } from "./types";
 

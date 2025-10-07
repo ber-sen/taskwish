@@ -1,4 +1,4 @@
-import { TaskWish } from "./types";
+import { TaskWish } from "../types";
 
 export function Action<Params, Stream = never, Result = unknown, Ctx = unknown>(
   execute: (
