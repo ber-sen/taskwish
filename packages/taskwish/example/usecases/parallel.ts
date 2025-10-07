@@ -1,4 +1,4 @@
-import { End, UseCase, If, Agent, Parallel } from "../../src";
+import { End, UseCase, Parallel } from "../../src";
 
 export default UseCase("Say hello")
   .on({ user: { name: "string", age: "number" } })

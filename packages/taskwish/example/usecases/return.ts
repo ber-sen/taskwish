@@ -1,4 +1,4 @@
-import { End, UseCase, If, Loop, Return } from "../../src";
+import { UseCase, If, Loop, Return } from "../../src";
 
 export default UseCase("Say hello")
   .on({ user: { name: "string", age: "number" } })

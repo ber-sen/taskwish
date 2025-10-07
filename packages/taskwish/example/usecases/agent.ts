@@ -1,4 +1,4 @@
-import { End, UseCase, If, Agent } from "../../src";
+import { UseCase, Agent } from "../../src";
 
 export default UseCase("Chat bot")
   .on({ messages: { name: "string", age: "number" } })
