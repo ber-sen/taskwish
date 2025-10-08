@@ -1,4 +1,4 @@
-import { TaskWish } from "./types";
+import { TaskWish } from "../types";
 
 export function Tool(action: TaskWish.Action<any, any, any>): TaskWish.Tool 
 

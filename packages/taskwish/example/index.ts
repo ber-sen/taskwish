@@ -1,5 +1,13 @@
 import { Exception, Meta } from "../dist";
-import { Action, Agent, App, Env, Infra, Step, Steps, UseCase } from "../src";
+import {
+  Action,
+  Agent,
+  Env,
+  Infra,
+  Package,
+  Step,
+  UseCase,
+} from "../src";
 
 Steps(
   ["step 1", () => 3],
@@ -82,9 +90,11 @@ const home = Page("Home page")
   .layout(MainLayout)
   .render("<p>hello</p>");
 
-const app = App("My Awesome app")
+const app = Package("My Awesome app")
   .infras(infra)
   .usecases(useCase)
+  .tools()
+  .actions()
   .agents(agent)
   .pages(home);
 
@@ -92,6 +102,7 @@ app.up();
 app.down();
 app.cli();
 app.listen(3000);
+app.mcp();
 app.run("useCase");
 app.chat();
 
