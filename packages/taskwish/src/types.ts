@@ -44,6 +44,12 @@ export namespace TaskWish {
     ): Scoped<Scope>;
   }
 
+  export interface StepOption<T extends string, G extends null | string> {
+    stepOptionType: T;
+    group: G;
+    params?: object;
+  }
+
   export interface Triggerable<Scope extends Record<any, any>> {
     on<const Schema>(
       on: Schema extends Type<infer Schema>

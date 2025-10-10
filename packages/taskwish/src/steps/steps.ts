@@ -1,5 +1,5 @@
-import { PrettyScope, ToCamelCase } from "./helper-types";
-import { TaskWish } from "./types";
+import { PrettyScope, ToCamelCase } from "../helper-types";
+import { TaskWish } from "../types";
 
 type BuildTuple<L extends number, T extends any[] = []> = T["length"] extends L
   ? T
@@ -17,9 +17,9 @@ type Subtract<A extends number, B extends number> = BuildTuple<A> extends [
   ? Rest["length"]
   : never;
 
-type IndentStep<T, N extends number> = T extends StepOption<"loop" | "if", null>
+type IndentStep<T, N extends number> = T extends TaskWish.StepOption<"loop" | "if", null>
   ? Add<N, 1>
-  : T extends StepOption<"end", null>
+  : T extends TaskWish.StepOption<"end", null>
   ? Subtract<N, 1>
   : N;
 
@@ -30,7 +30,7 @@ type Indent<Arr extends any[], N extends number = 0> = Arr extends [
   ? Indent<Tail, Extract<IndentStep<Head, N>, number>>
   : N;
 
-type ResultA = Indent<[StepOption<"if", null>, StepOption<"end", null>], 0>;
+type ResultA = Indent<[TaskWish.StepOption<"if", null>, TaskWish.StepOption<"end", null>], 0>;
 
 type Props<T> = {
   [K in keyof T as ToCamelCase<Extract<K, string>>]: K extends "scope"
@@ -48,8 +48,8 @@ type Return = TaskWish.Runnable<
 
 type Step0<Scope, S0, S0R> =
   | [name: S0, handler: (props: Props<Scope>) => S0R]
-  | ((props: Props<Scope>) => S0R | StepOption<any, null>)
-  | StepOption<any, null>;
+  | ((props: Props<Scope>) => S0R | TaskWish.StepOption<any, null>)
+  | TaskWish.StepOption<any, null>;
 
 type Step1<Scope, S0, S0R, S1, S1R> =
   | [
@@ -60,8 +60,8 @@ type Step1<Scope, S0, S0R, S1, S1R> =
     ]
   | ((
       props: Props<Scope & (S0 extends string ? Record<S0, S0R> : {})>
-    ) => S1R | StepOption<any, null>)
-  | StepOption<any, null>;
+    ) => S1R | TaskWish.StepOption<any, null>)
+  | TaskWish.StepOption<any, null>;
 
 type Step2<Scope, S0, S0R, S1, S1R, S2, S2R> =
   | [
@@ -80,8 +80,8 @@ type Step2<Scope, S0, S0R, S1, S1R, S2, S2R> =
           (S0 extends string ? Record<S0, S0R> : {}) &
           (S1 extends string ? Record<S1, S1R> : {})
       >
-    ) => S2R | StepOption<any, null>)
-  | StepOption<any, null>;
+    ) => S2R | TaskWish.StepOption<any, null>)
+  | TaskWish.StepOption<any, null>;
 
 type Step3<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R> =
   | [
@@ -102,8 +102,8 @@ type Step3<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R> =
           (S1 extends string ? Record<S1, S1R> : {}) &
           (S2 extends string ? Record<S2, S2R> : {})
       >
-    ) => S3R | StepOption<any, null>)
-  | StepOption<any, null>;
+    ) => S3R | TaskWish.StepOption<any, null>)
+  | TaskWish.StepOption<any, null>;
 
 type Step4<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R, S4, S4R> =
   | [
@@ -126,8 +126,8 @@ type Step4<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R, S4, S4R> =
           (S2 extends string ? Record<S2, S2R> : {}) &
           (S3 extends string ? Record<S3, S3R> : {})
       >
-    ) => S4R | StepOption<any, null>)
-  | StepOption<any, null>;
+    ) => S4R | TaskWish.StepOption<any, null>)
+  | TaskWish.StepOption<any, null>;
 
 export interface Steps<Scope extends Record<any, any> = {}> {
   <const S0, const S0R>(...trumpets: [step: Step0<Scope, S0, S0R>]): Return;
@@ -186,64 +186,13 @@ export interface Steps<Scope extends Record<any, any> = {}> {
 export const Step = <const K, const P>(key: K, params: P) =>
   [key, () => params] as const;
 
-export interface StepOption<T extends string, G extends null | string> {
-  stepOptionType: T;
-  group: G;
-  params?: object;
-}
-
-export const Loop = (
-  ...params: Array<StepOption<any, "loop">>
-): StepOption<"loop", null> => ({
-  stepOptionType: "loop",
-  group: null,
-  params,
-});
-
-export const Range = (
-  from: number,
-  to: number
-): StepOption<"range", "loop"> => ({
-  stepOptionType: "range",
-  group: "loop",
-  params: {
-    from,
-    to,
-  },
-});
-
-export const End = (
-  params: (...params: any) => StepOption<any, null>
-): StepOption<"end", null> => ({
-  stepOptionType: "end",
-  group: null,
-  params,
-});
-
-export const If = (condition: boolean): StepOption<"if", null> => ({
-  stepOptionType: "if",
-  group: null,
-  params: { condition },
-});
-
-export const Parallel = (name?: string): StepOption<"parallel", null> => ({
+export const Parallel = (name?: string): TaskWish.StepOption<"parallel", null> => ({
   stepOptionType: "parallel",
   group: null,
   params: { name },
 });
 
-export const ElseIf = (condition: boolean): StepOption<"else-if", null> => ({
-  stepOptionType: "else-if",
-  group: null,
-  params: { condition },
-});
-
-export const Else = (): StepOption<"else", null> => ({
-  stepOptionType: "else",
-  group: null,
-});
-
-export const Return = (): StepOption<"return", null> => ({
+export const Return = (): TaskWish.StepOption<"return", null> => ({
   stepOptionType: "return",
   group: null,
 });

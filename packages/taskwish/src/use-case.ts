@@ -1,5 +1,5 @@
 import { Type, type } from "arktype";
-import { Steps } from "./steps";
+import { Steps } from "./steps/steps";
 import { TaskWish } from "./types";
 
 interface ConfigurableUseCase<
