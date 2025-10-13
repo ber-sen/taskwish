@@ -1,3 +1,3 @@
 export * from "./infra"
 export * from "./resource"
-export * from "./destroy"
+export * from "./destroy-result"

@@ -7,7 +7,13 @@ interface ResourceFactory<
   Stream,
   Ctx = TaskWish.DefaultCtx
 > extends TaskWish.Namable<Name> {
-  (params: Params): TaskWish.Resource<Name, Result, Stream, Ctx>;
+  (params: Params): TaskWish.Resource<
+    Name,
+    Promise<Exclude<Awaited<Result>, undefined | TaskWish.Meta<"destroy-result", any>>>,
+    Promise<Result extends TaskWish.Meta<"destroy-result", infer D> ? D : never>,
+    Stream,
+    Ctx
+  >;
 }
 
 export function Resource<

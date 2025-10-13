@@ -48,33 +48,16 @@ export namespace TaskWish {
 
   export interface Resource<
     Name extends string,
-    Result,
+    ResultUp,
+    ResultDown,
     Stream,
     Ctx = DefaultCtx
   > extends Namable<Name> {
     name: Name;
-    up(
-      ctx?: Ctx
-    ): Promise<Exclude<Awaited<Result>, undefined | Meta<"destroy", any>>>;
-    down(
-      ctx?: Ctx
-    ): Promise<Result extends Meta<"destroy", infer D> ? D : never>;
-    stream(
-      state: "up",
-      ctx?: Ctx
-    ): AsyncGenerator<
-      Stream,
-      Promise<Exclude<Awaited<Result>, undefined | Meta<"destroy", any>>>,
-      Ctx
-    >;
-     stream(
-      state: "down",
-      ctx?: Ctx
-    ): AsyncGenerator<
-      Stream,
-      Promise<Result extends Meta<"destroy", infer D> ? D : never>,
-      Ctx
-    >;
+    up(ctx?: Ctx): ResultUp;
+    down(ctx?: Ctx): ResultDown;
+    stream(state: "up", ctx?: Ctx): AsyncGenerator<Stream, ResultUp, Ctx>;
+    stream(state: "down", ctx?: Ctx): AsyncGenerator<Stream, ResultDown, Ctx>;
   }
 
   export interface Extendable<Scope> {
