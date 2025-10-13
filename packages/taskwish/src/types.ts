@@ -1,26 +1,28 @@
-import { JsonSchema, Type, type } from "arktype";
+import { Type, type } from "arktype";
 
 export namespace TaskWish {
-  export interface Named<Name extends string> {
+  export interface Namable<Name extends string> {
     name: Name;
   }
-  export interface RunCtx {
+  export interface DefaultCtx {
     abortSignal?: AbortSignal;
   }
-  export interface RunnableCtx {
-    abortSignal?: AbortSignal;
-  }
-  export interface InfraCtx {
-    abortSignal?: AbortSignal;
-  }
-  export interface ToolCtx {
-    abortSignal?: AbortSignal;
-  }
-  export interface Runnable<Stream, Result, Ctx = RunCtx> {
+  export interface Runnable<
+    Name extends string,
+    Stream,
+    Result,
+    Ctx = DefaultCtx
+  > extends Namable<Name> {
     run(ctx?: Ctx): Promise<Result>;
     stream(ctx?: Ctx): AsyncGenerator<Stream, Result, Ctx>;
   }
-  export interface Action<Params extends Object, Stream, Result, Ctx = RunCtx> {
+  export interface Action<
+    Name extends string,
+    Params extends Object,
+    Stream,
+    Result,
+    Ctx = DefaultCtx
+  > extends Namable<Name> {
     run(params: Params, ctx?: Ctx): Promise<Result>;
     stream(params: Params, ctx?: Ctx): AsyncGenerator<Stream, Result, Ctx>;
   }
@@ -28,23 +30,32 @@ export namespace TaskWish {
     scope: Scope;
   }
 
-  export interface Tool {
-    name: string;
+  export interface Tool<
+    Name extends string,
+    Input extends Object,
+    Stream,
+    Output,
+    Ctx = DefaultCtx
+  > extends Namable<Name> {
     description?: string;
-    inputSchema: JsonSchema;
-    outputSchema?: JsonSchema;
-    handler: (args: unknown, ctx: ToolCtx) => Promise<unknown>;
+    inputSchema: Type<Input>;
+    outputSchema?: Type<Output>;
+    handler: (
+      input: Input,
+      ctx?: DefaultCtx
+    ) => AsyncGenerator<Stream, Output, Ctx> | Promise<Output> | Output;
   }
 
-  export interface Resource<Params extends Object, Result, Ctx = InfraCtx> {
-    (params: Params): {
-      up(
-        ctx?: Ctx
-      ): Promise<Exclude<Awaited<Result>, undefined | Meta<"destroy", any>>>;
-      down(
-        ctx?: Ctx
-      ): Promise<Result extends Meta<"destroy", infer D> ? D : never>;
-    };
+  export interface Resource<Name extends string, Result, Stream, Ctx = DefaultCtx>
+    extends Namable<Name> {
+    name: Name;
+    up(
+      ctx?: Ctx
+    ): Promise<Exclude<Awaited<Result>, undefined | Meta<"destroy", any>>>;
+    down(
+      ctx?: Ctx
+    ): Promise<Result extends Meta<"destroy", infer D> ? D : never>;
+    stream(state: "up" | "down", ctx?: Ctx): AsyncGenerator<Stream, Result, Ctx>;
   }
 
   export interface Extendable<Scope> {

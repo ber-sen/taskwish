@@ -1,15 +1,38 @@
 import { TaskWish } from "../types";
 
-export function Resource<
+interface ResourceFactory<
+  Name extends string,
   Params extends Object,
   Result,
-  Ctx = TaskWish.InfraCtx
+  Stream,
+  Ctx = TaskWish.DefaultCtx
+> extends TaskWish.Namable<Name> {
+  (params: Params): TaskWish.Resource<Name, Result, Stream, Ctx>;
+}
+
+export function Resource<
+  Name extends string,
+  Params extends Object,
+  Stream,
+  Result,
+  Ctx = TaskWish.DefaultCtx
 >(
-  on: ((params: Params, state: "up", ctx?: Ctx) => Result | Promise<Result>) &
-    ((params: Params, state: "down", ctx?: Ctx) => Result | Promise<Result>)
-): TaskWish.Resource<Params, Result, Ctx> {
-  return (params) => ({
-    up: async (ctx) => on(params, "up", ctx) as never,
-    down: async (ctx) => on(params, "down", ctx) as never,
-  }) ;
+  name: Name,
+  on: (
+    params: Params,
+    state: "up" | "down",
+    ctx?: Ctx
+  ) => Result | Promise<Result> | AsyncGenerator<Stream, Result, Ctx>
+): ResourceFactory<Name, Params, Result, Stream, Ctx> {
+  const resource = (params: Params) => ({
+    name,
+    up: async (ctx?: Ctx) => on(params, "up", ctx) as never,
+    down: async (ctx?: Ctx) => on(params, "down", ctx) as never,
+    stream: (state: "up" | "down", ctx?: Ctx) =>
+      on(params, state, ctx) as never,
+  });
+
+  resource.name = name;
+
+  return resource;
 }

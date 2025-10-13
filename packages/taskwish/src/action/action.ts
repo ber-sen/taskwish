@@ -1,6 +1,7 @@
 import { TaskWish } from "../types";
 
-export function Action<Params, Stream = never, Result = unknown, Ctx = unknown>(
+export function Action<Name extends string, Params, Stream = never, Result = unknown, Ctx = unknown>(
+  name: Name,
   execute: (
     params: Params
   ) =>
@@ -8,8 +9,8 @@ export function Action<Params, Stream = never, Result = unknown, Ctx = unknown>(
     | AsyncGenerator<Stream, Result, Ctx>
     | Generator<Stream, Result, Ctx>
 ): Params extends object
-  ? TaskWish.Action<Params, Stream, Result, Ctx>
-  : TaskWish.Runnable<Stream, Result, Ctx>;
+  ? TaskWish.Action<Name, Params, Stream, Result, Ctx>
+  : TaskWish.Runnable<Name, Stream, Result, Ctx>;
 
 export function Action(execute: unknown) {
   return {

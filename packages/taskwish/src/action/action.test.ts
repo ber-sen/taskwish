@@ -6,13 +6,14 @@ import { TaskWish } from "../types";
 
 describe("Action", () => {
   it("works with arrow functions", async () => {
-    const action = Action(() => ({ success: true }));
+    const action = Action("Arrow function", () => ({ success: true }));
 
     type T = typeof action;
 
     type action = Expect<
       Equal<
         TaskWish.Runnable<
+          "Arrow function",
           never,
           {
             success: boolean;
@@ -29,7 +30,7 @@ describe("Action", () => {
   });
 
   it("works with params", async () => {
-    const action = Action((params: { language: string }) => {
+    const action = Action("With params", (params: { language: string }) => {
       return params.language;
     });
 
@@ -38,6 +39,7 @@ describe("Action", () => {
     type action = Expect<
       Equal<
         TaskWish.Action<
+          "With params",
           {
             language: string;
           },
@@ -55,7 +57,7 @@ describe("Action", () => {
   });
 
   it("works with generators", () => {
-    const action = Action(async function* () {
+    const action = Action("Generators", async function* () {
       const env = yield* Env({ DATABASE_API_KEY: "string" });
 
       return { env };
@@ -67,6 +69,7 @@ describe("Action", () => {
       Equal<
         T,
         TaskWish.Runnable<
+          "Generators",
           | TaskWish.Exception<
               400,
               {
