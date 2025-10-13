@@ -10,6 +10,9 @@ export namespace TaskWish {
   export interface RunnableCtx {
     abortSignal?: AbortSignal;
   }
+  export interface InfraCtx {
+    abortSignal?: AbortSignal;
+  }
   export interface ToolCtx {
     abortSignal?: AbortSignal;
   }
@@ -30,7 +33,18 @@ export namespace TaskWish {
     description?: string;
     inputSchema: JsonSchema;
     outputSchema?: JsonSchema;
-    handler: (args: unknown, context: ToolCtx) => Promise<unknown>;
+    handler: (args: unknown, ctx: ToolCtx) => Promise<unknown>;
+  }
+
+  export interface Resource<Params extends Object, Result, Ctx = InfraCtx> {
+    (params: Params): {
+      up(
+        ctx?: Ctx
+      ): Promise<Exclude<Awaited<Result>, undefined | Meta<"destroy", any>>>;
+      down(
+        ctx?: Ctx
+      ): Promise<Result extends Meta<"destroy", infer D> ? D : never>;
+    };
   }
 
   export interface Extendable<Scope> {
@@ -60,21 +74,15 @@ export namespace TaskWish {
     ): Scoped<Scope>;
   }
 
-  export interface Exception<
-    Params extends {
-      status: number;
-    }
-  > {
+  export interface Exception<Status, Params> {
+    status: Status;
     exception: Params;
     throw: () => void;
     toString: () => string;
   }
 
-  export interface Meta<
-    Params extends {
-      type: string;
-    }
-  > {
+  export interface Meta<Type extends string, Params> {
+    type: Type;
     meta: Params;
     toString: () => string;
   }

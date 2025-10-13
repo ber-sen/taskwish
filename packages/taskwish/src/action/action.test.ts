@@ -67,17 +67,21 @@ describe("Action", () => {
       Equal<
         T,
         TaskWish.Runnable<
-          | TaskWish.Exception<{
-              readonly status: 400;
-              readonly errors: ArkErrors;
-            }>
-          | TaskWish.Meta<{
-              type: "requires";
-              requires: "ctx";
-              data: {
-                DATABASE_API_KEY: string;
-              };
-            }>,
+          | TaskWish.Exception<
+              400,
+              {
+                readonly errors: ArkErrors;
+              }
+            >
+          | TaskWish.Meta<
+              "requires",
+              {
+                requires: "ctx";
+                data: {
+                  DATABASE_API_KEY: string;
+                };
+              }
+            >,
           {
             env:
               | {
