@@ -1,4 +1,4 @@
-import { Expect, Equal } from "./helper-types";
+import { Expect, Equal } from "./helpers";
 
 describe("TaskWish", () => {
   it("Initial test", () => {

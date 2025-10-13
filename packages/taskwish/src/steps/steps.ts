@@ -1,4 +1,4 @@
-import { PrettyScope, ToCamelCase } from "../helper-types";
+import { PrettyScope, ToCamelCase } from "../helpers";
 import { TaskWish } from "../types";
 
 type BuildTuple<L extends number, T extends any[] = []> = T["length"] extends L
