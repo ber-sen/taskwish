@@ -1,11 +1,11 @@
-import { DestroyResult, Resource } from "../../src";
+import { Resource } from "../../src";
 
 const S3Bucket = Resource("S3Bucket", (params: { name: string }, state) => {
   if (state === "up") {
-    return { fileCreated: true };
+    console.log("up");
   }
 
-  return DestroyResult({ fileDeleted: true });
+  return "lorem ipsum";
 });
 
-const a = S3Bucket({ name: "asdad" })
+const a = S3Bucket({ name: "asdad" });
