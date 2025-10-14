@@ -13,8 +13,7 @@ export namespace TaskWish {
     Result,
     Ctx = DefaultCtx
   > extends Namable<Name> {
-    run(ctx?: Ctx): Promise<Result>;
-    stream(ctx?: Ctx): AsyncGenerator<Stream, Result, Ctx>;
+    (): AsyncGenerator<Stream, Result, Ctx> & Promise<Result>;
   }
   export interface Action<
     Name extends string,
@@ -23,8 +22,7 @@ export namespace TaskWish {
     Result,
     Ctx = DefaultCtx
   > extends Namable<Name> {
-    run(params: Params, ctx?: Ctx): Promise<Result>;
-    stream(params: Params, ctx?: Ctx): AsyncGenerator<Stream, Result, Ctx>;
+    (params: Params): AsyncGenerator<Stream, Result, Ctx> & Promise<Result>;
   }
   export interface Scoped<Scope extends Record<any, any>> {
     scope: Scope;

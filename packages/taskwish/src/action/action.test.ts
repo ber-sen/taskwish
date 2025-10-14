@@ -1,19 +1,17 @@
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
-import { Env } from "./env";
-import { ArkErrors } from "arktype";
 import { TaskWish } from "../types";
 
 describe("Action", () => {
   it("works with arrow functions", async () => {
-    const action = Action("Arrow function", () => ({ success: true }));
+    const succeed = Action("Succeed", () => ({ success: true }));
 
-    type T = typeof action;
+    type T = typeof succeed;
 
-    type action = Expect<
+    type succeed = Expect<
       Equal<
         TaskWish.Runnable<
-          "Arrow function",
+          "Succeed",
           never,
           {
             success: boolean;
@@ -24,22 +22,22 @@ describe("Action", () => {
       >
     >;
 
-    const result = await action.run();
+    const result = await succeed();
 
     expect(result).toEqual({ success: true });
   });
 
   it("works with params", async () => {
-    const action = Action("With params", (params: { language: string }) => {
-      return params.language;
+    const sayHello = Action("Say hello", (params: { language: string }) => {
+      return `Hello in ${params.language}`;
     });
 
-    type T = typeof action;
+    type T = typeof sayHello;
 
-    type action = Expect<
+    type sayHello = Expect<
       Equal<
         TaskWish.Action<
-          "With params",
+          "Say hello",
           {
             language: string;
           },
@@ -51,55 +49,22 @@ describe("Action", () => {
       >
     >;
 
-    const result = await action.run({ language: "Spanish" });
+    const result = await sayHello({ language: "Spanish" });
 
-    expect(result).toEqual("Spanish");
+    expect(result).toEqual("Hello in Spanish");
   });
 
-  it("works with generators", () => {
-    const action = Action("Generators", async function* () {
-      const env = yield* Env({ DATABASE_API_KEY: "string" });
-
-      return { env };
+  it("works with generators", async () => {
+    const streamNumbers = Action("Stream", async function* () {
+      yield 1;
+      yield 2;
+      yield 3;
     });
 
-    type T = typeof action;
+    type T = typeof streamNumbers;
 
-    type action = Expect<
-      Equal<
-        T,
-        TaskWish.Runnable<
-          "Generators",
-          | TaskWish.Exception<
-              400,
-              {
-                readonly errors: ArkErrors;
-              }
-            >
-          | TaskWish.Meta<
-              "requires",
-              {
-                requires: "ctx";
-                data: {
-                  DATABASE_API_KEY: string;
-                };
-              }
-            >,
-          {
-            env:
-              | {
-                  DATABASE_API_KEY: string;
-                }
-              | undefined;
-          },
-          Record<
-            "env",
-            {
-              DATABASE_API_KEY: string;
-            }
-          >
-        >
-      >
-    >;
+    for await (const n of streamNumbers()) {
+      console.log(n);
+    }
   });
 });
