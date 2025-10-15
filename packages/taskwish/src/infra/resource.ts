@@ -1,18 +1,13 @@
 import { TaskWish } from "../types";
 
 interface ResourceFactory<
-  Name extends string,
+  Type extends string,
   Params extends Object,
   Result,
   Stream,
   Ctx = TaskWish.DefaultCtx
-> extends TaskWish.Namable<Name> {
-  (params: Params): TaskWish.Resource<
-    Name,
-    Result,
-    Stream,
-    Ctx
-  >;
+> extends TaskWish.Typed<Type> {
+  <const Name extends string>(name: Name, params: Params): TaskWish.Resource<`${Type}::${Name}`, Result, Stream, Ctx>;
 }
 
 export function Resource<
@@ -29,7 +24,7 @@ export function Resource<
     ctx?: Ctx
   ) => Result | Promise<Result> | AsyncGenerator<Stream, Result, Ctx>
 ): ResourceFactory<Name, Params, Result, Stream, Ctx> {
-  const resource = (params: Params) => ({
+  const resource = (name: Name, params: Params) => ({
     name,
     up: async (ctx?: Ctx) => on(params, "up", ctx) as never,
     down: async (ctx?: Ctx) => on(params, "down", ctx) as never,

@@ -1,27 +1,27 @@
-import { Type, type } from "arktype";
+import { Type as ArkType, type } from "arktype";
 
 export namespace TaskWish {
-  export interface Namable<Name extends string> {
-    name: Name;
+  export interface Typed<Type extends string> {
+    type: Type;
   }
   export interface DefaultCtx {
     abortSignal?: AbortSignal;
   }
   export interface Runnable<
-    Name extends string,
+    Type extends string,
     Stream,
     Result,
     Ctx = DefaultCtx
-  > extends Namable<Name> {
+  > extends Typed<Type> {
     (): AsyncGenerator<Stream, Result, Ctx> & Promise<Result>;
   }
   export interface Action<
-    Name extends string,
+    Type extends string,
     Params extends Object,
     Stream,
     Result,
     Ctx = DefaultCtx
-  > extends Namable<Name> {
+  > extends Typed<Type> {
     (params: Params): AsyncGenerator<Stream, Result, Ctx> & Promise<Result>;
   }
   export interface Scoped<Scope extends Record<any, any>> {
@@ -29,15 +29,16 @@ export namespace TaskWish {
   }
 
   export interface Tool<
-    Name extends string,
+    Type extends string,
     Input extends Object,
     Stream,
     Output,
     Ctx = DefaultCtx
-  > extends Namable<Name> {
+  > extends Typed<Type> {
+    name?: Type;
     description?: string;
-    inputSchema: Type<Input>;
-    outputSchema?: Type<Output>;
+    inputSchema: ArkType<Input>;
+    outputSchema?: ArkType<Output>;
     handler: (
       input: Input,
       ctx?: DefaultCtx
@@ -45,11 +46,11 @@ export namespace TaskWish {
   }
 
   export interface Resource<
-    Name extends string,
+    Type extends string,
     Result,
     Stream,
     Ctx = DefaultCtx
-  > extends Namable<Name>,
+  > extends Typed<Type>,
       AsyncGenerator<Stream, Result, Ctx>,
       Promise<Result> {
     up(ctx?: Ctx): boolean;
@@ -75,24 +76,22 @@ export namespace TaskWish {
 
   export interface Triggerable<Scope extends Record<any, any>> {
     on<const Schema>(
-      on: Schema extends Type<infer Schema>
-        ? Type<Schema>
+      on: Schema extends ArkType<infer Schema>
+        ? ArkType<Schema>
         : Schema extends object
         ? type.validate<Schema>
         : object
     ): Scoped<Scope>;
   }
 
+  export interface Meta<Type extends string, Params> extends Typed<Type> {
+    meta: Params;
+    toString: () => string;
+  }
   export interface Exception<Status, Params> {
     status: Status;
     exception: Params;
     throw: () => void;
-    toString: () => string;
-  }
-
-  export interface Meta<Type extends string, Params> {
-    type: Type;
-    meta: Params;
     toString: () => string;
   }
 }
