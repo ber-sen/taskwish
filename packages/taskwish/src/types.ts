@@ -7,9 +7,11 @@ export namespace TaskWish {
   export interface Typed<Type extends string> {
     [TYPE]: Type;
   }
+
   export interface DefaultCtx {
     abortSignal?: AbortSignal;
   }
+
   export interface Runnable<
     Type extends string,
     Stream,
@@ -33,6 +35,7 @@ export namespace TaskWish {
     extends Typed<Type> {
     input?: Input;
   }
+  
   export interface Tool<
     Name extends string,
     Input extends Object,
