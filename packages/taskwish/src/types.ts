@@ -1,4 +1,5 @@
 import { Type as ArkType, type } from "arktype";
+import { StandardSchemaV1 } from "@standard-schema/spec";
 
 export namespace TaskWish {
   export interface Typed<Type extends string> {
@@ -29,16 +30,16 @@ export namespace TaskWish {
   }
 
   export interface Tool<
-    Type extends string,
+    Name extends string,
     Input extends Object,
     Stream,
     Output,
     Ctx = DefaultCtx
-  > extends Typed<Type> {
-    name?: Type;
+  > {
+    name?: Name;
     description?: string;
-    inputSchema: ArkType<Input>;
-    outputSchema?: ArkType<Output>;
+    inputSchema: StandardSchemaV1<Input>;
+    outputSchema?: StandardSchemaV1<Output>;
     handler: (
       input: Input,
       ctx?: DefaultCtx
@@ -76,8 +77,8 @@ export namespace TaskWish {
 
   export interface Triggerable<Scope extends Record<any, any>> {
     on<const Schema>(
-      on: Schema extends ArkType<infer Schema>
-        ? ArkType<Schema>
+      on: Schema extends StandardSchemaV1<infer Schema>
+        ? StandardSchemaV1<Schema>
         : Schema extends object
         ? type.validate<Schema>
         : object
@@ -88,6 +89,7 @@ export namespace TaskWish {
     meta: Params;
     toString: () => string;
   }
+
   export interface Exception<Status, Params> {
     status: Status;
     exception: Params;
