@@ -22,6 +22,14 @@ export interface UseCaseFactory<
     TaskWish.Extendable<Scope>,
     TaskWish.Triggerable<Scope>,
     TaskWish.Describable<Scope> {
+  trigger<const Type extends string, const Input extends object>(
+    event: TaskWish.Event<Type, Input>
+  ): ConfigurableUseCase<
+    Scope &
+      Record<"input", Input> &
+      Record<"event", TaskWish.Event<Type, Input>>,
+    Used
+  >;
   trigger<const Schema>(
     input: Schema extends StandardSchemaV1<infer Schema>
       ? StandardSchemaV1<Schema>
