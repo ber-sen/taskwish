@@ -2,8 +2,10 @@ import { type } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 
 export namespace TaskWish {
+  export const TYPE = Symbol.for("TaskWish.type");
+
   export interface Typed<Type extends string> {
-    type: Type;
+    [TYPE]: Type;
   }
   export interface DefaultCtx {
     abortSignal?: AbortSignal;
@@ -16,6 +18,7 @@ export namespace TaskWish {
   > extends Typed<Type> {
     (): AsyncGenerator<Stream, Result, Ctx> & Promise<Result>;
   }
+
   export interface Action<
     Type extends string,
     Params extends Object,
@@ -25,10 +28,11 @@ export namespace TaskWish {
   > extends Typed<Type> {
     (params: Params): AsyncGenerator<Stream, Result, Ctx> & Promise<Result>;
   }
-  export interface Scoped<Scope extends Record<any, any>> {
-    scope: Scope;
-  }
 
+  export interface Event<Type extends string, Input extends Object>
+    extends Typed<Type> {
+    input?: Input;
+  }
   export interface Tool<
     Name extends string,
     Input extends Object,
@@ -44,6 +48,10 @@ export namespace TaskWish {
       input: Input,
       ctx?: DefaultCtx
     ) => AsyncGenerator<Stream, Output, Ctx> | Promise<Output> | Output;
+  }
+
+  export interface Scoped<Scope extends Record<any, any>> {
+    scope: Scope;
   }
 
   export interface Resource<
@@ -90,7 +98,7 @@ export namespace TaskWish {
     toString: () => string;
   }
 
-  export interface Exception<Status, Params> {
+  export interface Exception<Status, Params> extends Typed<"Exception"> {
     status: Status;
     exception: Params;
     throw: () => void;
