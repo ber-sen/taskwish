@@ -23,7 +23,7 @@ export interface UseCaseFactory<
     TaskWish.Triggerable<Scope>,
     TaskWish.Describable<Scope> {
   trigger<const Schema>(
-    trigger: Schema extends StandardSchemaV1<infer Schema>
+    input: Schema extends StandardSchemaV1<infer Schema>
       ? StandardSchemaV1<Schema>
       : Schema extends object
       ? type.validate<Schema>
