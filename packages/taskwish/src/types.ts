@@ -1,4 +1,4 @@
-import { Type as ArkType, type } from "arktype";
+import { type } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 
 export namespace TaskWish {
@@ -76,8 +76,8 @@ export namespace TaskWish {
   }
 
   export interface Triggerable<Scope extends Record<any, any>> {
-    on<const Schema>(
-      on: Schema extends StandardSchemaV1<infer Schema>
+    trigger<const Schema>(
+      input: Schema extends StandardSchemaV1<infer Schema>
         ? StandardSchemaV1<Schema>
         : Schema extends object
         ? type.validate<Schema>

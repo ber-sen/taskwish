@@ -1,7 +1,7 @@
 import { UseCase, If, Loop, Return } from "../../src";
 
 export default UseCase("Say hello")
-  .on({ user: { name: "string", age: "number" } })
+  .trigger({ user: { name: "string", age: "number" } })
 
   .steps(
     Loop(),

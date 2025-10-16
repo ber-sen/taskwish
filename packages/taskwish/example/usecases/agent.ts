@@ -1,7 +1,7 @@
 import { UseCase, Agent } from "../../src";
 
 export default UseCase("Chat bot")
-  .on({ messages: { name: "string", age: "number" } })
+  .trigger({ messages: { name: "string", age: "number" } })
 
   .steps(($) =>
     Agent("lorem")
@@ -9,7 +9,6 @@ export default UseCase("Chat bot")
         model: "openai/gpt-4o",
       })
       .abilities()
-      .before([])
       .on(["user reject", $.input])
 
       .chat()
