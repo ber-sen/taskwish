@@ -31,11 +31,11 @@ export namespace TaskWish {
     (params: Params): AsyncGenerator<Stream, Result, Ctx> & Promise<Result>;
   }
 
-  export interface Event<Type extends string, Input extends Object>
+  export interface Event<Type extends string, Params extends Object>
     extends Typed<Type> {
-    input?: Input;
+    params?: Params;
   }
-  
+
   export interface Tool<
     Name extends string,
     Input extends Object,
@@ -70,7 +70,7 @@ export namespace TaskWish {
   }
 
   export interface Extendable<Scope> {
-    use<const NewScope>(newScope: NewScope): Extendable<NewScope & Scope>;
+    use<const NewScope>(newScope: NewScope): Extendable<Scope & NewScope>;
   }
 
   export interface Describable<Scope extends Record<any, any>> {
@@ -87,9 +87,11 @@ export namespace TaskWish {
   }
 
   export interface Triggerable<Scope extends Record<any, any>> {
-    trigger<const Type extends string, const Input extends object>(
-      event: Event<Type, Input>
-    ): Scoped<Scope & Record<"input", Input> & Record<"event", Event<Type, Input>>>;
+    trigger<const Type extends string, const Params extends object>(
+      event: Event<Type, Params>
+    ): Scoped<
+      Scope & Record<"input", Params> & Record<"event", Event<Type, Params>>
+    >;
     trigger<const Input>(
       input: Input extends StandardSchemaV1<infer Schema>
         ? StandardSchemaV1<Schema>
