@@ -1,4 +1,4 @@
 import { Event } from "../../src";
-import succeed from "../actions/succeed";
+import type succeed from "../actions/succeed";
 
-export default Event(succeed);
+export default Event<typeof succeed>();
