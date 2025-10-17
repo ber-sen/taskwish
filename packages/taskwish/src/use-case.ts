@@ -27,7 +27,7 @@ export interface UseCaseFactory<
   ): ConfigurableUseCase<
     Scope &
       Record<"input", Input> &
-      Record<"event", TaskWish.Event<Type, Input>>,
+      Record<"event", ReturnType<TaskWish.Event<Type, Input>>>,
     Used
   >;
   trigger<const Schema>(

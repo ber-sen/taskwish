@@ -31,9 +31,12 @@ export namespace TaskWish {
     (params: Params): AsyncGenerator<Stream, Result, Ctx> & Promise<Result>;
   }
 
-  export interface Event<Type extends string, Params>
-    extends Typed<Type> {
-    params?: Params;
+  export interface Event<Type extends string, Params> extends Typed<Type> {
+    (params: Params): {
+      type: Type,
+      params: Params,
+      success: boolean
+    };
   }
 
   export interface Tool<
