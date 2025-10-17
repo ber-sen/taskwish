@@ -2,6 +2,11 @@ import { type } from "arktype";
 import { TaskWish } from "./types";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 
+export function Event<
+  const Type extends string,
+  const Params
+>(): TaskWish.Event<Type, Params>;
+
 export function Event<const Type extends string, const Params>(
   type: Type,
   params?: Params extends StandardSchemaV1<infer Schema>
