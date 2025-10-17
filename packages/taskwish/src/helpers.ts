@@ -1,3 +1,6 @@
+import { StandardSchemaV1 } from "@standard-schema/spec";
+import { type } from "arktype";
+
 export type Expect<T extends true> = T;
 
 export type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
@@ -13,9 +16,8 @@ export type CamelCase<T extends string> =
       : `${Left}${CamelCase<`${Delimiter}${Right}`>}`
     : T;
 
-export type LowercaseFirst<T extends string> = T extends `${infer First}${infer Rest}`
-  ? `${Lowercase<First>}${Rest}`
-  : T;
+export type LowercaseFirst<T extends string> =
+  T extends `${infer First}${infer Rest}` ? `${Lowercase<First>}${Rest}` : T;
 
 export type ToCamelCase<T extends string> = LowercaseFirst<CamelCase<T>>;
 
@@ -24,3 +26,18 @@ export type PrettyScope<T> = {
 } & {};
 
 export type Pretty<T> = { [K in keyof T]: T[K] } & {};
+
+export async function standardValidate<T extends StandardSchemaV1>(
+  schema: T,
+  input: StandardSchemaV1.InferInput<T>
+): Promise<StandardSchemaV1.InferOutput<T>> {
+  let result = schema["~standard"].validate(input);
+  if (result instanceof Promise) result = await result;
+
+  // if the `issues` field exists, the validation failed
+  if (result.issues) {
+    throw new Error(JSON.stringify(result.issues, null, 2));
+  }
+
+  return result.value;
+}
