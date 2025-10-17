@@ -33,9 +33,9 @@ export namespace TaskWish {
 
   export interface Event<Type extends string, Params> extends Typed<Type> {
     (params: Params): {
-      type: Type,
-      params: Params,
-      success: boolean
+      type: Type;
+      params: Params;
+      success: boolean;
     };
   }
 
@@ -59,6 +59,16 @@ export namespace TaskWish {
   export interface Scoped<Scope extends Record<any, any>> {
     scope: Scope;
   }
+
+  export type ValidateSchema<Schema> = Schema extends StandardSchemaV1<any>
+    ? Schema
+    : Schema extends object
+    ? type.validate<Schema>
+    : object;
+
+  export type InferInput<Schema> = Schema extends StandardSchemaV1<infer Input>
+    ? Input
+    : type.instantiate<Schema>["infer"];
 
   export interface Resource<
     Type extends string,
@@ -90,25 +100,13 @@ export namespace TaskWish {
   }
 
   export interface Triggerable<Scope extends Record<any, any>> {
+    trigger<const Schema>(
+      input: ValidateSchema<Schema>
+    ): Scoped<Scope & Record<"input", InferInput<Schema>>>;
     trigger<const Type extends string, const Params extends object>(
       event: Event<Type, Params>
     ): Scoped<
       Scope & Record<"input", Params> & Record<"event", Event<Type, Params>>
-    >;
-    trigger<const Input>(
-      input: Input extends StandardSchemaV1<infer Schema>
-        ? StandardSchemaV1<Schema>
-        : Input extends object
-        ? type.validate<Input>
-        : object
-    ): Scoped<
-      Scope &
-        Record<
-          "input",
-          Input extends StandardSchemaV1<infer Schema>
-            ? Schema
-            : type.instantiate<Input>["infer"]
-        >
     >;
   }
 

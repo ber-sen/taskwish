@@ -1,6 +1,4 @@
-import { type } from "arktype";
 import { Steps } from "./steps/steps";
-import { StandardSchemaV1 } from "@standard-schema/spec";
 import { TaskWish } from "./types";
 
 interface ConfigurableUseCase<
@@ -22,6 +20,20 @@ export interface UseCaseFactory<
     TaskWish.Extendable<Scope>,
     TaskWish.Triggerable<Scope>,
     TaskWish.Describable<Scope> {
+  trigger<const Schema>(
+    input: TaskWish.ValidateSchema<Schema>
+  ): Used extends string
+    ? Omit<
+        ConfigurableUseCase<
+          Scope & Record<"input", TaskWish.InferInput<Schema>>,
+          Used
+        >,
+        Used
+      >
+    : ConfigurableUseCase<
+        Scope & Record<"input", TaskWish.InferInput<Schema>>,
+        Used
+      >;
   trigger<const Type extends string, const Input extends object>(
     event: TaskWish.Event<Type, Input>
   ): ConfigurableUseCase<
@@ -30,36 +42,7 @@ export interface UseCaseFactory<
       Record<"event", ReturnType<TaskWish.Event<Type, Input>>>,
     Used
   >;
-  trigger<const Schema>(
-    input: Schema extends StandardSchemaV1<infer Schema>
-      ? StandardSchemaV1<Schema>
-      : Schema extends object
-      ? type.validate<Schema>
-      : object
-  ): Used extends string
-    ? Omit<
-        ConfigurableUseCase<
-          Scope &
-            Record<
-              "input",
-              Schema extends StandardSchemaV1<infer Schema>
-                ? Schema
-                : type.instantiate<Schema>["infer"]
-            >,
-          Used
-        >,
-        Used
-      >
-    : ConfigurableUseCase<
-        Scope &
-          Record<
-            "input",
-            Schema extends StandardSchemaV1<infer Schema>
-              ? Schema
-              : type.instantiate<Schema>["infer"]
-          >,
-        Used
-      >;
+
   use<const NewScope>(
     newScope: NewScope
   ): Used extends string
