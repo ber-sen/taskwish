@@ -9,8 +9,8 @@
 //  Copyright (c) 2025 - present Eightbits LLC
 
 export * from './types'
-export * from './event'
 export * from './action'
+export * from './event'
 export * from './steps'
 export * from './use-case'
 export * from './agent'
