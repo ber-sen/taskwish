@@ -5,6 +5,8 @@ import { DeepOptionalString } from "./helpers";
 export namespace TaskWish {
   export const TYPE = Symbol.for("TaskWish.type");
 
+  export const META = Symbol.for("TaskWish.meta");
+
   export interface Typed<Type extends string> {
     [TYPE]: Type;
   }
@@ -91,7 +93,9 @@ export namespace TaskWish {
   }
 
   export interface Describable<Params, Return> {
-    describe(tags: Params & { description?: string }): Return;
+    describe<const Tags extends { description?: string } & Params>(
+      tags: Tags
+    ): Return & { [META]: Tags };
   }
 
   export interface StepOption<T extends string, G extends null | string> {
