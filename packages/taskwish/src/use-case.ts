@@ -20,6 +20,14 @@ export interface UseCaseFactory<
     TaskWish.Extendable<Scope>,
     TaskWish.Triggerable<Scope>,
     TaskWish.Describable<Scope> {
+  trigger<const Type extends string, const Input extends object>(
+    event: TaskWish.Event<Type, Input>
+  ): ConfigurableUseCase<
+    Scope &
+      Record<"input", Input> &
+      Record<"event", ReturnType<TaskWish.Event<Type, Input>>>,
+    Used
+  >;
   trigger<const Schema>(
     input: TaskWish.ValidateSchema<Schema>
   ): Used extends string
@@ -34,15 +42,6 @@ export interface UseCaseFactory<
         Scope & Record<"input", TaskWish.InferInput<Schema>>,
         Used
       >;
-  trigger<const Type extends string, const Input extends object>(
-    event: TaskWish.Event<Type, Input>
-  ): ConfigurableUseCase<
-    Scope &
-      Record<"input", Input> &
-      Record<"event", ReturnType<TaskWish.Event<Type, Input>>>,
-    Used
-  >;
-
   use<const NewScope>(
     newScope: NewScope
   ): Used extends string

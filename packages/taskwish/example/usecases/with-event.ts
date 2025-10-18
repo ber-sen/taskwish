@@ -9,7 +9,7 @@ export default UseCase("Chat bot")
         model: "openai/gpt-4o",
       })
       .abilities()
-      .on(["user reject", ])
+      .on(["user reject", $.input])
 
       .chat()
       // or
