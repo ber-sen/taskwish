@@ -1,7 +1,7 @@
 import { run, UseCase } from "../../src";
 
 export default UseCase("Simple")
-  .describe("Send a message to slack")
+  .describe({ description: "Send a message to slack" })
 
   .steps(
     run("Slack.sendMessage", {

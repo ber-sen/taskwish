@@ -1,5 +1,6 @@
 import { type } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
+import { DeepOptionalString } from "./helpers";
 
 export namespace TaskWish {
   export const TYPE = Symbol.for("TaskWish.type");
@@ -31,12 +32,15 @@ export namespace TaskWish {
     (params: Params): AsyncGenerator<Stream, Result, Ctx> & Promise<Result>;
   }
 
-  export interface Event<Type extends string, Params> extends Typed<Type> {
-    (params: Params): {
-      type: Type;
-      params: Params;
-      success: boolean;
-    };
+  export interface Event<Type extends string, Data>
+    extends Typed<Type>,
+      Describable<
+        {
+          data: DeepOptionalString<Data>;
+        },
+        Event<Type, Data>
+      > {
+    (data: Data): MessageEvent<Data>;
   }
 
   export interface Tool<
@@ -86,11 +90,8 @@ export namespace TaskWish {
     use<const NewScope>(newScope: NewScope): Extendable<Scope & NewScope>;
   }
 
-  export interface Describable<Scope extends Record<any, any>> {
-    describe(
-      description: string,
-      meta?: { input: Scope["input"] }
-    ): Scoped<Scope>;
+  export interface Describable<Params, Return> {
+    describe(tags: Params & { description?: string }): Return;
   }
 
   export interface StepOption<T extends string, G extends null | string> {

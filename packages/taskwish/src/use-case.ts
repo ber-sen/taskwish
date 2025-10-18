@@ -19,7 +19,10 @@ export interface UseCaseFactory<
 > extends TaskWish.Scoped<Scope>,
     TaskWish.Extendable<Scope>,
     TaskWish.Triggerable<Scope>,
-    TaskWish.Describable<Scope> {
+    TaskWish.Describable<
+      { input?: Scope["input"] },
+      UseCaseFactory<Params, Scope, "describe">
+    > {
   trigger<const Type extends string, const Input extends object>(
     event: TaskWish.Event<Type, Input>
   ): ConfigurableUseCase<
@@ -47,10 +50,6 @@ export interface UseCaseFactory<
   ): Used extends string
     ? Omit<UseCaseFactory<Params, NewScope & Scope, Used>, Used>
     : UseCaseFactory<Params, NewScope & Scope, Used>;
-  describe(
-    description: string,
-    meta?: { input: Scope["input"] }
-  ): Omit<UseCaseFactory<Params, Scope, "describe">, "describe">;
   steps: Steps<Scope>;
 }
 

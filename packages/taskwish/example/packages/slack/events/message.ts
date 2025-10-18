@@ -7,3 +7,10 @@ export default Event("message", {
   text: "string",
   ts: "string",
 })
+  //
+  .describe({
+    description: "New slack message",
+    data: {
+      channel: "Message channel",
+    },
+  });

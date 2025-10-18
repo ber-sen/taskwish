@@ -1,5 +1,4 @@
 import { StandardSchemaV1 } from "@standard-schema/spec";
-import { type } from "arktype";
 
 export type Expect<T extends true> = T;
 
@@ -26,6 +25,10 @@ export type PrettyScope<T> = {
 } & {};
 
 export type Pretty<T> = { [K in keyof T]: T[K] } & {};
+
+export type DeepOptionalString<T> = {
+  [K in keyof T]?: T[K] extends object ? DeepOptionalString<T[K]> : string;
+};
 
 export async function standardValidate<T extends StandardSchemaV1>(
   schema: T,
