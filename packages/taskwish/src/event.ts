@@ -1,9 +1,10 @@
 import { TaskWish } from "./types";
 
 interface EventFactory<Type extends string> {
-  schema<const Data>(
+  data<const Data>(
     schema: TaskWish.ValidateSchema<Data>
   ): TaskWish.Event<Type, TaskWish.InferInput<Data>>;
+  data<const Data>(): TaskWish.Event<Type, Data>;
 }
 
 export function Event<
@@ -23,7 +24,7 @@ export function Event<const Type extends string, const Data>(): TaskWish.Event<
 
 export function Event<const Type extends string, const Data>(
   type: Type
-): TaskWish.Event<Type, {}> & EventFactory<Type>
+): TaskWish.Event<Type, {}> & EventFactory<Type>;
 
 export function Event(...args: any) {
   return {};

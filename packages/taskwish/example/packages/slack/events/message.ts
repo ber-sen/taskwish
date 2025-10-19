@@ -1,8 +1,9 @@
 import { Event } from "../../../../src";
 
 export default Event("message")
-  .schema({
+  .data({
     type: "'message'",
+    subtype: "'bot_message'|'bot_2_message'",
     channel: "string",
     user: "string",
     text: "string",
@@ -10,7 +11,7 @@ export default Event("message")
   })
 
   .describe({
-    description: "New slack message event",
+    description: "A message was sent to a channel",
     data: {
       channel: "Message channel",
     },
