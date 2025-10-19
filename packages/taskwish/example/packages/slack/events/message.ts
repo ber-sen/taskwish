@@ -10,7 +10,7 @@ export default Event("message")
   })
 
   .describe({
-    description: "New slack message",
+    description: "New slack message event",
     data: {
       channel: "Message channel",
     },
