@@ -1,10 +1,19 @@
 import { TaskWish } from "./types";
 
+interface EventOr<Type extends string, InitialData> {
+  or<const Data>(
+    schema: TaskWish.ValidateSchema<Data>
+  ): TaskWish.Event<Type, TaskWish.InferInput<InitialData | Data>> &
+    EventOr<Type, InitialData | Data>;
+  or<const Data>(): TaskWish.Event<Type, InitialData | Data> &
+    EventOr<Type, InitialData | Data>;
+}
+
 interface EventFactory<Type extends string> {
   data<const Data>(
     schema: TaskWish.ValidateSchema<Data>
-  ): TaskWish.Event<Type, TaskWish.InferInput<Data>>;
-  data<const Data>(): TaskWish.Event<Type, Data>;
+  ): TaskWish.Event<Type, TaskWish.InferInput<Data>> & EventOr<Type, Data>;
+  data<const Data>(): TaskWish.Event<Type, Data> & EventOr<Type, Data>;
 }
 
 export function Event<

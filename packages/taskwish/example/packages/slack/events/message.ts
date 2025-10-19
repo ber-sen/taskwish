@@ -1,13 +1,15 @@
-import { type } from "arktype";
 import { Event } from "../../../../src";
 
-export const message = type({
-  type: "'message'",
-  channel: "string",
-  user: "string",
-  text: "string",
-  ts: "string",
-})
+export default Event("message")
+  .data({
+    type: "'message'",
+    subtype: "'me_message'",
+    channel: "string",
+    user: "string",
+    text: "string",
+    ts: "string",
+  })
+
   .or({
     type: "'message'",
     subtype: "'bot_message'",
@@ -17,17 +19,6 @@ export const message = type({
     username: "string",
     icons: "object",
   })
-  .or({
-    type: "'message'",
-    subtype: "'me_message'",
-    channel: "string",
-    user: "string",
-    text: "string",
-    ts: "string",
-  });
-
-export default Event("message")
-  .data(message)
 
   .describe({
     description: "A message was sent to a channel",
