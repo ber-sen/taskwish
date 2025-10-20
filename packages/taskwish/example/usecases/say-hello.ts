@@ -1,4 +1,6 @@
-import { Options, run, UseCase } from "../../src";
+import { Options } from "..";
+import { UseCase } from "../../src";
+import { run } from "../runner";
 
 export default UseCase("Say hello")
   .trigger({ language: "string" })

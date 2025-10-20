@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { Options, run, UseCase } from "../../src";
+import { Options, UseCase } from "../../src";
+import { run } from "../runner";
 
 export default UseCase("Say hello")
   .trigger(z.object({ language: z.string() }))

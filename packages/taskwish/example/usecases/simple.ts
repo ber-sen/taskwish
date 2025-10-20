@@ -1,4 +1,5 @@
-import { run, UseCase } from "../../src";
+import { UseCase } from "../../src";
+import { run } from "../runner";
 
 export default UseCase("Simple")
   .describe({ description: "Send a message to slack" })
