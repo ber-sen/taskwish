@@ -1,4 +1,4 @@
 import { Runner } from "../src";
-import type AppType from "./app";
+import type App from "./app";
 
-export const run = Runner<typeof AppType>();
+export const run = Runner<typeof App>();
