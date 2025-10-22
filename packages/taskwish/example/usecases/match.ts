@@ -5,13 +5,15 @@ export default UseCase("Slack")
   .trigger(slack.events.message)
 
   .steps(
-    ($) => Match($.input, { subtype: "bot_message" }),
+    ($) => Match($.input, { subtype: true }),
 
-    ({ match }) => match.bot_id,
+    [With, "me_message"],
 
-    ($) => Match($.input, { subtype: "me_message" }),
+    ["lorem", $ => asdad],
 
-    ({ match }) => match.user,
+    [With, "bot_message"],
+
+    ["ipsum", $ => asdad],
 
     End(Match)
   );
