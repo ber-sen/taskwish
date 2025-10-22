@@ -189,9 +189,9 @@ export interface Steps<Scope extends Record<any, any> = {}> {
   ): Return;
 }
 
-export const makeSteps = <Scope extends Record<any, any> = {}>(): Steps<Scope> => {
-  return {} as never;
-};
+export const Steps: Steps<{}> = () => {
+  return {} as never
+}
 
 export const Step = <const K, const P>(key: K, params: P) =>
   [key, () => params] as const;
