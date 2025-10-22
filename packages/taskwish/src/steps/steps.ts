@@ -17,7 +17,10 @@ type Subtract<A extends number, B extends number> = BuildTuple<A> extends [
   ? Rest["length"]
   : never;
 
-type IndentStep<T, N extends number> = T extends TaskWish.StepOption<"loop" | "if", null>
+type IndentStep<T, N extends number> = T extends TaskWish.StepOption<
+  "loop" | "if",
+  null
+>
   ? Add<N, 1>
   : T extends TaskWish.StepOption<"end", null>
   ? Subtract<N, 1>
@@ -30,7 +33,10 @@ type Indent<Arr extends any[], N extends number = 0> = Arr extends [
   ? Indent<Tail, Extract<IndentStep<Head, N>, number>>
   : N;
 
-type ResultA = Indent<[TaskWish.StepOption<"if", null>, TaskWish.StepOption<"end", null>], 0>;
+type ResultA = Indent<
+  [TaskWish.StepOption<"if", null>, TaskWish.StepOption<"end", null>],
+  0
+>;
 
 type Props<T> = {
   [K in keyof T as ToCamelCase<Extract<K, string>>]: K extends "scope"
@@ -183,10 +189,16 @@ export interface Steps<Scope extends Record<any, any> = {}> {
   ): Return;
 }
 
+export const makeSteps = <Scope extends Record<any, any> = {}>(): Steps<Scope> => {
+  return {} as never;
+};
+
 export const Step = <const K, const P>(key: K, params: P) =>
   [key, () => params] as const;
 
-export const Parallel = (name?: string): TaskWish.StepOption<"parallel", null> => ({
+export const Parallel = (
+  name?: string
+): TaskWish.StepOption<"parallel", null> => ({
   stepOptionType: "parallel",
   group: null,
   params: { name },
