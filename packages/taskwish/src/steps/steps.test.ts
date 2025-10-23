@@ -1,5 +1,6 @@
 import { End } from "./end";
 import { If } from "./if-else";
+import { Input } from "./input";
 import { Loop, Range } from "./loop";
 import { Steps } from "./steps";
 
@@ -48,6 +49,18 @@ describe("Steps", () => {
 
       ["end", ($) => $.loopStep]
     );
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it("should work as action", async () => {
+    const action = Steps(
+      Input({ language: "string" }),
+
+      ["end", ($) => $.input.language]
+    );
+
+    const result = action({ language: "Spanish" })
 
     expect(result).toEqual({ success: true });
   });
