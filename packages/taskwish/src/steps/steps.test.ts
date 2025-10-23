@@ -2,6 +2,7 @@ import { End } from "./end";
 import { If } from "./if-else";
 import { Input } from "./input";
 import { Loop, Range } from "./loop";
+import { Match } from "./match";
 import { Steps } from "./steps";
 
 describe("Steps", () => {
@@ -60,7 +61,29 @@ describe("Steps", () => {
       ["end", ($) => $.input.language]
     );
 
-    const result = action({ language: "Spanish" })
+    const result = action({ language: "Spanish" });
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it("should work with match", async () => {
+    const action = Steps(
+      Input({ language: "string" }),
+      
+      ($) => Match($.input, { subtype: true }),
+
+      "me_message",
+
+      ["lorem", ($) => asdad],
+
+      "bot_message",
+
+      ["ipsum", ($) => asdad],
+
+      End(Match)
+    );
+
+    const result = action({ language: "Spanish" });
 
     expect(result).toEqual({ success: true });
   });
