@@ -7,11 +7,11 @@ export default UseCase("Slack")
   .steps(
     ($) => Match($.input, { subtype: true }),
 
-    [With, "me_message"],
+    "me_message",
 
     ["lorem", $ => asdad],
 
-    [With, "bot_message"],
+    "bot_message",
 
     ["ipsum", $ => asdad],
 
