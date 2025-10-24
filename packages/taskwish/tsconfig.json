@@ -2,12 +2,12 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
-    "lib": ["esnext", "DOM"],
+    "lib": ["esnext", "webworker"],
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "strict": true,
     "strictFunctionTypes": true,
     "strictNullChecks": true,
-    "esModuleInterop": true,
+    "esModuleInterop": true
   }
 }

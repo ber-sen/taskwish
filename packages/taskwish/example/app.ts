@@ -1,3 +1,7 @@
 import { App } from "../src";
 
-export default App()
+export const app = App("AppName")
+
+export type AppType = typeof app
+
+onmessage = app.onmessage

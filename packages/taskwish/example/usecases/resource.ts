@@ -12,3 +12,4 @@ const S3Bucket = Resource(
 );
 
 const a = S3Bucket("My Bucket", { bucketName: "asdad" });
+DedicatedWorkerGlobalScope

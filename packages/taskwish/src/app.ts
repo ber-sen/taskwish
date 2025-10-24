@@ -1,3 +1,3 @@
-export const App = <R>(...args: any) => {
-  args as any;
-};
+export const App = <R>(...args: any):DedicatedWorkerGlobalScope => {
+  return {} as never
+}
