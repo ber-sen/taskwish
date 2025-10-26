@@ -12,6 +12,3 @@ export default UseCase("Say hello")
 
     End(Parallel)
   );
-
-
-  

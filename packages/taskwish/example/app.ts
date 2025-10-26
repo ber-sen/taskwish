@@ -4,4 +4,4 @@ export const app = App("AppName")
 
 export type AppType = typeof app
 
-onmessage = app.onmessage
+onmessage = app.worker().onmessage

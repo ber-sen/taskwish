@@ -1,4 +1,4 @@
-import { Options } from "..";
+import { Options } from "../../old";
 import { UseCase } from "../../src";
 import { run } from "../runner";
 
