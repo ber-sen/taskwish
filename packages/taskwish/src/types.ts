@@ -61,18 +61,6 @@ export namespace TaskWish {
       ? Input
       : type.instantiate<Schema>["infer"];
 
-  export interface Resource<
-    Type extends string,
-    Result,
-    Stream,
-    Ctx = DefaultCtx,
-  > extends Typed<Type>,
-      AsyncGenerator<Stream, Result, Ctx>,
-      Promise<Result> {
-    up(ctx?: Ctx): boolean;
-    down(ctx?: Ctx): boolean;
-  }
-
   export interface Extendable<Scope> {
     use<const NewScope>(newScope: NewScope): Extendable<Scope & NewScope>;
   }
