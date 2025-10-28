@@ -1,5 +1,4 @@
-import { serve } from "h3";
-import H3 from "taskwish-h3"
-import { app } from "./app"
+import Server from "taskwish-server";
+import { app } from "./app";
 
-serve(H3(app), { port: 3000 });
+Server(app).listen(3000);
