@@ -107,12 +107,12 @@ export namespace TaskWish {
   }
 
   export interface Triggerable<Scope extends Record<any, any>> {
-    trigger<const Type extends string, const Params extends object>(
+    on<const Type extends string, const Params extends object>(
       event: Event<Type, Params>,
     ): Scoped<
       Scope & Record<"input", Params> & Record<"event", Event<Type, Params>>
     >;
-    trigger<const Schema>(
+    on<const Schema>(
       input: ValidateSchema<Schema>,
     ): Scoped<Scope & Record<"input", InferInput<Schema>>>;
   }

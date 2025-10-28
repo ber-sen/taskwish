@@ -1,7 +1,7 @@
 import { End, UseCase, Parallel } from "../../src";
 
 export default UseCase("Say hello")
-  .trigger({ user: { name: "string" } })
+  .on({ user: { name: "string" } })
 
   .steps(
     Parallel(),

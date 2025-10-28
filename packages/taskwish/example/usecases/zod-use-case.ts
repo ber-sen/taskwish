@@ -3,7 +3,7 @@ import { Options, UseCase } from "../../src";
 import { run } from "../runner";
 
 export default UseCase("Say hello")
-  .trigger(z.object({ language: z.string() }))
+  .on(z.object({ language: z.string() }))
 
   .describe("Send hello message to slack", {
     input: { language: "Hello language" },

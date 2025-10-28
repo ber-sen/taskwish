@@ -3,7 +3,7 @@ import { UseCase } from "../../src";
 import { run } from "../runner";
 
 export default UseCase("Say hello")
-  .trigger({ language: "string" })
+  .on({ language: "string" })
 
   .describe("Send hello message to slack", {
     input: { language: "Hello language" },

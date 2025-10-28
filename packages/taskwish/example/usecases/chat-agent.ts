@@ -1,7 +1,7 @@
 import { UseCase } from "../../src";
 
 export default UseCase("Chat bot")
-  .trigger({ messages: { name: "string", age: "number" } })
+  .on({ messages: { name: "string", age: "number" } })
 
   .steps(($) =>
     run("Agent.chat", {

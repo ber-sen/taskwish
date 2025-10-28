@@ -23,7 +23,7 @@ export interface UseCaseFactory<
       { input?: Scope["input"] },
       UseCaseFactory<Params, Scope, "describe">
     > {
-  trigger<const Type extends string, const Input extends object>(
+  on<const Type extends string, const Input extends object>(
     event: TaskWish.Event<Type, Input>
   ): ConfigurableUseCase<
     Scope &
@@ -31,7 +31,7 @@ export interface UseCaseFactory<
       Record<"event", ReturnType<TaskWish.Event<Type, Input>>>,
     Used
   >;
-  trigger<const Schema>(
+  on<const Schema>(
     input: TaskWish.ValidateSchema<Schema>
   ): Used extends string
     ? Omit<
