@@ -11,7 +11,7 @@ export default UseCase("Say hello")
 
   .steps(
     ["asdasd", ({ input }) => input],
-
+    
     ({ asdasd }) =>
       run("Slack.sendMessage", {
         channel: "#general",
