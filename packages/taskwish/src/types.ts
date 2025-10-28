@@ -45,23 +45,6 @@ export namespace TaskWish {
     (data: Data): MessageEvent<Data>;
   }
 
-  export interface Tool<
-    Name extends string,
-    Input extends Object,
-    Stream,
-    Output,
-    Ctx = DefaultCtx,
-  > {
-    name?: Name;
-    description?: string;
-    inputSchema: StandardSchemaV1<Input>;
-    outputSchema?: StandardSchemaV1<Output>;
-    handler: (
-      input: Input,
-      ctx?: DefaultCtx,
-    ) => AsyncGenerator<Stream, Output, Ctx> | Promise<Output> | Output;
-  }
-
   export interface Scoped<Scope extends Record<any, any>> {
     scope: Scope;
   }
