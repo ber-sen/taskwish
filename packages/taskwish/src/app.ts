@@ -1,5 +1,11 @@
-import { TaskWish } from "./types"
+import { TaskWish } from "./types";
 
-export const App = <R>(...args: any): TaskWish.App<{}> => {
-  return {} as never
+interface AppFactory<Name extends string> extends TaskWish.Typed<Name> {
+  config(): TaskWish.App<{}>;
 }
+
+export const App = <const Name extends string>(
+  name: string,
+): AppFactory<Name> => {
+  return {} as never;
+};

@@ -19,7 +19,7 @@ export namespace TaskWish {
     Type extends string,
     Stream,
     Result,
-    Ctx = DefaultCtx
+    Ctx = DefaultCtx,
   > extends Typed<Type> {
     (): AsyncGenerator<Stream, Result, Ctx> & Promise<Result>;
   }
@@ -29,7 +29,7 @@ export namespace TaskWish {
     Params extends Object,
     Stream,
     Result,
-    Ctx = DefaultCtx
+    Ctx = DefaultCtx,
   > extends Typed<Type> {
     (params: Params): AsyncGenerator<Stream, Result, Ctx> & Promise<Result>;
   }
@@ -50,7 +50,7 @@ export namespace TaskWish {
     Input extends Object,
     Stream,
     Output,
-    Ctx = DefaultCtx
+    Ctx = DefaultCtx,
   > {
     name?: Name;
     description?: string;
@@ -58,7 +58,7 @@ export namespace TaskWish {
     outputSchema?: StandardSchemaV1<Output>;
     handler: (
       input: Input,
-      ctx?: DefaultCtx
+      ctx?: DefaultCtx,
     ) => AsyncGenerator<Stream, Output, Ctx> | Promise<Output> | Output;
   }
 
@@ -66,21 +66,23 @@ export namespace TaskWish {
     scope: Scope;
   }
 
-  export type ValidateSchema<Schema> = Schema extends StandardSchemaV1<any>
-    ? Schema
-    : Schema extends object
-    ? type.validate<Schema>
-    : object;
+  export type ValidateSchema<Schema> =
+    Schema extends StandardSchemaV1<any>
+      ? Schema
+      : Schema extends object
+        ? type.validate<Schema>
+        : object;
 
-  export type InferInput<Schema> = Schema extends StandardSchemaV1<infer Input>
-    ? Input
-    : type.instantiate<Schema>["infer"];
+  export type InferInput<Schema> =
+    Schema extends StandardSchemaV1<infer Input>
+      ? Input
+      : type.instantiate<Schema>["infer"];
 
   export interface Resource<
     Type extends string,
     Result,
     Stream,
-    Ctx = DefaultCtx
+    Ctx = DefaultCtx,
   > extends Typed<Type>,
       AsyncGenerator<Stream, Result, Ctx>,
       Promise<Result> {
@@ -94,7 +96,7 @@ export namespace TaskWish {
 
   export interface Describable<Params, Return> {
     describe<const Tags extends { description?: string } & Params>(
-      tags: Tags
+      tags: Tags,
     ): Return & { [META]: Tags };
   }
 
@@ -106,12 +108,12 @@ export namespace TaskWish {
 
   export interface Triggerable<Scope extends Record<any, any>> {
     trigger<const Type extends string, const Params extends object>(
-      event: Event<Type, Params>
+      event: Event<Type, Params>,
     ): Scoped<
       Scope & Record<"input", Params> & Record<"event", Event<Type, Params>>
     >;
     trigger<const Schema>(
-      input: ValidateSchema<Schema>
+      input: ValidateSchema<Schema>,
     ): Scoped<Scope & Record<"input", InferInput<Schema>>>;
   }
 
@@ -127,9 +129,8 @@ export namespace TaskWish {
     toString: () => string;
   }
 
-  export interface App<Endpoints>{
-    worker(): DedicatedWorkerGlobalScope
-    run: (name: string, params: object) => any
-    endpoints: Endpoints
+  export interface App<Endpoints> {
+    worker(): DedicatedWorkerGlobalScope;
+    run: (name: string, params: object) => any;
   }
 }
