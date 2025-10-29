@@ -1,8 +1,11 @@
 {
   "name": "taskwish.ai",
   "private": true,
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "packageManager": "bun@1.1.45",
+  "license": "Elastic License 2.0",
   "scripts": {
     "build": "turbo build"
   },
