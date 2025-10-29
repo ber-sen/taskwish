@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Options, UseCase } from "../../src";
+import { UseCase } from "../../src";
 
 export default UseCase("Say hello")
   .use(import("../actions"))
@@ -13,9 +13,9 @@ export default UseCase("Say hello")
   .steps(
     ["asdasd", ({ input }) => input],
 
-    ({ asdasd, action }) =>
+    ({ action, input }) =>
       action.slack.sendMessage({
         channel: "#general",
-        text: `Does someone speak ${asdasd.language}?`,
+        text: `Does someone speak ${input.language}?`,
       }),
   );

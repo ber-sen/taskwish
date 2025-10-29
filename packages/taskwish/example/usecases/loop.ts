@@ -6,9 +6,11 @@ export default UseCase("Say hello")
   .steps(
     Loop(Range(0, 10)),
 
-    ["asdasd", ({ input }) => input.user.name],
+    ({ action, input }) =>
+      action.slack.sendMessage({
+        channel: "#general",
+        text: `Does someone speak ${input.user.age}?`,
+      }),
 
     End(Loop),
-
-    (scope) => scope.asdasd
   );
