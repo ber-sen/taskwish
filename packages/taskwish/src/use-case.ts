@@ -3,19 +3,19 @@ import { TaskWish } from "./types";
 
 interface ConfigurableUseCase<
   Scope extends Record<any, any>,
-  Used extends "describe" | null = null
+  Used extends "describe" | null = null,
 > extends TaskWish.Scoped<Scope> {
   steps: Steps<Scope>;
   describe(
     description: string,
-    meta?: { input: Scope["input"] }
+    meta?: { input: Scope["input"] },
   ): ConfigurableUseCase<Scope, Used & "describe">;
 }
 
 export interface UseCaseFactory<
   Params,
   Scope extends Record<any, any> = {},
-  Used extends "describe" | null = null
+  Used extends "describe" | null = null,
 > extends TaskWish.Scoped<Scope>,
     TaskWish.Extendable<Scope>,
     TaskWish.Triggerable<Scope>,
@@ -23,16 +23,8 @@ export interface UseCaseFactory<
       { input?: Scope["input"] },
       UseCaseFactory<Params, Scope, "describe">
     > {
-  on<const Type extends string, const Input extends object>(
-    event: TaskWish.Event<Type, Input>
-  ): ConfigurableUseCase<
-    Scope &
-      Record<"input", Input> &
-      Record<"event", ReturnType<TaskWish.Event<Type, Input>>>,
-    Used
-  >;
   on<const Schema>(
-    input: TaskWish.ValidateSchema<Schema>
+    input: TaskWish.ValidateSchema<Schema>,
   ): Used extends string
     ? Omit<
         ConfigurableUseCase<
@@ -45,8 +37,16 @@ export interface UseCaseFactory<
         Scope & Record<"input", TaskWish.InferInput<Schema>>,
         Used
       >;
+  on<const Type extends string, const Input extends object>(
+    event: TaskWish.Event<Type, Input>,
+  ): ConfigurableUseCase<
+    Scope &
+      Record<"input", Input> &
+      Record<"event", ReturnType<TaskWish.Event<Type, Input>>>,
+    Used
+  >;
   use<const NewScope>(
-    newScope: NewScope
+    newScope: NewScope,
   ): Used extends string
     ? Omit<UseCaseFactory<Params, NewScope & Scope, Used>, Used>
     : UseCaseFactory<Params, NewScope & Scope, Used>;
@@ -54,7 +54,7 @@ export interface UseCaseFactory<
 }
 
 export const UseCase = <const Params extends string>(
-  name: Params
+  name: Params,
 ): UseCaseFactory<Params> => {
   return name as any;
 };
