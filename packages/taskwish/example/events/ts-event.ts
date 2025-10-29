@@ -1,3 +1,3 @@
 import { Event } from "../../src";
 
-export default Event<"Ts event", { name: string }>();
+export default Event<"ts event", { name: string }>();
