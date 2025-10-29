@@ -1,6 +1,4 @@
-import { Options } from "../../old";
 import { UseCase } from "../../src";
-import { run } from "../runner";
 
 export default UseCase("Say hello")
   .on({ language: "string" })
@@ -11,11 +9,10 @@ export default UseCase("Say hello")
 
   .steps(
     ["asdasd", ({ input }) => input],
-    
-    ({ asdasd }) =>
-      run("Slack.sendMessage", {
+
+    ({ action, run }) =>
+      action.slack.sendMessage({
         channel: "#general",
         text: `Does someone speak ${asdasd.language}?`,
-        [Options]: [Options.timeout(40)],
-      })
+      }),
   );

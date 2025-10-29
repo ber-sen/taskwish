@@ -1,19 +1,20 @@
 import { UseCase } from "../../src";
-import slack from "../packages/slack";
 
 export default UseCase("Slack")
-  .on(slack.events.message)
+  .use(import("../packages/slack"))
+  
+  .on("slack:message")
 
   .steps(
     ($) => Match($.input, { subtype: true }),
 
     "me_message",
 
-    ["lorem", $ => asdad],
+    ["lorem", ($) => asdad],
 
     "bot_message",
 
-    ["ipsum", $ => asdad],
+    ["ipsum", ($) => asdad],
 
-    End(Match)
+    End(Match),
   );

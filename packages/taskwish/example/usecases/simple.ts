@@ -1,12 +1,8 @@
 import { UseCase } from "../../src";
-import { run } from "../runner";
 
 export default UseCase("Simple")
+  .use(import("../actions"))
+
   .describe({ description: "Send a message to slack" })
 
-  .steps(
-    run("Slack.sendMessage", {
-      channel: "#general",
-      text: "Hi",
-    })
-  );
+  .steps(({ action }) => action.succeed());

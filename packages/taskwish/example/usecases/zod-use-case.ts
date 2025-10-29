@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { Options, UseCase } from "../../src";
-import { run } from "../runner";
 
 export default UseCase("Say hello")
+  .use(import("../actions"))
+
   .on(z.object({ language: z.string() }))
 
   .describe("Send hello message to slack", {
@@ -12,10 +13,9 @@ export default UseCase("Say hello")
   .steps(
     ["asdasd", ({ input }) => input],
 
-    ({ asdasd }) =>
-      run("Slack.sendMessage", {
+    ({ asdasd, action }) =>
+      action.slack.sendMessage({
         channel: "#general",
         text: `Does someone speak ${asdasd.language}?`,
-        [Options]: [Options.timeout(40)],
-      })
+      }),
   );

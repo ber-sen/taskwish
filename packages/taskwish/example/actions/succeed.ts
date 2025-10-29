@@ -1,3 +1,3 @@
 import { Action } from "../../src";
 
-export default Action("Succeed", () => ({ success: true }));
+export default Action("succeed", () => ({ success: true }));

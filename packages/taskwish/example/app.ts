@@ -1,15 +1,9 @@
 import { App } from "../src";
-import sayHello from "./usecases/say-hello";
-import simple from "./usecases/simple";
 
-export const app = App("AppName").config(
-  Actions(import("./actions")),
+export default App(
+  "AppName",
   
-  ["POST", "/api/simple", simple],
-  ["GET", "/api/say-hello/:language", sayHello],
-  ["CMD", "say-hello :language", sayHello],
+  ["POST", "/api/simple", import("./usecases/simple")],
+  ["GET", "/api/say-hello/:language", import("./usecases/say-hello")],
+  ["CMD", "say-hello :language", import("./usecases/say-hello")],
 );
-
-export type AppType = typeof app;
-
-onmessage = app.worker().onmessage;
