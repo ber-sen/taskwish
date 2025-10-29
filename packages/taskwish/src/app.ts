@@ -1,11 +1,9 @@
 import { TaskWish } from "./types";
 
-interface AppFactory<Name extends string> extends TaskWish.Typed<Name> {
-  config(): TaskWish.App<{}>;
+interface App<Name extends string> extends TaskWish.Typed<Name> {
+  
 }
 
-export const App = <const Name extends string>(
-  name: string,
-): AppFactory<Name> => {
+export const App = <const Name extends string>(name: string): App<Name> => {
   return {} as never;
 };

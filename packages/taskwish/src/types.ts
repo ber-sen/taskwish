@@ -99,9 +99,4 @@ export namespace TaskWish {
     throw: () => void;
     toString: () => string;
   }
-
-  export interface App<Endpoints> {
-    worker(): DedicatedWorkerGlobalScope;
-    run: (name: string, params: object) => any;
-  }
 }
