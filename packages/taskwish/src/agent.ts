@@ -17,8 +17,7 @@ export interface AgentFactory<
     ? Omit<AgentFactory<Params, NewScope & Scope, Used>, Used>
     : AgentFactory<Params, NewScope & Scope, Used>;
   abilities: Steps<Scope>;
-  before(usecase: (event: TaskWish.Event<any, any>) => void): void;
-  after(usecase: (event: TaskWish.Event<any, any>) => void): void;
+  controller(usecase: (event: TaskWish.Event<any, any>) => void): void;
 }
 
 export const Agent = <const Params extends string>(

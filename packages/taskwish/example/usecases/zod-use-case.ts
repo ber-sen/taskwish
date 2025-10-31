@@ -13,9 +13,12 @@ export default UseCase("Say hello")
   .steps(
     ["asdasd", ({ input }) => input],
 
-    ({ action, input }) =>
-      action.slack.sendMessage({
-        channel: "#general",
-        text: `Does someone speak ${input.language}?`,
-      }),
+    [
+      "lorem",
+      ({ action, input }) =>
+        action.slack.sendMessage({
+          channel: "#general",
+          text: `Does someone speak ${input.language}?`,
+        }),
+    ],
   );

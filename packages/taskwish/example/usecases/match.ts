@@ -3,7 +3,7 @@ import { UseCase } from "../../src";
 export default UseCase("Slack")
   .use(import("../packages/slack"))
   
-  .on("slack:message")
+  .on("slack.message")
 
   .steps(
     ($) => Match($.input, { subtype: true }),
