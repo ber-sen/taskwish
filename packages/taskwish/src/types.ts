@@ -1,14 +1,18 @@
-import { type } from "arktype";
+import { type, validateDefinition } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 import { DeepOptionalString } from "./helpers";
 
 export namespace TaskWish {
   export const TYPE = Symbol.for("TaskWish.type");
 
-  export const META = Symbol.for("TaskWish.meta");
+  export const NAME = Symbol.for("TaskWish.name");
 
   export interface Typed<Type extends string> {
     [TYPE]: Type;
+  }
+
+  export interface Named<Name extends string> {
+    [NAME]: Name;
   }
 
   export interface DefaultCtx {
@@ -16,31 +20,34 @@ export namespace TaskWish {
   }
 
   export interface Runnable<
-    Type extends string,
+    Name extends string,
     Stream,
     Result,
     Ctx = DefaultCtx,
-  > extends Typed<Type> {
+  > extends Typed<"action">,
+      Named<Name> {
     (): AsyncGenerator<Stream, Result, Ctx> & Promise<Result>;
   }
 
   export interface Action<
-    Type extends string,
+    Name extends string,
     Params extends Object,
     Stream,
     Result,
     Ctx = DefaultCtx,
-  > extends Typed<Type> {
+  > extends Typed<"action">,
+      Named<Name> {
     (params: Params): AsyncGenerator<Stream, Result, Ctx> & Promise<Result>;
   }
 
-  export interface Event<Type extends string, Data>
-    extends Typed<Type>,
+  export interface Event<Name extends string, Data>
+    extends Typed<"event">,
+      Named<Name>,
       Describable<
         {
           data: DeepOptionalString<Data>;
         },
-        Event<Type, Data>
+        Event<Name, Data>
       > {
     (data: Data): MessageEvent<Data>;
   }
@@ -48,6 +55,15 @@ export namespace TaskWish {
   export interface Scoped<Scope extends Record<any, any>> {
     scope: Scope;
   }
+
+  export type ValidateTrigger<Name extends string, Schema> =
+    Schema extends StandardSchemaV1<any>
+      ? Schema
+      : Schema extends object
+        ? type.validate<Schema>
+        : Schema extends Event<Name, infer Input>
+          ? Event<Name, Input>
+          : object;
 
   export type ValidateSchema<Schema> =
     Schema extends StandardSchemaV1<any>
@@ -59,7 +75,9 @@ export namespace TaskWish {
   export type InferInput<Schema> =
     Schema extends StandardSchemaV1<infer Input>
       ? Input
-      : type.instantiate<Schema>["infer"];
+      : Schema extends Event<any, infer Input>
+        ? Input
+        : type.instantiate<Schema>["infer"];
 
   export interface Extendable<Scope> {
     use<const NewScope>(newScope: NewScope): Extendable<Scope & NewScope>;
@@ -68,7 +86,7 @@ export namespace TaskWish {
   export interface Describable<Params, Return> {
     describe<const Tags extends { description?: string } & Params>(
       tags: Tags,
-    ): Return & { [META]: Tags };
+    ): Return;
   }
 
   export interface StepOption<T extends string, G extends null | string> {
@@ -78,22 +96,19 @@ export namespace TaskWish {
   }
 
   export interface Triggerable<Scope extends Record<any, any>> {
-    on<const Type extends string, const Params extends object>(
-      event: Event<Type, Params>,
-    ): Scoped<
-      Scope & Record<"input", Params> & Record<"event", Event<Type, Params>>
-    >;
-    on<const Schema>(
-      input: ValidateSchema<Schema>,
+    on<const Name extends string, const Schema>(
+      trigger: ValidateTrigger<Name, Schema>,
     ): Scoped<Scope & Record<"input", InferInput<Schema>>>;
   }
 
-  export interface Meta<Type extends string, Params> extends Typed<Type> {
+  export interface Meta<Name extends string, Params>
+    extends Typed<"meta">,
+      Named<Name> {
     meta: Params;
     toString: () => string;
   }
 
-  export interface Exception<Status, Params> extends Typed<"Exception"> {
+  export interface Exception<Status, Params> extends Typed<"exception"> {
     status: Status;
     exception: Params;
     throw: () => void;

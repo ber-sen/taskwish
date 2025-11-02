@@ -8,5 +8,5 @@ export default UseCase("Say hello")
 
     If(2 > 1),
 
-    Return()
+    Return(),
   );

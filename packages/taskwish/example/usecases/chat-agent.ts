@@ -1,8 +1,11 @@
 import { UseCase } from "../../src";
+import tsEvent from "../events/ts-event";
 
 export default UseCase("Chat bot")
   .use(import("../agents", { with: { type: "raw" } }))
 
-  .on({ messages: { name: "string", age: "number" } })
+  .on(tsEvent)
 
-  .steps(({ agent, input }) => agent.marketing.chat(input.messages));
+  .steps(({ agent, input }) => agent.marketing.chat(input.name));
+
+
