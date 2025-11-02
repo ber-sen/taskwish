@@ -67,4 +67,13 @@ describe("Action", () => {
       console.log(n);
     }
   });
+
+  it("works with schema", async () => {
+    const schemaInput = Action("schema-input")
+      .input({ name: "string" })
+
+      .handler(({ name }) => name);
+
+    const result = await schemaInput({ name: "Spanish" });
+  });
 });

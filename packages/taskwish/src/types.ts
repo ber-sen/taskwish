@@ -31,7 +31,7 @@ export namespace TaskWish {
 
   export interface Action<
     Name extends string,
-    Params extends Object,
+    Params,
     Stream,
     Result,
     Ctx = DefaultCtx,
