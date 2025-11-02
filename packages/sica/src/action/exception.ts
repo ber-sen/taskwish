@@ -1,10 +1,10 @@
-import { TaskWish } from "../types";
+import { Sica } from "../types";
 
 export const Exception = <const Status extends number, const Params>(
   status: Status,
   exception: Params
-): TaskWish.Exception<Status, Params> => ({
-  [TaskWish.TYPE]: "exception",
+): Sica.Exception<Status, Params> => ({
+  [Sica.TYPE]: "exception",
   status,
   exception,
   throw: () => {

@@ -1,4 +1,4 @@
-import { TaskWish } from "../types";
+import { Sica } from "../types";
 
 export function Action<
   Name extends string,
@@ -15,25 +15,25 @@ export function Action<
     | AsyncGenerator<Stream, Result, Ctx>
     | Generator<Stream, Result, Ctx>,
 ): Params extends object
-  ? TaskWish.Action<Name, Params, Stream, Result, Ctx>
-  : TaskWish.Runnable<Name, Stream, Result, Ctx>;
+  ? Sica.Action<Name, Params, Stream, Result, Ctx>
+  : Sica.Runnable<Name, Stream, Result, Ctx>;
 
 export function Action<Name extends string>(
   name: Name,
 ): {
   input<const Params, Stream = never>(
-    schema: TaskWish.ValidateSchema<Params>,
+    schema: Sica.ValidateSchema<Params>,
   ): {
     handler: <Result = unknown, Ctx = unknown>(
       execute: (
-        params: TaskWish.InferInput<Params>,
+        params: Sica.InferInput<Params>,
       ) =>
         | Result
         | AsyncGenerator<Stream, Result, Ctx>
         | Generator<Stream, Result, Ctx>,
-    ) => TaskWish.Action<
+    ) => Sica.Action<
       Name,
-      TaskWish.InferInput<Params>,
+      Sica.InferInput<Params>,
       Stream,
       Result,
       Ctx

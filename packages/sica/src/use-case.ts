@@ -1,10 +1,10 @@
 import { Steps } from "./steps/steps";
-import { TaskWish } from "./types";
+import { Sica } from "./types";
 
 interface ConfigurableUseCase<
   Scope extends Record<any, any>,
   Used extends "describe" | null = null,
-> extends TaskWish.Scoped<Scope> {
+> extends Sica.Scoped<Scope> {
   steps: Steps<Scope>;
   describe(
     description: string,
@@ -16,25 +16,25 @@ export interface UseCaseFactory<
   Params,
   Scope extends Record<any, any> = {},
   Used extends "describe" | null = null,
-> extends TaskWish.Scoped<Scope>,
-    TaskWish.Extendable<Scope>,
-    TaskWish.Triggerable<Scope>,
-    TaskWish.Describable<
+> extends Sica.Scoped<Scope>,
+    Sica.Extendable<Scope>,
+    Sica.Triggerable<Scope>,
+    Sica.Describable<
       { input?: Scope["input"] },
       UseCaseFactory<Params, Scope, "describe">
     > {
   on<const Name extends string, const Schema>(
-    trigger: TaskWish.ValidateTrigger<Name, Schema>,
+    trigger: Sica.ValidateTrigger<Name, Schema>,
   ): Used extends string
     ? Omit<
         ConfigurableUseCase<
-          Scope & Record<"input", TaskWish.InferInput<Schema>>,
+          Scope & Record<"input", Sica.InferInput<Schema>>,
           Used
         >,
         Used
       >
     : ConfigurableUseCase<
-        Scope & Record<"input", TaskWish.InferInput<Schema>>,
+        Scope & Record<"input", Sica.InferInput<Schema>>,
         Used
       >;
   use<const NewScope>(

@@ -1,4 +1,4 @@
-import { TaskWish } from "../types";
+import { Sica } from "../types";
 
 type OptionalBoolean<T> = {
   [K in keyof T]?: boolean;
@@ -7,7 +7,7 @@ type OptionalBoolean<T> = {
 export const Match = <const Input extends object>(
   input: Input,
   match: OptionalBoolean<Input>
-): TaskWish.StepOption<"match", null> => ({
+): Sica.StepOption<"match", null> => ({
   stepOptionType: "match",
   group: null,
   params: {

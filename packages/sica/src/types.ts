@@ -2,10 +2,10 @@ import { type } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 import { DeepOptionalString } from "./helpers";
 
-export namespace TaskWish {
-  export const TYPE = Symbol.for("TaskWish.type");
+export namespace Sica {
+  export const TYPE = Symbol.for("Sica.type");
 
-  export const NAME = Symbol.for("TaskWish.name");
+  export const NAME = Symbol.for("Sica.name");
 
   export interface Typed<Type extends string> {
     [TYPE]: Type;

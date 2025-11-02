@@ -1,5 +1,5 @@
 import { PrettyScope, ToCamelCase } from "../helpers";
-import { TaskWish } from "../types";
+import { Sica } from "../types";
 
 type BuildTuple<L extends number, T extends any[] = []> = T["length"] extends L
   ? T
@@ -17,12 +17,12 @@ type Subtract<A extends number, B extends number> = BuildTuple<A> extends [
   ? Rest["length"]
   : never;
 
-type IndentStep<T, N extends number> = T extends TaskWish.StepOption<
+type IndentStep<T, N extends number> = T extends Sica.StepOption<
   "loop" | "if",
   null
 >
   ? Add<N, 1>
-  : T extends TaskWish.StepOption<"end", null>
+  : T extends Sica.StepOption<"end", null>
   ? Subtract<N, 1>
   : N;
 
@@ -34,7 +34,7 @@ type Indent<Arr extends any[], N extends number = 0> = Arr extends [
   : N;
 
 type ResultA = Indent<
-  [TaskWish.StepOption<"if", null>, TaskWish.StepOption<"end", null>],
+  [Sica.StepOption<"if", null>, Sica.StepOption<"end", null>],
   0
 >;
 
@@ -44,7 +44,7 @@ type Props<T> = {
     : T[K];
 } & {};
 
-type Return = TaskWish.Runnable<
+type Return = Sica.Runnable<
   never,
   {
     success: boolean;
@@ -54,8 +54,8 @@ type Return = TaskWish.Runnable<
 
 type Step0<Scope, S0, S0R> =
   | [name: S0, handler: (props: Props<Scope>) => S0R]
-  | ((props: Props<Scope>) => S0R | TaskWish.StepOption<any, null>)
-  | TaskWish.StepOption<any, null>;
+  | ((props: Props<Scope>) => S0R | Sica.StepOption<any, null>)
+  | Sica.StepOption<any, null>;
 
 type Step1<Scope, S0, S0R, S1, S1R> =
   | [
@@ -66,8 +66,8 @@ type Step1<Scope, S0, S0R, S1, S1R> =
     ]
   | ((
       props: Props<Scope & (S0 extends string ? Record<S0, S0R> : {})>
-    ) => S1R | TaskWish.StepOption<any, null>)
-  | TaskWish.StepOption<any, null>;
+    ) => S1R | Sica.StepOption<any, null>)
+  | Sica.StepOption<any, null>;
 
 type Step2<Scope, S0, S0R, S1, S1R, S2, S2R> =
   | [
@@ -86,8 +86,8 @@ type Step2<Scope, S0, S0R, S1, S1R, S2, S2R> =
           (S0 extends string ? Record<S0, S0R> : {}) &
           (S1 extends string ? Record<S1, S1R> : {})
       >
-    ) => S2R | TaskWish.StepOption<any, null>)
-  | TaskWish.StepOption<any, null>;
+    ) => S2R | Sica.StepOption<any, null>)
+  | Sica.StepOption<any, null>;
 
 type Step3<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R> =
   | [
@@ -108,8 +108,8 @@ type Step3<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R> =
           (S1 extends string ? Record<S1, S1R> : {}) &
           (S2 extends string ? Record<S2, S2R> : {})
       >
-    ) => S3R | TaskWish.StepOption<any, null>)
-  | TaskWish.StepOption<any, null>;
+    ) => S3R | Sica.StepOption<any, null>)
+  | Sica.StepOption<any, null>;
 
 type Step4<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R, S4, S4R> =
   | [
@@ -132,8 +132,8 @@ type Step4<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R, S4, S4R> =
           (S2 extends string ? Record<S2, S2R> : {}) &
           (S3 extends string ? Record<S3, S3R> : {})
       >
-    ) => S4R | TaskWish.StepOption<any, null>)
-  | TaskWish.StepOption<any, null>;
+    ) => S4R | Sica.StepOption<any, null>)
+  | Sica.StepOption<any, null>;
 
 export interface Steps<Scope extends Record<any, any> = {}> {
   <const S0, const S0R>(...trumpets: [step: Step0<Scope, S0, S0R>]): Return;
@@ -198,13 +198,13 @@ export const Step = <const K, const P>(key: K, params: P) =>
 
 export const Parallel = (
   name?: string
-): TaskWish.StepOption<"parallel", null> => ({
+): Sica.StepOption<"parallel", null> => ({
   stepOptionType: "parallel",
   group: null,
   params: { name },
 });
 
-export const Return = (): TaskWish.StepOption<"return", null> => ({
+export const Return = (): Sica.StepOption<"return", null> => ({
   stepOptionType: "return",
   group: null,
 });

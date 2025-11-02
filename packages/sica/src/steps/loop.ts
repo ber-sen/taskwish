@@ -1,8 +1,8 @@
-import { TaskWish } from "../types";
+import { Sica } from "../types";
 
 export const Loop = (
-  ...params: Array<TaskWish.StepOption<any, "loop">>
-): TaskWish.StepOption<"loop", null> => ({
+  ...params: Array<Sica.StepOption<any, "loop">>
+): Sica.StepOption<"loop", null> => ({
   stepOptionType: "loop",
   group: null,
   params,
@@ -11,7 +11,7 @@ export const Loop = (
 export const Range = (
   from: number,
   to: number
-): TaskWish.StepOption<"range", "loop"> => ({
+): Sica.StepOption<"range", "loop"> => ({
   stepOptionType: "range",
   group: "loop",
   params: {

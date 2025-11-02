@@ -1,6 +1,6 @@
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
-import { TaskWish } from "../types";
+import { Sica } from "../types";
 
 describe("Action", () => {
   it("works with arrow functions", async () => {
@@ -10,7 +10,7 @@ describe("Action", () => {
 
     type succeed = Expect<
       Equal<
-        TaskWish.Runnable<
+        Sica.Runnable<
           "Succeed",
           never,
           {
@@ -36,7 +36,7 @@ describe("Action", () => {
 
     type sayHello = Expect<
       Equal<
-        TaskWish.Action<
+        Sica.Action<
           "Say hello",
           {
             language: string;

@@ -1,8 +1,8 @@
-import { TaskWish } from "./types";
+import { Sica } from "./types";
 
 interface App<Name extends string>
-  extends TaskWish.Typed<"app">,
-    TaskWish.Named<Name> {}
+  extends Sica.Typed<"app">,
+    Sica.Named<Name> {}
 
 export const App = <const Name extends string>(name: string): App<Name> => {
   return {} as never;

@@ -1,17 +1,17 @@
 import { ArkErrors, type } from "arktype";
 import { Exception } from "./exception";
 import { Meta } from "./meta";
-import { TaskWish } from "../types";
+import { Sica } from "../types";
 
 export function* Env<const def>(of: type.validate<def>): Generator<
-  | TaskWish.Meta<
+  | Sica.Meta<
       "requires",
       {
         requires: "ctx";
         data: type.instantiate<def>["infer"];
       }
     >
-  | TaskWish.Exception<
+  | Sica.Exception<
       400,
       {
         readonly errors: ArkErrors;
