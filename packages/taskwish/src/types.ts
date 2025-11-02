@@ -1,4 +1,4 @@
-import { type, validateDefinition } from "arktype";
+import { type } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 import { DeepOptionalString } from "./helpers";
 
