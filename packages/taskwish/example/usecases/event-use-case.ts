@@ -1,10 +1,9 @@
-import { z } from "zod";
 import { UseCase } from "../../src";
-import { gmailNewEmail } from "../events/event-zod";
 
 export default UseCase("Say hello")
+  .use(import("../events"))
 
-  .on(gmailNewEmail)
+  .on("zod-new-email")
 
   .describe("Send hello message to slack", {
     input: { language: "Hello language" },

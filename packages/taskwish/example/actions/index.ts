@@ -1,3 +1,3 @@
-import succeed from "./succeed";
-
-export { succeed };
+export default {
+  succeed: import("./succeed"),
+};

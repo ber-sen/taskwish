@@ -1,5 +1,3 @@
-import marketing from "./marketing";
-
 export default {
-  marketing,
-};
+  marketing: import("./marketing")
+}

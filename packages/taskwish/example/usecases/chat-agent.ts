@@ -2,7 +2,7 @@ import { UseCase } from "../../src";
 import tsEvent from "../events/ts-event";
 
 export default UseCase("Chat bot")
-  .use(import("../agents", { with: { type: "raw" } }))
+  .use(import("../agents"))
 
   .on(tsEvent)
 
