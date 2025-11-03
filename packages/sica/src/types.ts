@@ -34,13 +34,7 @@ export namespace Sica {
     [UP](): AsyncGenerator<string, boolean, unknown>;
     [DOWN](): AsyncGenerator<string, boolean, unknown>;
   }
-
-  export interface Resource<Name extends string, Ctx = DefaultCtx>
-    extends Named<Name> {
-    [UP](): AsyncGenerator<string, boolean, Ctx>;
-    [DOWN](): AsyncGenerator<string, boolean, Ctx>;
-  }
-
+  
   export interface Runnable<Name extends string, Handler extends () => any>
     extends Typed<"action">,
       Named<Name>,
