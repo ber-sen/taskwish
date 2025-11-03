@@ -30,15 +30,18 @@ export namespace Sica {
     abortSignal?: AbortSignal;
   }
 
-  export interface Resource<Name extends string> extends Named<Name> {
+  export interface Resource<Type extends string, Name extends string>
+    extends Typed<Type>,
+      Named<Name> {
     [UP](): AsyncGenerator<string, boolean, unknown>;
     [DOWN](): AsyncGenerator<string, boolean, unknown>;
   }
-  
-  export interface Runnable<Name extends string, Handler extends () => any>
-    extends Typed<"action">,
-      Named<Name>,
-      Resource<Name> {
+
+  export interface Runnable<
+    Name extends string,
+    Handler extends () => any,
+    Type extends string = "action",
+  > extends Resource<Type, Name> {
     [RUN]: Handler;
     (): RunnableReturn<Handler>;
   }
@@ -46,16 +49,17 @@ export namespace Sica {
   export interface Action<
     Name extends string,
     Handler extends (...args: any) => any,
-  > extends Typed<"action">,
-      Named<Name>,
-      Resource<Name> {
+    Type extends string = "action",
+  > extends Resource<Type, Name> {
     [RUN]: Handler;
     (params: ActionInput<Handler>): ActionReturn<Handler>;
   }
 
-  export interface Event<Name extends string, Data>
-    extends Typed<"event">,
-      Named<Name>,
+  export interface Event<
+    Name extends string,
+    Data,
+    Type extends string = "event",
+  > extends Resource<Type, Name>,
       Describable<
         {
           data: DeepOptionalString<Data>;
