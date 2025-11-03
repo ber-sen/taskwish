@@ -25,8 +25,8 @@ export namespace Sica {
 
   export interface Resource<Name extends string, Ctx = DefaultCtx>
     extends Named<Name> {
-    [UP](ctx?: Ctx): boolean;
-    [DOWN](ctx?: Ctx): boolean;
+    [UP](): AsyncGenerator<string, boolean, Ctx>;
+    [DOWN](): AsyncGenerator<string, boolean, Ctx>;
   }
 
   export interface Runnable<
@@ -39,6 +39,7 @@ export namespace Sica {
       Resource<Name, Ctx> {
     (): AsyncGenerator<Stream, Result, Ctx> & Promise<Result>;
   }
+  
   export interface Action<
     Name extends string,
     Params,
