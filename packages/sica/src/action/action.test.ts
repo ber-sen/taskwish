@@ -12,11 +12,9 @@ describe("Action", () => {
       Equal<
         Sica.Runnable<
           "Succeed",
-          never,
-          {
+          () => {
             success: boolean;
-          },
-          unknown
+          }
         >,
         T
       >
@@ -36,15 +34,7 @@ describe("Action", () => {
 
     type sayHello = Expect<
       Equal<
-        Sica.Action<
-          "Say hello",
-          {
-            language: string;
-          },
-          never,
-          string,
-          unknown
-        >,
+        Sica.Action<"Say hello", (params: { language: string }) => string>,
         T
       >
     >;
@@ -75,5 +65,31 @@ describe("Action", () => {
       .handler(({ name }) => name);
 
     const result = await schemaInput({ name: "Spanish" });
+  });
+
+  it("works with scope", async () => {
+    const sayHello = Action(
+      "Say hello",
+      <Scope extends Record<any, any>>(_: Scope) =>
+        (params: { model: Scope["model"] }) => {
+          return `Hello in ${params.model}`;
+        }
+    );
+
+    type T = typeof sayHello;
+
+    type sayHello = Expect<
+      Equal<
+        Sica.Action<
+          "Say hello",
+          <Scope extends Record<any, any>>(
+            scope: Scope
+          ) => (params: { model: Scope["model"] }) => string
+        >,
+        T
+      >
+    >;
+
+    const result = sayHello[Sica.RUN]({ model: 3 });
   });
 });

@@ -7,6 +7,8 @@ export namespace Sica {
 
   export const NAME = Symbol.for("Sica.name");
 
+  export const RUN = Symbol.for("Sica.up");
+
   export const UP = Symbol.for("Sica.up");
 
   export const DOWN = Symbol.for("Sica.down");
@@ -23,33 +25,47 @@ export namespace Sica {
     abortSignal?: AbortSignal;
   }
 
+  export interface Resource<Name extends string> extends Named<Name> {
+    [UP](): AsyncGenerator<string, boolean, unknown>;
+    [DOWN](): AsyncGenerator<string, boolean, unknown>;
+  }
+
   export interface Resource<Name extends string, Ctx = DefaultCtx>
     extends Named<Name> {
     [UP](): AsyncGenerator<string, boolean, Ctx>;
     [DOWN](): AsyncGenerator<string, boolean, Ctx>;
   }
 
-  export interface Runnable<
-    Name extends string,
-    Stream,
-    Result,
-    Ctx = DefaultCtx,
-  > extends Typed<"action">,
+  export interface Runnable<Name extends string, Handler extends () => any>
+    extends Typed<"action">,
       Named<Name>,
-      Resource<Name, Ctx> {
-    (): AsyncGenerator<Stream, Result, Ctx> & Promise<Result>;
+      Resource<Name> {
+    [RUN]: Handler;
+    (): Handler extends () => Generator<infer Stream, infer Return, infer Ctx>
+      ? () => AsyncGenerator<Stream, Return, Ctx> & Promise<Return>
+      : Handler extends () => Promise<infer Return>
+        ? AsyncGenerator<never, Return, unknown> & Promise<Return>
+        : Handler extends () => infer Return
+          ? AsyncGenerator<never, Return, unknown> & Promise<Return>
+          : never;
   }
-  
-  export interface Action<
-    Name extends string,
-    Params,
-    Stream,
-    Result,
-    Ctx = DefaultCtx,
-  > extends Typed<"action">,
+
+  export interface Action<Name extends string, Handler extends (...args:any) => any>
+    extends Typed<"action">,
       Named<Name>,
-      Resource<Name, Ctx> {
-    (params: Params): AsyncGenerator<Stream, Result, Ctx> & Promise<Result>;
+      Resource<Name> {
+    [RUN]: Handler;
+    (
+      params: Parameters<Handler>[0]
+    ): Handler extends (
+      ...args: any
+    ) => Generator<infer Stream, infer Return, infer Ctx>
+      ? (...args: any) => AsyncGenerator<Stream, Return, Ctx> & Promise<Return>
+      : Handler extends (...args: any) => Promise<infer Return>
+        ? AsyncGenerator<never, Return, unknown> & Promise<Return>
+        : Handler extends (...args: any) => infer Return
+          ? AsyncGenerator<never, Return, unknown> & Promise<Return>
+          : never;
   }
 
   export interface Event<Name extends string, Data>
