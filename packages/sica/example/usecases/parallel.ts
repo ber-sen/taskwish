@@ -1,7 +1,7 @@
 import { End, UseCase, Parallel } from "../../src";
 
 export default UseCase("Say hello")
-  .on({ user: { name: "string" } })
+  .on({ user: { model: "Scope.model" } })
 
   .steps(
     Parallel(),

@@ -1,7 +1,7 @@
 import { UseCase } from "../../src";
 
 export default UseCase("Simple")
-  .use(import("../actions"))
+  .use(import("../app"))
 
   .describe({ description: "Send a message to slack" })
 

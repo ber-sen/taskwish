@@ -1,3 +1,0 @@
-{
-  "plugins": ["./packages/prettier-taskwish/index.mjs"]
-}

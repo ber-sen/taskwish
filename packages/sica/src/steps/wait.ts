@@ -1,16 +1,16 @@
 import { StringValue } from "ms";
-import { TaskWish } from "../types";
+import { Sica } from "../types";
 
-export function Wait(duration: StringValue): TaskWish.StepOption<"wait", null>;
-
-export function Wait(
-  event: TaskWish.Event<any, any>
-): TaskWish.StepOption<"wait", null>;
-
-export function Wait(...args: any) {
+export function Wait(duration: StringValue): Sica.StepOption<"wait", null> {
   return {
     stepOptionType: "wait",
     group: null,
-    params: args,
+    params: duration,
   } as never;
+}
+
+Wait.until = (
+  event: Sica.Event<any, any>
+): Sica.StepOption<"wait", null> {
+  return {} as never
 }

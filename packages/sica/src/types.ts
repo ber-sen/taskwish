@@ -7,6 +7,10 @@ export namespace Sica {
 
   export const NAME = Symbol.for("Sica.name");
 
+  export const UP = Symbol.for("Sica.up");
+
+  export const DOWN = Symbol.for("Sica.down");
+
   export interface Typed<Type extends string> {
     [TYPE]: Type;
   }
@@ -19,16 +23,22 @@ export namespace Sica {
     abortSignal?: AbortSignal;
   }
 
+  export interface Resource<Name extends string, Ctx = DefaultCtx>
+    extends Named<Name> {
+    [UP](ctx?: Ctx): boolean;
+    [DOWN](ctx?: Ctx): boolean;
+  }
+
   export interface Runnable<
     Name extends string,
     Stream,
     Result,
     Ctx = DefaultCtx,
   > extends Typed<"action">,
-      Named<Name> {
+      Named<Name>,
+      Resource<Name, Ctx> {
     (): AsyncGenerator<Stream, Result, Ctx> & Promise<Result>;
   }
-
   export interface Action<
     Name extends string,
     Params,
@@ -36,7 +46,8 @@ export namespace Sica {
     Result,
     Ctx = DefaultCtx,
   > extends Typed<"action">,
-      Named<Name> {
+      Named<Name>,
+      Resource<Name, Ctx> {
     (params: Params): AsyncGenerator<Stream, Result, Ctx> & Promise<Result>;
   }
 
@@ -60,7 +71,12 @@ export namespace Sica {
     Schema extends StandardSchemaV1<any>
       ? Schema
       : Schema extends object
-        ? type.validate<Schema>
+        ? type.validate<
+            Schema,
+            {
+              "Scope.model": string;
+            }
+          >
         : Schema extends Event<Name, infer Input>
           ? Event<Name, Input>
           : object;
@@ -69,7 +85,12 @@ export namespace Sica {
     Schema extends StandardSchemaV1<any>
       ? Schema
       : Schema extends object
-        ? type.validate<Schema>
+        ? type.validate<
+            Schema,
+            {
+              "Scope.model": string;
+            }
+          >
         : object;
 
   export type InferInput<Schema> =
@@ -85,7 +106,7 @@ export namespace Sica {
 
   export interface Describable<Params, Return> {
     describe<const Tags extends { description?: string } & Params>(
-      tags: Tags,
+      tags: Tags
     ): Return;
   }
 
@@ -97,7 +118,7 @@ export namespace Sica {
 
   export interface Triggerable<Scope extends Record<any, any>> {
     on<const Name extends string, const Schema>(
-      trigger: ValidateTrigger<Name, Schema>,
+      trigger: ValidateTrigger<Name, Schema>
     ): Scoped<Scope & Record<"input", InferInput<Schema>>>;
   }
 
