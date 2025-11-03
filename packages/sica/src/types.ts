@@ -12,7 +12,7 @@ export namespace Sica {
 
   export const NAME = Symbol.for("Sica.name");
 
-  export const RUN = Symbol.for("Sica.up");
+  export const RUN = Symbol.for("Sica.run");
 
   export const UP = Symbol.for("Sica.up");
 
