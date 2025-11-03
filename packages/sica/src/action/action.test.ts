@@ -90,6 +90,8 @@ describe("Action", () => {
       >
     >;
 
+    sayHello({ model: "asda" });
+
     const result = sayHello[Sica.RUN]({ model: 3 });
   });
 });

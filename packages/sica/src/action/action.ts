@@ -10,24 +10,15 @@ export function Action<
   ? Sica.Action<Name, Handler>
   : Sica.Runnable<Name, Handler>;
 
-
-
-// export function Action<Name extends string>(
-//   name: Name
-// ): {
-//   input<const Params, Stream = never>(
-//     schema: Sica.ValidateSchema<Params>
-//   ): {
-//     handler: <Result = unknown, Ctx = unknown>(
-//       execute: (
-//         params: Sica.InferInput<Params>
-//       ) =>
-//         | Result
-//         | AsyncGenerator<Stream, Result, Ctx>
-//         | Generator<Stream, Result, Ctx>
-//     ) => Sica.Action<Name, Sica.InferInput<Params>, Stream, Result, Ctx>;
-//   };
-// };
+export function Action<Name extends string>(
+  name: Name
+): {
+  input<const Params>(schema: Sica.ValidateSchema<Params>): {
+    handler: <Handler extends (params: Sica.InferInput<Params>) => any>(
+      execute: Handler
+    ) => Sica.Action<Name, Handler>;
+  };
+};
 
 export function Action(...args: any) {
   return {} as any;

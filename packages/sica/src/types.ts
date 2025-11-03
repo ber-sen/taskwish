@@ -1,6 +1,11 @@
 import { type } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
-import { DeepOptionalString } from "./helpers";
+import {
+  ActionInput,
+  ActionReturn,
+  DeepOptionalString,
+  RunnableReturn,
+} from "./helpers";
 
 export namespace Sica {
   export const TYPE = Symbol.for("Sica.type");
@@ -41,31 +46,17 @@ export namespace Sica {
       Named<Name>,
       Resource<Name> {
     [RUN]: Handler;
-    (): Handler extends () => Generator<infer Stream, infer Return, infer Ctx>
-      ? () => AsyncGenerator<Stream, Return, Ctx> & Promise<Return>
-      : Handler extends () => Promise<infer Return>
-        ? AsyncGenerator<never, Return, unknown> & Promise<Return>
-        : Handler extends () => infer Return
-          ? AsyncGenerator<never, Return, unknown> & Promise<Return>
-          : never;
+    (): RunnableReturn<Handler>;
   }
 
-  export interface Action<Name extends string, Handler extends (...args:any) => any>
-    extends Typed<"action">,
+  export interface Action<
+    Name extends string,
+    Handler extends (...args: any) => any,
+  > extends Typed<"action">,
       Named<Name>,
       Resource<Name> {
     [RUN]: Handler;
-    (
-      params: Parameters<Handler>[0]
-    ): Handler extends (
-      ...args: any
-    ) => Generator<infer Stream, infer Return, infer Ctx>
-      ? (...args: any) => AsyncGenerator<Stream, Return, Ctx> & Promise<Return>
-      : Handler extends (...args: any) => Promise<infer Return>
-        ? AsyncGenerator<never, Return, unknown> & Promise<Return>
-        : Handler extends (...args: any) => infer Return
-          ? AsyncGenerator<never, Return, unknown> & Promise<Return>
-          : never;
+    (params: ActionInput<Handler>): ActionReturn<Handler>;
   }
 
   export interface Event<Name extends string, Data>

@@ -2,11 +2,10 @@ import { StandardSchemaV1 } from "@standard-schema/spec";
 
 export type Expect<T extends true> = T;
 
-export type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
-  T
->() => T extends Y ? 1 : 2
-  ? true
-  : false;
+export type Equal<X, Y> =
+  (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
+    ? true
+    : false;
 
 export type CamelCase<T extends string> =
   T extends `${infer Left}${infer Delimiter}${infer Right}`
@@ -44,3 +43,43 @@ export async function standardValidate<T extends StandardSchemaV1>(
 
   return result.value;
 }
+
+export type RunnableReturn<Handler> = Handler extends () => Generator<
+  infer Stream,
+  infer Return,
+  infer Ctx
+>
+  ? () => AsyncGenerator<Stream, Return, Ctx> & Promise<Return>
+  : Handler extends () => Promise<infer Return>
+    ? AsyncGenerator<never, Return, unknown> & Promise<Return>
+    : Handler extends () => infer Return
+      ? AsyncGenerator<never, Return, unknown> & Promise<Return>
+      : never;
+
+export type ActionInput<Handler extends (...args: any) => any> = Handler extends (
+  scope: any
+) => (...args: any) => any
+  ? Parameters<ReturnType<Handler>>[0]
+  : Parameters<Handler>[0];
+
+export type ActionReturn<Handler> = Handler extends (
+  scope: any
+) => (...args: any) => Generator<infer Stream, infer Return, infer Ctx>
+  ? (
+      scope: any
+    ) => (...args: any) => AsyncGenerator<Stream, Return, Ctx> & Promise<Return>
+  : Handler extends (scope: any) => (...args: any) => Promise<infer Return>
+    ? AsyncGenerator<never, Return, unknown> & Promise<Return>
+    : Handler extends (scope: any) => (...args: any) => infer Return
+      ? AsyncGenerator<never, Return, unknown> & Promise<Return>
+      : Handler extends (
+            ...args: any
+          ) => Generator<infer Stream, infer Return, infer Ctx>
+        ? (
+            ...args: any
+          ) => AsyncGenerator<Stream, Return, Ctx> & Promise<Return>
+        : Handler extends (...args: any) => Promise<infer Return>
+          ? AsyncGenerator<never, Return, unknown> & Promise<Return>
+          : Handler extends (...args: any) => infer Return
+            ? AsyncGenerator<never, Return, unknown> & Promise<Return>
+            : never;
