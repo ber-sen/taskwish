@@ -76,6 +76,14 @@ describe("Action", () => {
         }
     );
 
+    const sayHi = Action(
+      "Say hello",
+      <Scope extends Record<any, any>>(_: Scope) =>
+        (params: { trip: Scope["trip"] }) => {
+          return `Hello in ${params.trip}`;
+        }
+    );
+
     type T = typeof sayHello;
 
     type sayHello = Expect<
@@ -90,8 +98,44 @@ describe("Action", () => {
       >
     >;
 
-    sayHello({ model: "asda" });
+    sayHello({ model: "asdad" });
 
-    const result = sayHello[Sica.RUN]({ model: 3 });
+    const actions = [sayHi, sayHello];
+
+    const items = actions.map((item) => item[Sica.RUN]({ model: 3 }));
   });
 });
+
+interface Scoped<Items extends Record<string, Sica.Action<any, any>>> {
+  actions: {
+    [K in keyof Items]: Items[K][typeof Sica.RUN];
+  };
+}
+
+type Action<Scope> = {
+  readonly run: (scope: Scope) => string;
+};
+
+abstract class HKT {
+  readonly scope?: unknown;
+  handler?: (...x: never[]) => unknown;
+}
+
+type Assume<T, U> = T extends U ? T : U;
+
+type Apply<F extends HKT, scope> = ReturnType<
+  NonNullable<
+    (F & {
+      readonly scope: scope;
+    })["handler"]
+  >
+>;
+
+interface DoubleString extends HKT {
+  handler: (x: Assume<this["scope"], { name: unknown }>["name"]) => {
+    name: typeof x;
+  };
+}
+
+// "hi!hi!"
+type Result = Apply<DoubleString, { name: 4 }>;
