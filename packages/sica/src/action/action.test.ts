@@ -116,30 +116,33 @@ type Action<Scope> = {
   readonly run: (scope: Scope) => string;
 };
 
-abstract class ScopedAction {
+abstract class Generic {
   readonly scope?: unknown;
-  with?: (...x: never[]) => unknown;
+  bind?: (...x: never[]) => unknown;
 }
 
 type Get<T, K> = T extends Record<any, any> ? T[K] : T;
 
-type Apply<F extends ScopedAction, scope> = ReturnType<
+type Apply<F extends Generic, scope> = ReturnType<
   NonNullable<
     (F & {
       readonly scope: scope;
-    })["with"]
+    })["bind"]
   >
 >;
 
-class DoubleString extends ScopedAction {
-  with =
-    (model: Get<this["scope"], "model">, test: Get<this["scope"], "test">) =>
-    (params: { model: typeof model }) => {
-      return test;
-    };
+interface MyG extends Generic {
+  bind(
+    model: Get<this["scope"], "model">,
+    test: Get<this["scope"], "test">
+  ): { model: typeof model };
 }
+export type Pretty<T> = { [K in keyof T]: T[K] } & {};
+
+
+type OverWrite<A, B> = Pretty<Omit<A, keyof B> & B> 
 
 // "hi!hi!"
-type Result = Apply<DoubleString, { model: 4; test: true }>;
+type Result = OverWrite<{ model: string }, Apply<MyG, { model: number }>>;
 
 const A: Result = {} as never;
