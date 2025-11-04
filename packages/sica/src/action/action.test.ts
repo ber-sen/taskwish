@@ -116,26 +116,30 @@ type Action<Scope> = {
   readonly run: (scope: Scope) => string;
 };
 
-abstract class HKT {
+abstract class ScopedAction {
   readonly scope?: unknown;
-  handler?: (...x: never[]) => unknown;
+  with?: (...x: never[]) => unknown;
 }
 
-type Assume<T, U> = T extends U ? T : U;
+type Get<T, K> = T extends Record<any, any> ? T[K] : T;
 
-type Apply<F extends HKT, scope> = ReturnType<
+type Apply<F extends ScopedAction, scope> = ReturnType<
   NonNullable<
     (F & {
       readonly scope: scope;
-    })["handler"]
+    })["with"]
   >
 >;
 
-interface DoubleString extends HKT {
-  handler: (x: Assume<this["scope"], { name: unknown }>["name"]) => {
-    name: typeof x;
-  };
+class DoubleString extends ScopedAction {
+  with =
+    (model: Get<this["scope"], "model">, test: Get<this["scope"], "test">) =>
+    (params: { model: typeof model }) => {
+      return test;
+    };
 }
 
 // "hi!hi!"
-type Result = Apply<DoubleString, { name: 4 }>;
+type Result = Apply<DoubleString, { model: 4; test: true }>;
+
+const A: Result = {} as never;
