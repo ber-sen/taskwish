@@ -127,25 +127,24 @@ type Apply<F extends GenericHandler, scope> = (F & {
   readonly scope: scope;
 })["bind"];
 
-const handler = <const M, const T>({
-  model,
-  trip,
-  lorem,
-}: {
-  model: M;
-  trip: T;
-  lorem: 2;
-}) => ({
-  model,
-  trip,
-});
+const handler =
+  <const S extends unknown[]>() =>
+  <const M extends S[0], const T extends S[1]>({
+    model,
+    trip,
+  }: {
+    model: M;
+    trip: T;
+  }) => ({
+    model,
+    trip,
+  });
 
 const makeScoped = (fn: typeof handler) =>
   class extends GenericHandler {
     handler = fn;
     declare bind: typeof this.handler<
-      Generic<this, "model">,
-      Generic<this, "trip">
+      [Generic<this, "model">, Generic<this, "trip">]
     >;
   };
 
@@ -153,6 +152,12 @@ const acls = makeScoped(handler);
 
 const a = new acls();
 
-const l = a.handler({ model: "asdasd", lorem: 2, trip: 3 });
+// const l = a.handler({ model: "asdasd", lorem: 2, trip: 3 });
 
 type P = Apply<typeof a, { model: "gpt-5" | "grok"; trip: string }>;
+
+const oo: P = {} as never;
+
+const ooo = oo()
+
+const ddd = ooo({ model: "gpt-5", trip: "SAdads" });
