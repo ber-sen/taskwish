@@ -5,7 +5,8 @@ export function Action<
   Handler extends (...args: any) => any,
 >(
   name: Name,
-  execute: Handler
+  execute: Handler,
+  composer: (fn: Handler) => any
 ): Parameters<Handler>[0] extends object
   ? Sica.Action<Name, Handler>
   : Sica.Runnable<Name, Handler>;

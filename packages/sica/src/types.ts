@@ -46,9 +46,21 @@ export namespace Sica {
     (): RunnableReturn<Handler>;
   }
 
+  export abstract class GenericHandler {
+    readonly scope?: unknown;
+    handler?: unknown;
+    bind?: (...x: never[]) => unknown;
+  }
+
+  export type Generic<T extends Record<any, any>, Key> = T extends {
+    scope: Record<any, any>;
+  }
+    ? T["scope"][Key]
+    : T["scope"];
+
   export interface Action<
     Name extends string,
-    Handler extends (...args: any) => any,
+    Handler extends ((...args: any) => any) | GenericHandler,
     Type extends string = "action",
   > extends Resource<Type, Name> {
     [RUN]: Handler;

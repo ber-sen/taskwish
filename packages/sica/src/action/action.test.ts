@@ -111,19 +111,9 @@ type Action<Scope> = {
   readonly run: (scope: Scope) => string;
 };
 
-abstract class GenericHandler {
-  readonly scope?: unknown;
-  handler?: unknown;
-  bind?: (...x: never[]) => unknown;
-}
 
-type Generic<T extends Record<any, any>, Key> = T extends {
-  scope: Record<any, any>;
-}
-  ? T["scope"][Key]
-  : T["scope"];
 
-type Apply<F extends GenericHandler, scope> = (F & {
+type Apply<F extends Sica.GenericHandler, scope> = (F & {
   readonly scope: scope;
 })["bind"];
 
@@ -141,10 +131,10 @@ const handler =
   });
 
 const makeScoped = (fn: typeof handler) =>
-  class extends GenericHandler {
+  class extends Sica.GenericHandler {
     handler = fn;
     declare bind: typeof this.handler<
-      [Generic<this, "model">, Generic<this, "trip">]
+      [Sica.Generic<this, "model">, Sica.Generic<this, "trip">]
     >;
   };
 
