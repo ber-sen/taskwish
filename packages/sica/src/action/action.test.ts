@@ -122,23 +122,27 @@ type Generic<T extends Record<any, any>, Key> = T extends {
   ? T["scope"][Key]
   : T["scope"];
 
-type Apply<F extends GenericHandler, scope> = ReturnType<
+
+type Apply<F extends GenericHandler, scope> = Parameters<
   NonNullable<
     (F & {
       readonly scope: scope;
     })["handler"]
   >
->;
+>[0]
 
-const handler = <Scope extends unknown[]>({
-  scope: { model, trip },
+const handler = <M, T>({
+  model,
+  trip,
 }: {
-  scope: { model: Scope[0]; trip: Scope[1] };
+  model: M;
+  trip: T;
+  lorem: 2
 }) => ({ model, trip });
 
 const makeScoped = (fn: typeof handler) =>
   class extends GenericHandler {
-    declare handler: typeof fn<[Generic<this, "model">, Generic<this, "trip">]>;
+    declare handler: typeof fn<Generic<this, "model">, Generic<this, "trip">>;
   };
 
 const acls = makeScoped(handler);
