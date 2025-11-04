@@ -113,7 +113,8 @@ type Action<Scope> = {
 
 abstract class GenericHandler {
   readonly scope?: unknown;
-  handler?: (...x: never[]) => unknown;
+  handler?: unknown;
+  bind?: (...x: never[]) => unknown;
 }
 
 type Generic<T extends Record<any, any>, Key> = T extends {
@@ -122,23 +123,36 @@ type Generic<T extends Record<any, any>, Key> = T extends {
   ? T["scope"][Key]
   : T["scope"];
 
-type Apply<F extends GenericHandler, scope> = 
-  (F & {
-    readonly scope: scope;
-  })["handler"]
+type Apply<F extends GenericHandler, scope> = (F & {
+  readonly scope: scope;
+})["bind"];
 
-const handler = <M, T>({ model, trip, lorem }: { model: M; trip: T; lorem: 2 }) => ({
+const handler = <const M, const T>({
+  model,
+  trip,
+  lorem,
+}: {
+  model: M;
+  trip: T;
+  lorem: 2;
+}) => ({
   model,
   trip,
 });
 
 const makeScoped = (fn: typeof handler) =>
   class extends GenericHandler {
-    declare handler: typeof fn<Generic<this, "model">, Generic<this, "trip">>;
+    handler = fn;
+    declare bind: typeof this.handler<
+      Generic<this, "model">,
+      Generic<this, "trip">
+    >;
   };
 
 const acls = makeScoped(handler);
 
 const a = new acls();
+
+const l = a.handler({ model: "asdasd", lorem: 2, trip: 3 });
 
 type P = Apply<typeof a, { model: "gpt-5" | "grok"; trip: string }>;
