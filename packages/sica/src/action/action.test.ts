@@ -1,6 +1,7 @@
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { Sica } from "../types";
+import { Hkt } from "arktype";
 
 describe("Action", () => {
   it("works with arrow functions", async () => {
@@ -116,33 +117,32 @@ type Action<Scope> = {
   readonly run: (scope: Scope) => string;
 };
 
-abstract class Generic {
+abstract class ScopedHandler {
   readonly scope?: unknown;
-  bind?: (...x: never[]) => unknown;
+  handler?: (...x: never[]) => unknown;
 }
 
-type Get<T, K> = T extends Record<any, any> ? T[K] : T;
+type Get<T extends Record<any, any>, K> = T extends { scope: Record<any, any> }
+  ? T["scope"][K]
+  : T["scope"];
 
-type Apply<F extends Generic, scope> = ReturnType<
+type Apply<F extends ScopedHandler, scope> = ReturnType<
   NonNullable<
     (F & {
       readonly scope: scope;
-    })["bind"]
+    })["handler"]
   >
 >;
 
-interface MyG extends Generic {
-  bind(
-    model: Get<this["scope"], "model">,
-    test: Get<this["scope"], "test">
-  ): { model: typeof model };
-}
-export type Pretty<T> = { [K in keyof T]: T[K] } & {};
+const handler = <S extends [unknown, unknown]>({ scope }: { scope: S[0] }) =>
+  scope;
 
+const makeScoped = (fn: typeof handler) =>
+  class extends ScopedHandler {
+    declare handler: typeof fn<[Get<this, "model">, Get<this, "trip">]>;
+  };
 
-type OverWrite<A, B> = Pretty<Omit<A, keyof B> & B> 
+const acls = makeScoped(handler);
+const a = new acls
 
-// "hi!hi!"
-type Result = OverWrite<{ model: string }, Apply<MyG, { model: number }>>;
-
-const A: Result = {} as never;
+type P = Apply<typeof a, { model: number; trip: boolean }>;
