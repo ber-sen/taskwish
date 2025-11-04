@@ -107,26 +107,22 @@ describe("Action", () => {
   });
 });
 
-interface Scoped<Items extends Record<string, Sica.Action<any, any>>> {
-  actions: {
-    [K in keyof Items]: Items[K][typeof Sica.RUN];
-  };
-}
-
 type Action<Scope> = {
   readonly run: (scope: Scope) => string;
 };
 
-abstract class ScopedHandler {
+abstract class GenericHandler {
   readonly scope?: unknown;
   handler?: (...x: never[]) => unknown;
 }
 
-type Get<T extends Record<any, any>, K> = T extends { scope: Record<any, any> }
-  ? T["scope"][K]
+type Generic<T extends Record<any, any>, Key> = T extends {
+  scope: Record<any, any>;
+}
+  ? T["scope"][Key]
   : T["scope"];
 
-type Apply<F extends ScopedHandler, scope> = ReturnType<
+type Apply<F extends GenericHandler, scope> = ReturnType<
   NonNullable<
     (F & {
       readonly scope: scope;
@@ -134,15 +130,19 @@ type Apply<F extends ScopedHandler, scope> = ReturnType<
   >
 >;
 
-const handler = <S extends [unknown, unknown]>({ scope }: { scope: S[0] }) =>
-  scope;
+const handler = <Scope extends unknown[]>({
+  scope: { model, trip },
+}: {
+  scope: { model: Scope[0]; trip: Scope[1] };
+}) => ({ model, trip });
 
 const makeScoped = (fn: typeof handler) =>
-  class extends ScopedHandler {
-    declare handler: typeof fn<[Get<this, "model">, Get<this, "trip">]>;
+  class extends GenericHandler {
+    declare handler: typeof fn<[Generic<this, "model">, Generic<this, "trip">]>;
   };
 
 const acls = makeScoped(handler);
-const a = new acls
 
-type P = Apply<typeof a, { model: number; trip: boolean }>;
+const a = new acls();
+
+type P = Apply<typeof a, { model: "gpt-5" | "grok"; trip: string }>;
