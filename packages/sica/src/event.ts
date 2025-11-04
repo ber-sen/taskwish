@@ -19,7 +19,7 @@ interface EventFactory<Type extends string> {
 export function Event<
   const Action extends
     | Sica.Runnable<any, any, any>
-    | Sica.Action<any, any, any, any>
+    | Sica.Action<any, any, any>
 >(): Action extends Sica.Runnable<infer Type, any, infer Data>
   ? Sica.Event<Type, Data>
   : Action extends Sica.Action<infer Type, any, infer Data, any>

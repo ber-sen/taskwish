@@ -2,7 +2,7 @@ import { z } from "zod";
 import { UseCase } from "../../src";
 
 export default UseCase("Say hello")
-  .use(import("../actions"))
+  .use(import("../app"))
 
   .on(z.object({ language: z.string() }))
 

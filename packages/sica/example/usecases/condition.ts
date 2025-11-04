@@ -1,6 +1,8 @@
 import { End, UseCase, If } from "../../src";
 
 export default UseCase("Say hello")
+  .use(import("../app"))
+
   .on({ user: { name: "string", age: "number" } })
 
   .steps(

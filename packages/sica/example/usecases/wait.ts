@@ -3,7 +3,7 @@ import { UseCase, Wait } from "../../src";
 import newEmail from "../events/new-email";
 
 export default UseCase("Say hello")
-  .use(import("../actions"))
+  .use(import("../app"))
 
   .on(z.object({ language: z.string() }))
 

@@ -1,7 +1,7 @@
 import { Loop, End, Range, UseCase } from "../../src";
 
 export default UseCase("Say hello")
-  .use(import("../actions"))
+  .use(import("../app"))
 
   .on({ user: { name: "string", age: "number" } })
 

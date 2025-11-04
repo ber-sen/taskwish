@@ -1,6 +1,8 @@
 import { UseCase } from "../../src";
 
 export default UseCase("Say hello")
+  .use(import("../app"))
+
   .on({ language: "string" })
 
   .describe("Send hello message to slack", {
@@ -14,5 +16,5 @@ export default UseCase("Say hello")
       action.slack.sendMessage({
         channel: "#general",
         text: `Does someone speak ${input.language}?`,
-      }),
+      })
   );
