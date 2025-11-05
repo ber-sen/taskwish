@@ -2,8 +2,8 @@ import { Action, Sica } from "../../src";
 
 export default Action(
   "succeed",
-  <const S0, const S1>() => ({
-    [Sica.RUN]: <const Model extends S0, const Trip extends S1>({
+  <const S0, const S1>() =>
+    <const Model extends S0, const Trip extends S1>({
       model,
       trip,
     }: {
@@ -13,7 +13,6 @@ export default Action(
       model,
       trip,
     }),
-  }),
   (handler) =>
     class extends Sica.GenericHandler {
       declare bind: typeof handler<
