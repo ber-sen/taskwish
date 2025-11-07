@@ -11,38 +11,28 @@ import {
 export namespace Sica {
   export const TYPE = Symbol.for("Sica.type");
 
-  export const NAME = Symbol.for("Sica.name");
-
   export const RUN = Symbol.for("Sica.run");
 
   export const UP = Symbol.for("Sica.up");
 
   export const DOWN = Symbol.for("Sica.down");
 
-  export interface Typed<Type extends string> {
+  export interface Typed<Type extends string[]> {
     [TYPE]: Type;
   }
-
-  export interface Named<Name extends string> {
-    [NAME]: Name;
-  }
-
   export interface DefaultCtx {
     abortSignal?: AbortSignal;
   }
 
-  export interface Resource<Type extends string, Name extends string>
-    extends Typed<Type>,
-      Named<Name> {
+  export interface Resource<Type extends string[]> extends Typed<Type> {
     [UP](): AsyncGenerator<string, boolean, unknown>;
     [DOWN](): AsyncGenerator<string, boolean, unknown>;
   }
 
   export interface Runnable<
-    Name extends string,
     Handler extends () => any,
-    Type extends string = "action",
-  > extends Resource<Type, Name> {
+    Type extends string[] = ["action"],
+  > extends Resource<Type> {
     [RUN]: Handler;
     (): RunnableReturn<Handler>;
   }
@@ -60,24 +50,20 @@ export namespace Sica {
     : T["scope"];
 
   export interface Action<
-    Name extends string,
     Handler extends ((...args: any) => any) | GenericHandler,
-    Type extends string = "action",
-  > extends Resource<Type, Name> {
+    Type extends string[] = ["action"],
+  > extends Resource<Type> {
     [RUN]: Handler;
     (params: ActionInput<Handler>): ActionReturn<Handler>;
   }
 
-  export interface Event<
-    Name extends string,
-    Data,
-    Type extends string = "event",
-  > extends Resource<Type, Name>,
+  export interface Event<Data, Type extends string[] = ["event"]>
+    extends Resource<Type>,
       Describable<
         {
           data: DeepOptionalString<Data>;
         },
-        Event<Name, Data>
+        Event<Data, Type>
       > {
     (data: Data): MessageEvent<Data>;
   }
@@ -86,7 +72,7 @@ export namespace Sica {
     scope: Scope;
   }
 
-  export type ValidateTrigger<Name extends string, Schema> =
+  export type ValidateTrigger<Schema, Type extends string[] = []> =
     Schema extends StandardSchemaV1<any>
       ? Schema
       : Schema extends object
@@ -96,8 +82,8 @@ export namespace Sica {
               "Scope.model": string;
             }
           >
-        : Schema extends Event<Name, infer Input>
-          ? Event<Name, Input>
+        : Schema extends Event<Type, infer Input>
+          ? Event<Type, Input>
           : object;
 
   export type ValidateSchema<Schema> =
@@ -136,16 +122,21 @@ export namespace Sica {
   }
 
   export interface Triggerable<Scope extends Record<any, any>> {
-    on<const Name extends string, const Schema>(
-      trigger: ValidateTrigger<Name, Schema>
+    on<const Type extends string[], const Schema>(
+      trigger: ValidateTrigger<Schema, Type>
     ): Scoped<Scope & Record<"input", InferInput<Schema>>>;
   }
 
   export interface Require<Dep, Type> {
-    require: Dep extends { [TYPE]: any } ? Dep : Dep & { [TYPE]: Type };
+    dep: Dep & { [TYPE]: Type };
   }
 
-  export interface Exception<Status, Params> extends Typed<"exception"> {
+  export interface RequireTyped<Dep extends { [TYPE]: any }> {
+    dep: Dep;
+  }
+
+  export interface Exception<Status extends number, Params>
+    extends Typed<["exception"]> {
     status: Status;
     exception: Params;
     throw: () => void;

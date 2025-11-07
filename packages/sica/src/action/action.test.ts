@@ -2,6 +2,7 @@ import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { Sica } from "../types";
 import { Env } from "./env";
+import { Require } from "./require";
 
 describe("Action", () => {
   it("works with arrow functions", async () => {
@@ -12,10 +13,34 @@ describe("Action", () => {
     type succeed = Expect<
       Equal<
         Sica.Runnable<
-          "Succeed",
           () => {
             success: boolean;
-          }
+          },
+          ["action", "Succeed"]
+        >,
+        T
+      >
+    >;
+
+    const result = await succeed();
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it("works with array type", async () => {
+    const succeed = Action(["io", "Succeed"], () => ({
+      success: true,
+    }));
+
+    type T = typeof succeed;
+
+    type succeed = Expect<
+      Equal<
+        Sica.Runnable<
+          () => {
+            success: boolean;
+          },
+          ["action", "io", "Succeed"]
         >,
         T
       >
@@ -35,7 +60,10 @@ describe("Action", () => {
 
     type sayHello = Expect<
       Equal<
-        Sica.Action<"Say hello", (params: { language: string }) => string>,
+        Sica.Action<
+          (params: { language: string }) => string,
+          ["action", "Say hello"]
+        >,
         T
       >
     >;
@@ -80,7 +108,6 @@ describe("Action", () => {
     type dynamicEnv = Expect<
       Equal<
         Sica.Runnable<
-          "Stream",
           () => AsyncGenerator<
             never,
             boolean,
@@ -88,10 +115,39 @@ describe("Action", () => {
               {
                 API_KEY: string;
               },
-              "ctx"
+              ["env"]
             >
           >,
-          "action"
+          ["action", "Stream"]
+        >,
+        T
+      >
+    >;
+  });
+
+  it("works with require env", async () => {
+    const dynamicRequire = Action("Stream", async function* () {
+      const action =
+        yield* Require<
+          Sica.Action<(params: { name: string }) => boolean, ["action"]>
+        >();
+
+      yield* action({ name: "asdad" });
+    });
+
+    type T = typeof dynamicRequire;
+
+    type dynamicRequire = Expect<
+      Equal<
+        Sica.Runnable<
+          () => AsyncGenerator<
+            never,
+            void,
+            Sica.RequireTyped<
+              Sica.Action<(params: { name: string }) => boolean, ["action"]>
+            >
+          >,
+          ["action", "Stream"]
         >,
         T
       >
@@ -120,10 +176,10 @@ describe("Action", () => {
     type sayHello = Expect<
       Equal<
         Sica.Action<
-          "Say hello",
           <Scope extends Record<any, any>>(
             scope: Scope
-          ) => (params: { model: Scope["model"] }) => string
+          ) => (params: { model: Scope["model"] }) => string,
+          ["action", "Say hello"]
         >,
         T
       >

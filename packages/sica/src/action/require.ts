@@ -1,6 +1,17 @@
 import { Sica } from "../types";
 
-export const Require = <const Type extends string>(name: Type) => ({
-  dep: <const Dep>(dep?: Dep): Generator<never, Dep, Sica.Require<Dep, Type>> =>
-    ({}) as never,
-});
+export function Require<const Dep extends Sica.Typed<any>>(): Generator<
+  never,
+  Dep,
+  Sica.RequireTyped<Dep>
+>;
+
+export function Require<const Type extends string[], Dep>(
+  type: Type
+): {
+  dep<const Dep>(): Generator<never, Dep, Sica.Require<Dep, Type>>;
+};
+
+export function Require(...args: any[]) {
+  return {} as never;
+}

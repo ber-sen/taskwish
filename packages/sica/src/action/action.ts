@@ -1,23 +1,32 @@
 import { Sica } from "../types";
 
 export function Action<
-  Name extends string,
+  const Type extends string[] | string,
   Handler extends (...args: any) => any,
 >(
-  name: Name,
+  type: Type,
   execute: Handler,
   composer?: (fn: Handler) => any
 ): Parameters<Handler>[0] extends object
-  ? Sica.Action<Name, Handler>
-  : Sica.Runnable<Name, Handler>;
+  ? Sica.Action<
+      Handler,
+      Type extends string[] ? ["action", ...Type] : ["action", Type]
+    >
+  : Sica.Runnable<
+      Handler,
+      Type extends string[] ? ["action", ...Type] : ["action", Type]
+    >;
 
-export function Action<Name extends string>(
-  name: Name
+export function Action<const Type extends string[] | string>(
+  name: Type
 ): {
   input<const Params>(schema: Sica.ValidateSchema<Params>): {
     handler: <Handler extends (params: Sica.InferInput<Params>) => any>(
       execute: Handler
-    ) => Sica.Action<Name, Handler>;
+    ) => Sica.Action<
+      Handler,
+      Type extends string[] ? ["action", ...Type] : ["action", Type]
+    >;
   };
 };
 
