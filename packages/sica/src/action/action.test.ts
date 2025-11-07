@@ -126,13 +126,15 @@ describe("Action", () => {
   });
 
   it("works with require env", async () => {
-    const dynamicRequire = Action("Stream", async function* () {
-      const action =
-        yield* Require<
-          Sica.Action<(params: { name: string }) => boolean, ["action"]>
-        >();
+    type IO = Sica.Action<
+      (params: { in: string } | { out: string }) => boolean,
+      ["io"]
+    >;
 
-      yield* action({ name: "asdad" });
+    const dynamicRequire = Action("Stream", async function* () {
+      const io = yield* Require<IO>().type(["io"]);
+
+      yield* io({ in: "What is your favorite color?" });
     });
 
     type T = typeof dynamicRequire;
@@ -140,13 +142,7 @@ describe("Action", () => {
     type dynamicRequire = Expect<
       Equal<
         Sica.Runnable<
-          () => AsyncGenerator<
-            never,
-            void,
-            Sica.RequireTyped<
-              Sica.Action<(params: { name: string }) => boolean, ["action"]>
-            >
-          >,
+          () => AsyncGenerator<never, void, Sica.RequireTyped<IO>>,
           ["action", "Stream"]
         >,
         T
