@@ -1,7 +1,6 @@
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { Sica } from "../types";
-import { Hkt } from "arktype";
 import { Env } from "./env";
 
 describe("Action", () => {
@@ -70,13 +69,33 @@ describe("Action", () => {
   });
 
   it("works with dynamic env", async () => {
-    const schemaInput = Action("Stream", async function* () {
+    const dynamicEnv = Action("Stream", async function* () {
       const env = yield* Env({ API_KEY: "string" });
 
-      env?.API_KEY;
+      return Boolean(env);
     });
 
-    const result = await schemaInput({ name: "Spanish" });
+    type T = typeof dynamicEnv;
+
+    type dynamicEnv = Expect<
+      Equal<
+        Sica.Runnable<
+          "Stream",
+          () => AsyncGenerator<
+            never,
+            boolean,
+            Sica.Require<
+              {
+                API_KEY: string;
+              },
+              "ctx"
+            >
+          >,
+          "action"
+        >,
+        T
+      >
+    >;
   });
 
   it("works with scope", async () => {

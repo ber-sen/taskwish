@@ -4,6 +4,7 @@ import {
   ActionInput,
   ActionReturn,
   DeepOptionalString,
+  Pretty,
   RunnableReturn,
 } from "./helpers";
 
@@ -18,7 +19,7 @@ export namespace Sica {
 
   export const DOWN = Symbol.for("Sica.down");
 
-  export interface Typed<Type> {
+  export interface Typed<Type extends string> {
     [TYPE]: Type;
   }
 
@@ -140,11 +141,9 @@ export namespace Sica {
     ): Scoped<Scope & Record<"input", InferInput<Schema>>>;
   }
 
-  export interface Require<Name extends string, Type>
-    extends Typed<Type>,
-      Named<Name> {
-
-      }
+  export interface Require<Dep, Type> {
+    require: Dep extends { [TYPE]: any } ? Dep : Dep & { [TYPE]: Type };
+  }
 
   export interface Exception<Status, Params> extends Typed<"exception"> {
     status: Status;
