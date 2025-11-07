@@ -2,6 +2,7 @@ import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { Sica } from "../types";
 import { Hkt } from "arktype";
+import { Env } from "./env";
 
 describe("Action", () => {
   it("works with arrow functions", async () => {
@@ -68,6 +69,16 @@ describe("Action", () => {
     const result = await schemaInput({ name: "Spanish" });
   });
 
+  it("works with dynamic env", async () => {
+    const schemaInput = Action("Stream", async function* () {
+      const env = yield* Env({ API_KEY: "string" });
+
+      env?.API_KEY;
+    });
+
+    const result = await schemaInput({ name: "Spanish" });
+  });
+
   it("works with scope", async () => {
     const sayHello = Action(
       "Say hello",
@@ -111,8 +122,6 @@ type Action<Scope> = {
   readonly run: (scope: Scope) => string;
 };
 
-
-
 type Apply<F extends Sica.GenericHandler, scope> = (F & {
   readonly scope: scope;
 })["bind"];
@@ -148,6 +157,6 @@ type P = Apply<typeof a, { model: "gpt-5" | "grok"; trip: string }>;
 
 const oo: P = {} as never;
 
-const ooo = oo()
+const ooo = oo();
 
 const ddd = ooo({ model: "gpt-5", trip: "SAdads" });
