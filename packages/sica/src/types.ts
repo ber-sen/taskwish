@@ -24,8 +24,13 @@ export namespace Sica {
     [DOWN](): AsyncGenerator<string, boolean, unknown>;
   }
 
-  export interface Action<Stream, Return, Deps>
-    extends AsyncGenerator<Stream, Return, Deps>,
+  export interface Action<
+    Stream,
+    Return,
+    Deps,
+    Type extends string[] = ["action"],
+  > extends AsyncGenerator<Stream, Return, Deps>,
+      Typed<Type>,
       Promise<Return> {}
 
   export interface Event<Data, Type extends string[]> extends Typed<Type> {
