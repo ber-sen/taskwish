@@ -17,6 +17,7 @@ export interface UseCaseFactory<
   Scope extends Record<any, any> = {},
   Used extends "describe" | null = null,
 > extends Sica.Scoped<Scope>,
+    Sica.Resource<["usecase"]>,
     Sica.Extendable<Scope>,
     Sica.Triggerable<Scope>,
     Sica.Describable<

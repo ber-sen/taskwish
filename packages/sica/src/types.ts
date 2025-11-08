@@ -37,13 +37,15 @@ export namespace Sica {
   > extends AsyncGenerator<Stream, Return, Deps>,
       Typed<Type>,
       Promise<Return> {
+    id: string;        
+    parentId?: string;
     params: Params;
   }
 
   export interface Event<Data, Type extends string[]> extends Typed<Type> {
-    data: Data;
-    handled?: boolean;
     id: string;
+    handled?: boolean;
+    data: Data;
   }
 
   export interface Use<Dep extends Typed<any>> {
@@ -53,6 +55,7 @@ export namespace Sica {
   export interface Provide<Dep extends Typed<any>> {
     dep: Dep;
   }
+  
   export abstract class GenericHandler {
     readonly scope?: unknown;
     handler?: unknown;
