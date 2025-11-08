@@ -8,11 +8,11 @@ export function Action<
   execute: Handler,
   composer?: (fn: Handler) => any
 ): Parameters<Handler>[0] extends object
-  ? Sica.Action<
+  ? Sica.ActionFactory<
       Handler,
       Type extends string[] ? ["action", ...Type] : ["action", Type]
     >
-  : Sica.Runnable<
+  : Sica.NullaryActionFactory<
       Handler,
       Type extends string[] ? ["action", ...Type] : ["action", Type]
     >;
