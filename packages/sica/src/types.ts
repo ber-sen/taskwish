@@ -126,6 +126,10 @@ export namespace Sica {
     dep: Dep;
   }
 
+  export interface Provide<Dep extends Typed<any>> {
+    dep: Dep;
+  }
+
   export interface Struct<Data, Type extends string[]> extends Typed<Type> {
     data: Data;
   }
