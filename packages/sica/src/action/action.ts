@@ -17,19 +17,6 @@ export function Action<
       Type extends string[] ? ["action", ...Type] : ["action", Type]
     >;
 
-export function Action<const Type extends string[] | string>(
-  name: Type
-): {
-  input<const Params>(schema: Sica.ValidateSchema<Params>): {
-    handler: <Handler extends (params: Sica.InferInput<Params>) => any>(
-      execute: Handler
-    ) => Sica.Action<
-      Handler,
-      Type extends string[] ? ["action", ...Type] : ["action", Type]
-    >;
-  };
-};
-
 export function Action(...args: any) {
   return {} as any;
 }

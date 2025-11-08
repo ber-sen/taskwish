@@ -87,15 +87,6 @@ describe("Action", () => {
     }
   });
 
-  it("works with schema", async () => {
-    const schemaInput = Action("schema-input")
-      .input({ name: "string" })
-
-      .handler(({ name }) => name);
-
-    const result = await schemaInput({ name: "Spanish" });
-  });
-
   it("works with dynamic env", async () => {
     const dynamicEnv = Action("Stream", async function* () {
       const env = yield* Env({ API_KEY: "string" });
@@ -129,7 +120,7 @@ describe("Action", () => {
 
   it("works with AbortSignal", async () => {
     const dynamicRequire = Action("Stream", async function* () {
-      const io = yield* Use(["abort-signal"]).as<AbortSignal>()
+      const io = yield* Use("abort-signal").as<AbortSignal>();
 
       return io.aborted;
     });
@@ -158,10 +149,10 @@ describe("Action", () => {
     >;
 
     const dynamicRequire = Action("Stream", async function* () {
-      const io = yield* Use<IO>(["io"]);
+      const io = yield* Use<IO>("io");
 
       yield* io({ in: "What is your favorite color?" });
-    });
+    })
 
     type T = typeof dynamicRequire;
 
@@ -183,7 +174,7 @@ describe("Action", () => {
     >;
 
     const askActionAction = Action("Stream", async function* () {
-      const ask = yield* Use<Ask>(["ask"]);
+      const ask = yield* Use<Ask>("ask");
 
       const response = yield* ask({
         question: "Do you want to procceed?",

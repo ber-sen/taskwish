@@ -6,14 +6,15 @@ type ToEvent<T extends readonly any[]> = {
   [K in keyof T]: T[K] extends "action" ? "event" : T[K];
 };
 
-
 interface EventUnion<InitialData, Type extends string[]> {
   or<const Data>(
     schema: Sica.ValidateSchema<Data>
   ): Sica.Event<Sica.InferInput<InitialData | Data>, Type> &
     EventUnion<InitialData | Data, Type>;
   or<const Data>(): Sica.Event<InitialData | Data, Type> &
-    EventUnion<InitialData | Data, Type> & { end(): Sica.Event<InitialData, Type> };
+    EventUnion<InitialData | Data, Type> & {
+      end(): Sica.Event<InitialData, Type>;
+    };
   end(): Sica.Event<Sica.InferInput<InitialData>, Type>;
 }
 
@@ -25,7 +26,8 @@ interface EventFactory<Type extends string[]> {
   union(): {
     data<const Data>(
       schema: Sica.ValidateSchema<Data>
-    ): Sica.Event<Sica.InferInput<Data>, PrependEvent<Type>> & EventUnion<Data, PrependEvent<Type>>;
+    ): Sica.Event<Sica.InferInput<Data>, PrependEvent<Type>> &
+      EventUnion<Data, PrependEvent<Type>>;
   };
 }
 
@@ -40,14 +42,15 @@ export function Event<
     ? Sica.Event<ReturnType<Handler>, ToEvent<Type>>
     : never;
 
-export function Event<const Data, const Type extends string[]>(): Sica.Event<
-  Data,
-  PrependEvent<Type>
->;
+export function Event<
+  const Data,
+  const Type extends string[] | string,
+>(): Sica.Event<Data, PrependEvent<Type extends string ? [Type] : Type>>;
 
-export function Event<const Type extends string[], const Data>(
+export function Event<const Type extends string[] | string, const Data>(
   type: Type
-): Sica.Event<{}, PrependEvent<Type>> & EventFactory<Type>;
+): Sica.Event<{}, PrependEvent<Type extends string ? [Type] : Type>> &
+  EventFactory<Type extends string ? [Type] : Type>;
 
 export function Event(...args: any) {
   return {};
