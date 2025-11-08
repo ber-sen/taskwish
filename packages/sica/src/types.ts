@@ -24,6 +24,13 @@ export namespace Sica {
     [DOWN](): AsyncGenerator<string, boolean, unknown>;
   }
 
+  export interface Event<Data, Type extends string[]>
+    extends Typed<Type> {
+    data: Data;
+    handled?: boolean;
+    id: string;
+  }
+
   export interface Runnable<
     Handler extends () => any,
     Type extends string[] = ["action"],
@@ -52,17 +59,15 @@ export namespace Sica {
     (params: ActionInput<Handler>): ActionReturn<Handler>;
   }
 
-  export interface Event<Data, Type extends string[] = ["event"]>
+  export interface EventFactory<Data, Type extends string[] = ["event"]>
     extends Resource<Type>,
       Describable<
         {
           data: DeepOptionalString<Data>;
         },
-        Event<Data, Type>
+        EventFactory<Data, Type>
       > {
-    (
-      data: Data
-    ): AsyncGenerator<Event<Data, Type>, { handled?: boolean; id: string }, unknown>;
+    (data: Data): AsyncGenerator<Event<Data, Type>, Event<Data, Type>, unknown>;
   }
 
   export interface Scoped<Scope extends Record<any, any>> {
@@ -79,8 +84,8 @@ export namespace Sica {
               "Scope.model": string;
             }
           >
-        : Schema extends Event<Type, infer Input>
-          ? Event<Type, Input>
+        : Schema extends EventFactory<Type, infer Input>
+          ? EventFactory<Type, Input>
           : object;
 
   export type ValidateSchema<Schema> =

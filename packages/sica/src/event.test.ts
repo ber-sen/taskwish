@@ -1,4 +1,4 @@
-import { Expect, Equal } from "../helpers";
+import { Expect, Equal } from "./helpers";
 import { Event } from "./event";
 import { Sica } from "./types";
 
@@ -13,7 +13,7 @@ describe("Event", async function* () {
 
     type newEmail = Expect<
       Equal<
-        Sica.Event<
+        Sica.EventFactory<
           {
             from: string;
             subject: string;
