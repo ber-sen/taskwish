@@ -186,7 +186,7 @@ describe("Action", () => {
       const ask = yield* Use<Ask>(["ask"]);
 
       const response = yield* ask({
-        question: "What is your favorite color?",
+        question: "Do you want to procceed?",
         type: "confim",
       });
 
