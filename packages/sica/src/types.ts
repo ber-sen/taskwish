@@ -19,6 +19,10 @@ export namespace Sica {
   export interface Typed<Type extends string[]> {
     [TYPE]: Type;
   }
+  export interface Struct<Data, Type extends string[]> extends Typed<Type> {
+    data: Data;
+  }
+
   export interface Resource<Type extends string[]> extends Typed<Type> {
     [UP](): AsyncGenerator<string, boolean, unknown>;
     [DOWN](): AsyncGenerator<string, boolean, unknown>;
@@ -42,6 +46,13 @@ export namespace Sica {
     id: string;
   }
 
+  export interface Use<Dep extends Typed<any>> {
+    dep: Dep;
+  }
+
+  export interface Provide<Dep extends Typed<any>> {
+    dep: Dep;
+  }
   export abstract class GenericHandler {
     readonly scope?: unknown;
     handler?: unknown;
@@ -138,18 +149,6 @@ export namespace Sica {
     on<const Type extends string[], const Schema>(
       trigger: ValidateTrigger<Schema, Type>
     ): Scoped<Scope & Record<"input", InferInput<Schema>>>;
-  }
-
-  export interface Use<Dep extends Typed<any>> {
-    dep: Dep;
-  }
-
-  export interface Provide<Dep extends Typed<any>> {
-    dep: Dep;
-  }
-
-  export interface Struct<Data, Type extends string[]> extends Typed<Type> {
-    data: Data;
   }
 
   export interface Exception<Status extends number, Params>
