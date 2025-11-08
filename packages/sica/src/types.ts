@@ -28,10 +28,13 @@ export namespace Sica {
     Stream,
     Return,
     Deps,
+    Params = null,
     Type extends string[] = ["action"],
   > extends AsyncGenerator<Stream, Return, Deps>,
       Typed<Type>,
-      Promise<Return> {}
+      Promise<Return> {
+    params: Params;
+  }
 
   export interface Event<Data, Type extends string[]> extends Typed<Type> {
     data: Data;
