@@ -60,7 +60,9 @@ export namespace Sica {
         },
         Event<Data, Type>
       > {
-    (data: Data): MessageEvent<Data>;
+    (
+      data: Data
+    ): AsyncGenerator<Event<Data, Type>, { handled?: boolean; id: string }, unknown>;
   }
 
   export interface Scoped<Scope extends Record<any, any>> {
