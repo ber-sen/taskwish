@@ -158,20 +158,15 @@ describe("Action", () => {
       ["ask"]
     >;
 
-    const Ask = async function* (params: {
-      question: string;
-      type: "confim" | "select";
-    }) {
+    const askActionAction = Action("Stream", async function* () {
       const ask = yield* Use<Ask>(["ask"]);
 
-      return ask(params);
-    };
-
-    const askActionAction = Action("Stream", async function* () {
-      const response = yield* Ask({
+      const response = yield* ask({
         question: "What is your favorite color?",
         type: "confim",
       });
+
+      return response;
     });
 
     type T = typeof askActionAction;
@@ -179,7 +174,7 @@ describe("Action", () => {
     type askActionAction = Expect<
       Equal<
         Sica.Runnable<
-          () => AsyncGenerator<never, void, Sica.Use<Ask>>,
+          () => AsyncGenerator<never, boolean, Sica.Use<Ask>>,
           ["action", "Stream"]
         >,
         T
