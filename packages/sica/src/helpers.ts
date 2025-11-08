@@ -44,6 +44,8 @@ export async function standardValidate<T extends StandardSchemaV1>(
   return result.value;
 }
 
+export type UUIDv7String = `${string}-${string}-7${string}-${string}-${string}`;
+
 export type RunnableReturn<Handler> = Handler extends () => Generator<
   infer Stream,
   infer Return,

@@ -5,6 +5,7 @@ import {
   ActionReturn,
   DeepOptionalString,
   RunnableReturn,
+  UUIDv7String
 } from "./helpers";
 
 export namespace Sica {
@@ -37,13 +38,13 @@ export namespace Sica {
   > extends AsyncGenerator<Stream, Return, Deps>,
       Typed<Type>,
       Promise<Return> {
-    id: string;        
-    parentId?: string;
+    id: UUIDv7String;
+    parentId?: UUIDv7String;
     params: Params;
   }
 
   export interface Event<Data, Type extends string[]> extends Typed<Type> {
-    id: string;
+    id: UUIDv7String;
     handled?: boolean;
     data: Data;
   }
@@ -55,7 +56,7 @@ export namespace Sica {
   export interface Provide<Dep extends Typed<any>> {
     dep: Dep;
   }
-  
+
   export abstract class GenericHandler {
     readonly scope?: unknown;
     handler?: unknown;
