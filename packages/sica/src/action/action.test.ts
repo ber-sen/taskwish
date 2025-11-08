@@ -152,16 +152,26 @@ describe("Action", () => {
     >;
   });
 
-  it("works with require env", async () => {
+  it("works with libs", async () => {
     type Ask = Sica.Action<
       (params: { question: string; type: "confim" | "select" }) => boolean,
       ["ask"]
     >;
 
-    const askActionAction = Action("Stream", async function* () {
+    const Ask = async function* (params: {
+      question: string;
+      type: "confim" | "select";
+    }) {
       const ask = yield* Use<Ask>(["ask"]);
 
-      yield* ask({ question: "What is your favorite color?", type: "confim" });
+      return ask(params);
+    };
+
+    const askActionAction = Action("Stream", async function* () {
+      const response = yield* Ask({
+        question: "What is your favorite color?",
+        type: "confim",
+      });
     });
 
     type T = typeof askActionAction;
