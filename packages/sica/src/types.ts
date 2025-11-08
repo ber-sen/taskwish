@@ -41,14 +41,14 @@ export namespace Sica {
       Typed<Type>,
       Promise<Return> {
     id: UUIDv7String;
-    creator?: UUIDv5String;
+    creator: UUIDv5String;
     parentId?: UUIDv7String;
     params: Params;
   }
 
   export interface Event<Data, Type extends string[]> extends Typed<Type> {
     id: UUIDv7String;
-    creator?: UUIDv5String;
+    creator: UUIDv5String;
     handled?: boolean;
     data: Data;
   }
