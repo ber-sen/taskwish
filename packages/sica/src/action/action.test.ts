@@ -12,7 +12,7 @@ describe("Action", () => {
 
     type succeed = Expect<
       Equal<
-        Sica.NullaryActionFactory<
+        Sica.NullaryAction<
           () => {
             success: boolean;
           },
@@ -36,7 +36,7 @@ describe("Action", () => {
 
     type succeed = Expect<
       Equal<
-        Sica.NullaryActionFactory<
+        Sica.NullaryAction<
           () => {
             success: boolean;
           },
@@ -60,7 +60,7 @@ describe("Action", () => {
 
     type sayHello = Expect<
       Equal<
-        Sica.ActionFactory<
+        Sica.Action<
           (params: { language: string }) => string,
           ["action", "Say hello"]
         >,
@@ -98,7 +98,7 @@ describe("Action", () => {
 
     type dynamicEnv = Expect<
       Equal<
-        Sica.NullaryActionFactory<
+        Sica.NullaryAction<
           () => AsyncGenerator<
             never,
             boolean,
@@ -129,7 +129,7 @@ describe("Action", () => {
 
     type dynamicRequire = Expect<
       Equal<
-        Sica.NullaryActionFactory<
+        Sica.NullaryAction<
           () => AsyncGenerator<
             never,
             boolean,
@@ -143,7 +143,7 @@ describe("Action", () => {
   });
 
   it("works with require env", async () => {
-    type IO = Sica.ActionFactory<
+    type IO = Sica.Action<
       (params: { in: string } | { out: string }) => boolean,
       ["io"]
     >;
@@ -158,7 +158,7 @@ describe("Action", () => {
 
     type dynamicRequire = Expect<
       Equal<
-        Sica.NullaryActionFactory<
+        Sica.NullaryAction<
           () => AsyncGenerator<never, void, Sica.Use<IO>>,
           ["action", "Stream"]
         >,
@@ -168,7 +168,7 @@ describe("Action", () => {
   });
 
   it("works with libs", async () => {
-    type Ask = Sica.ActionFactory<
+    type Ask = Sica.Action<
       (params: { question: string; type: "confim" | "select" }) => boolean,
       ["ask"]
     >;
@@ -188,7 +188,7 @@ describe("Action", () => {
 
     type askActionAction = Expect<
       Equal<
-        Sica.NullaryActionFactory<
+        Sica.NullaryAction<
           () => AsyncGenerator<never, boolean, Sica.Use<Ask>>,
           ["action", "Stream"]
         >,
@@ -218,7 +218,7 @@ describe("Action", () => {
 
     type sayHello = Expect<
       Equal<
-        Sica.ActionFactory<
+        Sica.Action<
           <Scope extends Record<any, any>>(
             scope: Scope
           ) => (params: { model: Scope["model"] }) => string,

@@ -32,8 +32,8 @@ interface EventFactory<Type extends string[]> {
 }
 
 export function Event<
-  const Action extends Sica.Runnable<any, any> | Sica.Action<any, any>,
->(): Action extends Sica.Runnable<infer Handler, infer Type>
+  const Action extends Sica.NullaryAction<any, any> | Sica.Action<any, any>,
+>(): Action extends Sica.NullaryAction<infer Handler, infer Type>
   ? Sica.EventFactory<ReturnType<Handler>, ToEvent<Type>>
   : Action extends Sica.Action<
         infer Handler extends (parmas: any) => any,

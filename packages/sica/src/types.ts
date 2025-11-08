@@ -25,13 +25,7 @@ export namespace Sica {
     data: Data;
   }
 
-  export interface Resource<Type extends string[]> extends Typed<Type> {
-    id: UUIDv5String;
-    [UP](): AsyncGenerator<string, boolean, unknown>;
-    [DOWN](): AsyncGenerator<string, boolean, unknown>;
-  }
-
-  export interface Action<
+  export interface Execution<
     Stream,
     Return,
     Deps,
@@ -44,6 +38,28 @@ export namespace Sica {
     creator: UUIDv5String;
     parentId?: UUIDv7String;
     params: Params;
+  }
+
+  export interface Resource<Type extends string[]> extends Typed<Type> {
+    id: UUIDv5String;
+    [UP](): AsyncGenerator<string, boolean, unknown>;
+    [DOWN](): AsyncGenerator<string, boolean, unknown>;
+  }
+
+  export interface NullaryAction<
+    Handler extends () => any,
+    Type extends string[] = ["action"],
+  > extends Resource<Type> {
+    [RUN]: Handler;
+    (): RunnableReturn<Handler>;
+  }
+
+  export interface Action<
+    Handler extends ((...args: any) => any) | GenericHandler,
+    Type extends string[] = ["action"],
+  > extends Resource<Type> {
+    [RUN]: Handler;
+    (params: ActionInput<Handler>): ActionReturn<Handler>;
   }
 
   export interface Event<Data, Type extends string[]> extends Typed<Type> {
@@ -61,6 +77,14 @@ export namespace Sica {
     dep: Dep;
   }
 
+  export interface Exception<Status extends number, Params>
+    extends Typed<["exception"]> {
+    status: Status;
+    exception: Params;
+    throw: () => void;
+    toString: () => string;
+  }
+
   export abstract class GenericHandler {
     readonly scope?: unknown;
     handler?: unknown;
@@ -72,22 +96,6 @@ export namespace Sica {
   }
     ? T["scope"][Key]
     : T["scope"];
-
-  export interface NullaryActionFactory<
-    Handler extends () => any,
-    Type extends string[] = ["action"],
-  > extends Resource<Type> {
-    [RUN]: Handler;
-    (): RunnableReturn<Handler>;
-  }
-
-  export interface ActionFactory<
-    Handler extends ((...args: any) => any) | GenericHandler,
-    Type extends string[] = ["action"],
-  > extends Resource<Type> {
-    [RUN]: Handler;
-    (params: ActionInput<Handler>): ActionReturn<Handler>;
-  }
 
   export interface EventFactory<Data, Type extends string[] = ["event"]>
     extends Resource<Type>,
@@ -157,13 +165,5 @@ export namespace Sica {
     on<const Type extends string[], const Schema>(
       trigger: ValidateTrigger<Schema, Type>
     ): Scoped<Scope & Record<"input", InferInput<Schema>>>;
-  }
-
-  export interface Exception<Status extends number, Params>
-    extends Typed<["exception"]> {
-    status: Status;
-    exception: Params;
-    throw: () => void;
-    toString: () => string;
   }
 }
