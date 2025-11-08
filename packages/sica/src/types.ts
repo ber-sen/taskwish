@@ -100,7 +100,7 @@ export namespace Sica {
   export type InferInput<Schema> =
     Schema extends StandardSchemaV1<infer Input>
       ? Input
-      : Schema extends Event<any, infer Input>
+      : Schema extends Event<infer Input, any>
         ? Input
         : type.instantiate<Schema>["infer"];
 

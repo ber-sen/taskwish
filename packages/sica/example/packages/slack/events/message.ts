@@ -1,6 +1,8 @@
 import { Event } from "../../../../src";
 
-export default Event("message")
+export default Event(["message"])
+  .union()
+
   .data({
     type: "'message'",
     subtype: "'me_message'",
