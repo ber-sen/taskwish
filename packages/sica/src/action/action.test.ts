@@ -127,6 +127,30 @@ describe("Action", () => {
     >;
   });
 
+  it("works with AbortSignal", async () => {
+    const dynamicRequire = Action("Stream", async function* () {
+      const io = yield* Use(["abort-signal"]).as<AbortSignal>()
+
+      return io.aborted;
+    });
+
+    type T = typeof dynamicRequire;
+
+    type dynamicRequire = Expect<
+      Equal<
+        Sica.Runnable<
+          () => AsyncGenerator<
+            never,
+            boolean,
+            Sica.Use<Sica.Struct<AbortSignal, ["abort-signal"]>>
+          >,
+          ["action", "Stream"]
+        >,
+        T
+      >
+    >;
+  });
+
   it("works with require env", async () => {
     type IO = Sica.Action<
       (params: { in: string } | { out: string }) => boolean,

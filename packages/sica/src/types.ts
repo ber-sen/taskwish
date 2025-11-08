@@ -19,10 +19,6 @@ export namespace Sica {
   export interface Typed<Type extends string[]> {
     [TYPE]: Type;
   }
-  export interface DefaultCtx {
-    abortSignal?: AbortSignal;
-  }
-
   export interface Resource<Type extends string[]> extends Typed<Type> {
     [UP](): AsyncGenerator<string, boolean, unknown>;
     [DOWN](): AsyncGenerator<string, boolean, unknown>;
