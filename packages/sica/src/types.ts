@@ -35,7 +35,7 @@ export namespace Sica {
       Typed<Type>,
       Promise<Return> {
     id: UUIDv7String;
-    creator: UUIDv5String;
+    actionId: UUIDv5String;
     parentId?: UUIDv7String;
     params: Params;
   }
