@@ -4,7 +4,6 @@ import {
   ActionInput,
   ActionReturn,
   DeepOptionalString,
-  Pretty,
   RunnableReturn,
 } from "./helpers";
 
@@ -127,12 +126,12 @@ export namespace Sica {
     ): Scoped<Scope & Record<"input", InferInput<Schema>>>;
   }
 
-  export interface Require<Dep, Type> {
-    dep: Dep & { [TYPE]: Type };
+  export interface Use<Dep extends Typed<any>> {
+    dep: Dep;
   }
 
-  export interface RequireTyped<Dep extends { [TYPE]: any }> {
-    dep: Dep;
+  export interface Struct<Data, Type extends string[]> extends Typed<Type> {
+    data: Data;
   }
 
   export interface Exception<Status extends number, Params>

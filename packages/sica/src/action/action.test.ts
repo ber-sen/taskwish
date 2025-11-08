@@ -2,7 +2,7 @@ import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { Sica } from "../types";
 import { Env } from "./env";
-import { Require } from "./require";
+import { Use } from "./use";
 
 describe("Action", () => {
   it("works with arrow functions", async () => {
@@ -111,11 +111,13 @@ describe("Action", () => {
           () => AsyncGenerator<
             never,
             boolean,
-            Sica.Require<
-              {
-                API_KEY: string;
-              },
-              ["env"]
+            Sica.Use<
+              Sica.Struct<
+                {
+                  API_KEY: string;
+                },
+                ["env"]
+              >
             >
           >,
           ["action", "Stream"]
@@ -132,7 +134,7 @@ describe("Action", () => {
     >;
 
     const dynamicRequire = Action("Stream", async function* () {
-      const io = yield* Require<IO>().type(["io"]);
+      const io = yield* Use<IO>(["io"]);
 
       yield* io({ in: "What is your favorite color?" });
     });
@@ -142,7 +144,32 @@ describe("Action", () => {
     type dynamicRequire = Expect<
       Equal<
         Sica.Runnable<
-          () => AsyncGenerator<never, void, Sica.RequireTyped<IO>>,
+          () => AsyncGenerator<never, void, Sica.Use<IO>>,
+          ["action", "Stream"]
+        >,
+        T
+      >
+    >;
+  });
+
+  it("works with require env", async () => {
+    type Ask = Sica.Action<
+      (params: { question: string; type: "confim" | "select" }) => boolean,
+      ["ask"]
+    >;
+
+    const askActionAction = Action("Stream", async function* () {
+      const ask = yield* Use<Ask>(["ask"]);
+
+      yield* ask({ question: "What is your favorite color?", type: "confim" });
+    });
+
+    type T = typeof askActionAction;
+
+    type askActionAction = Expect<
+      Equal<
+        Sica.Runnable<
+          () => AsyncGenerator<never, void, Sica.Use<Ask>>,
           ["action", "Stream"]
         >,
         T
