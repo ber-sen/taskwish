@@ -24,19 +24,14 @@ export namespace Sica {
     [DOWN](): AsyncGenerator<string, boolean, unknown>;
   }
 
-  export interface Event<Data, Type extends string[]>
-    extends Typed<Type> {
+  export interface Action<Stream, Return, Deps>
+    extends AsyncGenerator<Stream, Return, Deps>,
+      Promise<Return> {}
+
+  export interface Event<Data, Type extends string[]> extends Typed<Type> {
     data: Data;
     handled?: boolean;
     id: string;
-  }
-
-  export interface Runnable<
-    Handler extends () => any,
-    Type extends string[] = ["action"],
-  > extends Resource<Type> {
-    [RUN]: Handler;
-    (): RunnableReturn<Handler>;
   }
 
   export abstract class GenericHandler {
@@ -51,7 +46,15 @@ export namespace Sica {
     ? T["scope"][Key]
     : T["scope"];
 
-  export interface Action<
+  export interface NullaryActionFactory<
+    Handler extends () => any,
+    Type extends string[] = ["action"],
+  > extends Resource<Type> {
+    [RUN]: Handler;
+    (): RunnableReturn<Handler>;
+  }
+
+  export interface ActionFactory<
     Handler extends ((...args: any) => any) | GenericHandler,
     Type extends string[] = ["action"],
   > extends Resource<Type> {
