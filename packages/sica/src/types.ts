@@ -25,21 +25,6 @@ export namespace Sica {
     data: Data;
   }
 
-  export interface Execution<
-    Stream,
-    Return,
-    Deps,
-    Params = null,
-    Type extends string[] = ["action"],
-  > extends AsyncGenerator<Stream, Return, Deps>,
-      Typed<Type>,
-      Promise<Return> {
-    id: UUIDv7String;
-    actionId: UUIDv5String;
-    parentId?: UUIDv7String;
-    params: Params;
-  }
-
   export interface Resource<Type extends string[]> extends Typed<Type> {
     id: UUIDv5String;
     [UP](): AsyncGenerator<string, boolean, unknown>;
@@ -60,6 +45,21 @@ export namespace Sica {
   > extends Resource<Type> {
     [RUN]: Handler;
     (params: ActionInput<Handler>): ActionReturn<Handler>;
+  }
+
+  export interface Execution<
+    Stream,
+    Return,
+    Deps,
+    Params = null,
+    Type extends string[] = ["action"],
+  > extends AsyncGenerator<Stream, Return, Deps>,
+      Typed<Type>,
+      Promise<Return> {
+    id: UUIDv7String;
+    actionId: UUIDv5String;
+    parentId?: UUIDv7String;
+    params: Params;
   }
 
   export interface Event<Data, Type extends string[]> extends Typed<Type> {
