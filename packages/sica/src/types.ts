@@ -5,7 +5,8 @@ import {
   ActionReturn,
   DeepOptionalString,
   RunnableReturn,
-  UUIDv7String
+  UUIDv7String,
+  UUIDv5String,
 } from "./helpers";
 
 export namespace Sica {
@@ -25,6 +26,7 @@ export namespace Sica {
   }
 
   export interface Resource<Type extends string[]> extends Typed<Type> {
+    id: UUIDv5String;
     [UP](): AsyncGenerator<string, boolean, unknown>;
     [DOWN](): AsyncGenerator<string, boolean, unknown>;
   }
@@ -39,12 +41,14 @@ export namespace Sica {
       Typed<Type>,
       Promise<Return> {
     id: UUIDv7String;
+    creator?: UUIDv5String;
     parentId?: UUIDv7String;
     params: Params;
   }
 
   export interface Event<Data, Type extends string[]> extends Typed<Type> {
     id: UUIDv7String;
+    creator?: UUIDv5String;
     handled?: boolean;
     data: Data;
   }
