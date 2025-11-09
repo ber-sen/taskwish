@@ -1,4 +1,4 @@
-import { Name } from "drizzle-orm";
+import { Equal, Name } from "drizzle-orm";
 import { Sica } from "../types";
 import { End } from "./end";
 import { If } from "./if-else";
@@ -6,6 +6,7 @@ import { Input } from "./input";
 import { Loop, Range } from "./loop";
 import { Match } from "./match";
 import { Steps } from "./steps";
+import { Expect } from "../helpers";
 
 describe("Steps", () => {
   it("works for two steps", async () => {
@@ -97,19 +98,42 @@ describe("Steps", () => {
     ): Sica.Step<Name, R, null> => ({}) as never;
 
     const steps = async function* () {
-      yield Step("lorem", 3);
-      yield Step("ipsum", "sadasd");
-      yield Step("dolor", true);
+      yield Step("1", 3);
+      yield Step("2", "sadasd");
+      yield Step("3", true);
+      yield Step("4", 3);
+      yield Step("5", "sadasd");
+      yield Step("6", true);
+      yield Step("7", 3);
+      yield Step("8", "sadasd");
+      yield Step("9", true);
+      yield Step("10", 3);
+      yield Step("11", "sadasd");
+      yield Step("12", true);
     };
 
-    type T = typeof steps;
+    type T = ReturnType<typeof steps>;
 
-    type newEmail = AsyncGenerator<
-      | Sica.Step<"lorem", 3, null, ["step"]>
-      | Sica.Step<"ipsum", "sadasd", null, ["step"]>
-      | Sica.Step<"dolor", true, null, ["step"]>,
-      void,
-      unknown
+    type succeed = Expect<
+      Equal<
+        AsyncGenerator<
+          | Sica.Step<"1", 3, null, ["step"]>
+          | Sica.Step<"2", "sadasd", null, ["step"]>
+          | Sica.Step<"3", true, null, ["step"]>
+          | Sica.Step<"4", 3, null, ["step"]>
+          | Sica.Step<"5", "sadasd", null, ["step"]>
+          | Sica.Step<"6", true, null, ["step"]>
+          | Sica.Step<"7", 3, null, ["step"]>
+          | Sica.Step<"8", "sadasd", null, ["step"]>
+          | Sica.Step<"9", true, null, ["step"]>
+          | Sica.Step<"10", 3, null, ["step"]>
+          | Sica.Step<"11", "sadasd", null, ["step"]>
+          | Sica.Step<"12", true, null, ["step"]>,
+          void,
+          unknown
+        >,
+        T
+      >
     >;
 
     expect(result).toEqual({ success: true });
