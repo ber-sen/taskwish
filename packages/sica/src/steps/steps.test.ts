@@ -1,3 +1,5 @@
+import { Name } from "drizzle-orm";
+import { Sica } from "../types";
 import { End } from "./end";
 import { If } from "./if-else";
 import { Input } from "./input";
@@ -69,7 +71,7 @@ describe("Steps", () => {
   it("should work with match", async () => {
     const action = Steps(
       Input({ language: "string" }),
-      
+
       ($) => Match($.input, { subtype: true }),
 
       "me_message",
@@ -84,6 +86,31 @@ describe("Steps", () => {
     );
 
     const result = action({ language: "Spanish" });
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it("should work with match", async () => {
+    const Step = <const Name extends string, const R>(
+      name: Name,
+      data: R
+    ): Sica.Step<Name, R, null> => ({}) as never;
+
+    const steps = async function* () {
+      yield Step("lorem", 3);
+      yield Step("ipsum", "sadasd");
+      yield Step("dolor", true);
+    };
+
+    type T = typeof steps;
+
+    type newEmail = AsyncGenerator<
+      | Sica.Step<"lorem", 3, null, ["step"]>
+      | Sica.Step<"ipsum", "sadasd", null, ["step"]>
+      | Sica.Step<"dolor", true, null, ["step"]>,
+      void,
+      unknown
+    >;
 
     expect(result).toEqual({ success: true });
   });

@@ -12,7 +12,7 @@ import {
 export namespace Sica {
   export const TYPE = Symbol.for("Sica.type");
 
-  export const RUN = Symbol.for("Sica.run");
+  export const META = Symbol.for("Sica.meta");
 
   export const UP = Symbol.for("Sica.up");
 
@@ -35,7 +35,9 @@ export namespace Sica {
     Handler extends () => any,
     Type extends string[] = ["action"],
   > extends Resource<Type> {
-    [RUN]: Handler;
+    [META]: {
+      handler: Handler;
+    };
     <const Scope extends Record<string, any>>(
       scope?: Scope
     ): RunnableReturn<Handler>; // get deps of scope from handler
@@ -45,7 +47,9 @@ export namespace Sica {
     Handler extends ((...args: any) => any) | GenericHandler,
     Type extends string[] = ["action"],
   > extends Resource<Type> {
-    [RUN]: Handler;
+    [META]: {
+      handler: Handler;
+    };
     <const Scope extends Record<string, any>>(
       params: ActionInput<Handler>,
       scope?: Scope
@@ -121,6 +125,15 @@ export namespace Sica {
       > {
     (data: Data): AsyncGenerator<Event<Data, Type>, Event<Data, Type>, unknown>;
   }
+
+  export type Step<
+    Name extends string,
+    Result,
+    Params = null,
+    Type extends string[] = ["step"],
+  > = {
+    [P in Name]: Result & { [META]: { params: Params} } & Typed<Type>;
+  };
 
   export interface Scoped<Scope extends Record<any, any>> {
     scope: Scope;
