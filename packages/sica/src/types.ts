@@ -64,7 +64,7 @@ export namespace Sica {
 
   export interface Event<Data, Type extends string[]> extends Typed<Type> {
     id: UUIDv7String;
-    creator: UUIDv5String;
+    actorId: UUIDv5String;
     handled?: boolean;
     data: Data;
   }
@@ -97,13 +97,13 @@ export namespace Sica {
     ? T["scope"][Key]
     : T["scope"];
 
-  export interface EventFactory<Data, Type extends string[] = ["event"]>
+  export interface EventKind<Data, Type extends string[] = ["event"]>
     extends Resource<Type>,
       Describable<
         {
           data: DeepOptionalString<Data>;
         },
-        EventFactory<Data, Type>
+        EventKind<Data, Type>
       > {
     (data: Data): AsyncGenerator<Event<Data, Type>, Event<Data, Type>, unknown>;
   }
@@ -122,8 +122,8 @@ export namespace Sica {
               "Scope.model": string;
             }
           >
-        : Schema extends EventFactory<Type, infer Input>
-          ? EventFactory<Type, Input>
+        : Schema extends EventKind<Type, infer Input>
+          ? EventKind<Type, Input>
           : object;
 
   export type ValidateSchema<Schema> =

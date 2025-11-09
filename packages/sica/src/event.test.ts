@@ -13,7 +13,7 @@ describe("Event", async function* () {
 
     type newEmail = Expect<
       Equal<
-        Sica.EventFactory<
+        Sica.EventKind<
           {
             from: string;
             subject: string;
