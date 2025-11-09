@@ -77,10 +77,19 @@ export namespace Sica {
     dep: Dep;
   }
 
-  export interface Exception<Status extends number, Params>
-    extends Typed<["exception"]> {
+  export interface Log<Data, Type extends string[] = ["info"]> // info, start, warn, success
+    extends Typed<Type> {
+    data: Data;
+    toString: () => string;
+  }
+
+  export interface Exception<
+    Status extends number,
+    Data,
+    Type extends string[] = ["error"], // error, critical
+  > extends Typed<Type> {
     status: Status;
-    exception: Params;
+    data: Data;
     throw: () => void;
     toString: () => string;
   }
