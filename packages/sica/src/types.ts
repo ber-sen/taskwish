@@ -36,7 +36,9 @@ export namespace Sica {
     Type extends string[] = ["action"],
   > extends Resource<Type> {
     [RUN]: Handler;
-    (): RunnableReturn<Handler>;
+    <const Scope extends Record<string, any>>(
+      scope?: Scope
+    ): RunnableReturn<Handler>; // get deps of scope from handler
   }
 
   export interface Action<
@@ -44,7 +46,10 @@ export namespace Sica {
     Type extends string[] = ["action"],
   > extends Resource<Type> {
     [RUN]: Handler;
-    (params: ActionInput<Handler>): ActionReturn<Handler>;
+    <const Scope extends Record<string, any>>(
+      params: ActionInput<Handler>,
+      scope?: Scope
+    ): ActionReturn<Handler>;
   }
 
   export interface Execution<
