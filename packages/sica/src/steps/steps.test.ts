@@ -6,7 +6,7 @@ import { Input } from "./input";
 import { Loop, Range } from "./loop";
 import { Match } from "./match";
 import { Steps } from "./steps";
-import { Expect } from "../helpers";
+import { DeepOptionalString, Expect, Pretty } from "../helpers";
 
 describe("Steps", () => {
   it("works for two steps", async () => {
@@ -139,3 +139,77 @@ describe("Steps", () => {
     expect(result).toEqual({ success: true });
   });
 });
+
+type AddOption<Option, T> = T extends string[]
+  ? [Option, ...T]
+  : T extends object
+    ? { [K in keyof T]: AddOption<Option, T[K]> }
+    : T;
+
+type AddStep<Name extends string, Result, Next> = Result extends
+  | ":parallel"
+  | ":if"
+  | ":end"
+  ? AddOption<Result, Next>
+  : Record<Name, { result: Result; operator: [] }> & Next;
+
+type ExtractResults<T> = {
+  [K in keyof T]: T[K] extends { operator: infer O; result: infer R }
+    ?  O extends [":if"]
+        ? R | undefined
+        : R
+    : never;
+};
+
+type MakeUndefinedOptional<T> = {
+  [K in keyof T as undefined extends T[K] ? K : never]?: Exclude<
+    T[K],
+    undefined
+  >;
+} & {
+  [K in keyof T as undefined extends T[K] ? never : K]: T[K];
+};
+
+type OperatorCalculator<T> = {
+  [K in keyof T]: T[K] extends { operator: infer O; result: infer R }
+    ? O extends string[] ? { operator: RemovePrevWhenEnd<O>; result:  R } : never
+    : never;
+};
+
+type RemovePrevWhenEnd<T extends readonly string[], A extends string[] = []> =
+  T extends [infer H extends string, ...infer Rest extends string[]]
+    ? H extends ":end"
+      ? RemovePrevWhenEnd<Rest, A extends [...infer X extends string[], any] ? X : []>
+      : RemovePrevWhenEnd<Rest, [...A, H]>
+    : A;
+    
+type FormatScope<Scope> = MakeUndefinedOptional<ExtractResults<Scope>>;
+
+type Scope = OperatorCalculator<AddStep<
+    "step1",
+    ":if",
+    AddStep<
+      "step2",
+      4,
+      AddStep<
+        "step3",
+        ":end",
+        AddStep<
+          "step4",
+          ":if",
+          AddStep<"step5", 3, AddStep<"step6", ":end", AddStep<"step7", true, {}>>>
+        >
+      >
+    >
+  >>
+
+type B = FormatScope<
+  Scope
+>;
+
+const b: B = {} as never;
+
+
+
+
+
