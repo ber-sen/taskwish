@@ -141,6 +141,17 @@ describe("Steps", () => {
   });
 });
 
+type ApplyOptions<O extends readonly any[], R> = O extends [
+  ...infer Rest,
+  infer Last,
+]
+  ? Last extends ":loop"
+    ? ApplyOptions<Rest, Array<R>>
+    : Last extends ":if"
+      ? ApplyOptions<Rest, R | undefined>
+      : ApplyOptions<Rest, R>
+  : R;
+
 type AddOption<Option, T> = T extends string[]
   ? [Option, ...T]
   : T extends object
@@ -158,13 +169,7 @@ type AddStep<Name extends string, Result, Next> = Result extends
 type ExtractResults<T> = {
   [K in keyof T]: T[K] extends { operator: infer O; result: infer R }
     ? O extends any[]
-      ? ":loop" extends O[number]
-        ? ":if" extends O[number]
-          ? Array<R> | undefined
-          : Array<R>
-        : ":if" extends O[number]
-          ? R | undefined
-          : R
+      ? ApplyOptions<O, R>
       : never
     : never;
 };
@@ -203,7 +208,7 @@ type Scope = OperatorCalculator<
         4,
         AddStep<
           "step4",
-          ":if",
+          ":loop",
           AddStep<
             "step5",
             3,
@@ -218,5 +223,3 @@ type Scope = OperatorCalculator<
 type B = Pretty<FormatScope<Scope>>;
 
 const b: B = {} as never;
-
-
