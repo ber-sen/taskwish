@@ -1,7 +1,7 @@
 import { UseCase } from "../../src";
 
 export default UseCase("Slack")
-  .use(import("../app"))
+  .use(import("../package"))
   
   .on("slack.message")
 

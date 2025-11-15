@@ -1,7 +1,7 @@
 import { UseCase } from "../../src";
 
 export default UseCase("Chat bot")
-  .use(import("../app"))
+  .use(import("../package"))
 
   .on({ message: "string[]"})
 

@@ -1,7 +1,7 @@
 import { UseCase } from "../../src";
 
 export default UseCase("Say hello")
-  .use(import("../app"))
+  .use(import("../package"))
 
   .on("zod-new-email")
 
