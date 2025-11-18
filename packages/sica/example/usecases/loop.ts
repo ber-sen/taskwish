@@ -1,4 +1,4 @@
-import { Loop, End, Range, UseCase } from "../../src";
+import { Loop, End, Range, UseCase, Message } from "../../src";
 
 export default UseCase("Say hello")
   .use(import("../package"))
@@ -14,5 +14,7 @@ export default UseCase("Say hello")
         text: `Does someone speak ${input.user.age}?`,
       }),
 
-    End(Loop),
+    Message("sadad"),
+
+    End(Loop)
   );

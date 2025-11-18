@@ -11,6 +11,7 @@ import {
 
 export namespace SicaMessage {
   export type DataContent = string | Uint8Array | ArrayBuffer | Buffer;
+
   export interface TextPart {
     type: "text";
     text: string;
@@ -36,7 +37,9 @@ export namespace SicaMessage {
     text: string;
   }
 
-  type AssistantContent = string | Array<TextPart | FilePart | ReasoningPart>;
+  export type AssistantContent =
+    | string
+    | Array<TextPart | FilePart | ReasoningPart>;
 
   export type System = {
     role: "system";
@@ -54,7 +57,12 @@ export namespace SicaMessage {
     content: AssistantContent;
   };
 
-  export type Message = User | System | Assistant;
+  export type Message<Type extends User | System | Assistant> = {
+    role: Type["role"],
+    content: Type["content"],
+  }
+
+  export type AnyMessage = Message<any>;
 }
 
 export namespace Sica {
@@ -94,7 +102,7 @@ export namespace Sica {
   export interface Thread {
     id: UUIDv5String | UUIDv7String;
     state: "new" | "active" | "waiting" | "finalized" | "renewed";
-    messages: SicaMessage.Message[]
+    messages: SicaMessage.Message[];
   }
 
   export interface Action<

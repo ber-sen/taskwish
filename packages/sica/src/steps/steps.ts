@@ -1,5 +1,5 @@
 import { PrettyScope, ToCamelCase } from "../helpers";
-import { Sica } from "../types";
+import { Sica, SicaMessage } from "../types";
 
 type BuildTuple<L extends number, T extends any[] = []> = T["length"] extends L
   ? T
@@ -54,8 +54,8 @@ type Return = Sica.Runnable<
 
 type Step0<Scope, S0, S0R> =
   | [name: S0, handler: (props: Props<Scope>) => S0R]
-  | ((props: Props<Scope>) => S0R | Sica.StepOption<any, null>)
-  | Sica.StepOption<any, null>;
+  | ((props: Props<Scope>) => S0R | Sica.StepOption<any, null> | SicaMessage.AnyMessage)
+  | Sica.StepOption<any, null> | SicaMessage.AnyMessage;
 
 type Step1<Scope, S0, S0R, S1, S1R> =
   | [
@@ -66,8 +66,8 @@ type Step1<Scope, S0, S0R, S1, S1R> =
     ]
   | ((
       props: Props<Scope & (S0 extends string ? Record<S0, S0R> : {})>
-    ) => S1R | Sica.StepOption<any, null>)
-  | Sica.StepOption<any, null>;
+    ) => S1R | Sica.StepOption<any, null> | SicaMessage.AnyMessage)
+  | Sica.StepOption<any, null> | SicaMessage.AnyMessage;
 
 type Step2<Scope, S0, S0R, S1, S1R, S2, S2R> =
   | [
@@ -86,8 +86,8 @@ type Step2<Scope, S0, S0R, S1, S1R, S2, S2R> =
           (S0 extends string ? Record<S0, S0R> : {}) &
           (S1 extends string ? Record<S1, S1R> : {})
       >
-    ) => S2R | Sica.StepOption<any, null>)
-  | Sica.StepOption<any, null>;
+    ) => S2R | Sica.StepOption<any, null> | SicaMessage.AnyMessage)
+  | Sica.StepOption<any, null> | SicaMessage.AnyMessage;
 
 type Step3<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R> =
   | [
@@ -108,8 +108,8 @@ type Step3<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R> =
           (S1 extends string ? Record<S1, S1R> : {}) &
           (S2 extends string ? Record<S2, S2R> : {})
       >
-    ) => S3R | Sica.StepOption<any, null>)
-  | Sica.StepOption<any, null>;
+    ) => S3R | Sica.StepOption<any, null> | SicaMessage.AnyMessage)
+  | Sica.StepOption<any, null> | SicaMessage.AnyMessage;
 
 type Step4<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R, S4, S4R> =
   | [
@@ -132,8 +132,8 @@ type Step4<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R, S4, S4R> =
           (S2 extends string ? Record<S2, S2R> : {}) &
           (S3 extends string ? Record<S3, S3R> : {})
       >
-    ) => S4R | Sica.StepOption<any, null>)
-  | Sica.StepOption<any, null>;
+    ) => S4R | Sica.StepOption<any, null> | SicaMessage.AnyMessage)
+  | Sica.StepOption<any, null> | SicaMessage.AnyMessage;
 
 export interface Steps<Scope extends Record<any, any> = {}> {
   <const S0, const S0R>(...trumpets: [step: Step0<Scope, S0, S0R>]): Return;

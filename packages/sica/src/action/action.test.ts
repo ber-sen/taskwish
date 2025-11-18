@@ -3,6 +3,7 @@ import { Action } from "./action";
 import { Sica } from "../types";
 import { Env } from "./env";
 import { Use } from "./use";
+import { Message } from "../message";
 
 describe("Action", () => {
   it("works with arrow functions", async () => {
@@ -75,7 +76,10 @@ describe("Action", () => {
 
   it("works with generators", async () => {
     const streamNumbers = Action("Stream", async function* () {
-      yield 1;
+      yield Message.User([
+        { type: "text", text: "asd" },
+        { type: "text", text: "asdasd" },
+      ]);
       yield 2;
       yield 3;
     });

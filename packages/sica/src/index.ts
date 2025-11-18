@@ -11,6 +11,7 @@
 export * from './types'
 export * from './action'
 export * from './event'
+export * from "./message"
 export * from './steps'
 export * from './use-case'
 export * from './package'

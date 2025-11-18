@@ -1,4 +1,4 @@
-import { End, UseCase, If } from "../../src";
+import { End, UseCase, If, Message } from "../../src";
 
 export default UseCase("Say hello")
   .use(import("../package"))
@@ -7,6 +7,8 @@ export default UseCase("Say hello")
 
   .steps(
     If(2 > 1),
+
+    Message("case is true"),
 
     ["asdasd", ({ input }) => input.user.name],
 
