@@ -58,9 +58,9 @@ export namespace SicaMessage {
   };
 
   export type Message<Type extends User | System | Assistant> = {
-    role: Type["role"],
-    content: Type["content"],
-  }
+    role: Type["role"];
+    content: Type["content"];
+  };
 
   export type AnyMessage = Message<any>;
 }
@@ -112,9 +112,8 @@ export namespace Sica {
     [META]: {
       handler: Handler;
     };
-    <const Scope extends Record<string, any>>(
-      params: ActionInput<Handler>,
-      scope?: Scope
+    <Scope extends Array<Provide<any>>>(
+      ...args: [...Scope, ActionInput<Handler>]
     ): ActionReturn<Handler>;
   }
 

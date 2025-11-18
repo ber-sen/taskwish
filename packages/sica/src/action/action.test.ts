@@ -4,6 +4,7 @@ import { Sica } from "../types";
 import { Env } from "./env";
 import { Use } from "./use";
 import { Message } from "../message";
+import { Provide } from "./provide";
 
 describe("Action", () => {
   it("works with arrow functions", async () => {
@@ -70,6 +71,30 @@ describe("Action", () => {
     >;
 
     const result = await sayHello({ language: "Spanish" });
+
+    expect(result).toEqual("Hello in Spanish");
+  });
+
+  it("works with provided scope", async () => {
+    const sayHello = Action("Say hello", (params: { language: string }) => {
+      return `Hello in ${params.language}`;
+    });
+
+    const scope = [Provide("env", process.env)] as const;
+
+    type T = typeof sayHello;
+
+    type sayHello = Expect<
+      Equal<
+        Sica.Action<
+          (params: { language: string }) => string,
+          ["action", "Say hello"]
+        >,
+        T
+      >
+    >;
+
+    const result = await sayHello(...scope, { language: "Spanish" });
 
     expect(result).toEqual("Hello in Spanish");
   });
@@ -199,44 +224,6 @@ describe("Action", () => {
         T
       >
     >;
-  });
-
-  it("works with scope", async () => {
-    const sayHello = Action(
-      "Say hello",
-      <Scope extends Record<any, any>>(_: Scope) =>
-        (params: { model: Scope["model"] }) => {
-          return `Hello in ${params.model}`;
-        }
-    );
-
-    const sayHi = Action(
-      "Say hello",
-      <Scope extends Record<any, any>>(_: Scope) =>
-        (params: { trip: Scope["trip"] }) => {
-          return `Hello in ${params.trip}`;
-        }
-    );
-
-    type T = typeof sayHello;
-
-    type sayHello = Expect<
-      Equal<
-        Sica.Action<
-          <Scope extends Record<any, any>>(
-            scope: Scope
-          ) => (params: { model: Scope["model"] }) => string,
-          ["action", "Say hello"]
-        >,
-        T
-      >
-    >;
-
-    sayHello({ model: "asdad" });
-
-    const actions = [sayHi, sayHello];
-
-    const items = actions.map((item) => item[Sica.RUN]({ model: 3 }));
   });
 });
 

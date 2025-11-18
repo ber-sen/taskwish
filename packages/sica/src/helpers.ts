@@ -60,11 +60,10 @@ export type RunnableReturn<Handler> = Handler extends () => Generator<
       ? AsyncGenerator<never, Return, unknown> & Promise<Return>
       : never;
 
-export type ActionInput<Handler extends (...args: any) => any> = Handler extends (
-  scope: any
-) => (...args: any) => any
-  ? Parameters<ReturnType<Handler>>[0]
-  : Parameters<Handler>[0];
+export type ActionInput<Handler extends (...args: any) => any> =
+  Handler extends (scope: any) => (...args: any) => any
+    ? Parameters<ReturnType<Handler>>[0]
+    : Parameters<Handler>[0];
 
 export type ActionReturn<Handler> = Handler extends (
   scope: any
@@ -72,18 +71,12 @@ export type ActionReturn<Handler> = Handler extends (
   ? (
       scope: any
     ) => (...args: any) => AsyncGenerator<Stream, Return, Ctx> & Promise<Return>
-  : Handler extends (scope: any) => (...args: any) => Promise<infer Return>
-    ? AsyncGenerator<never, Return, unknown> & Promise<Return>
-    : Handler extends (scope: any) => (...args: any) => infer Return
+  : Handler extends (
+        ...args: any
+      ) => Generator<infer Stream, infer Return, infer Ctx>
+    ? (...args: any) => AsyncGenerator<Stream, Return, Ctx> & Promise<Return>
+    : Handler extends (...args: any) => Promise<infer Return>
       ? AsyncGenerator<never, Return, unknown> & Promise<Return>
-      : Handler extends (
-            ...args: any
-          ) => Generator<infer Stream, infer Return, infer Ctx>
-        ? (
-            ...args: any
-          ) => AsyncGenerator<Stream, Return, Ctx> & Promise<Return>
-        : Handler extends (...args: any) => Promise<infer Return>
-          ? AsyncGenerator<never, Return, unknown> & Promise<Return>
-          : Handler extends (...args: any) => infer Return
-            ? AsyncGenerator<never, Return, unknown> & Promise<Return>
-            : never;
+      : Handler extends (...args: any) => infer Return
+        ? AsyncGenerator<never, Return, unknown> & Promise<Return>
+        : never;
