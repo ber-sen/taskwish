@@ -1,6 +1,9 @@
 import { Event } from "../../src/event";
 
-export default Event("new-email").data({
-  from: "string",
-  subject: "string",
-});
+export default Event("new-email")
+  .data({
+    from: "string",
+    subject: "string",
+  })
+  
+  .thread("from")

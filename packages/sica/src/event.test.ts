@@ -4,10 +4,12 @@ import { Sica } from "./types";
 
 describe("Event", async function* () {
   it("works with arrow functions", () => {
-    const newEmail = Event("new-email").data({
-      from: "string",
-      subject: "string",
-    });
+    const newEmail = Event("new-email")
+      .data({
+        from: "string",
+        subject: "string",
+      })
+      .thread("from");
 
     type T = typeof newEmail;
 
@@ -18,7 +20,7 @@ describe("Event", async function* () {
             from: string;
             subject: string;
           },
-          ["event", "new-email"]
+          ["event", "new-email", ":@from"]
         >,
         T
       >

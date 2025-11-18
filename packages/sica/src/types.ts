@@ -9,6 +9,54 @@ import {
   UUIDv5String,
 } from "./helpers";
 
+export namespace SicaMessage {
+  export type DataContent = string | Uint8Array | ArrayBuffer | Buffer;
+  export interface TextPart {
+    type: "text";
+    text: string;
+  }
+
+  export interface ImagePart {
+    type: "image";
+    image: DataContent | URL;
+    mediaType?: string;
+  }
+
+  export interface FilePart {
+    type: "file";
+    data: DataContent | URL;
+    filename?: string;
+    mediaType: string;
+  }
+
+  export type UserContent = string | Array<TextPart | ImagePart | FilePart>;
+
+  export interface ReasoningPart {
+    type: "reasoning";
+    text: string;
+  }
+
+  type AssistantContent = string | Array<TextPart | FilePart | ReasoningPart>;
+
+  export type System = {
+    role: "system";
+    content: string;
+  };
+
+  export type User = {
+    role: "user";
+    user?: string;
+    content: UserContent;
+  };
+
+  export type Assistant = {
+    role: "assistant";
+    content: AssistantContent;
+  };
+
+  export type Message = User | System | Assistant;
+}
+
 export namespace Sica {
   export const TYPE = Symbol.for("Sica.type");
 
@@ -43,6 +91,12 @@ export namespace Sica {
     ): RunnableReturn<Handler>; // get deps of scope from handler
   }
 
+  export interface Thread {
+    id: UUIDv5String | UUIDv7String;
+    state: "new" | "active" | "waiting" | "finalized" | "renewed";
+    messages: SicaMessage.Message[]
+  }
+
   export interface Action<
     Handler extends ((...args: any) => any) | GenericHandler,
     Type extends string[] = ["action"],
@@ -66,7 +120,8 @@ export namespace Sica {
       Typed<Type>,
       Promise<Return> {
     id: UUIDv7String;
-    actionId: UUIDv5String;
+    actorId: UUIDv5String;
+    threadId: UUIDv5String | UUIDv7String;
     parentId?: UUIDv7String;
     params: Params;
   }
@@ -74,6 +129,7 @@ export namespace Sica {
   export interface Event<Data, Type extends string[]> extends Typed<Type> {
     id: UUIDv7String;
     actorId: UUIDv5String;
+    threadId: UUIDv5String | UUIDv7String;
     handled?: boolean;
     data: Data;
   }
@@ -123,6 +179,9 @@ export namespace Sica {
         },
         EventKind<Data, Type>
       > {
+    thread<const Key extends keyof Data>(
+      key: Key
+    ): EventKind<Data, Key extends string ? [...Type, `:@${Key}`] : Type>;
     (data: Data): AsyncGenerator<Event<Data, Type>, Event<Data, Type>, unknown>;
   }
 
@@ -132,7 +191,7 @@ export namespace Sica {
     Params = null,
     Type extends string[] = ["step"],
   > = {
-    [P in Name]: Result & { [META]: { params: Params} } & Typed<Type>;
+    [P in Name]: Result & { [META]: { params: Params } } & Typed<Type>;
   };
 
   export interface Scoped<Scope extends Record<any, any>> {
@@ -191,6 +250,10 @@ export namespace Sica {
   export interface Triggerable<Scope extends Record<any, any>> {
     on<const Type extends string[], const Schema>(
       trigger: ValidateTrigger<Schema, Type>
-    ): Scoped<Scope & Record<"input", InferInput<Schema>>>;
+    ): Scoped<
+      Scope &
+        Record<"input", InferInput<Schema>> &
+        Record<"threadId", UUIDv5String | UUIDv7String>
+    >;
   }
 }
