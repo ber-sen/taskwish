@@ -102,7 +102,7 @@ export namespace Sica {
   export interface Thread {
     id: UUIDv5String | UUIDv7String;
     state: "new" | "active" | "waiting" | "finalized" | "renewed";
-    messages: SicaMessage.Message[];
+    messages: SicaMessage.AnyMessage[];
   }
 
   export interface Action<
