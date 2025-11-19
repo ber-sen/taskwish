@@ -24,7 +24,7 @@ export default UseCase("Sub steps")
         text: `Does someone speak ${input.user.age}?`,
       }),
 
-    ({ action }) => action.doSomething({ lorem: ["asd"] }),
+    ({ self }) => self.doSomething({ lorem: ["asd"] }),
 
     End(Loop)
   );
