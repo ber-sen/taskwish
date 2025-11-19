@@ -1,10 +1,15 @@
-import { End, Message, UseCase } from "../../src";
-import tsEvent from "../events/ts-event";
+import { Message, UseCase } from "../../src";
+// import tsEvent from "../events/ts-event";
 
 export default UseCase("Chat bot")
   .use(import("../package"))
 
-  .on(tsEvent)
+  .on({ tools: "string[]", prompt: "string" })
+
+  .use({
+    tools: ({ input, tools }) =>
+      tools.filter((tool) => input.tool.includes(tool.name)),
+  })
 
   .agent(
     "marketing",
@@ -12,12 +17,10 @@ export default UseCase("Chat bot")
     Message.System("You are a helpful marketing assistent called Boria"),
     Message.User("asdasd"),
 
-    ["slack.send-message", { description: "send a slack message", ask: true }],
-    ["slack.send-message", { ask: true }]
+    ($) => $.tools
   )
 
-  .steps(
-    ["step1", () => 213],
-
-    ($) => $.agent.marketing.respond({})
-  );
+  .steps([
+    "agent response",
+    ({ agent, input }) => agent.marketing.chat({ prompt: input.prompt }),
+  ]);

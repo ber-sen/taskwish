@@ -25,7 +25,7 @@ export interface UseCaseFactory<
       UseCaseFactory<Params, Scope, "describe">
     > {
   on<const Name extends string, const Schema>(
-    trigger: Sica.ValidateTrigger<Name, Schema>,
+    trigger: Sica.ValidateTrigger<Schema>,
   ): Used extends string
     ? Omit<
         ConfigurableUseCase<
