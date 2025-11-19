@@ -1,4 +1,4 @@
-import { SicaMessage } from "./types";
+import { SicaMessage } from "../types";
 
 export function Message<const Content extends SicaMessage.AssistantContent>(
   content: Content
