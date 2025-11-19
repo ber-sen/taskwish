@@ -6,16 +6,18 @@ export default UseCase("Chat bot")
 
   .on(tsEvent)
 
-  .steps(
-    Agent("main"),
+  .agent(
+    "marketing",
 
     Message.System("You are a helpful marketing assistent called Boria"),
     Message.User("asdasd"),
 
     ["slack.send-message", { description: "send a slack message", ask: true }],
-    ["slack.send-message", { ask: true }],
+    ["slack.send-message", { ask: true }]
+  )
 
-    End(Agent),
+  .steps(
+    ["step1", () => 213],
 
-    ($) => $.agent.main.respond({})
+    ($) => $.agent.marketing.respond({})
   );
