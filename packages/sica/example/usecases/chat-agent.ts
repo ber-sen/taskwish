@@ -12,7 +12,10 @@ export default UseCase("Chat bot")
     Message.System("You are a helpful marketing assistent called Boria"),
     Message.User("asdasd"),
 
-    End(),
+    ["slack.send-message", { description: "send a slack message", ask: true }],
+    ["slack.send-message", { ask: true }],
 
-    ($) => agent.main({})
+    End(Agent),
+
+    ($) => $.agent.main.respond({})
   );
