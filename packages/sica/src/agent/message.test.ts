@@ -1,32 +1,25 @@
-import { Sica } from "../types";
+import { Equal, Expect } from "../helpers";
+import { SicaMessage } from "../types";
 import { Message } from "./message";
 
 describe("Message", async function* () {
   it("should works with meta", () => {
     const message = Message("A Message asdasdskajd").attr({
-      threadId: "asdasd",
+      redirectThreadId: "cde8902f-0b07-5fcb-80f5-3fa809508db4",
     });
 
     type T = typeof message;
 
     type newEmail = Expect<
       Equal<
-        Sica.EventKind<
-          {
-            from: string;
-            subject: string;
-          },
-          ["event", "new-email", ":@from"]
-        >,
+        SicaMessage.Message<{
+          role: "assistant";
+          content: "A Message asdasdskajd";
+          readonly redirectThreadId: "cde8902f-0b07-5fcb-80f5-3fa809508db4";
+        }>,
         T
       >
     >;
-
-    const test = async function* () {
-      const res = yield* newEmail({ from: "lorem@ipsum.com", subject: "Hi" });
-
-      return res.handled;
-    };
 
     // expect(result).toEqual({ success: true });
   });

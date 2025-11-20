@@ -6,6 +6,6 @@ const a = Event("new-email")
     subject: "string",
   })
 
-  .attr({ threadId: "from" })
+  .attr({ threadId: "from" });
 
   

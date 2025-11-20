@@ -3,7 +3,6 @@ import { StandardSchemaV1 } from "@standard-schema/spec";
 import {
   ActionInput,
   ActionReturn,
-  DeepOptionalString,
   RunnableReturn,
   UUIDv7String,
   UUIDv5String,
@@ -60,7 +59,19 @@ export namespace SicaMessage {
 
   export interface Message<
     Type extends (User | System | Assistant) & { meta?: any },
-  > {
+  > extends Sica.Attributable {
+    attr<
+      const Meta extends {
+        redirectThreadId?: Sica.ThreadId;
+        finalizeThread?: boolean;
+      },
+    >(
+      attr: Meta
+    ): Message<
+      Pretty<Type & Meta> extends (User | System | Assistant) & { meta?: any }
+        ? Pretty<Type & Meta>
+        : never
+    >;
     role: Type["role"];
     content: Type["content"];
     meta: Type["meta"];
@@ -77,6 +88,8 @@ export namespace Sica {
   export const UP = Symbol.for("Sica.up");
 
   export const DOWN = Symbol.for("Sica.down");
+
+  export type ThreadId = UUIDv5String | UUIDv7String;
 
   export interface Typed<Type extends string[]> {
     [TYPE]: Type;
@@ -109,7 +122,7 @@ export namespace Sica {
   }
 
   export interface Thread {
-    id: UUIDv5String | UUIDv7String;
+    id: ThreadId;
     state: "new" | "active" | "waiting" | "finalized" | "renewed";
     messages: SicaMessage.AnyMessage[];
   }
@@ -137,7 +150,7 @@ export namespace Sica {
       Promise<Return> {
     id: UUIDv7String;
     actorId: UUIDv5String;
-    threadId: UUIDv5String | UUIDv7String;
+    threadId: ThreadId;
     parentId?: UUIDv7String;
     params: Params;
   }
@@ -145,7 +158,7 @@ export namespace Sica {
   export interface Event<Data, Type extends string[]> extends Typed<Type> {
     id: UUIDv7String;
     actorId: UUIDv5String;
-    threadId: UUIDv5String | UUIDv7String;
+    threadId: ThreadId;
     handled?: boolean;
     data: Data;
   }
