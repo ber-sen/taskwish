@@ -124,7 +124,7 @@ export namespace Sica {
 
   export interface Thread {
     id: ThreadId;
-    actorId: UUIDv5String | UUIDv4String | string;
+    actorId: UUIDv5String | UUIDv7String | string;
     state: "new" | "active" | "waiting" | "finalized" | "renewed";
     messages: SicaMessage.AnyMessage[];
   }

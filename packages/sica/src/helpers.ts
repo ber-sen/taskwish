@@ -48,8 +48,6 @@ export type UUIDv7String = `${string}-${string}-7${string}-${string}-${string}`;
 
 export type UUIDv5String = `${string}-${string}-5${string}-${string}-${string}`;
 
-export type UUIDv4String = `${string}-${string}-4${string}-${string}-${string}`;
-
 export type RunnableReturn<Handler> = Handler extends () => Generator<
   infer Stream,
   infer Return,
