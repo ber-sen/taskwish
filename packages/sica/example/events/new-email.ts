@@ -1,9 +1,11 @@
 import { Event } from "../../src/event";
 
-export default Event("new-email")
+const a = Event("new-email")
   .data({
     from: "string",
     subject: "string",
   })
+
+  .attr({ threadId: "from" })
+
   
-  .thread("from")

@@ -7,6 +7,7 @@ import {
   RunnableReturn,
   UUIDv7String,
   UUIDv5String,
+  Pretty,
 } from "./helpers";
 
 export namespace SicaMessage {
@@ -57,10 +58,13 @@ export namespace SicaMessage {
     content: AssistantContent;
   };
 
-  export type Message<Type extends User | System | Assistant> = {
+  export interface Message<
+    Type extends (User | System | Assistant) & { meta?: any },
+  > {
     role: Type["role"];
     content: Type["content"];
-  };
+    meta: Type["meta"];
+  }
 
   export type AnyMessage = Message<any>;
 }
@@ -77,6 +81,11 @@ export namespace Sica {
   export interface Typed<Type extends string[]> {
     [TYPE]: Type;
   }
+
+  export interface Attributable {
+    attr(attributes: unknown): unknown;
+  }
+
   export interface Struct<Data, Type extends string[]> extends Typed<Type> {
     data: Data;
   }
@@ -180,15 +189,15 @@ export namespace Sica {
 
   export interface EventKind<Data, Type extends string[] = ["event"]>
     extends Resource<Type>,
-      Describable<
-        {
-          data: DeepOptionalString<Data>;
-        },
-        EventKind<Data, Type>
-      > {
-    thread<const Key extends keyof Data>(
-      key: Key
-    ): EventKind<Data, Key extends string ? [...Type, `:@${Key}`] : Type>;
+      Attributable {
+    attr<Attr extends { threadId: keyof Data }>(
+      attr: Extract<Type[number], `:${string}`> extends never ? Attr : never
+    ): EventKind<
+      Data,
+      Attr["threadId"] extends string
+        ? [...Type, `:@${Attr["threadId"]}`]
+        : Type
+    >;
     (data: Data): AsyncGenerator<Event<Data, Type>, Event<Data, Type>, unknown>;
   }
 
@@ -240,12 +249,6 @@ export namespace Sica {
 
   export interface Extendable<Scope> {
     use<const NewScope>(newScope: NewScope): Extendable<Scope & NewScope>;
-  }
-
-  export interface Describable<Params, Return> {
-    describe<const Tags extends { description?: string } & Params>(
-      tags: Tags
-    ): Return;
   }
 
   export interface StepOption<T extends string, G extends null | string> {

@@ -1,20 +1,13 @@
-import { Expect, Equal } from "./helpers";
-import { Event } from "./event";
-import { Sica } from "./types";
+import { Sica } from "../types";
+import { Message } from "./message";
 
-describe("Event", async function* () {
-  it("works with arrow functions", () => {
-    const newEmail = Event("new-email")
-      .data({
-        from: "string",
-        subject: "string",
-      })
+describe("Message", async function* () {
+  it("should works with meta", () => {
+    const message = Message("A Message asdasdskajd").attr({
+      threadId: "asdasd",
+    });
 
-      .attr({
-        threadId: "from",
-      });
-
-    type T = typeof newEmail;
+    type T = typeof message;
 
     type newEmail = Expect<
       Equal<
