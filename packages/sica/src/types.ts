@@ -7,6 +7,7 @@ import {
   UUIDv7String,
   UUIDv5String,
   Pretty,
+  UUIDv4String,
 } from "./helpers";
 
 export namespace SicaMessage {
@@ -123,7 +124,7 @@ export namespace Sica {
 
   export interface Thread {
     id: ThreadId;
-    actorId: UUIDv5String
+    actorId: UUIDv5String | UUIDv4String | string;
     state: "new" | "active" | "waiting" | "finalized" | "renewed";
     messages: SicaMessage.AnyMessage[];
   }
