@@ -7,7 +7,6 @@ import {
   UUIDv7String,
   UUIDv5String,
   Pretty,
-  UUIDv4String,
 } from "./helpers";
 
 export namespace SicaMessage {
