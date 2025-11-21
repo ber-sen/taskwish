@@ -218,38 +218,36 @@ export namespace Sica {
     scope: Scope;
   }
 
-  export type ValidateTrigger<Schema, Type extends string[] = []> =
-    Schema extends StandardSchemaV1<any>
-      ? Schema
-      : Schema extends object
-        ? type.validate<
-            Schema,
-            {
-              "Scope.model": string;
-            }
-          >
-        : Schema extends EventKind<Type, infer Input>
-          ? EventKind<Type, Input>
-          : object;
-
   export type ValidateSchema<Schema> =
     Schema extends StandardSchemaV1<any>
       ? Schema
       : Schema extends object
-        ? type.validate<
-            Schema,
-            {
-              "Scope.model": string;
-            }
-          >
+        ? type.validate<Schema>
         : object;
 
   export type InferInput<Schema> =
     Schema extends StandardSchemaV1<infer Input>
       ? Input
+      : type.instantiate<Schema>["infer"];
+
+  export type ValidateTrigger<Schema> =
+    Schema extends StandardSchemaV1<any>
+      ? Schema
+      : Schema extends object
+        ? type.validate<Schema>
+        : Schema extends EventKind<any, infer Input>
+          ? EventKind<any, Input>
+          : object;
+
+  export type InferTrigger<Schema> =
+    Schema extends StandardSchemaV1<infer Input>
+      ? { input: Input; threadId: Boria.ThreadId }
       : Schema extends Event<infer Input, any>
-        ? Input
-        : type.instantiate<Schema>["infer"];
+        ? { input: Input; threadId: Boria.ThreadId }
+        : {
+            input: type.instantiate<Schema>["infer"];
+            threadId: Boria.ThreadId;
+          };
 
   export interface Extendable<Scope> {
     use<const NewScope>(newScope: NewScope): Extendable<Scope & NewScope>;
@@ -262,12 +260,8 @@ export namespace Sica {
   }
 
   export interface Triggerable<Scope extends Record<any, any>> {
-    on<const Type extends string[], const Schema>(
-      trigger: ValidateTrigger<Schema, Type>
-    ): Scoped<
-      Scope &
-        Record<"input", InferInput<Schema>> &
-        Record<"threadId", UUIDv5String | UUIDv7String>
-    >;
+    on<const Schema>(
+      trigger: ValidateTrigger<Schema>
+    ): Scoped<Scope & InferTrigger<Schema>>;
   }
 }
