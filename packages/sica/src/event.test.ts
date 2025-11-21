@@ -11,7 +11,7 @@ describe("Event", async function* () {
       })
 
       .attr({
-        threadId: "from",
+        threadId: "from"
       });
 
     type T = typeof newEmail;

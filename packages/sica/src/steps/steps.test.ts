@@ -2,7 +2,6 @@ import { Equal } from "drizzle-orm";
 import { Sica } from "../types";
 import { End } from "./end";
 import { If } from "./if-else";
-import { Input } from "./input";
 import { Loop, Range } from "./loop";
 import { Match } from "./match";
 import { Steps } from "./steps";
@@ -72,8 +71,6 @@ describe("Steps", () => {
 
   it("should work with match", async () => {
     const action = Steps(
-      Input({ language: "string" }),
-
       ($) => Match($.input, { subtype: true }),
 
       "me_message",

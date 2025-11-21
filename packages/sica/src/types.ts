@@ -6,6 +6,7 @@ import {
   RunnableReturn,
   UUIDv7String,
   UUIDv5String,
+  DeepOptionalString,
 } from "./helpers";
 import { Boria } from "./boria";
 
@@ -46,7 +47,22 @@ export namespace Sica {
   export interface Action<
     Handler extends ((...args: any) => any) | GenericHandler,
     Type extends string[] = ["action"],
-  > extends Resource<Type> {
+    Attributes = null,
+  > extends Attributable,
+      Resource<Type> {
+    attr<
+      const Attr extends {
+        description?: string;
+        input?: Handler extends (...args: any) => any
+          ? DeepOptionalString<Parameters<Handler>[0]>
+          : never;
+        output?: Handler extends (...args: any) => any
+          ? DeepOptionalString<ReturnType<Handler>>
+          : never;
+      },
+    >(
+      attr: Attributes extends object ? "get" : Attr
+    ): Attributes extends object ? Attributes : Action<Handler, Type, Attr>;
     <Scope extends Array<Provide<any>>>(
       ...args: [...Scope, ActionInput<Handler>]
     ): ActionReturn<Handler>;
@@ -106,7 +122,7 @@ export namespace Sica {
 
   export abstract class GenericHandler {
     readonly scope?: unknown;
-    handler?: unknown;
+    handler?: (...args: any) => any;
     bind?: (...x: never[]) => unknown;
   }
 

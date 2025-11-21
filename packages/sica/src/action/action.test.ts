@@ -8,7 +8,7 @@ import { Provide } from "./provide";
 
 describe("Action", () => {
   it("works with arrow functions", async () => {
-    const succeed = Action("Succeed", () => ({ success: true }));
+    const succeed = Action("Succeed").execute(() => ({ success: true }));
 
     type T = typeof succeed;
 
@@ -29,8 +29,41 @@ describe("Action", () => {
     expect(result).toEqual({ success: true });
   });
 
+  it("works with schema", async () => {
+    const succeed = Action("Succeed")
+      .execute((params: { name: string }) => ({
+        success: true,
+      }))
+
+      .attr({ description: "asdasa", input: { name: "name parameter" } });
+
+    type T = typeof succeed;
+
+    type succeed = Expect<
+      Equal<
+        Sica.Action<
+          (params: { name: string }) => {
+            success: boolean;
+          },
+          ["action", "Succeed"],
+          {
+            readonly description: "asdasa";
+            readonly input: {
+              readonly name: "name parameter";
+            };
+          }
+        >,
+        T
+      >
+    >;
+
+    const result = await succeed({ name: "asda" });
+
+    expect(result).toEqual({ success: true });
+  });
+
   it("works with array type", async () => {
-    const succeed = Action(["io", "Succeed"], () => ({
+    const succeed = Action(["io", "Succeed"]).execute(() => ({
       success: true,
     }));
 
@@ -54,9 +87,11 @@ describe("Action", () => {
   });
 
   it("works with params", async () => {
-    const sayHello = Action("Say hello", (params: { language: string }) => {
-      return `Hello in ${params.language}`;
-    });
+    const sayHello = Action("Say hello").execute(
+      (params: { language: string }) => {
+        return `Hello in ${params.language}`;
+      }
+    );
 
     type T = typeof sayHello;
 
@@ -76,9 +111,11 @@ describe("Action", () => {
   });
 
   it("works with provided scope", async () => {
-    const sayHello = Action("Say hello", (params: { language: string }) => {
-      return `Hello in ${params.language}`;
-    });
+    const sayHello = Action("Say hello").execute(
+      (params: { language: string }) => {
+        return `Hello in ${params.language}`;
+      }
+    );
 
     const scope = [Provide("env", process.env)] as const;
 
@@ -100,7 +137,7 @@ describe("Action", () => {
   });
 
   it("works with generators", async () => {
-    const streamNumbers = Action("Stream", async function* () {
+    const streamNumbers = Action("Stream").execute(async function* () {
       yield Message.User([
         { type: "text", text: "asd" },
         { type: "text", text: "asdasd" },
@@ -117,7 +154,7 @@ describe("Action", () => {
   });
 
   it("works with dynamic env", async () => {
-    const dynamicEnv = Action("Stream", async function* () {
+    const dynamicEnv = Action("Stream").execute(async function* () {
       const env = yield* Env({ API_KEY: "string" });
 
       return Boolean(env);
@@ -148,7 +185,7 @@ describe("Action", () => {
   });
 
   it("works with AbortSignal", async () => {
-    const dynamicRequire = Action("Stream", async function* () {
+    const dynamicRequire = Action("Stream").execute(async function* () {
       const io = yield* Use("abort-signal").as<AbortSignal>();
 
       return io.aborted;
@@ -177,7 +214,7 @@ describe("Action", () => {
       ["io"]
     >;
 
-    const dynamicRequire = Action("Stream", async function* () {
+    const dynamicRequire = Action("Stream").execute(async function* () {
       const io = yield* Use<IO>("io");
 
       yield* io({ in: "What is your favorite color?" });
@@ -202,7 +239,7 @@ describe("Action", () => {
       ["ask"]
     >;
 
-    const askActionAction = Action("Stream", async function* () {
+    const askActionAction = Action("Stream").execute(async function* () {
       const ask = yield* Use<Ask>("ask");
 
       const response = yield* ask({
