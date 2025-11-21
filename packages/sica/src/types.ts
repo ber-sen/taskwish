@@ -9,6 +9,8 @@ import {
 } from "./helpers";
 
 export namespace Boria {
+  export type ThreadId = UUIDv5String | UUIDv7String;
+
   export type DataContent = string | Uint8Array | ArrayBuffer | Buffer;
 
   export interface TextPart {
@@ -62,19 +64,21 @@ export namespace Boria {
   > {
     attr<
       Attr extends {
-        redirectThreadId?: Sica.ThreadId;
+        redirectThreadId?: ThreadId;
         finalizeThread?: boolean;
       },
     >(
       attr: Attributes extends object ? "get" : Attr
-    ): Attributes extends object
-      ? Attributes
-      : Message<
-          Type,
-          Attr
-        >;
+    ): Attributes extends object ? Attributes : Message<Type, Attr>;
     role: Type["role"];
     content: Type["content"];
+  }
+
+  export interface Thread {
+    id: ThreadId;
+    actorId: UUIDv5String | UUIDv7String | string;
+    state: "new" | "active" | "waiting" | "finalized" | "renewed";
+    messages: Boria.AnyMessage[];
   }
 
   export type AnyMessage = Message<any, any>;
@@ -86,8 +90,6 @@ export namespace Sica {
   export const Deploy = Symbol.for("Sica.Deploy");
 
   export const Destroy = Symbol.for("Sica.down");
-
-  export type ThreadId = UUIDv5String | UUIDv7String;
 
   export interface Typed<Type extends string[]> {
     [Type]: Type;
@@ -116,13 +118,6 @@ export namespace Sica {
     ): RunnableReturn<Handler>; // get deps of scope from handler
   }
 
-  export interface Thread {
-    id: ThreadId;
-    actorId: UUIDv5String | UUIDv7String | string;
-    state: "new" | "active" | "waiting" | "finalized" | "renewed";
-    messages: Boria.AnyMessage[];
-  }
-
   export interface Action<
     Handler extends ((...args: any) => any) | GenericHandler,
     Type extends string[] = ["action"],
@@ -143,15 +138,14 @@ export namespace Sica {
       Promise<Return> {
     id: UUIDv7String;
     actorId: UUIDv5String;
-    threadId: ThreadId;
-    parentId?: UUIDv7String;
+    threadId: Boria.ThreadId;
     params: Params;
   }
 
   export interface Event<Data, Type extends string[]> extends Typed<Type> {
     id: UUIDv7String;
     actorId: UUIDv5String;
-    threadId: ThreadId;
+    threadId: Boria.ThreadId;
     handled?: boolean;
     data: Data;
   }
@@ -166,6 +160,8 @@ export namespace Sica {
 
   export interface Log<Data, Type extends string[] = ["info"]> // info, start, warn, success
     extends Typed<Type> {
+    id: UUIDv7String;
+    threadId: Boria.ThreadId;
     data: Data;
     toString: () => string;
   }
@@ -175,6 +171,8 @@ export namespace Sica {
     Data,
     Type extends string[] = ["error"], // error, critical
   > extends Typed<Type> {
+    id: UUIDv7String;
+    threadId: Boria.ThreadId;
     status: Status;
     data: Data;
     throw: () => void;
@@ -208,10 +206,12 @@ export namespace Sica {
   export type Step<
     Name extends string,
     Result,
-    Params = null,
     Type extends string[] = ["step"],
+    Attributes extends { executionId: UUIDv5String } | null = null,
   > = {
-    [P in Name]: Result & { [META]: { params: Params } } & Typed<Type>;
+    [P in Name]: Result & Typed<Type>;
+  } & {
+    attr: (param: "get") => Attributes;
   };
 
   export interface Scoped<Scope extends Record<any, any>> {

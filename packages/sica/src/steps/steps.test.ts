@@ -96,7 +96,7 @@ describe("Steps", () => {
     const Step = <const Name extends string, const R>(
       name: Name,
       data: R
-    ): Sica.Step<Name, R, null> => ({}) as never;
+    ): Sica.Step<Name, R> => ({}) as never;
 
     const steps = async function* () {
       yield Step("1", 3);
@@ -118,18 +118,18 @@ describe("Steps", () => {
     type succeed = Expect<
       Equal<
         AsyncGenerator<
-          | Sica.Step<"1", 3, null, ["step"]>
-          | Sica.Step<"2", "sadasd", null, ["step"]>
-          | Sica.Step<"3", true, null, ["step"]>
-          | Sica.Step<"4", 3, null, ["step"]>
-          | Sica.Step<"5", "sadasd", null, ["step"]>
-          | Sica.Step<"6", true, null, ["step"]>
-          | Sica.Step<"7", 3, null, ["step"]>
-          | Sica.Step<"8", "sadasd", null, ["step"]>
-          | Sica.Step<"9", true, null, ["step"]>
-          | Sica.Step<"10", 3, null, ["step"]>
-          | Sica.Step<"11", "sadasd", null, ["step"]>
-          | Sica.Step<"12", true, null, ["step"]>,
+          | Sica.Step<"1", 3, ["step"], null>
+          | Sica.Step<"2", "sadasd", ["step"], null>
+          | Sica.Step<"3", true, ["step"], null>
+          | Sica.Step<"4", 3, ["step"], null>
+          | Sica.Step<"5", "sadasd", ["step"], null>
+          | Sica.Step<"6", true, ["step"], null>
+          | Sica.Step<"7", 3, ["step"], null>
+          | Sica.Step<"8", "sadasd", ["step"], null>
+          | Sica.Step<"9", true, ["step"], null>
+          | Sica.Step<"10", 3, ["step"], null>
+          | Sica.Step<"11", "sadasd", ["step"], null>
+          | Sica.Step<"12", true, ["step"], null>,
           void,
           unknown
         >,
