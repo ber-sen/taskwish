@@ -1,5 +1,5 @@
 import { Equal, Expect } from "../helpers";
-import { SicaMessage } from "../types";
+import { Boria } from "../types";
 import { Message } from "./message";
 
 describe("Message", async function* () {
@@ -12,11 +12,15 @@ describe("Message", async function* () {
 
     type newEmail = Expect<
       Equal<
-        SicaMessage.Message<{
-          role: "assistant";
-          content: "A Message asdasdskajd";
-          readonly redirectThreadId: "cde8902f-0b07-5fcb-80f5-3fa809508db4";
-        }>,
+        Boria.Message<
+          {
+            role: "assistant";
+            content: "A Message asdasdskajd";
+          },
+          {
+            redirectThreadId: "cde8902f-0b07-5fcb-80f5-3fa809508db4";
+          }
+        >,
         T
       >
     >;

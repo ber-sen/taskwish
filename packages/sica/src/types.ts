@@ -6,10 +6,9 @@ import {
   RunnableReturn,
   UUIDv7String,
   UUIDv5String,
-  Pretty,
 } from "./helpers";
 
-export namespace SicaMessage {
+export namespace Boria {
   export type DataContent = string | Uint8Array | ArrayBuffer | Buffer;
 
   export interface TextPart {
@@ -59,40 +58,39 @@ export namespace SicaMessage {
 
   export interface Message<
     Type extends (User | System | Assistant) & { meta?: any },
-  > extends Sica.Attributable {
+    Attributes = null,
+  > {
     attr<
-      const Meta extends {
+      Attr extends {
         redirectThreadId?: Sica.ThreadId;
         finalizeThread?: boolean;
       },
     >(
-      attr: Meta
-    ): Message<
-      Pretty<Type & Meta> extends (User | System | Assistant) & { meta?: any }
-        ? Pretty<Type & Meta>
-        : never
-    >;
+      attr: Attributes extends object ? "get" : Attr
+    ): Attributes extends object
+      ? Attributes
+      : Message<
+          Type,
+          Attr
+        >;
     role: Type["role"];
     content: Type["content"];
-    meta: Type["meta"];
   }
 
-  export type AnyMessage = Message<any>;
+  export type AnyMessage = Message<any, any>;
 }
 
 export namespace Sica {
-  export const TYPE = Symbol.for("Sica.type");
+  export const Type = Symbol.for("Sica.type");
 
-  export const META = Symbol.for("Sica.meta");
+  export const Deploy = Symbol.for("Sica.Deploy");
 
-  export const UP = Symbol.for("Sica.up");
-
-  export const DOWN = Symbol.for("Sica.down");
+  export const Destroy = Symbol.for("Sica.down");
 
   export type ThreadId = UUIDv5String | UUIDv7String;
 
   export interface Typed<Type extends string[]> {
-    [TYPE]: Type;
+    [Type]: Type;
   }
 
   export interface Attributable {
@@ -105,17 +103,14 @@ export namespace Sica {
 
   export interface Resource<Type extends string[]> extends Typed<Type> {
     id: UUIDv5String;
-    [UP](): AsyncGenerator<string, boolean, unknown>;
-    [DOWN](): AsyncGenerator<string, boolean, unknown>;
+    [Deploy](): AsyncGenerator<Boria.AnyMessage, boolean, unknown>;
+    [Destroy](): AsyncGenerator<Boria.AnyMessage, boolean, unknown>;
   }
 
   export interface NullaryAction<
     Handler extends () => any,
     Type extends string[] = ["action"],
   > extends Resource<Type> {
-    [META]: {
-      handler: Handler;
-    };
     <const Scope extends Record<string, any>>(
       scope?: Scope
     ): RunnableReturn<Handler>; // get deps of scope from handler
@@ -125,16 +120,13 @@ export namespace Sica {
     id: ThreadId;
     actorId: UUIDv5String | UUIDv7String | string;
     state: "new" | "active" | "waiting" | "finalized" | "renewed";
-    messages: SicaMessage.AnyMessage[];
+    messages: Boria.AnyMessage[];
   }
 
   export interface Action<
     Handler extends ((...args: any) => any) | GenericHandler,
     Type extends string[] = ["action"],
   > extends Resource<Type> {
-    [META]: {
-      handler: Handler;
-    };
     <Scope extends Array<Provide<any>>>(
       ...args: [...Scope, ActionInput<Handler>]
     ): ActionReturn<Handler>;
@@ -201,17 +193,15 @@ export namespace Sica {
     ? T["scope"][Key]
     : T["scope"];
 
-  export interface EventKind<Data, Type extends string[] = ["event"]>
-    extends Resource<Type>,
+  export interface EventKind<
+    Data,
+    Type extends string[] = ["event"],
+    Attributes = null,
+  > extends Resource<Type>,
       Attributable {
-    attr<Attr extends { threadId: keyof Data }>(
-      attr: Extract<Type[number], `:${string}`> extends never ? Attr : never
-    ): EventKind<
-      Data,
-      Attr["threadId"] extends string
-        ? [...Type, `:@${Attr["threadId"]}`]
-        : Type
-    >;
+    attr<Attr extends { threadId: keyof Data; scope?: Record<string, any> }>(
+      attr: Attributes extends object ? "get" : Attr
+    ): Attributes extends object ? Attributes : EventKind<Data, Type, Attr>;
     (data: Data): AsyncGenerator<Event<Data, Type>, Event<Data, Type>, unknown>;
   }
 

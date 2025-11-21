@@ -7,5 +7,3 @@ const a = Event("new-email")
   })
 
   .attr({ threadId: "from" });
-
-  

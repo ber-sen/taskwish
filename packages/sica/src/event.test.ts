@@ -23,7 +23,10 @@ describe("Event", async function* () {
             from: string;
             subject: string;
           },
-          ["event", "new-email", ":@from"]
+          ["event", "new-email"],
+          {
+            threadId: "from";
+          }
         >,
         T
       >
