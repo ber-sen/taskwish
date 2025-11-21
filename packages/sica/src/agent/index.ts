@@ -1,2 +1,2 @@
-export * from "./message"
+export * from "../boria/message"
 export * from "./agent"

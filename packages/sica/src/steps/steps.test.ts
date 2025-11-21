@@ -1,4 +1,4 @@
-import { Equal, Name } from "drizzle-orm";
+import { Equal } from "drizzle-orm";
 import { Sica } from "../types";
 import { End } from "./end";
 import { If } from "./if-else";

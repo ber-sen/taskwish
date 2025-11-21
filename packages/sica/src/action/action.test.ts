@@ -3,7 +3,7 @@ import { Action } from "./action";
 import { Sica } from "../types";
 import { Env } from "./env";
 import { Use } from "./use";
-import { Message } from "../agent/message";
+import { Message } from "../boria/message";
 import { Provide } from "./provide";
 
 describe("Action", () => {

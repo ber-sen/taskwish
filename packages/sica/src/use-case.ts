@@ -21,8 +21,8 @@ export interface UseCaseFactory<
   on<const Schema>(
     trigger: Sica.ValidateTrigger<Schema>
   ): Used extends string
-    ? Omit<ConfigurableUseCase< Sica.InferTrigger<Schema>, Used>, Used>
-    : ConfigurableUseCase<Sica.InferTrigger<Schema>, Used>;
+    ? Omit<ConfigurableUseCase< Sica.InferTriggerScope<Schema>, Used>, Used>
+    : ConfigurableUseCase<Sica.InferTriggerScope<Schema>, Used>;
   use<const NewScope>(
     newScope: NewScope
   ): Used extends string

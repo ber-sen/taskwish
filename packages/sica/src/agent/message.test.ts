@@ -1,6 +1,6 @@
 import { Equal, Expect } from "../helpers";
 import { Boria } from "../types";
-import { Message } from "./message";
+import { Message } from "../boria/message";
 
 describe("Message", async function* () {
   it("should works with meta", () => {

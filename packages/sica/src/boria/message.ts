@@ -1,4 +1,4 @@
-import { Boria } from "../types";
+import { Boria } from "./types";
 
 export function Message<const Content extends Boria.AssistantContent>(
   content: Content
