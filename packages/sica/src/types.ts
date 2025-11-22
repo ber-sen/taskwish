@@ -13,9 +13,11 @@ import { Boria } from "./boria";
 export namespace Sica {
   export const Type = Symbol.for("Sica.type");
 
+  export const Build = Symbol.for("Sica.Build");
+
   export const Deploy = Symbol.for("Sica.Deploy");
 
-  export const Destroy = Symbol.for("Sica.down");
+  export const Destroy = Symbol.for("Sica.Destroy");
 
   export interface Typed<Type extends string[]> {
     [Type]: Type;
