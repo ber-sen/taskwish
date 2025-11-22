@@ -1,0 +1,28 @@
+{
+  "$schema": "https://getcomposer.org/schema.json",
+  "type": ["ChatBot", "usecase"],
+  "params": {
+    "on": { "tools": "string[]", "prompt": "string" },
+    "steps": [
+      {
+        "name": "agent.marketing.chat",
+        "type": ["agent"],
+        "params": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are a helpful marketing assistent called Boria"
+            }
+          ],
+          "tools": "@{tools.filter((tool) => input.tool.includes(tool.name))}"
+        }
+      },
+      {
+        "type": ["agent.marketing.chat"],
+        "params": {
+          "prompt": "@{input.prompt}"
+        }
+      }
+    ]
+  }
+}
