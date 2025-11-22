@@ -1,0 +1,8 @@
+{
+  "name": "example",
+  "type": "module",
+  "taskwish": {
+    "type": "package",
+    "params": {}
+  }
+}

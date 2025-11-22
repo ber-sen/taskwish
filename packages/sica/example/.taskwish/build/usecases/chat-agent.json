@@ -1,12 +1,12 @@
 {
-  "$schema": "https://getcomposer.org/schema.json",
-  "type": ["ChatBot", "usecase"],
+  "name": "chat-agent",
+  "type": "usecase",
   "params": {
     "on": { "tools": "string[]", "prompt": "string" },
     "steps": [
       {
         "name": "agent.marketing.chat",
-        "type": ["agent"],
+        "type": "agent",
         "params": {
           "messages": [
             {
@@ -18,7 +18,7 @@
         }
       },
       {
-        "type": ["agent.marketing.chat"],
+        "type": "agent.marketing.chat",
         "params": {
           "prompt": "@{input.prompt}"
         }
