@@ -22,7 +22,7 @@ export namespace Sica {
   }
 
   export interface Attributable {
-    attr(attributes: unknown): unknown;
+    meta(Meta: unknown): unknown;
   }
 
   export interface Struct<Data, Type extends string[]> extends Typed<Type> {
@@ -38,20 +38,10 @@ export namespace Sica {
   export interface NullaryAction<
     Handler extends () => any,
     Type extends string[] = ["action"],
+    Meta = null,
   > extends Resource<Type> {
-    <const Scope extends Record<string, any>>(
-      scope?: Scope
-    ): RunnableReturn<Handler>; // get deps of scope from handler
-  }
-
-  export interface Action<
-    Handler extends ((...args: any) => any) | GenericHandler,
-    Type extends string[] = ["action"],
-    Attributes = null,
-  > extends Attributable,
-      Resource<Type> {
-    attr<
-      const Attr extends {
+    meta<
+      const Tags extends {
         description?: string;
         input?: Handler extends (...args: any) => any
           ? DeepOptionalString<Parameters<Handler>[0]>
@@ -61,8 +51,32 @@ export namespace Sica {
           : never;
       },
     >(
-      attr: Attributes extends object ? "get" : Attr
-    ): Attributes extends object ? Attributes : Action<Handler, Type, Attr>;
+      meta: Meta extends object ? "get" : Tags
+    ): Meta extends object ? Meta : Action<Handler, Type, Tags>;
+    <const Scope extends Record<string, any>>(
+      scope?: Scope
+    ): RunnableReturn<Handler>; // get deps of scope from handler
+  }
+
+  export interface Action<
+    Handler extends ((...args: any) => any) | GenericHandler,
+    Type extends string[] = ["action"],
+    Meta = null,
+  > extends Attributable,
+      Resource<Type> {
+    meta<
+      const Tags extends {
+        description?: string;
+        input?: Handler extends (...args: any) => any
+          ? DeepOptionalString<Parameters<Handler>[0]>
+          : never;
+        output?: Handler extends (...args: any) => any
+          ? DeepOptionalString<ReturnType<Handler>>
+          : never;
+      },
+    >(
+      meta: Meta extends object ? "get" : Tags
+    ): Meta extends object ? Meta : Action<Handler, Type, Tags>;
     <Scope extends Array<Provide<any>>>(
       ...args: [...Scope, ActionInput<Handler>]
     ): ActionReturn<Handler>;
@@ -135,12 +149,12 @@ export namespace Sica {
   export interface EventKind<
     Data,
     Type extends string[] = ["event"],
-    Attributes = null,
+    Meta = null,
   > extends Resource<Type>,
       Attributable {
-    attr<Attr extends { threadId: keyof Data; scope?: Record<string, any> }>(
-      attr: Attributes extends object ? "get" : Attr
-    ): Attributes extends object ? Attributes : EventKind<Data, Type, Attr>;
+    meta<Tags extends { threadId: keyof Data; scope?: Record<string, any> }>(
+      meta: Meta extends object ? "get" : Tags
+    ): Meta extends object ? Meta : EventKind<Data, Type, Tags>;
     (data: Data): AsyncGenerator<Event<Data, Type>, Event<Data, Type>, unknown>;
   }
 
@@ -148,11 +162,11 @@ export namespace Sica {
     Name extends string,
     Result,
     Type extends string[] = ["step"],
-    Attributes extends { executionId: UUIDv5String } | null = null,
+    Meta extends { executionId: UUIDv5String } | null = null,
   > = {
     [P in Name]: Result & Typed<Type>;
   } & {
-    attr: (param: "get") => Attributes;
+    meta: (param: "get") => Meta;
   };
 
   export interface Scoped<Scope extends Record<any, any>> {

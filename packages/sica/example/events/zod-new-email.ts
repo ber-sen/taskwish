@@ -6,4 +6,4 @@ export default Event("zod-new-email")
     z.object({ from: z.string(), subject: z.string(), message: z.string() })
   )
 
-  .attr({ threadId: "from" });
+  .meta({ threadId: "from" });

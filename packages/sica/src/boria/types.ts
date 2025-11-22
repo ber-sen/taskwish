@@ -52,16 +52,16 @@ export namespace Boria {
 
   export interface Message<
     Type extends (User | System | Assistant) & { meta?: any },
-    Attributes = null,
+    Meta = null,
   > {
-    attr<
-      Attr extends {
+    meta<
+      Tags extends {
         redirectThreadId?: ThreadId;
         finalizeThread?: boolean;
       },
     >(
-      attr: Attributes extends object ? "get" : Attr
-    ): Attributes extends object ? Attributes : Message<Type, Attr>;
+      meta: Meta extends object ? "get" : Tags
+    ): Meta extends object ? Meta : Message<Type, Tags>;
     role: Type["role"];
     content: Type["content"];
   }

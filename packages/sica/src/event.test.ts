@@ -10,7 +10,7 @@ describe("Event", async function* () {
         subject: "string",
       })
 
-      .attr({
+      .meta({
         threadId: "from"
       });
 

@@ -13,7 +13,7 @@ export function Use<const Type extends string[] | string>(
 };
 
 export function Use<const Dep extends Sica.Typed<any>>(
-  type: Dep[typeof Sica.TYPE][keyof Dep[typeof Sica.TYPE]]
+  type: Dep[typeof Sica.Type][keyof Dep[typeof Sica.Type]]
 ): Generator<
   never,
   Dep extends Sica.Struct<infer Data, any> ? Data : Dep,

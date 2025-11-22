@@ -8,7 +8,7 @@ import { Provide } from "./provide";
 
 describe("Action", () => {
   it("works with arrow functions", async () => {
-    const succeed = Action("Succeed").execute(() => ({ success: true }));
+    const succeed = Action("Succeed").execute(() => ({ success: true }))
 
     type T = typeof succeed;
 
@@ -35,7 +35,7 @@ describe("Action", () => {
         success: true,
       }))
 
-      .attr({ description: "asdasa", input: { name: "name parameter" } })
+      .meta({ description: "asdasa", input: { name: "name parameter" } })
 
     type T = typeof succeed;
 

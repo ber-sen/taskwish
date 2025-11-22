@@ -15,6 +15,6 @@ export default UseCase("Say hello")
     ["step2", () => 3]
   )
 
-  .attr({
+  .meta({
     input: { language: "Hello language" },
   });

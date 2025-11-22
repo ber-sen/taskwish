@@ -1,1 +1,0 @@
-export const Meta = <const Meta>(tags: Meta) => tags;

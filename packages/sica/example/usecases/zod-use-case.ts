@@ -17,7 +17,7 @@ export default UseCase("Say hello")
     }
   )
 
-  .attr({
+  .meta({
     description: "asdasd",
     input: { language: "Hello language" },
   })

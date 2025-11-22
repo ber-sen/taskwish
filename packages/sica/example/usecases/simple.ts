@@ -5,4 +5,4 @@ export default UseCase("Simple")
 
   .steps(({ action }) => action.succeed())
 
-  .attr({ description: "Send a message to slack" });
+  .meta({ description: "Send a message to slack" });
