@@ -1,7 +1,6 @@
 import { Action, Sica } from "../../src";
 
-export default Action(
-  "succeed",
+export default Action("succeed").execute(
   <const S0, const S1>() =>
     <const Model extends S0, const Trip extends S1>({
       model,
@@ -20,4 +19,4 @@ export default Action(
         Sica.Generic<this, "trip">
       >;
     }
-);
+)

@@ -35,7 +35,7 @@ describe("Action", () => {
         success: true,
       }))
 
-      .attr({ description: "asdasa", input: { name: "name parameter" } });
+      .attr({ description: "asdasa", input: { name: "name parameter" } })
 
     type T = typeof succeed;
 
@@ -81,7 +81,7 @@ describe("Action", () => {
       >
     >;
 
-    const result = await succeed();
+    const result = await succeed()
 
     expect(result).toEqual({ success: true });
   });

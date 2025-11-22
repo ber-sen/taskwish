@@ -7,15 +7,14 @@ export default UseCase("Say hello")
 
   .on(z.object({ language: z.string() }))
 
-  .describe("Send hello message to slack", {
-    input: { language: "Hello language" },
-  })
-
   .steps(
     ["step1", () => 3],
 
     Wait.until(newEmail),
 
     ["step2", () => 3]
-  );
+  )
 
+  .attr({
+    input: { language: "Hello language" },
+  });

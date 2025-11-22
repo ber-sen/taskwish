@@ -14,7 +14,7 @@ export default UseCase("Say hello")
         text: `Does someone speak ${input.user.age}?`,
       }),
 
-    Message("sadad"),
+    Message("Message send to slack"),
 
     End(Loop)
   );

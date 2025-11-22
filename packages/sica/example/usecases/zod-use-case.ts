@@ -6,11 +6,6 @@ export default UseCase("Say hello")
 
   .on(z.object({ language: z.string() }))
 
-  .attr({
-    description: "asdasd",
-    input: { language: "Hello language" },
-  })
-
   .steps(
     { step1: ({ input }) => input },
     {
@@ -20,7 +15,12 @@ export default UseCase("Say hello")
           text: `Does someone speak ${input.language}?`,
         }),
     }
-  );
+  )
+
+  .attr({
+    description: "asdasd",
+    input: { language: "Hello language" },
+  })
 
 type UnionToIntersection<U> = (U extends any ? (x: U) => void : never) extends (
   x: infer I

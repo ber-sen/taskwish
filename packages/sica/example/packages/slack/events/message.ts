@@ -22,7 +22,7 @@ export default Event("message")
     icons: "object",
   })
 
-  .describe({
+  .attr({
     description: "A message was sent to a channel",
     data: {
       channel: "Message channel",
