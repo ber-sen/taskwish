@@ -1,6 +1,6 @@
 import { Event } from "../../src/event";
 
-const a = Event("new-email")
+export default Event("new-email")
   .data({
     from: "string",
     subject: "string",

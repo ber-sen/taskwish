@@ -41,12 +41,10 @@ type Props<T> = {
     : T[K];
 } & {};
 
-type Return = Sica.Runnable<
-  never,
-  {
+type Return = Sica.NullaryAction<
+  () => {
     success: boolean;
-  },
-  unknown
+  }
 >;
 
 type Step0<Scope, S0, S0R> =

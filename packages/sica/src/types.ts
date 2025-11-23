@@ -11,7 +11,9 @@ import {
 import { Boria } from "./boria";
 
 export namespace Sica {
-  export const Type = Symbol.for("Sica.type");
+  export const Type = Symbol.for("Sica.Type");
+
+  export const Scope = Symbol.for("Sica.Scope");
 
   export const Build = Symbol.for("Sica.Build");
 
@@ -178,7 +180,7 @@ export namespace Sica {
   };
 
   export interface Scoped<Scope extends Record<any, any>> {
-    scope: Scope;
+    [Scope]: Scope;
   }
 
   export type ValidateSchema<Schema> =

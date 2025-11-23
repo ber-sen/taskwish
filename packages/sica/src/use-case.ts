@@ -1,34 +1,22 @@
 import { Steps } from "./steps/steps";
 import { Sica } from "./types";
 
-interface ConfigurableUseCase<
-  Scope extends Record<any, any>,
-  Used extends "describe" | null = null,
-> extends Sica.Scoped<Scope> {
+interface UseCaseMethodBody<Scope extends Record<any, any>>
+  extends Sica.Scoped<Scope> {
+  use<const NewScope>(newScope: NewScope): UseCaseMethodBody<NewScope & Scope>;
   steps: Steps<Scope>;
-  describe(
-    description: string,
-    meta?: { input: Scope["input"] }
-  ): ConfigurableUseCase<Scope, Used & "describe">;
 }
 
-export interface UseCaseFactory<
-  Params,
-  Scope extends Record<any, any> = {},
-  Used extends "describe" | null = null,
-> extends Sica.Scoped<Scope>,
+export interface UseCaseFactory<Params, Scope extends Record<any, any> = {}>
+  extends Sica.Scoped<Scope>,
+    UseCaseMethodBody<Scope>,
     Sica.Triggerable<Scope> {
-  on<const Schema>(
-    trigger: Sica.ValidateTrigger<Schema>
-  ): Used extends string
-    ? Omit<ConfigurableUseCase< Sica.InferTriggerScope<Schema>, Used>, Used>
-    : ConfigurableUseCase<Sica.InferTriggerScope<Schema>, Used>;
   use<const NewScope>(
     newScope: NewScope
-  ): Used extends string
-    ? Omit<UseCaseFactory<Params, NewScope & Scope, Used>, Used>
-    : UseCaseFactory<Params, NewScope & Scope, Used>;
-  steps: Steps<Scope>;
+  ): UseCaseFactory<Params, NewScope & Scope>;
+  on<const Schema>(
+    trigger: Sica.ValidateTrigger<Schema>
+  ): UseCaseMethodBody<Scope & Sica.InferTriggerScope<Schema>>;
 }
 
 export const UseCase = <const Params extends string>(

@@ -5,14 +5,14 @@ export default UseCase("Say hello")
 
   .on("zod-new-email")
 
-  .describe("Send hello message to slack", {
-    input: { language: "Hello language" },
-  })
+  .steps(["asdasd", ($) => $.input])
 
-  .steps(["asdasd", ($) => $.input]);
+  .meta({
+    description: "Send hello message to slack",
+  });
 
 type UnionToIntersection<U> = (U extends any ? (x: U) => void : never) extends (
-  x: infer I,
+  x: infer I
 ) => void
   ? I
   : never;
@@ -20,7 +20,7 @@ type UnionToIntersection<U> = (U extends any ? (x: U) => void : never) extends (
 // Turn a union into an overloaded function, then extract its parameter tuple
 type UnionToTuple<U> =
   UnionToIntersection<U extends any ? (x: U) => void : never> extends (
-    x: infer I,
+    x: infer I
   ) => void
     ? [...UnionToTuple<Exclude<U, I>>, I]
     : [];
