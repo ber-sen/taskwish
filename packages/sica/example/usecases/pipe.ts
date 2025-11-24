@@ -1,4 +1,4 @@
-import { Loop, End, Range, UseCase, Input, Message } from "../../src";
+import { UseCase, Message } from "../../src";
 
 export default UseCase("Sub steps")
   .use(import("../package"))
@@ -17,5 +17,5 @@ export default UseCase("Sub steps")
         yield 3;
       },
     ],
-    ["stream step >>", ($) => $]
+    ["stream step >>", Source.pipeTo(Response)]
   );
