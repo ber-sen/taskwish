@@ -11,7 +11,7 @@ export default UseCase("Say hello")
     {
       name: "asdas",
       type: "slack::SendMessage",
-      run: () => ({ channel: "gtp-4", text: "asdasd" }),
+      run: () => ({ channel: "#general", text: "asdasd" }),
     },
 
     Message("Message send to slack"),
