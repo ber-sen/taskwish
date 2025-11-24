@@ -9,12 +9,11 @@ export default UseCase("Say hello")
     Loop(Range(0, 10)),
 
     {
-      name: "acc",
-      run: ({ action, input }) =>
-        action.slack.sendMessage({
-          channel: "#general",
-          text: `Does someone speak ${input.user.age}?`,
-        }),
+      type: "slack.sendMessage",
+      run: ({ input }) => ({
+        channel: "#general",
+        text: `Does someone speak ${input.user.age}?`,
+      }),
     },
 
     Message("Message send to slack"),

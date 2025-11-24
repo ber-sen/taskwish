@@ -17,6 +17,7 @@ export default UseCase("Chat bot")
       name: "marketing agent",
       type: "agent",
       init: () => ({
+        instructions: "asdasdadas asdas da",
         model: "gtp-4",
       }),
     },
@@ -24,8 +25,8 @@ export default UseCase("Chat bot")
     {
       name: "response",
       type: "marketingAgent",
-      run: ({ tools }) => ({
-        prompt: "asdasd",
+      run: ({ input }) => ({
+        prompt: input.prompt,
       }),
     }
   );

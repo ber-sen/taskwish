@@ -8,11 +8,11 @@ export default UseCase("Say hello")
   .on(z.object({ language: z.string() }))
 
   .steps(
-    ["step1", () => 3],
+    { name: "Step 1", run: () => 3 },
 
     Wait.until(newEmail),
 
-    ["step2", () => 3]
+    { name: "step2", run: ($) => $.step1 }
   )
 
   .meta({

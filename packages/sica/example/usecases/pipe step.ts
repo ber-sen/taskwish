@@ -16,15 +16,15 @@ export default UseCase("Sub steps")
         yield 2;
         yield 3;
       },
-      options: [PipeTo(Response)],
+      options: [Source.pipeTo(Response)],
     },
 
     {
       name: "asdads",
-      run: ({ action }) =>
-        action.slack.sendMessage({
-          channel: "#general",
-          text: `Does someone speak ${input.language}?`,
-        }),
+      type: ["slack.send-message"],
+      run: ({ input }) => ({
+        channel: "#general",
+        text: `Does someone speak ${input.user.age}?`,
+      }),
     }
   );

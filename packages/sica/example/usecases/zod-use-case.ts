@@ -7,20 +7,21 @@ export default UseCase("Say hello")
   .on(z.object({ language: z.string() }))
 
   .steps(
-    { step1: ({ input }) => input },
+    { name: "step 1", run: ({ input }) => input },
     {
-      step2: ({ input, action }) =>
-        action.slack.sendMessage({
-          channel: "#general",
-          text: `Does someone speak ${input.language}?`,
-        }),
+      // name: "step 2",
+      type: "slack.sendMessage",
+      run: ({ input }) => ({
+        channel: "#general",
+        text: `Does someone speak ${input.language}?`,
+      }),
     }
   )
 
   .meta({
     description: "asdasd",
     input: { language: "Hello language" },
-  })
+  });
 
 type UnionToIntersection<U> = (U extends any ? (x: U) => void : never) extends (
   x: infer I

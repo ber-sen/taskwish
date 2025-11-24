@@ -10,7 +10,10 @@ export default UseCase("Say hello")
 
     Message("case is true"),
 
-    ["asdasd", ({ input }) => input.user.name],
+    {
+      name: "asdasd",
+      run: ({ input }) => input.user.name,
+    },
 
     End(If),
 

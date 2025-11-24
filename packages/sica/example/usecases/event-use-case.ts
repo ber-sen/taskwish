@@ -5,7 +5,10 @@ export default UseCase("Say hello")
 
   .on("zod-new-email")
 
-  .steps(["asdasd", ($) => $.input])
+  .steps({
+    name: "asdasd",
+    run: ($) => $.input,
+  })
 
   .meta({
     description: "Send hello message to slack",
