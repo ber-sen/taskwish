@@ -6,9 +6,13 @@ export default UseCase("Sub steps")
   .on({ user: { name: "string", age: "number" } })
 
   .steps(
-    [
-      "stream step",
-      async function* () {
+    {
+      name: "first",
+      run: () => 3,
+    },
+    {
+      name: "stream step",
+      run: async function* () {
         yield Message.User([
           { type: "text", text: "asd" },
           { type: "text", text: "asdasd" },
@@ -16,6 +20,5 @@ export default UseCase("Sub steps")
         yield 2;
         yield 3;
       },
-    ],
-    ["stream step >>", Source.pipeTo(Response)]
+    }
   );

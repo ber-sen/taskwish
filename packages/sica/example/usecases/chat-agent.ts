@@ -20,7 +20,6 @@ export default UseCase("Chat bot")
     ($) => $.tools
   )
 
-  .steps([
-    "agent response",
-    ({ agent, input }) => agent.marketing.chat({ prompt: input.prompt }),
-  ]);
+  .steps({
+    run: ({ agent, input }) => agent.marketing.chat({ prompt: input.prompt }),
+  });

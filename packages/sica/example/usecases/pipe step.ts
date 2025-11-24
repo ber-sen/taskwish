@@ -6,29 +6,25 @@ export default UseCase("Sub steps")
   .on({ user: { name: "string", age: "number" } })
 
   .steps(
-    ({ input }) =>
-      Step("asdads").run(
-        async function* () {
-          yield Message.User([
-            { type: "text", text: "asd" },
-            { type: "text", text: "asdasd" },
-          ]);
-          yield 2;
-          yield 3;
-        },
-        Source.pipeTo(Response),
-        Source.pipeTo(Response),
-        Source.pipeTo(Response),
-        Source.pipeTo(Response),
-        Source.pipeTo(Response)
-      ),
+    {
+      name: "lorem ipsum",
+      run: async function* () {
+        yield Message.User([
+          { type: "text", text: "asd" },
+          { type: "text", text: "asdasd" },
+        ]);
+        yield 2;
+        yield 3;
+      },
+      options: [PipeTo(Response)],
+    },
 
-    ({ action, input }) =>
-      Step("asdads").run(
+    {
+      name: "asdads",
+      run: ({ action }) =>
         action.slack.sendMessage({
           channel: "#general",
           text: `Does someone speak ${input.language}?`,
         }),
-        Source.pipeTo(Response)
-      )
+    }
   );

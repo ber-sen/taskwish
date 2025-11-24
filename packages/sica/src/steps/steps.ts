@@ -48,7 +48,7 @@ type Return = Sica.NullaryAction<
 >;
 
 type Step0<Scope, S0, S0R> =
-  | [name: S0, handler: (props: Props<Scope>) => S0R]
+  | { name: S0; run: (props: Props<Scope>) => S0R }
   | ((
       props: Props<Scope>
     ) => S0R | Sica.StepOption<any, null> | Boria.AnyMessage)
@@ -56,12 +56,12 @@ type Step0<Scope, S0, S0R> =
   | Boria.AnyMessage;
 
 type Step1<Scope, S0, S0R, S1, S1R> =
-  | [
-      name: S1,
-      handler: (
+  | {
+      name: S1;
+      run: (
         props: Props<Scope & (S0 extends string ? Record<S0, S0R> : {})>
-      ) => S1R,
-    ]
+      ) => S1R;
+    }
   | ((
       props: Props<Scope & (S0 extends string ? Record<S0, S0R> : {})>
     ) => S1R | Sica.StepOption<any, null> | Boria.AnyMessage)
@@ -69,16 +69,16 @@ type Step1<Scope, S0, S0R, S1, S1R> =
   | Boria.AnyMessage;
 
 type Step2<Scope, S0, S0R, S1, S1R, S2, S2R> =
-  | [
-      name: S2,
-      handler: (
+  | {
+      name: S2;
+      run: (
         props: Props<
           Scope &
             (S0 extends string ? Record<S0, S0R> : {}) &
             (S1 extends string ? Record<S1, S1R> : {})
         >
-      ) => S2R,
-    ]
+      ) => S2R;
+    }
   | ((
       props: Props<
         Scope &
@@ -90,17 +90,17 @@ type Step2<Scope, S0, S0R, S1, S1R, S2, S2R> =
   | Boria.AnyMessage;
 
 type Step3<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R> =
-  | [
-      name: S3,
-      handler: (
+  | {
+      name: S3;
+      run: (
         props: Props<
           Scope &
             (S0 extends string ? Record<S0, S0R> : {}) &
             (S1 extends string ? Record<S1, S1R> : {}) &
             (S2 extends string ? Record<S2, S2R> : {})
         >
-      ) => S3R,
-    ]
+      ) => S3R;
+    }
   | ((
       props: Props<
         Scope &
@@ -113,9 +113,9 @@ type Step3<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R> =
   | Boria.AnyMessage;
 
 type Step4<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R, S4, S4R> =
-  | [
-      name: S4,
-      handler: (
+  | {
+      name: S4;
+      run: (
         props: Props<
           Scope &
             (S0 extends string ? Record<S0, S0R> : {}) &
@@ -123,8 +123,8 @@ type Step4<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R, S4, S4R> =
             (S2 extends string ? Record<S2, S2R> : {}) &
             (S3 extends string ? Record<S3, S3R> : {})
         >
-      ) => S4R,
-    ]
+      ) => S4R;
+    }
   | ((
       props: Props<
         Scope &

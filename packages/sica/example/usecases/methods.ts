@@ -6,11 +6,18 @@ export default UseCase("Sub steps")
   .action("Do something", { lorem: "string[]" })
 
   .steps(
-    ({ action, input }) =>
-      action.slack.sendMessage({
+    {
+      name: "first",
+      run: () => 3,
+    },
+    {
+      name: "send message",
+      type: "slack.sendMessage",
+      params: ({ input }) => ({
         channel: "#general",
         text: `Does someone speak ${input.user.age}?`,
-      })
+      }),
+    }
   )
 
   .on({ user: { name: "string", age: "number" } })

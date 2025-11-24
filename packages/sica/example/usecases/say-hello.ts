@@ -10,11 +10,17 @@ export default UseCase("Say hello")
   })
 
   .steps(
-    ["asdasd", ({ input }) => input],
-
-    ({ action, input }) =>
-      action.slack.sendMessage({
-        channel: "#general",
-        text: `Does someone speak ${input.language}?`,
-      })
+    {
+      name: "first",
+      run: () => 3,
+    },
+    {
+      name: "asds ipsum",
+      run: ({ action, input }) =>
+        action.slack.sendMessage({
+          channel: "#general",
+          text: `Does someone speak ${input.language}?`,
+        }),
+      option: [Source.pipeTo(Response)],
+    }
   );

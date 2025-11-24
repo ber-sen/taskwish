@@ -10,18 +10,21 @@ import { PartialOnUndefinedDeep } from "type-fest";
 
 describe("Steps", () => {
   it("works for two steps", async () => {
-    const result = Steps(["step 1", () => 3], ["step 2", ($) => 3]);
+    const result = Steps(
+      { name: "step 1", run: () => 3 },
+      { name: "step 2", run: () => 3 }
+    );
 
     expect(result).toEqual({ success: true });
   });
 
   it("should let steps inside a condition access the values before it", async () => {
     const result = Steps(
-      ["step 1", () => 3],
+      { name: "step 1", run: () => 3 },
 
       If(2 > 1),
 
-      ["asdasd", ({ step1 }) => step1],
+      { name: "asdasd 1", run: ($) => $.step1 },
 
       End(If)
     );
@@ -33,11 +36,11 @@ describe("Steps", () => {
     const result = Steps(
       If(2 > 1),
 
-      ["condition step", ($) => $.condition],
+      { name: "condition step", run: ($) => $.condition },
 
       End(If),
 
-      ["end", ($) => $.conditionStep]
+      { name: "end", run: ($) => $.conditionStep }
     );
 
     expect(result).toEqual({ success: true });

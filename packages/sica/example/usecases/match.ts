@@ -14,7 +14,7 @@ export default UseCase("Slack")
 
     "bot_message",
 
-    ($) => Step("ipsum").value($.match),
+    { name: "lorem", run: ($) => 3 },
 
     ($) => $.ipsum,
 
