@@ -1,22 +1,22 @@
 import { Steps } from "./steps/steps";
 import { Sica } from "./types";
 
-interface UseCaseMethodBody<Scope extends Record<any, any>>
+interface UseCaseMethod<Scope extends Record<any, any>>
   extends Sica.Scoped<Scope> {
-  use<const NewScope>(newScope: NewScope): UseCaseMethodBody<NewScope & Scope>;
+  use<const NewScope>(newScope: NewScope): UseCaseMethod<Scope>;
   steps: Steps<Scope>;
 }
 
 export interface UseCaseFactory<Params, Scope extends Record<any, any> = {}>
   extends Sica.Scoped<Scope>,
-    UseCaseMethodBody<Scope>,
+    UseCaseMethod<Scope>,
     Sica.Triggerable<Scope> {
   use<const NewScope>(
     newScope: NewScope
   ): UseCaseFactory<Params, NewScope & Scope>;
   on<const Schema>(
     trigger: Sica.ValidateTrigger<Schema>
-  ): UseCaseMethodBody<Scope & Sica.InferTriggerScope<Schema>>;
+  ): UseCaseMethod<Scope & Sica.InferTriggerScope<Schema>>;
 }
 
 export const UseCase = <const Params extends string>(
