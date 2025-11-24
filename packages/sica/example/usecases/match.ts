@@ -2,7 +2,7 @@ import { UseCase } from "../../src";
 
 export default UseCase("Slack")
   .use(import("../package"))
-  
+
   .on("slack.message")
 
   .steps(
@@ -10,11 +10,13 @@ export default UseCase("Slack")
 
     "me_message",
 
-    ["lorem", ($) => asdad],
+    ($) => $.match,
 
     "bot_message",
 
-    ["ipsum", ($) => asdad],
+    ($) => Step("ipsum").value($.match),
 
-    End(Match),
+    ($) => $.ipsum,
+
+    End(Match)
   );
