@@ -55,94 +55,68 @@ type Step0<Scope, S0, S0R> =
   | Sica.StepOption<any, null>
   | Boria.AnyMessage;
 
-type Step1<Scope, S0, S0R, S1, S1R> =
+type ScopeStep<Name, Scope, Return> =
   | {
-      name: S1;
-      run: (
-        props: Props<Scope & (S0 extends string ? Record<S0, S0R> : {})>
-      ) => S1R;
-    }
-  | {
-      name: S1;
+      name: Name;
       type: "agent";
-      init: () => ({
-        model: "gtp-4"
-      })
+      init: (scope: Scope) => {
+        model: "gtp-4";
+      };
     }
-  | ((
-      props: Props<Scope & (S0 extends string ? Record<S0, S0R> : {})>
-    ) => S1R | Sica.StepOption<any, null> | Boria.AnyMessage)
+  | {
+      name: Name;
+      type: "slack::SendMessage";
+      run: (scope: Scope) => {
+        channel: "#general";
+        text: string;
+      };
+    }
+  | {
+      name: Name;
+      type: never
+      run: (scope: Scope) => Return;
+    }
+  | ((scope: Scope) => Return | Sica.StepOption<any, null> | Boria.AnyMessage)
   | Sica.StepOption<any, null>
   | Boria.AnyMessage;
 
-type Step2<Scope, S0, S0R, S1, S1R, S2, S2R> =
-  | {
-      name: S2;
-      run: (
-        props: Props<
-          Scope &
-            (S0 extends string ? Record<S0, S0R> : {}) &
-            (S1 extends string ? Record<S1, S1R> : {})
-        >
-      ) => S2R;
-    }
-  | ((
-      props: Props<
-        Scope &
-          (S0 extends string ? Record<S0, S0R> : {}) &
-          (S1 extends string ? Record<S1, S1R> : {})
-      >
-    ) => S2R | Sica.StepOption<any, null> | Boria.AnyMessage)
-  | Sica.StepOption<any, null>
-  | Boria.AnyMessage;
+type Step1<Scope, S0, S0R, S1, S1R> = ScopeStep<
+  S1,
+  Props<Scope & (S0 extends string ? Record<S0, S0R> : {})>,
+  S1R
+>;
 
-type Step3<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R> =
-  | {
-      name: S3;
-      run: (
-        props: Props<
-          Scope &
-            (S0 extends string ? Record<S0, S0R> : {}) &
-            (S1 extends string ? Record<S1, S1R> : {}) &
-            (S2 extends string ? Record<S2, S2R> : {})
-        >
-      ) => S3R;
-    }
-  | ((
-      props: Props<
-        Scope &
-          (S0 extends string ? Record<S0, S0R> : {}) &
-          (S1 extends string ? Record<S1, S1R> : {}) &
-          (S2 extends string ? Record<S2, S2R> : {})
-      >
-    ) => S3R | Sica.StepOption<any, null> | Boria.AnyMessage)
-  | Sica.StepOption<any, null>
-  | Boria.AnyMessage;
+type Step2<Scope, S0, S0R, S1, S1R, S2, S2R> = ScopeStep<
+  S2,
+  Props<
+    Scope &
+      (S0 extends string ? Record<S0, S0R> : {}) &
+      (S1 extends string ? Record<S1, S1R> : {})
+  >,
+  S2R
+>;
 
-type Step4<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R, S4, S4R> =
-  | {
-      name: S4;
-      run: (
-        props: Props<
-          Scope &
-            (S0 extends string ? Record<S0, S0R> : {}) &
-            (S1 extends string ? Record<S1, S1R> : {}) &
-            (S2 extends string ? Record<S2, S2R> : {}) &
-            (S3 extends string ? Record<S3, S3R> : {})
-        >
-      ) => S4R;
-    }
-  | ((
-      props: Props<
-        Scope &
-          (S0 extends string ? Record<S0, S0R> : {}) &
-          (S1 extends string ? Record<S1, S1R> : {}) &
-          (S2 extends string ? Record<S2, S2R> : {}) &
-          (S3 extends string ? Record<S3, S3R> : {})
-      >
-    ) => S4R | Sica.StepOption<any, null> | Boria.AnyMessage)
-  | Sica.StepOption<any, null>
-  | Boria.AnyMessage;
+type Step3<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R> = ScopeStep<
+  S3,
+  Props<
+    Scope &
+      (S0 extends string ? Record<S0, S0R> : {}) &
+      (S1 extends string ? Record<S1, S1R> : {}) &
+      (S2 extends string ? Record<S2, S2R> : {})
+  >,
+  S3R
+>;
+
+type Step4<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R, S4, S4R> = ScopeStep<
+  S4,
+  Props<
+    Scope &
+      (S0 extends string ? Record<S0, S0R> : {}) &
+      (S1 extends string ? Record<S1, S1R> : {}) &
+      (S2 extends string ? Record<S2, S2R> : {})
+  >,
+  S4R
+>;
 
 export interface Steps<Scope extends Record<any, any>> {
   <const S0, const S0R>(...trumpets: [step: Step0<Scope, S0, S0R>]): Return;

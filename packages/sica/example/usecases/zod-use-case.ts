@@ -8,9 +8,10 @@ export default UseCase("Say hello")
 
   .steps(
     { name: "step 1", run: ({ input }) => input },
+
     {
-      // name: "step 2",
-      type: "slack.sendMessage",
+      name: "step 2",
+      type: "slack::SendMessage",
       run: ({ input }) => ({
         channel: "#general",
         text: `Does someone speak ${input.language}?`,

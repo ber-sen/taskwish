@@ -8,6 +8,7 @@ export default UseCase("Simple")
       name: "test",
       run: () => 3,
     },
+    
     {
       name: "lorem ipsum",
       run: ({ test }) => test,

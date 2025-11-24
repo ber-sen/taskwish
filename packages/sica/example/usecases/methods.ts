@@ -12,7 +12,7 @@ export default UseCase("Sub steps")
     },
     {
       name: "send message",
-      type: "slack.send-message",
+      type: "slack::SendMessage",
       run: ({ input }) => ({
         channel: "#general",
         text: `Does someone speak ${input.user.age}?`,
@@ -27,7 +27,7 @@ export default UseCase("Sub steps")
 
     {
       name: "send message",
-      type: "slack.send-message",
+      type: "slack::SendMessage",
       run: ({ input }) => ({
         channel: "#general",
         text: `Does someone speak ${input.user.age}?`,
