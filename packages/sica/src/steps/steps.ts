@@ -62,6 +62,13 @@ type Step1<Scope, S0, S0R, S1, S1R> =
         props: Props<Scope & (S0 extends string ? Record<S0, S0R> : {})>
       ) => S1R;
     }
+  | {
+      name: S1;
+      type: "agent";
+      init: () => ({
+        model: "gtp-4"
+      })
+    }
   | ((
       props: Props<Scope & (S0 extends string ? Record<S0, S0R> : {})>
     ) => S1R | Sica.StepOption<any, null> | Boria.AnyMessage)

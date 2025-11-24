@@ -6,20 +6,26 @@ export default UseCase("Chat bot")
 
   .on({ tools: "string[]", prompt: "string" })
 
-  .use({
-    tools: ({ input, tools }) =>
-      tools.filter((tool) => input.tool.includes(tool.name)),
-  })
+  .steps(
+    {
+      name: "tools",
+      run: ({ input, tools }) =>
+        tools.filter((tool) => input.tool.includes(tool.name)),
+    },
 
-  .agent(
-    "marketing",
+    {
+      name: "marketing agent",
+      type: "agent",
+      init: () => ({
+        model: "gtp-4",
+      }),
+    },
 
-    Message.System("You are a helpful marketing assistent called Boria"),
-    Message.User("asdasd"),
-
-    ($) => $.tools
-  )
-
-  .steps({
-    run: ({ agent, input }) => agent.marketing.chat({ prompt: input.prompt }),
-  });
+    {
+      name: "response",
+      type: "marketingAgent",
+      run: ({ tools }) => ({
+        prompt: "asdasd",
+      }),
+    }
+  );
