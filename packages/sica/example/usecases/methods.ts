@@ -42,7 +42,7 @@ export default UseCase("Sub steps")
   )
 
   .steps(
-    "on",
+    "on:input",
     Loop(Range(0, 10)),
     {
       name: "send message",
