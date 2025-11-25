@@ -1,28 +1,33 @@
 {
-  "name": "chat-agent",
+  "name": "ChatAgent",
   "type": "usecase",
-  "params": {
-    "on": { "tools": "string[]", "prompt": "string" },
-    "steps": [
-      {
-        "name": "agent.marketing.chat",
-        "type": "agent",
-        "params": {
-          "messages": [
-            {
-              "role": "system",
-              "content": "You are a helpful marketing assistent called Boria"
-            }
-          ],
-          "tools": "@{tools.filter((tool) => input.tool.includes(tool.name))}"
+  "params": [
+    {
+      "on": { "tools": "string[]", "prompt": "string" },
+      "steps": [
+        {
+          "name": "tools",
+          "type": "script::ts",
+          "params": {
+            "body": "@{tools.filter((tool) => input.tool.includes(tool.name))}"
+          }
+        },
+        {
+          "name": "MarketingAgent",
+          "type": "agent::new",
+          "params": {
+            "instructions": "asdasdadas asdas da",
+            "model": "gtp-4",
+            "tools": "@{tools}"
+          }
+        },
+        {
+          "type": "agent::MarketingAgent",
+          "params": {
+            "prompt": "@{input.prompt}"
+          }
         }
-      },
-      {
-        "type": "agent.marketing.chat",
-        "params": {
-          "prompt": "@{input.prompt}"
-        }
-      }
-    ]
-  }
+      ]
+    }
+  ]
 }

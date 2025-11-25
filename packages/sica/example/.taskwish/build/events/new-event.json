@@ -1,16 +1,13 @@
 {
-  "name": "new-email",
+  "name": "NewEmail",
   "type": "event",
   "params": {
-    "group": [
-      {
-        "from": "string",
-        "subject": "string"
-      }
-    ],
+    "data": {
+      "from": "string",
+      "subject": "string"
+    },
     "meta": {
       "threadId": "from"
     }
   }
 }
-

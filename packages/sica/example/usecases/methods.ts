@@ -3,7 +3,7 @@ import { Loop, End, Range, UseCase, Input } from "../../src";
 export default UseCase("Sub steps")
   .use(import("../package"))
 
-  .action("Do something", { lorem: "string[]" })
+  .fn("Do something", { lorem: "string[]" })
 
   .steps(
     {
