@@ -19,5 +19,7 @@ export default UseCase("Say hello")
 
     Message("Message send to slack"),
 
+    $ => 3,
+
     End(Loop)
   );

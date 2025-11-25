@@ -1,5 +1,5 @@
 import { Boria } from "../boria";
-import { PrettyScope, ToCamelCase } from "../helpers";
+import { PrettyScope } from "../helpers";
 import { Sica } from "../types";
 
 type BuildTuple<L extends number, T extends any[] = []> = T["length"] extends L
@@ -35,126 +35,79 @@ type ResultA = Indent<
   0
 >;
 
-type Props<T> = {
-  [K in keyof T as ToCamelCase<Extract<K, string>>]: K extends "scope"
-    ? PrettyScope<T[K]>
-    : T[K];
-} & {};
-
 type Return = Sica.NullaryAction<
   () => {
     success: boolean;
   }
 >;
 
-type Step0<Scope, S0, S0R> =
-  | { name: S0; run: (scope: Props<Scope>) => S0R }
-  | { name: S0; wrap: string[]; run: (scope: Props<Scope>, next: any) => void }
-  | ((
-      scope: Props<Scope>
-    ) => S0R | Sica.StepOption<any, null> | Boria.AnyMessage)
-  | Sica.StepOption<any, null>
-  | Boria.AnyMessage;
-
-type ScopeStep<Name, Scope, Return> =
+type AnyStep<Scope> =
+  | { name: string; run: (scope: PrettyScope<Scope>) => any }
   | {
-      name: Name;
-      run: (scope: Scope) => Return;
-      options?: [any];
+      name: string;
+      type: string[];
+      middleware: (scope: PrettyScope<Scope>, next: any) => any;
     }
-  | ((scope: Scope) => Return | Sica.StepOption<any, null> | Boria.AnyMessage)
+  | ((
+      scope: PrettyScope<Scope>
+    ) => any | Sica.StepOption<any, null> | Boria.AnyMessage)
   | Sica.StepOption<any, null>
   | Boria.AnyMessage;
 
-type Step1<Scope, S0, S0R, S1, S1R> = ScopeStep<
-  S1,
-  Props<Scope & (S0 extends string ? Record<S0, S0R> : {})>,
-  S1R
->;
-
-type Step2<Scope, S0, S0R, S1, S1R, S2, S2R> = ScopeStep<
-  S2,
-  Props<
-    Scope &
-      (S0 extends string ? Record<S0, S0R> : {}) &
-      (S1 extends string ? Record<S1, S1R> : {})
-  >,
-  S2R
->;
-
-type Step3<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R> = ScopeStep<
-  S3,
-  Props<
-    Scope &
-      (S0 extends string ? Record<S0, S0R> : {}) &
-      (S1 extends string ? Record<S1, S1R> : {}) &
-      (S2 extends string ? Record<S2, S2R> : {})
-  >,
-  S3R
->;
-
-type Step4<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R, S4, S4R> = ScopeStep<
-  S4,
-  Props<
-    Scope &
-      (S0 extends string ? Record<S0, S0R> : {}) &
-      (S1 extends string ? Record<S1, S1R> : {}) &
-      (S2 extends string ? Record<S2, S2R> : {})
-  >,
-  S4R
->;
+type InferStepRecord<Step> = Step extends {
+  name: infer Name;
+  run: infer Fn;
+}
+  ? Name extends string
+    ? Fn extends (args: any) => any
+      ? Record<Name, ReturnType<Fn>>
+      : {}
+    : {}
+  : {};
 
 export interface Steps<Scope extends Record<any, any>> {
-  <const S0, const S0R>(...trumpets: [step: Step0<Scope, S0, S0R>]): Return;
-  <const S0, const S0R, const S1, const S1R>(
-    ...trumpets: [
-      step: Step0<Scope, S0, S0R>,
-      step: Step1<Scope, S0, S0R, S1, S1R>,
-    ]
-  ): Return;
-  <const S0, const S0R, const S1, const S1R, const S2, const S2R>(
-    ...trumpets: [
-      step: Step0<Scope, S0, S0R>,
-      step: Step1<Scope, S0, S0R, S1, S1R>,
-      step: Step2<Scope, S0, S0R, S1, S1R, S2, S2R>,
-    ]
+  <const S0 extends AnyStep<Scope>, S0R>(
+    ...trumpets: [step: S0 & { run: S0R }]
   ): Return;
   <
-    const S0,
-    const S0R,
-    const S1,
-    const S1R,
-    const S2,
-    const S2R,
-    const S3,
-    const S3R,
+    const S0 extends AnyStep<Scope>,
+    const S1 extends AnyStep<Scope & InferStepRecord<S0>>,
   >(
-    ...trumpets: [
-      step: Step0<Scope, S0, S0R>,
-      step: Step1<Scope, S0, S0R, S1, S1R>,
-      step: Step2<Scope, S0, S0R, S1, S1R, S2, S2R>,
-      step: Step3<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R>,
-    ]
+    ...trumpets: [step: S0, step: S1]
   ): Return;
   <
-    const S0,
-    const S0R,
-    const S1,
-    const S1R,
-    const S2,
-    const S2R,
-    const S3,
-    const S3R,
-    const S4,
-    const S4R,
+    const S0 extends AnyStep<Scope>,
+    const S1 extends AnyStep<Scope & InferStepRecord<S0>>,
+    const S2 extends AnyStep<Scope & InferStepRecord<S0> & InferStepRecord<S1>>,
   >(
-    ...trumpets: [
-      step: Step0<Scope, S0, S0R>,
-      step: Step1<Scope, S0, S0R, S1, S1R>,
-      step: Step2<Scope, S0, S0R, S1, S1R, S2, S2R>,
-      step: Step3<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R>,
-      step: Step4<Scope, S0, S0R, S1, S1R, S2, S2R, S3, S3R, S4, S4R>,
-    ]
+    ...trumpets: [step: S0, step: S1, step: S2]
+  ): Return;
+  <
+    const S0 extends AnyStep<Scope>,
+    const S1 extends AnyStep<Scope & InferStepRecord<S0>>,
+    const S2 extends AnyStep<Scope & InferStepRecord<S0> & InferStepRecord<S1>>,
+    const S3 extends AnyStep<
+      Scope & InferStepRecord<S0> & InferStepRecord<S1> & InferStepRecord<S2>
+    >,
+  >(
+    ...trumpets: [step: S0, step: S1, step: S2, step: S3]
+  ): Return;
+  <
+    const S0 extends AnyStep<Scope>,
+    const S1 extends AnyStep<Scope & InferStepRecord<S0>>,
+    const S2 extends AnyStep<Scope & InferStepRecord<S1>>,
+    const S3 extends AnyStep<
+      Scope & InferStepRecord<S0> & InferStepRecord<S1> & InferStepRecord<S2>
+    >,
+    const S4 extends AnyStep<
+      Scope &
+        InferStepRecord<S0> &
+        InferStepRecord<S1> &
+        InferStepRecord<S2> &
+        InferStepRecord<S3>
+    >,
+  >(
+    ...trumpets: [step: S0, step: S1, step: S2, step: S3, step: S4]
   ): Return;
 }
 

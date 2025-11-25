@@ -1,26 +1,30 @@
-import { UseCase } from "../../src";
+import { Source, UseCase } from "../../src";
 
 export default UseCase("Say hello")
   .use(import("../package"))
 
   .on({ language: "string" })
 
-  .describe("Send hello message to slack", {
-    input: { language: "Hello language" },
-  })
-
   .steps(
     {
       name: "first",
+
       run: () => 3,
     },
     {
-      name: "asds ipsum",
+      name: "send message",
+      options: [Source.pipeTo(Response)],
+      description: "Send a message to slack",
+
       run: ({ action, input }) =>
         action.slack.sendMessage({
           channel: "#general",
           text: `Does someone speak ${input.language}?`,
         }),
-      option: [Source.pipeTo(Response)],
     }
-  );
+  )
+
+  .meta({
+    description: "Send hello message to slack",
+    input: { language: "Hello language" },
+  });

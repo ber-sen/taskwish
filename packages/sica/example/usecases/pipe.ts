@@ -8,7 +8,7 @@ export default UseCase("Sub steps")
   .steps(
     {
       name: "first",
-      run: () => 3,
+      run: ($) => $.input,
     },
     
     {

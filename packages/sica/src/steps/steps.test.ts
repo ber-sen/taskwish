@@ -11,8 +11,8 @@ import { PartialOnUndefinedDeep } from "type-fest";
 describe("Steps", () => {
   it("works for two steps", async () => {
     const result = Steps(
-      { name: "step 1", run: () => 3 },
-      { name: "step 2", run: () => 3 }
+      { name: "step 1", run: ($) => 3 },
+      { name: "step 2", run: ($) => 3 },
     );
 
     expect(result).toEqual({ success: true });

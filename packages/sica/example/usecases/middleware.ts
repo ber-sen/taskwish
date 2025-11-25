@@ -8,8 +8,8 @@ export default UseCase("Slack")
   .steps(
     {
       name: "LogMiddleware",
-      wrap: ["action"],
-      async *run({ input }, next) {
+      type: ["action"],
+      async *middleware({ input }, next) {
         const time = new Date().getTime();
         console.log("running action:", next.name);
         

@@ -11,9 +11,7 @@ export interface UseCaseFactory<Params, Scope extends Record<any, any> = {}>
   extends Sica.Scoped<Scope>,
     UseCaseMethod<Scope>,
     Sica.Triggerable<Scope> {
-  use<const NewScope>(
-    newScope: NewScope
-  ): UseCaseFactory<Params, NewScope & Scope>;
+  use<const NewScope>(newScope: NewScope): UseCaseFactory<Params, Scope>;
   on<const Schema>(
     trigger: Sica.ValidateTrigger<Schema>
   ): UseCaseMethod<Scope & Sica.InferTriggerScope<Schema>>;
