@@ -15,7 +15,7 @@ export default UseCase("Chat bot")
 
     {
       name: "marketing agent",
-      run: ({ agent, tools, input }) =>
+      run: ({ agent, tools }) =>
         agent.new({
           instructions: "asdasdadas asdas da",
           model: "gtp-4",

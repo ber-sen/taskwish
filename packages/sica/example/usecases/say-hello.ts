@@ -8,14 +8,14 @@ export default UseCase("Say hello")
   .steps(
     {
       name: "first",
-
       run: () => 3,
     },
+
     {
       name: "send message",
       options: [Source.pipeTo(Response)],
       description: "Send a message to slack",
-
+      
       run: ({ action, input }) =>
         action.slack.sendMessage({
           channel: "#general",

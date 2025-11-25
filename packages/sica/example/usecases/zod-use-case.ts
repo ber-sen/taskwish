@@ -8,7 +8,6 @@ export default UseCase("Say hello")
 
   .steps(
     { name: "step 1", run: ({ input }) => input },
-
     {
       name: "step 2",
       run: ({ action, input }) =>

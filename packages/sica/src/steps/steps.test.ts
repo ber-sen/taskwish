@@ -7,12 +7,13 @@ import { Match } from "./match";
 import { Steps } from "./steps";
 import { Expect, Pretty } from "../helpers";
 import { PartialOnUndefinedDeep } from "type-fest";
+import { Input } from "./input";
 
 describe("Steps", () => {
   it("works for two steps", async () => {
     const result = Steps(
       { name: "step 1", run: ($) => 3 },
-      { name: "step 2", run: ($) => 3 },
+      { name: "step 2", run: ($) => 3 }
     );
 
     expect(result).toEqual({ success: true });
@@ -50,11 +51,14 @@ describe("Steps", () => {
     const result = Steps(
       Loop(Range(0, 10)),
 
-      ["loop step", ($) => $.loop.value],
+      {
+        name: "loop step",
+        run: ($) => $.loop.value,
+      },
 
       End(Loop),
 
-      ["end", ($) => $.loopStep]
+      { name: "end", run: ($) => $.loopStep }
     );
 
     expect(result).toEqual({ success: true });
@@ -64,7 +68,7 @@ describe("Steps", () => {
     const action = Steps(
       Input({ language: "string" }),
 
-      ["end", ($) => $.input.language]
+      { name: "end", run: ($) => $.input.language }
     );
 
     const result = action({ language: "Spanish" });

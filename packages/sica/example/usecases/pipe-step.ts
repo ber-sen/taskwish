@@ -1,4 +1,4 @@
-import { UseCase } from "../../src";
+import { Message, Source, UseCase } from "../../src";
 
 export default UseCase("Sub steps")
   .use(import("../package"))
@@ -8,6 +8,8 @@ export default UseCase("Sub steps")
   .steps(
     {
       name: "lorem ipsum",
+      options: [Source.pipeTo(Response)],
+
       run: async function* () {
         yield Message.User([
           { type: "text", text: "asd" },
@@ -16,7 +18,6 @@ export default UseCase("Sub steps")
         yield 2;
         yield 3;
       },
-      options: [Source.pipeTo(Response)],
     },
 
     {
