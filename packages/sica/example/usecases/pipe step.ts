@@ -21,10 +21,10 @@ export default UseCase("Sub steps")
 
     {
       name: "asdads",
-      type: "slack::SendMessage",
-      run: ({ input }) => ({
-        channel: "#general",
-        text: `Does someone speak ${input.user.age}?`,
-      }),
+      run: ({ action, input }) =>
+        action.slack.sendMessage({
+          channel: "#general",
+          text: `Does someone speak ${input.user.name}?`,
+        }),
     }
   );

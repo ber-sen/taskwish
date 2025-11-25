@@ -56,25 +56,10 @@ type Step0<Scope, S0, S0R> =
   | Boria.AnyMessage;
 
 type ScopeStep<Name, Scope, Return> =
-  | {
+   {
       name: Name;
-      type: "agent";
-      init: (scope: Scope) => {
-        model: "gtp-4";
-      };
-    }
-  | {
-      name: Name;
-      type: "slack::SendMessage";
-      run: (scope: Scope) => {
-        channel: "#general";
-        text: string;
-      };
-    }
-  | {
-      name: Name;
-      type: never
       run: (scope: Scope) => Return;
+      options?: [any]
     }
   | ((scope: Scope) => Return | Sica.StepOption<any, null> | Boria.AnyMessage)
   | Sica.StepOption<any, null>

@@ -10,8 +10,13 @@ export default UseCase("Simple")
     },
     
     {
-      name: "lorem ipsum",
-      run: ({ test }) => test,
+      name: "asds ipsum",
+      run: ({ action, input }) =>
+        action.slack.sendMessage({
+          channel: "#general",
+          text: `Does someone speak ${input.language}?`,
+        }),
+      options: [Source.pipeTo(Response)],
     }
   )
 

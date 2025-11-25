@@ -11,11 +11,11 @@ export default UseCase("Say hello")
 
     {
       name: "step 2",
-      type: "slack::SendMessage",
-      run: ({ input }) => ({
-        channel: "#general",
-        text: `Does someone speak ${input.language}?`,
-      }),
+      run: ({ action, input }) =>
+        action.slack.sendMessage({
+          channel: "#general",
+          text: `Does someone speak ${input.language}?`,
+        }),
     }
   )
 

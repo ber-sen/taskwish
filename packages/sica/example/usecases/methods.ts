@@ -12,11 +12,11 @@ export default UseCase("Sub steps")
     },
     {
       name: "send message",
-      type: "slack::SendMessage",
-      run: ({ input }) => ({
-        channel: "#general",
-        text: `Does someone speak ${input.user.age}?`,
-      }),
+      run: ({ action, input }) =>
+        action.slack.sendMessage({
+          channel: "#general",
+          text: `Does someone speak ${input.language}?`,
+        }),
     }
   )
 
@@ -27,19 +27,16 @@ export default UseCase("Sub steps")
 
     {
       name: "send message",
-      type: "slack::SendMessage",
-      run: ({ input }) => ({
-        channel: "#general",
-        text: `Does someone speak ${input.user.age}?`,
-      }),
+      run: ({ action, input }) =>
+        action.slack.sendMessage({
+          channel: "#general",
+          text: `Does someone speak ${input.language}?`,
+        }),
     },
 
     {
       name: "send message",
-      type: "self.do-something",
-      run: ({ input }) => ({
-        lorem: ["asd"],
-      }),
+      run: ({ self }) => self.doSomething({ lorem: ["asd"] }),
     },
 
     End(Loop)

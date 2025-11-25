@@ -15,18 +15,19 @@ export default UseCase("Chat bot")
 
     {
       name: "marketing agent",
-      type: "agent",
-      init: () => ({
-        instructions: "asdasdadas asdas da",
-        model: "gtp-4",
-      }),
+      run: ({ agent, tools, input }) =>
+        agent.new({
+          instructions: "asdasdadas asdas da",
+          model: "gtp-4",
+          tools: tools,
+        }),
     },
 
     {
       name: "response",
-      type: "marketingAgent",
-      run: ({ input }) => ({
-        prompt: input.prompt,
-      }),
+      run: ({ agent, input }) =>
+        agent.marketingAgent({
+          prompt: input.prompt,
+        }),
     }
   );

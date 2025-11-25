@@ -8,7 +8,7 @@ import { Provide } from "./provide";
 
 describe("Action", () => {
   it("works with arrow functions", async () => {
-    const succeed = Action("Succeed").execute(() => ({ success: true }))
+    const succeed = Action("Succeed").handler(() => ({ success: true }))
 
     type T = typeof succeed;
 
@@ -31,7 +31,7 @@ describe("Action", () => {
 
   it("works with schema", async () => {
     const succeed = Action("Succeed")
-      .execute((params: { name: string }) => ({
+      .handler((params: { name: string }) => ({
         success: true,
       }))
 
@@ -63,7 +63,7 @@ describe("Action", () => {
   });
 
   it("works with array type", async () => {
-    const succeed = Action(["io", "Succeed"]).execute(() => ({
+    const succeed = Action(["io", "Succeed"]).handler(() => ({
       success: true,
     }));
 
@@ -87,7 +87,7 @@ describe("Action", () => {
   });
 
   it("works with params", async () => {
-    const sayHello = Action("Say hello").execute(
+    const sayHello = Action("Say hello").handler(
       (params: { language: string }) => {
         return `Hello in ${params.language}`;
       }
@@ -111,7 +111,7 @@ describe("Action", () => {
   });
 
   it("works with provided scope", async () => {
-    const sayHello = Action("Say hello").execute(
+    const sayHello = Action("Say hello").handler(
       (params: { language: string }) => {
         return `Hello in ${params.language}`;
       }
@@ -137,7 +137,7 @@ describe("Action", () => {
   });
 
   it("works with generators", async () => {
-    const streamNumbers = Action("Stream").execute(async function* () {
+    const streamNumbers = Action("Stream").handler(async function* () {
       yield Message.User([
         { type: "text", text: "asd" },
         { type: "text", text: "asdasd" },
@@ -154,7 +154,7 @@ describe("Action", () => {
   });
 
   it("works with dynamic env", async () => {
-    const dynamicEnv = Action("Stream").execute(async function* () {
+    const dynamicEnv = Action("Stream").handler(async function* () {
       const env = yield* Env({ API_KEY: "string" });
 
       return Boolean(env);
@@ -185,7 +185,7 @@ describe("Action", () => {
   });
 
   it("works with AbortSignal", async () => {
-    const dynamicRequire = Action("Stream").execute(async function* () {
+    const dynamicRequire = Action("Stream").handler(async function* () {
       const io = yield* Use("abort-signal").as<AbortSignal>();
 
       return io.aborted;
@@ -214,7 +214,7 @@ describe("Action", () => {
       ["io"]
     >;
 
-    const dynamicRequire = Action("Stream").execute(async function* () {
+    const dynamicRequire = Action("Stream").handler(async function* () {
       const io = yield* Use<IO>("io");
 
       yield* io({ in: "What is your favorite color?" });
@@ -239,7 +239,7 @@ describe("Action", () => {
       ["ask"]
     >;
 
-    const askActionAction = Action("Stream").execute(async function* () {
+    const askActionAction = Action("Stream").handler(async function* () {
       const ask = yield* Use<Ask>("ask");
 
       const response = yield* ask({
