@@ -12,6 +12,7 @@ export default UseCase("Chat bot")
       run: ({ input, tools }) =>
         tools.filter((tool) => input.tool.includes(tool.name)),
     },
+    
 
     {
       name: "marketing agent",

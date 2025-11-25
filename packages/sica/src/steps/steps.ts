@@ -48,18 +48,19 @@ type Return = Sica.NullaryAction<
 >;
 
 type Step0<Scope, S0, S0R> =
-  | { name: S0; run: (props: Props<Scope>) => S0R }
+  | { name: S0; run: (scope: Props<Scope>) => S0R }
+  | { name: S0; wrap: string[]; run: (scope: Props<Scope>, next: any) => void }
   | ((
-      props: Props<Scope>
+      scope: Props<Scope>
     ) => S0R | Sica.StepOption<any, null> | Boria.AnyMessage)
   | Sica.StepOption<any, null>
   | Boria.AnyMessage;
 
 type ScopeStep<Name, Scope, Return> =
-   {
+  | {
       name: Name;
       run: (scope: Scope) => Return;
-      options?: [any]
+      options?: [any];
     }
   | ((scope: Scope) => Return | Sica.StepOption<any, null> | Boria.AnyMessage)
   | Sica.StepOption<any, null>
