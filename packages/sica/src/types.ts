@@ -15,11 +15,7 @@ export namespace Sica {
 
   export const Scope = Symbol.for("Sica.Scope");
 
-  export const Build = Symbol.for("Sica.Build");
-
-  export const Deploy = Symbol.for("Sica.Deploy");
-
-  export const Destroy = Symbol.for("Sica.Destroy");
+  export const Sync = Symbol.for("Sica.Sync");
 
   export interface Typed<Type extends string[]> {
     [Type]: Type;
@@ -35,8 +31,7 @@ export namespace Sica {
 
   export interface Resource<Type extends string[]> extends Typed<Type> {
     id: UUIDv5String;
-    [Deploy](): AsyncGenerator<Boria.AnyMessage, boolean, unknown>;
-    [Destroy](): AsyncGenerator<Boria.AnyMessage, boolean, unknown>;
+    [Sync](): AsyncGenerator<Boria.AnyMessage, boolean, unknown>;
   }
 
   export interface NullaryAction<
