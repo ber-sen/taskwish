@@ -1,4 +1,4 @@
-import { UseCase } from "../../src";
+import { Message, UseCase } from "../../src";
 
 export default UseCase("Slack")
   .use(import("../package"))

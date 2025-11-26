@@ -23,3 +23,9 @@ Message.System = <const Content extends string>(
 ): Boria.Message<{ role: "system"; content: Content }> => {
   return {} as never;
 };
+
+Message.Incoming = <const Content extends string>(
+  content: Content
+): Boria.Message<{ role: "incoming"; content: Content }> => {
+  return {} as never;
+};

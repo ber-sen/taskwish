@@ -1,7 +1,13 @@
 import { UUIDv5String, UUIDv7String } from "../helpers";
 
+interface Json {
+  [x: string]: string | number | boolean | Date | Json | JsonArray;
+}
+interface JsonArray
+  extends Array<string | number | boolean | Date | Json | JsonArray> {}
+
 export namespace Boria {
-  export type ThreadId = UUIDv5String | UUIDv7String;
+  export type UserThreadId = UUIDv5String | UUIDv7String;
 
   export type DataContent = string | Uint8Array | ArrayBuffer | Buffer;
 
@@ -41,7 +47,12 @@ export namespace Boria {
 
   export type User = {
     role: "user";
-    user?: string;
+    content: UserContent;
+  };
+
+  export type Icoming = {
+    role: "incoming";
+    contact?: Json;
     content: UserContent;
   };
 
@@ -51,12 +62,12 @@ export namespace Boria {
   };
 
   export interface Message<
-    Type extends (User | System | Assistant) & { meta?: any },
+    Type extends (User | System | Assistant | Icoming) & { meta?: any },
     Meta = null,
   > {
     meta<
       Tags extends {
-        redirectThreadId?: ThreadId;
+        redirectThreadId?: UserThreadId;
         finalizeThread?: boolean;
       },
     >(
@@ -66,12 +77,22 @@ export namespace Boria {
     content: Type["content"];
   }
 
-  export interface Thread {
-    id: ThreadId;
-    actorId: UUIDv5String | UUIDv7String | string;
-    state: "new" | "active" | "waiting" | "finalized" | "renewed";
-    messages: Boria.AnyMessage[];
+  export interface UserThreadMessage<
+    Type extends (User | System | Assistant | Icoming) & { meta?: any },
+    Meta = null,
+  > {
+    meta: Meta;
+    role: Type["role"];
+    content: Type["content"];
+    userThreadId: UserThreadId;
   }
 
-  export type AnyMessage = Message<any, any>;
+  export interface UserThread {
+    id: UserThreadId;
+    userId: UUIDv7String;
+    state: "new" | "active" | "waiting" | "finalized" | "renewed";
+    messages: UserThreadMessage<any, any>[];
+    workflowId?: UUIDv5String;
+    reply: (params: any) => any;
+  }
 }
