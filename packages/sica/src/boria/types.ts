@@ -7,7 +7,7 @@ interface JsonArray
   extends Array<string | number | boolean | Date | Json | JsonArray> {}
 
 export namespace Boria {
-  export type UserThreadId = UUIDv5String | UUIDv7String;
+  export type ThreadId = UUIDv5String | UUIDv7String;
 
   export type DataContent = string | Uint8Array | ArrayBuffer | Buffer;
 
@@ -67,7 +67,7 @@ export namespace Boria {
   > {
     meta<
       Tags extends {
-        redirectThreadId?: UserThreadId;
+        redirectThreadId?: ThreadId;
         finalizeThread?: boolean;
       },
     >(
@@ -84,12 +84,13 @@ export namespace Boria {
     meta: Meta;
     role: Type["role"];
     content: Type["content"];
-    userThreadId: UserThreadId;
+    userThreadId: ThreadId;
   }
 
   export interface UserThread {
-    id: UserThreadId;
+    id: ThreadId;
     userId: UUIDv7String;
+    threadId: ThreadId
     state: "new" | "active" | "waiting" | "finalized" | "renewed";
     messages: UserThreadMessage<any, any>[];
     workflowId?: UUIDv5String;
