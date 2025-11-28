@@ -50,9 +50,9 @@ type AnyStep<Scope> =
     }
   | ((
       scope: PrettyScope<Scope>
-    ) => any | Sica.StepOption<any, null> | Boria.AnyMessage)
+    ) => any | Sica.StepOption<any, null> | Boria.Message<any, any>)
   | Sica.StepOption<any, null>
-  | Boria.AnyMessage;
+  | Boria.Message<any, any>;
 
 type InferStepRecord<Step> = Step extends {
   name: infer Name;
