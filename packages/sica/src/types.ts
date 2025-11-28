@@ -213,10 +213,13 @@ export namespace Sica {
     use<const NewScope>(newScope: NewScope): Extendable<Scope & NewScope>;
   }
 
-  export interface StepOption<T extends string, G extends null | string> {
-    stepOptionType: T;
-    group: G;
-    params?: object;
+  export interface Flow<
+    T extends string[],
+    Group extends null | string[] = null,
+    Scope = {},
+  > extends Typed<T> {
+    group: Group;
+    scope?: Scope;
   }
 
   export interface Triggerable<Scope extends Record<any, any>> {

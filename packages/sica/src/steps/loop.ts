@@ -1,21 +1,23 @@
 import { Sica } from "../types";
 
-export const Loop = (
-  ...params: Array<Sica.StepOption<any, "loop">>
-): Sica.StepOption<"loop", null> => ({
-  stepOptionType: "loop",
-  group: null,
-  params,
-});
+export const Loop = <const List extends any[]>(
+  list: List
+): Sica.Flow<
+  ["loop"],
+  null,
+  {
+    loop: { value: List[number]; index: number };
+  }
+> =>
+  ({
+    [Sica.Type]: ["loop"],
+    group: null,
+  }) as never;
 
 export const Range = (
   from: number,
   to: number
-): Sica.StepOption<"range", "loop"> => ({
-  stepOptionType: "range",
-  group: "loop",
-  params: {
-    from,
-    to,
-  },
+): Sica.Flow<["range"], ["loop"]> => ({
+  [Sica.Type]: ["range"],
+  group: ["loop"],
 });

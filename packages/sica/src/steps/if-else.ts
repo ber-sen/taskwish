@@ -1,18 +1,25 @@
 import { Sica } from "../types";
 
-export const If = (condition: boolean): Sica.StepOption<"if", null> => ({
-  stepOptionType: "if",
+export type Truthy<T> = T extends false | "" | 0 | null | undefined ? never : T;
+
+export const If = <const Condition>(
+  condition: Condition
+): Sica.Flow<["if"], null, { condition: Truthy<Condition> }> => ({
+  [Sica.Type]: ["if"],
   group: null,
-  params: { condition },
+  scope: { condition } as never,
 });
 
-export const ElseIf = (condition: boolean): Sica.StepOption<"else-if", null> => ({
-  stepOptionType: "else-if",
+export const ElseIf = <const Condition>(
+  condition: Condition
+): Sica.Flow<["else-if"], null, { condition: Truthy<Condition> }> => ({
+  [Sica.Type]: ["else-if"],
   group: null,
-  params: { condition },
+  scope: { condition } as never,
 });
 
-export const Else = (): Sica.StepOption<"else", null> => ({
-  stepOptionType: "else",
+export const Else = (): Sica.Flow<["else"], null, { condition: false }> => ({
+  [Sica.Type]: ["else"],
   group: null,
+  scope: {} as never,
 });

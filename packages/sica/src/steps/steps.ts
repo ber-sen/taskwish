@@ -2,39 +2,6 @@ import { Boria } from "../boria";
 import { PrettyScope } from "../helpers";
 import { Sica } from "../types";
 
-type BuildTuple<L extends number, T extends any[] = []> = T["length"] extends L
-  ? T
-  : BuildTuple<L, [...T, any]>;
-
-type Add<A extends number, B extends number> = [
-  ...BuildTuple<A>,
-  ...BuildTuple<B>,
-]["length"];
-
-type Subtract<A extends number, B extends number> =
-  BuildTuple<A> extends [...infer Rest, ...BuildTuple<B>]
-    ? Rest["length"]
-    : never;
-
-type IndentStep<T, N extends number> =
-  T extends Sica.StepOption<"loop" | "if", null>
-    ? Add<N, 1>
-    : T extends Sica.StepOption<"end", null>
-      ? Subtract<N, 1>
-      : N;
-
-type Indent<Arr extends any[], N extends number = 0> = Arr extends [
-  infer Head,
-  ...infer Tail,
-]
-  ? Indent<Tail, Extract<IndentStep<Head, N>, number>>
-  : N;
-
-type ResultA = Indent<
-  [Sica.StepOption<"if", null>, Sica.StepOption<"end", null>],
-  0
->;
-
 type Return = Sica.NullaryAction<
   () => {
     success: boolean;
@@ -50,8 +17,8 @@ type AnyStep<Scope> =
     }
   | ((
       scope: PrettyScope<Scope>
-    ) => any | Sica.StepOption<any, null> | Boria.Message<any, any>)
-  | Sica.StepOption<any, null>
+    ) => any | Sica.Flow<any, null, any> | Boria.Message<any, any>)
+  | Sica.Flow<any, null, any>
   | Boria.Message<any, any>;
 
 type InferStepRecord<Step> = Step extends {
@@ -63,7 +30,9 @@ type InferStepRecord<Step> = Step extends {
       ? Record<Name, ReturnType<Fn>>
       : {}
     : {}
-  : {};
+  : Step extends Sica.Flow<any, null, infer Record>
+    ? Record
+    : {};
 
 export interface Steps<Scope extends Record<any, any>> {
   <const S0 extends AnyStep<Scope>, S0R>(
@@ -118,13 +87,14 @@ export const Steps: Steps<{}> = () => {
 export const Step = <const K, const P>(key: K, params: P) =>
   [key, () => params] as const;
 
-export const Parallel = (name?: string): Sica.StepOption<"parallel", null> => ({
-  stepOptionType: "parallel",
+export const Parallel = (
+  name?: string
+): Sica.Flow<["parallel"], null, any> => ({
+  [Sica.Type]: ["parallel"],
   group: null,
-  params: { name },
 });
 
-export const Return = (): Sica.StepOption<"return", null> => ({
-  stepOptionType: "return",
+export const Return = (): Sica.Flow<["return"], null, any> => ({
+  [Sica.Type]: ["return"],
   group: null,
 });

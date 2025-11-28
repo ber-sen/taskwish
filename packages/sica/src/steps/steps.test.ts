@@ -1,4 +1,4 @@
-import { Equal } from "drizzle-orm";
+import { Equal, ne } from "drizzle-orm";
 import { Sica } from "../types";
 import { End } from "./end";
 import { If } from "./if-else";
@@ -34,8 +34,10 @@ describe("Steps", () => {
   });
 
   it("should properly type steps inside condition with optional values", async () => {
+    const a = {} as { lorem: number } | { ipsum: string };
+
     const result = Steps(
-      If(2 > 1),
+      If("lorem" in a && a),
 
       { name: "condition step", run: ($) => $.condition },
 
@@ -49,7 +51,7 @@ describe("Steps", () => {
 
   it("should return loop value as array", async () => {
     const result = Steps(
-      Loop(Range(0, 10)),
+      Loop([1, 2, 3]),
 
       {
         name: "loop step",
@@ -63,6 +65,23 @@ describe("Steps", () => {
 
     expect(result).toEqual({ success: true });
   });
+
+  // it("should return loop value as array", async () => {
+  //   const result = Steps(
+  //     Loop(Range(0, 10)),
+
+  //     {
+  //       name: "loop step",
+  //       run: ($) => $.loop.value,
+  //     },
+
+  //     End(Loop),
+
+  //     { name: "end", run: ($) => $.loopStep }
+  //   );
+
+  //   expect(result).toEqual({ success: true });
+  // });
 
   it("should work as action", async () => {
     const action = Steps(

@@ -1,9 +1,8 @@
 import { Sica } from "../types";
 
 export const End = (
-  params: (...params: any) => Sica.StepOption<any, null>
-): Sica.StepOption<"end", null> => ({
-  stepOptionType: "end",
+  params: (...params: any) => Sica.Flow<any>
+): Sica.Flow<["end"]> => ({
+  [Sica.Type]: ["end"],
   group: null,
-  params,
 });
