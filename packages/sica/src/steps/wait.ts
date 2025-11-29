@@ -1,16 +1,7 @@
 import { StringValue } from "ms";
 import { Sica } from "../types";
+import { Flow } from "../flow";
 
-export function Wait(duration: StringValue): Sica.StepOption<"wait", null> {
-  return {
-    stepOptionType: "wait",
-    group: null,
-    params: duration,
-  } as never;
-}
+export const Wait = (duration: StringValue) => Flow("wait").params({ duration });
 
-Wait.until = (
-  event: Sica.Event<any, any>
-): Sica.StepOption<"wait", null> {
-  return {} as never
-}
+Wait.until = (event: Sica.Event<any, any>) => Flow("wait-until").params({ event });

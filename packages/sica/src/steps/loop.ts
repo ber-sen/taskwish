@@ -1,22 +1,12 @@
-import { Sica } from "../types";
+import { Flow } from "../flow";
 
-export const Loop = <const List extends any[]>(
-  list: List
-): Sica.Flow<
-  ["loop"],
-  {
-    loop: { value: List[number]; index: number };
-  }
-> =>
-  ({
-    [Sica.Type]: ["loop"],
-    group: null,
-  }) as never;
+export const Loop = <const List extends any[]>(list: List) =>
+  Flow("loop").params({
+    loop: { value: {} as List[number], index: {} as number },
+  });
 
-export const Range = (
-  from: number,
-  to: number
-): Sica.Flow<["range"], ["loop"]> => ({
-  [Sica.Type]: ["range"],
-  group: ["loop"],
-});
+export const Range = (from: number, to: number) =>
+  Flow("range").params({
+    from,
+    to,
+  });

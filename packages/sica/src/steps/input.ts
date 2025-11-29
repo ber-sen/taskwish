@@ -1,9 +1,6 @@
+import { Flow } from "../flow";
 import { Sica } from "../types";
 
-export const Input = <const Schema extends object>(
+export const Input = <const Schema>(
   schema: Sica.ValidateSchema<Schema>
-): Sica.Flow<["input"], { input: Sica.InferInput<Schema> }> =>
-  ({
-    [Sica.Type]: ["input"],
-    group: null,
-  }) as never;
+) => Flow("input").params({ input: schema as Sica.InferInput<Schema> });

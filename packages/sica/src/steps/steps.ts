@@ -30,8 +30,8 @@ type InferStepRecord<Step> = Step extends {
       ? Record<Name, ReturnType<Fn>>
       : {}
     : {}
-  : Step extends Sica.Flow<any, infer Record, null>
-    ? Record
+  : Step extends Sica.Flow<any, infer Scope, null>
+    ? Scope
     : {};
 
 export interface Steps<Scope extends Record<any, any>> {

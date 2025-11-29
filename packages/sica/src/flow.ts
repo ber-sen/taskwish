@@ -2,10 +2,10 @@ import { Sica } from "./types";
 
 export function Flow<Type extends string>(type: Type) {
   return {
-    scope: <Scope>(scope: Scope) => ({
+    params: <Params>(params: Params) => ({
       [Sica.Type]: [type],
       group: null,
-      scope,
+      params,
     }),
   };
 }

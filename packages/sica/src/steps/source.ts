@@ -1,8 +1,6 @@
-import { Sica } from "../types";
+import { Flow } from "../flow";
 
 export const Source = {
-  pipeTo: (destination: any): Sica.Flow<["source"], null> => ({
-    [Sica.Type]: ["source"],
-    group: null,
-  }),
+  pipeTo: (destination: WritableStream) =>
+    Flow("pipeTo").params({ destination }),
 };

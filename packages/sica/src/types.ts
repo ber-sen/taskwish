@@ -215,11 +215,11 @@ export namespace Sica {
 
   export interface Flow<
     T extends string[],
-    Scope = {},
-    Group extends null | string[] = null,
+    Params = {},
+    Group extends string[] | null = null,
   > extends Typed<T> {
     group: Group;
-    scope: Scope;
+    params: Params;
   }
 
   export interface Triggerable<Scope extends Record<any, any>> {

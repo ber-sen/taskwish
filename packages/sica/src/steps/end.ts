@@ -1,8 +1,11 @@
+import { Flow } from "../flow";
 import { Sica } from "../types";
 
-export const End = (
-  params: (...params: any) => Sica.Flow<any>
-): Sica.Flow<["end"]> => ({
-  [Sica.Type]: ["end"],
-  group: null,
-});
+export const End = <
+  FlowMaker extends (...args: any) => Sica.Flow<any, any, null>,
+>(
+  params: FlowMaker
+) =>
+  Flow("end").params({
+    [Sica.Type]: params as ReturnType<FlowMaker>[typeof Sica.Type],
+  });

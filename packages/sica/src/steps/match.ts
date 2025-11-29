@@ -7,7 +7,8 @@ type OptionalBoolean<T> = {
 export const Match = <const Input extends object>(
   input: Input,
   match: OptionalBoolean<Input>
-): Sica.Flow<["match"], null> => ({
+): Sica.Flow<["match"]> => ({
   [Sica.Type]: ["match"],
   group: null,
+  params: {}
 });

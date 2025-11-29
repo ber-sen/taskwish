@@ -85,9 +85,9 @@ describe("Steps", () => {
 
   it("should work as action", async () => {
     const action = Steps(
-      Input({ language: "string" }),
+      Input({ language: "string"}),
 
-      { name: "end", run: ($) => $.input.language }
+      { name: "end", run: ($) => $.input.language },
     );
 
     const result = action({ language: "Spanish" });
