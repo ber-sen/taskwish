@@ -4,7 +4,6 @@ export const Loop = <const List extends any[]>(
   list: List
 ): Sica.Flow<
   ["loop"],
-  null,
   {
     loop: { value: List[number]; index: number };
   }

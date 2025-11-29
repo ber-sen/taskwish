@@ -1,8 +1,8 @@
-import { Equal, ne } from "drizzle-orm";
+import { Equal } from "drizzle-orm";
 import { Sica } from "../types";
 import { End } from "./end";
 import { If } from "./if-else";
-import { Loop, Range } from "./loop";
+import { Loop } from "./loop";
 import { Match } from "./match";
 import { Steps } from "./steps";
 import { Expect, Pretty } from "../helpers";

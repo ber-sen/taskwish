@@ -17,8 +17,8 @@ type AnyStep<Scope> =
     }
   | ((
       scope: PrettyScope<Scope>
-    ) => any | Sica.Flow<any, null, any> | Boria.Message<any, any>)
-  | Sica.Flow<any, null, any>
+    ) => any | Sica.Flow<any, any, null> | Boria.Message<any, any>)
+  | Sica.Flow<any, any, null>
   | Boria.Message<any, any>;
 
 type InferStepRecord<Step> = Step extends {
@@ -30,7 +30,7 @@ type InferStepRecord<Step> = Step extends {
       ? Record<Name, ReturnType<Fn>>
       : {}
     : {}
-  : Step extends Sica.Flow<any, null, infer Record>
+  : Step extends Sica.Flow<any, infer Record, null>
     ? Record
     : {};
 
