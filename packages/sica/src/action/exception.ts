@@ -1,13 +1,15 @@
 import { Sica } from "../types";
 
-export const Exception = <const Status extends number, const Params>(
+export const Exception = <const Status extends number, const Data>(
   status: Status,
-  exception: Params
-): Sica.Exception<Status, Params> => ({
-  [Sica.TYPE]: "exception",
+  data?: Data
+): Sica.Exception<Status, Data> => ({
+  [Sica.Type]: ["exception"],
+  id: Sica.Inject,
+  threadId: Sica.Inject,
   status,
-  exception,
+  data,
   throw: () => {
-    throw new Error(JSON.stringify(exception));
+    throw new Error(JSON.stringify(data));
   },
 });

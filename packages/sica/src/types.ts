@@ -17,6 +17,8 @@ export namespace Sica {
 
   export const Sync = Symbol.for("Sica.Sync");
 
+  export const Inject = { [Type]: "Inject" as const };
+
   export interface Typed<Type extends string[]> {
     [Type]: Type;
   }
@@ -33,6 +35,8 @@ export namespace Sica {
     id: UUIDv5String;
     [Sync](): AsyncGenerator<Boria.AnyMessage, boolean, unknown>;
   }
+
+  export type Inject<Type> = Type | { [Type]: "Inject" };
 
   export interface NullaryAction<
     Handler extends () => any,
@@ -129,12 +133,12 @@ export namespace Sica {
   export interface Exception<
     Status extends number,
     Data,
-    Type extends string[] = ["error"], // error, critical
+    Type extends string[] = ["exception"],
   > extends Typed<Type> {
-    id: UUIDv7String;
-    threadId: Boria.ThreadId;
+    id: Inject<UUIDv7String>;
+    threadId: Inject<Boria.ThreadId>;
     status: Status;
-    data: Data;
+    data?: Data;
     throw: () => void;
     toString: () => string;
   }
