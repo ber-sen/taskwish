@@ -17,8 +17,6 @@ export namespace Sica {
 
   export const Sync = Symbol.for("Sica.Sync");
 
-  export const Inject = { [Type]: "Inject" as const };
-
   export interface Typed<Type extends string[]> {
     [Type]: Type;
   }

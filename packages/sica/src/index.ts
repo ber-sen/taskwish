@@ -12,6 +12,7 @@ export * from "./boria";
 export * from "./types";
 export * from "./action";
 export * from "./event";
+export * from "./inject";
 export * from "./flow";
 export * from "./steps";
 export * from "./agent";
