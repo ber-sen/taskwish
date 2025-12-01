@@ -1,4 +1,4 @@
-import { type } from "arktype";
+import { Type, type } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 import {
   ActionInput,
@@ -15,8 +15,6 @@ export namespace Sica {
 
   export const Scope = Symbol.for("Sica.Scope");
 
-  export const Sync = Symbol.for("Sica.Sync");
-
   export interface Typed<Type extends string[]> {
     [Type]: Type;
   }
@@ -31,10 +29,9 @@ export namespace Sica {
 
   export interface Resource<Type extends string[]> extends Typed<Type> {
     id: UUIDv5String;
-    [Sync](): AsyncGenerator<Boria.AnyMessage, boolean, unknown>;
   }
 
-  export type Inject<Type> = Type | { [Type]: "Inject" };
+  export type Inject<Type> = Type | null
 
   export interface NullaryAction<
     Handler extends () => any,
