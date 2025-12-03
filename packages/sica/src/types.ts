@@ -90,14 +90,12 @@ export namespace Sica {
       Typed<Type>,
       Promise<Return> {
     id: UUIDv7String;
-    actorId: UUIDv5String;
     threadId: Boria.ThreadId;
     params: Params;
   }
 
   export interface Event<Data, Type extends string[]> extends Typed<Type> {
     id: UUIDv7String;
-    actorId: UUIDv5String;
     threadId: Boria.ThreadId;
     handled?: boolean;
     data: Data;
