@@ -98,6 +98,7 @@ export namespace Sica {
   export interface Event<Data, Type extends string[]> extends Typed<Type> {
     id: UUIDv7String;
     threadId: Boria.ThreadId;
+    recipientId: UUIDv5String;
     handled?: boolean;
     data: Data;
   }
