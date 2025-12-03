@@ -91,6 +91,7 @@ export namespace Sica {
       Promise<Return> {
     id: UUIDv7String;
     threadId: Boria.ThreadId;
+    recipientId: UUIDv5String;
     params: Params;
   }
 
@@ -119,6 +120,7 @@ export namespace Sica {
     extends Typed<Type> {
     id: UUIDv7String;
     threadId: Boria.ThreadId;
+    recipientId: UUIDv5String;
     data: Data;
     toString: () => string;
   }
@@ -130,6 +132,7 @@ export namespace Sica {
   > extends Typed<Type> {
     id: Inject<UUIDv7String>;
     threadId: Inject<Boria.ThreadId>;
+    recipientId: UUIDV5String;
     status: Status;
     data?: Data;
     throw: () => void;
