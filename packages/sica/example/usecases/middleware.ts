@@ -4,7 +4,7 @@ export default UseCase("Slack")
   .use(import("../package"))
 
   .on({ language: "string" })
-
+  
   .steps(
     {
       name: "Log middleware",
