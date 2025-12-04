@@ -91,14 +91,14 @@ export namespace Sica {
       Promise<Return> {
     id: UUIDv7String;
     threadId: Boria.ThreadId;
-    recipientId: UUIDv5String;
+    identityId: UUIDv5String;
     params: Params;
   }
 
   export interface Event<Data, Type extends string[]> extends Typed<Type> {
     id: UUIDv7String;
     threadId: Boria.ThreadId;
-    recipientId: UUIDv5String;
+    identityId: UUIDv5String;
     handled?: boolean;
     data: Data;
   }
@@ -121,7 +121,7 @@ export namespace Sica {
     extends Typed<Type> {
     id: UUIDv7String;
     threadId: Boria.ThreadId;
-    recipientId: UUIDv5String;
+    identityId: UUIDv5String;
     data: Data;
     toString: () => string;
   }
@@ -133,7 +133,7 @@ export namespace Sica {
   > extends Typed<Type> {
     id: Inject<UUIDv7String>;
     threadId: Inject<Boria.ThreadId>;
-    recipientId: UUIDV5String;
+    identityId: UUIDV5String;
     status: Status;
     data?: Data;
     throw: () => void;
@@ -158,7 +158,7 @@ export namespace Sica {
     Meta = null,
   > extends Resource<Type>,
       Attributable {
-    meta<Tags extends { threadId: keyof Data; scope?: Record<string, any> }>(
+    meta<Tags extends { scope?: Record<string, any> }>(
       meta: Meta extends object ? "get" : Tags
     ): Meta extends object ? Meta : EventKind<Data, Type, Tags>;
     (data: Data): AsyncGenerator<Event<Data, Type>, Event<Data, Type>, unknown>;
@@ -208,6 +208,7 @@ export namespace Sica {
         : {
             input: type.instantiate<Schema>["infer"];
             threadId: Boria.ThreadId;
+            identityId: UUIDv5String;
           };
 
   export interface Extendable<Scope> {
