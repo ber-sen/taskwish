@@ -1,10 +1,10 @@
-import { Message, UseCase } from "../../src";
+import { UseCase } from "../../src";
 
 export default UseCase("Slack")
   .use(import("../package"))
 
   .on({ language: "string" })
-  
+
   .steps(
     {
       name: "Log middleware",

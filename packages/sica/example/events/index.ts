@@ -5,4 +5,3 @@ export default {
   tsEvent: import("./ts-event"),
   zodNewEmail: import("./zod-new-email"),
 };
-

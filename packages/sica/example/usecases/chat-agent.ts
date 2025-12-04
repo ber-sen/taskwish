@@ -1,4 +1,4 @@
-import { Message, UseCase } from "../../src";
+import { UseCase } from "../../src";
 // import tsEvent from "../events/ts-event";
 
 export default UseCase("Chat bot")
