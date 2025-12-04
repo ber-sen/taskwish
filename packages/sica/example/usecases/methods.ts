@@ -4,13 +4,27 @@ import newEmail from "../events/new-email";
 export default UseCase("Sub steps")
   .use(import("../package"))
 
+  .on("Do something", { lorem: "string[]" })
+
+  .steps(
+    {
+      name: "first",
+      run: () => 3,
+    },
+
+    {
+      name: "send message",
+      run: ({ action, input }) =>
+        action.slack.sendMessage({
+          channel: "#general",
+          text: `Does someone speak ${input.language}?`,
+        }),
+    }
+  )
+
   .on(newEmail)
-  .on("asdas", { user: { name: "string", age: "number" } })
-  .fn("Do something", { lorem: "string[]" })
   
   .steps(
-    "fn:doSomething",
-
     {
       name: "first",
       run: () => 3,
@@ -26,27 +40,9 @@ export default UseCase("Sub steps")
     }
   )
 
-  .steps(
-    "on:newEmail",
-
-    {
-      name: "first",
-      run: () => 3,
-    },
-
-    {
-      name: "send message",
-      run: ({ action, input }) =>
-        action.slack.sendMessage({
-          channel: "#general",
-          text: `Does someone speak ${input.language}?`,
-        }),
-    }
-  )
+  .on("asdas", { user: { name: "string", age: "number" } })
 
   .steps(
-    "on:input",
-
     Loop(Range(0, 10)),
 
     {
