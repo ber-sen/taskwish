@@ -179,17 +179,15 @@ export namespace Sica {
     [Scope]: Scope;
   }
 
-  export type ValidateSchema<Schema> =
+  export type ValidateSchema<Schema, Scope = {}> =
     Schema extends StandardSchemaV1<any>
       ? Schema
-      : Schema extends object
-        ? type.validate<Schema>
-        : object;
+      : type.validate<Schema, Scope>;
 
-  export type InferInput<Schema> =
+  export type InferSchema<Schema, Scope = {}> =
     Schema extends StandardSchemaV1<infer Input>
       ? Input
-      : type.instantiate<Schema>["infer"];
+      : type.instantiate<Schema, Scope>["infer"];
 
   export type ValidateTrigger<Schema> =
     Schema extends StandardSchemaV1<any>

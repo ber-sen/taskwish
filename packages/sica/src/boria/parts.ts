@@ -1,8 +1,5 @@
 import { Part } from "./part";
 
-export const Text = Part({
-  type: "'text'",
-  text: "string",
-});
+export const Text = Part("text");
 
-Text({ text: "asdad" });
+const a = Text("asdad");
