@@ -31,7 +31,7 @@ export namespace Sica {
     id: UUIDv5String;
   }
 
-  export type Inject<Type> = Type | null
+  export type Inject<Type> = Type | null;
 
   export interface NullaryAction<
     Handler extends () => any,
@@ -89,16 +89,16 @@ export namespace Sica {
   > extends AsyncGenerator<Stream, Return, Deps>,
       Typed<Type>,
       Promise<Return> {
-    id: UUIDv7String;
-    threadId: Boria.ThreadId;
-    identityId: UUIDv5String;
+    id: Inject<UUIDv7String>;
+    threadId: Inject<Boria.ThreadId>;
+    identityId: Inject<Boria.IdentityId>;
     params: Params;
   }
 
   export interface Event<Data, Type extends string[]> extends Typed<Type> {
-    id: UUIDv7String;
-    threadId: Boria.ThreadId;
-    identityId: UUIDv5String;
+    id: Inject<UUIDv7String>;
+    threadId: Inject<Boria.ThreadId>;
+    identityId: Inject<Boria.IdentityId>;
     handled?: boolean;
     data: Data;
   }
@@ -119,9 +119,9 @@ export namespace Sica {
 
   export interface Log<Data, Type extends string[] = ["info"]> // info, start, warn, success
     extends Typed<Type> {
-    id: UUIDv7String;
-    threadId: Boria.ThreadId;
-    identityId: UUIDv5String;
+    id: Inject<UUIDv7String>;
+    threadId: Inject<Boria.ThreadId>;
+    identityId: Inject<Boria.IdentityId>;
     data: Data;
     toString: () => string;
   }
@@ -133,7 +133,7 @@ export namespace Sica {
   > extends Typed<Type> {
     id: Inject<UUIDv7String>;
     threadId: Inject<Boria.ThreadId>;
-    identityId: UUIDV5String;
+    identityId: Inject<Boria.IdentityId>;
     status: Status;
     data?: Data;
     throw: () => void;
@@ -202,13 +202,17 @@ export namespace Sica {
 
   export type InferTriggerScope<Schema> =
     Schema extends StandardSchemaV1<infer Input>
-      ? { input: Input; threadId: Boria.ThreadId }
+      ? { input: Input; threadId: Boria.ThreadId; identityId: Boria.IdentityId }
       : Schema extends Event<infer Input, any>
-        ? { input: Input; threadId: Boria.ThreadId }
+        ? {
+            input: Input;
+            threadId: Boria.ThreadId;
+            identityId: Boria.IdentityId;
+          }
         : {
             input: type.instantiate<Schema>["infer"];
             threadId: Boria.ThreadId;
-            identityId: UUIDv5String;
+            identityId: Boria.IdentityId;
           };
 
   export interface Extendable<Scope> {
