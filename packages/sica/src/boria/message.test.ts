@@ -3,6 +3,7 @@ import { Equal, Expect } from "../helpers";
 import { Message } from "../boria/message";
 import { Boria } from "../boria";
 import { Text } from "./text";
+import { Image } from "./image";
 
 describe("Message", async function* () {
   it("should works with meta", () => {
@@ -60,34 +61,35 @@ describe("Message", async function* () {
     // expect(result).toEqual({ success: true });
   });
 
-  // it("should works with meta", () => {
-  //   const message = Message(
-  //     Text(["header"], "asdasd"),
-  //     Image(["logo"], "http://www.google.com/google.png"),
-  //     HStack(["cta"], Image("http://www.google.com/google.png"), Text("asdad"))
-  //   );
+  it("should works with meta", () => {
+    const message = Message(
+      Text(["header"], "Header"),
+      Image(["logo"], "http://www.google.com/google.png")
+    );
 
-  //   type T = typeof message;
+    type T = typeof message;
 
-  //   type newEmail = Expect<
-  //     Equal<
-  //       Boria.Message<
-  //         [
-  //           {
-  //             type: "image";
-  //             image: "http://www.google.com/google.png";
-  //           },
-  //           {
-  //             type: "text";
-  //             text: "part 2";
-  //           },
-  //         ],
-  //         null
-  //       >,
-  //       T
-  //     >
-  //   >;
+    type newEmail = Expect<
+      Equal<
+        Boria.Message<
+          [
+            {
+              type: "text";
+              cls: ["header"];
+              text: "Header";
+            },
+            {
+              type: "image";
+              cls: ["logo"];
+              image: "http://www.google.com/google.png";
+            },
+          ],
+          null
+        >,
+        T
+      >
+    >;
 
-  //   // expect(result).toEqual({ success: true });
-  // });
+    // expect(result).toEqual({ success: true });
+  });
 });

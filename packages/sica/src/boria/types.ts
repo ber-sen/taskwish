@@ -9,6 +9,7 @@ interface JsonArray
 
 export namespace Boria {
   export type ThreadId = UUIDv7String;
+  
   export type IdentityId = UUIDv5String;
 
   export type DataContent = string | Uint8Array | ArrayBuffer | Buffer;
