@@ -1,4 +1,5 @@
 import { UUIDv5String, UUIDv7String } from "../helpers";
+import { Sica } from "../types";
 
 interface Json {
   [x: string]: string | number | boolean | Date | Json | JsonArray;
@@ -8,72 +9,14 @@ interface JsonArray
 
 export namespace Boria {
   export type ThreadId = UUIDv7String;
-  export type IdentityId = UUIDv5String
+  export type IdentityId = UUIDv5String;
 
   export type DataContent = string | Uint8Array | ArrayBuffer | Buffer;
 
-  export interface TextPart {
-    type: "text";
-    text: string;
-  }
-
-  export interface ImagePart {
-    type: "image";
-    image: DataContent | URL;
-    mediaType?: string;
-  }
-
-  export interface FilePart {
-    type: "file";
-    data: DataContent | URL;
-    filename?: string;
-    mediaType: string;
-  }
-
-  export type UserContent = string | Array<TextPart | ImagePart | FilePart>;
-
-  export interface ReasoningPart {
-    type: "reasoning";
-    text: string;
-  }
-
-  export type AssistantContent =
-    | string
-    | Array<TextPart | FilePart | ReasoningPart>;
-
-  export type System = {
-    role: "system";
-    content: string;
-  };
-
-  export type User = {
-    role: "user";
-    content: UserContent;
-  };
-
-  export type Assistant = {
-    role: "assistant";
-    content: AssistantContent;
-  };
-
-  export interface Part<
-    Type extends (User | System | Assistant | Icoming) & { meta?: any },
-    Meta = null,
-  > {
-    meta<
-      Tags extends {
-        redirectThreadId?: ThreadId;
-        finalizeThread?: boolean;
-      },
-    >(
-      meta: Meta extends object ? "get" : Tags
-    ): Meta extends object ? Meta : Message<Type, Tags>;
-    role: Type["role"];
-    content: Type["content"];
-  }
+  export type Part<Schema extends { type: string }> = Schema;
 
   export interface Message<
-    Type extends (User | System | Assistant | Icoming) & { meta?: any },
+    Content extends Array<Part<any>> | string,
     Meta = null,
   > {
     meta<
@@ -83,27 +26,15 @@ export namespace Boria {
       },
     >(
       meta: Meta extends object ? "get" : Tags
-    ): Meta extends object ? Meta : Message<Type, Tags>;
-    role: Type["role"];
-    content: Type["content"];
+    ): Meta extends object ? Meta : Message<Content, Tags>;
+    identityId: Sica.Inject<IdentityId>;
+    content: Content;
   }
 
-  export interface UserThreadMessage<
-    Type extends (User | System | Assistant | Icoming) & { meta?: any },
-    Meta = null,
-  > {
-    meta: Meta;
-    role: Type["role"];
-    content: Type["content"];
-    userThreadId: ThreadId;
-  }
-
-  export interface UserThread {
+  export interface Thread {
     id: ThreadId;
-    userId: UUIDv7String;
-    threadId: ThreadId;
     state: "new" | "active" | "waiting" | "finalized" | "renewed";
-    messages: UserThreadMessage<any, any>[];
+    messages: Message<any, any>[];
     workflowId?: UUIDv5String;
     reply: (params: any) => any;
   }
