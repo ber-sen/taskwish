@@ -2,7 +2,8 @@ import { Equal, Expect } from "../helpers";
 
 import { Message } from "../boria/message";
 import { Boria } from "../boria";
-import { Text } from "./parts";
+import { Text } from "./text";
+import { Image } from "./image";
 
 describe("Message", async function* () {
   it("should works with meta", () => {
@@ -17,6 +18,36 @@ describe("Message", async function* () {
             {
               type: "text";
               text: "part 1";
+            },
+            {
+              type: "text";
+              text: "part 2";
+            },
+          ],
+          null
+        >,
+        T
+      >
+    >;
+
+    // expect(result).toEqual({ success: true });
+  });
+
+  it("should works with meta", () => {
+    const message = Message(
+      Image("http://www.google.com/google.png"),
+      Text("part 2")
+    );
+
+    type T = typeof message;
+
+    type newEmail = Expect<
+      Equal<
+        Boria.Message<
+          [
+            {
+              type: "image";
+              image: "http://www.google.com/google.png";
             },
             {
               type: "text";
