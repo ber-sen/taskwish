@@ -1,4 +1,4 @@
-import { Type, type } from "arktype";
+import { type } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 import {
   ActionInput,
