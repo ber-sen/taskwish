@@ -1,9 +1,14 @@
 import { Boria } from "./types";
 
-export const Text = <const Content>(
+export function Text<const Content>(
   text: Content
-): Boria.Part<{ type: "text"; text: Content }> => {
-  return {} as never;
-};
+): Boria.Part<{ type: "text"; text: Content }>;
 
-const a = Text("asdad");
+export function Text<const Class extends string[], const Content>(
+  cls: Class,
+  text: Content
+): Boria.Part<{ type: "text"; cls: Class; text: Content }>;
+
+export function Text(...args) {
+  return {} as never;
+}
