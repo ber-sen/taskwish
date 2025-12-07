@@ -9,12 +9,14 @@ interface JsonArray
 
 export namespace Boria {
   export type ThreadId = UUIDv7String;
-  
+
   export type IdentityId = UUIDv5String;
 
   export type DataContent = string | Uint8Array | ArrayBuffer | Buffer;
 
-  export type Part<Schema extends { type: string }> = Schema;
+  export type Part<Schema extends { type: any } & Record<any, any>> = {
+    [K in keyof Schema]: Schema[K];
+  };
 
   export interface Message<
     Content extends Array<Part<any>> | string,
