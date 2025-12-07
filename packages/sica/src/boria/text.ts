@@ -9,6 +9,6 @@ export function Text<const Class extends string[], const Content>(
   text: Content
 ): Boria.Part<{ type: "text"; cls: Class; text: Content }>;
 
-export function Text(...args) {
+export function Text(...args: any) {
   return {} as never;
 }

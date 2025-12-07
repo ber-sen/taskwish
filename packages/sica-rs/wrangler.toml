@@ -1,6 +1,0 @@
-name = "taskwish-rs"
-main = "build/worker/shim.mjs"
-compatibility_date = "2025-07-04"
-
-[build]
-command = "cargo install -q worker-build && worker-build --release"
