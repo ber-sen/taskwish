@@ -1,13 +1,8 @@
 {
-  "name": "NewEmail",
-  "type": "event",
-  "params": {
-    "data": {
-      "from": "string",
-      "subject": "string"
-    },
-    "meta": {
-      "threadId": "from"
-    }
+  "$name": "NewEmail",
+  "$schema": "https://taskwish.ai/schema/event",
+  "data": {
+    "from": "string",
+    "subject": "string"
   }
 }

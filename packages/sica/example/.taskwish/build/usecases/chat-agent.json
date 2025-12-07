@@ -1,33 +1,24 @@
 {
-  "name": "ChatAgent",
-  "type": "usecase",
-  "params": [
+  "$name": "ChatAgent",
+  "$schema": "https://taskwish.ai/schema/usecase",
+  "on": { "tools": "string[]", "prompt": "string" },
+  "steps": [
     {
-      "on": { "tools": "string[]", "prompt": "string" },
-      "steps": [
-        {
-          "name": "tools",
-          "type": "script::ts",
-          "params": {
-            "body": "@{tools.filter((tool) => input.tool.includes(tool.name))}"
-          }
-        },
-        {
-          "name": "MarketingAgent",
-          "type": "agent::new",
-          "params": {
-            "instructions": "asdasdadas asdas da",
-            "model": "gtp-4",
-            "tools": "@{tools}"
-          }
-        },
-        {
-          "type": "agent::MarketingAgent",
-          "params": {
-            "prompt": "@{input.prompt}"
-          }
-        }
-      ]
+      "$name": "tools",
+      "$schema": "https://taskwish.ai/schema/script",
+      "body": "@{tools.filter((tool) => input.tool.includes(tool.name))}"
+    },
+    {
+      "$name": "MarketingAgent",
+      "$schema": "https://taskwish.ai/schema/agent.new",
+      "instructions": "asdasdadas asdas da",
+      "model": "gtp-4",
+      "tools": "@{tools}"
+    },
+    {
+      "$name": "MarketingAgent",
+      "$schema": "https://taskwish.ai/schema/agent",
+      "prompt": "@{input.prompt}"
     }
   ]
 }
