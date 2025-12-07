@@ -14,12 +14,12 @@ export namespace Boria {
 
   export type DataContent = string | Uint8Array | ArrayBuffer | Buffer;
 
-  export type Part<Schema extends { type: any } & Record<any, any>> = {
+  export type MessagePart<Schema extends { type: any } & Record<any, any>> = {
     [K in keyof Schema]: Schema[K];
   };
 
   export interface Message<
-    Content extends Array<Part<any>> | string,
+    Content extends Array<MessagePart<any>> | string,
     Meta = null,
   > {
     meta<

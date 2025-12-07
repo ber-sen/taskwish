@@ -15,11 +15,11 @@ describe("Message", async function* () {
       Equal<
         Boria.Message<
           [
-            Boria.Part<{
+            Boria.MessagePart<{
               type: "text";
               text: "part 1";
             }>,
-            Boria.Part<{
+            Boria.MessagePart<{
               type: "text";
               text: "part 2";
             }>,
@@ -42,12 +42,12 @@ describe("Message", async function* () {
       Equal<
         Boria.Message<
           [
-            Boria.Part<{
+            Boria.MessagePart<{
               type: "text";
               cls: ["header"];
               text: "part 1";
             }>,
-            Boria.Part<{
+            Boria.MessagePart<{
               type: "text";
               text: "part 2";
             }>,
@@ -73,12 +73,12 @@ describe("Message", async function* () {
       Equal<
         Boria.Message<
           [
-            Boria.Part<{
+            Boria.MessagePart<{
               type: "text";
               cls: ["header"];
               text: "Header";
             }>,
-            Boria.Part<{
+            Boria.MessagePart<{
               type: "image";
               cls: ["logo"];
               image: "http://www.google.com/google.png";
