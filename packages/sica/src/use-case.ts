@@ -22,3 +22,11 @@ export const UseCase = <const Params extends string>(
 ): UseCaseFactory<Params> => {
   return name as any;
 };
+
+const UseCaseNew = <Obj extends { main: () => any }>(
+  obj: Obj
+): Sica.UseCase<Obj> => {
+  return {} as never;
+};
+
+const a = UseCaseNew({ main: () => 3 });

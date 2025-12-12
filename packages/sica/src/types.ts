@@ -104,10 +104,10 @@ export namespace Sica {
   }
 
   export type UseCase<
-    Object extends () => any,
+    Object extends { main: () => any },
     Type extends string[] = ["usecase"],
     Meta = null,
-  > = Object & Resource<Type> & NullaryAction<Object, Type, Meta>;
+  > = Object & Resource<Type> & NullaryAction<Object["main"], Type, Meta>;
 
   export interface Use<Dep extends Typed<any>> {
     dep: Dep;
