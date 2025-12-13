@@ -22,8 +22,9 @@ export namespace Boria {
     Content extends Array<MessagePart<any>> | string,
     Meta = null,
   > {
-    identityId: Sica.Inject<IdentityId>;
-    content: Content;
+    threadId: Sica.Inject<ThreadId>;
+    identityId: Sica.Inject<IdentityId>; 
+    content: Content; 
   }
 
   export interface Thread {
