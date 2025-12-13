@@ -22,14 +22,6 @@ export namespace Boria {
     Content extends Array<MessagePart<any>> | string,
     Meta = null,
   > {
-    meta<
-      Tags extends {
-        redirectThreadId?: ThreadId;
-        finalizeThread?: boolean;
-      },
-    >(
-      meta: Meta extends object ? "get" : Tags
-    ): Meta extends object ? Meta : Message<Content, Tags>;
     identityId: Sica.Inject<IdentityId>;
     content: Content;
   }
