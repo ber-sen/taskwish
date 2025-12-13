@@ -1,7 +1,6 @@
 // import tsEvent from "../events/ts-event";
 
 import { Message, NewMessage, UseCase } from "../src";
-import { Text } from "../src/boria/text";
 
 export default UseCase("IO")
   .on(NewMessage)
@@ -11,11 +10,10 @@ export default UseCase("IO")
       name: "response",
       run: ({ agent, input }) =>
         agent.generateText({
-          system: "Generate response for the message",
           model: "gtp-4",
-          prompt: input.content,
+          messages: input.messages,
         }),
     },
 
-    ({ response }) => Message(Text(response))
+    ({ response }) => Message(response)
   );
