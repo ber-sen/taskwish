@@ -1,11 +1,10 @@
 export default App(
   "My app",
-  import("./package"),
 
-  ["GET", "/api/say-hello/:language", "example::helloWold"],
-  ["CMD", "say-hello :language", "example::helloWold"],
-  ["GMAIL", "pajaziti.bersen@gmail.com", "example::io"],
-  ["SLACK", "pajaziti.bersen@gmail.com", "example::io"],
+  ["GET:/api/say-hello/:language", import("./package").helloWold],
+  ["CMD:say-hello :language", import("./package").helloWold],
+  ["GMAIL:pajaziti.bersen@gmail.com", import("./package").io],
+  ["SLACK:U05KMUK39UJ #general", import("./package").io],
 
   Provide("env", process.env)
 );
