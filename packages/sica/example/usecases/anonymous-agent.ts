@@ -14,19 +14,12 @@ export default UseCase("Chat bot")
     },
 
     {
-      name: "marketing agent",
+      name: "response",
       run: ({ agent, tools }) =>
-        agent.new({
+        agent.generateText({
           system: "asdasdadas asdas da",
           model: "gtp-4",
           tools: tools,
-        }),
-    },
-
-    {
-      name: "response",
-      run: ({ agent, input }) =>
-        agent.marketingAgent({
           prompt: input.prompt,
         }),
     }
