@@ -23,7 +23,7 @@ export default UseCase("Sub steps")
   )
 
   .on(newEmail)
-  
+
   .steps(
     {
       name: "first",
@@ -40,7 +40,7 @@ export default UseCase("Sub steps")
     }
   )
 
-  .on("asdas", { user: { name: "string", age: "number" } })
+  .on({ user: { name: "string", age: "number" } })
 
   .steps(
     Loop(Range(0, 10)),

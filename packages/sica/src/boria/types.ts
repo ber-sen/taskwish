@@ -34,6 +34,13 @@ export namespace Boria {
     content: Content;
   }
 
+  export interface NewMessage<
+    Content extends Array<MessagePart<any>> | string,
+  > {
+    identityId: Sica.Inject<IdentityId>;
+    content: Content;
+  }
+
   export interface Thread {
     id: ThreadId;
     state: "new" | "active" | "waiting" | "finalized" | "renewed";
