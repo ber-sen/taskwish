@@ -1,4 +1,4 @@
-import { Package, Provide } from "../src";
+import { Package } from "../src";
 
 export default Package(
   "Example",
