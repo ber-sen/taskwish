@@ -15,5 +15,7 @@ export default UseCase("IO")
         }),
     },
 
+    ({ response }) => Message(response).to("Identity"),
+
     ({ response }) => Message(response)
   );
