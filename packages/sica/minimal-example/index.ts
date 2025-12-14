@@ -1,7 +1,7 @@
 export default App(
   "My automation",
 
-  import("./io"),
+  import("./slack-reply"),
 
   Provide("env", process.env)
 );
