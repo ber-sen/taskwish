@@ -103,9 +103,9 @@ export namespace Sica {
     data: Data;
   }
 
-  export type UseCase<
+  export type Actor<
     Object extends { main: () => any },
-    Type extends string[] = ["usecase"],
+    Type extends string[] = ["Actor"],
     Meta = null,
   > = Object & Resource<Type> & NullaryAction<Object["main"], Type, Meta>;
 

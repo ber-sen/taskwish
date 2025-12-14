@@ -1,6 +1,6 @@
-import { End, UseCase, Parallel } from "../../src";
+import { End, Actor, Parallel } from "../../src";
 
-export default UseCase("Say hello")
+export default Actor("Say hello")
   .use(import("../package"))
 
   .on({ user: { model: "string" } })

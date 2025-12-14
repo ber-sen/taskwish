@@ -1,6 +1,6 @@
-import { UseCase } from "../../src";
+import { Actor } from "../../src";
 
-export default UseCase("Say hello")
+export default Actor("Say hello")
   .use(import("../package"))
 
   .on("zod-new-email")

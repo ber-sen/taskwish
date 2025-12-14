@@ -1,6 +1,6 @@
-import { UseCase } from "../../src";
+import { Actor } from "../../src";
 
-export default UseCase("Slack")
+export default Actor("Slack")
   .use(import("../package"))
 
   .on("slack.message")

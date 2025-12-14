@@ -1,6 +1,6 @@
-import { UseCase, Message } from "../../src";
+import { Actor, Message } from "../../src";
 
-export default UseCase("Sub steps")
+export default Actor("Sub steps")
   .use(import("../package"))
 
   .on({ user: { name: "string", age: "number" } })

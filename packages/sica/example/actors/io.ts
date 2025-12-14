@@ -1,8 +1,8 @@
-import { Message, NewMessage, UseCase } from "../../src";
+import { Message, NewMessage, Actor } from "../../src";
 import { Text } from "../../src/boria/text";
 // import tsEvent from "../events/ts-event";
 
-export default UseCase("IO")
+export default Actor("IO")
   .use(import("../package"))
 
   .on(NewMessage)

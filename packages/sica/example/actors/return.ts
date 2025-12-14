@@ -1,7 +1,6 @@
-import { UseCase, If, Loop, Return } from "../../src";
+import { Actor, If, Loop, Return } from "../../src";
 
-
-export default UseCase("Say hello")
+export default Actor("Say hello")
   .use(import("../package"))
 
   .on({ user: { name: "string", age: "number" } })

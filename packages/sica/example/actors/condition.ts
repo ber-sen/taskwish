@@ -1,6 +1,6 @@
-import { End, UseCase, If, Message } from "../../src";
+import { End, Actor, If, Message } from "../../src";
 
-export default UseCase("Say hello")
+export default Actor("Greeding")
   .use(import("../package"))
 
   .on({ user: { name: "string", age: "number" } })

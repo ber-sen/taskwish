@@ -1,7 +1,7 @@
-import { Loop, End, Range, UseCase } from "../../src";
+import { Loop, End, Range, Actor } from "../../src";
 import newEmail from "../events/new-email";
 
-export default UseCase("Sub steps")
+export default Actor("Sub steps")
   .use(import("../package"))
 
   .on("Do something", { lorem: "string[]" })

@@ -15,5 +15,5 @@ export * from "./event";
 export * from "./flow";
 export * from "./steps";
 export * from "./agent";
-export * from "./use-case";
+export * from "./actor";
 export * from "./package";

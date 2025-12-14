@@ -1,6 +1,6 @@
-import { UseCase } from "../../src";
+import { Actor } from "../../src";
 
-export default UseCase("Chat bot")
+export default Actor("Chat bot")
   .use(import("../package"))
 
   .on({ message: "string[]"})

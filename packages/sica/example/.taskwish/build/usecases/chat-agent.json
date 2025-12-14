@@ -1,6 +1,6 @@
 {
   "$name": "ChatAgent",
-  "$schema": "https://taskwish.ai/schema/usecase",
+  "$schema": "https://taskwish.ai/schema/Actor",
   "on": { "tools": "string[]", "prompt": "string" },
   "steps": [
     {

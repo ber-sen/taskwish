@@ -1,6 +1,6 @@
-import { Loop, End, Range, UseCase, Message } from "../../src";
+import { Loop, End, Range, Actor, Message } from "../../src";
 
-export default UseCase("Say hello")
+export default Actor("Say hello")
   .use(import("../package"))
 
   .on({ user: { name: "string", age: "number" } })

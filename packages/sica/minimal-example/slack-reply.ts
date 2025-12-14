@@ -1,8 +1,8 @@
 // import tsEvent from "../events/ts-event";
 
-import { Message, UseCase } from "../src";
+import { Message, Actor } from "../src";
 
-export default UseCase("AutoReplay")
+export default Actor("AutoReplay")
   .use(import("@taskwish/slack"))
 
   .on(({ slack }) =>

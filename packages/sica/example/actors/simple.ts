@@ -1,6 +1,6 @@
-import { Source, UseCase } from "../../src";
+import { Source, Actor } from "../../src";
 
-export default UseCase("Simple")
+export default Actor("Simple")
   .use(import("../package"))
 
   .steps({

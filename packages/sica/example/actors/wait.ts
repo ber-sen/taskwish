@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { UseCase, Wait } from "../../src";
+import { Actor, Wait } from "../../src";
 import newEmail from "../events/new-email";
 
-export default UseCase("Say hello")
+export default Actor("Say hello")
   .use(import("../package"))
 
   .on(z.object({ language: z.string() }))

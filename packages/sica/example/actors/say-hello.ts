@@ -1,6 +1,6 @@
-import { Source, UseCase } from "../../src";
+import { Source, Actor } from "../../src";
 
-export default UseCase("Say hello")
+export default Actor("SayHello")
   .use(import("../package"))
 
   .on({ language: "string" })

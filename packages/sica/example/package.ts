@@ -5,7 +5,7 @@ export default Package(
 
   import("./actions"),
   import("./packages/slack"),
-  import("./usecases/simple"),
-  import("./usecases/say-hello"),
-  import("./usecases/io")
+  import("./actors/simple"),
+  import("./actors/say-hello"),
+  import("./actors/io")
 );
