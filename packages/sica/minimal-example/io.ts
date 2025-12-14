@@ -1,9 +1,16 @@
 // import tsEvent from "../events/ts-event";
 
-import { Message, NewMessage, UseCase } from "../src";
+import { Message, UseCase } from "../src";
 
 export default UseCase("AutoReplay")
-  .on(Slack(NewMessage).user("U05KMUK39UJ").channel("#general"))
+  .use(import("@taskwish/slack"))
+
+  .on(({ slack }) =>
+    slack.NewMessage({
+      user: "U05KMUK39UJ",
+      channel: "#general",
+    })
+  )
 
   .steps(
     {
