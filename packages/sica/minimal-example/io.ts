@@ -2,8 +2,8 @@
 
 import { Message, NewMessage, UseCase } from "../src";
 
-export default UseCase("IO")
-  .on(NewMessage)
+export default UseCase("AutoReplay")
+  .on(Slack(NewMessage).user("U05KMUK39UJ").channel("#general"))
 
   .steps(
     {
