@@ -1,6 +1,6 @@
 import { Source, Actor } from "../../src";
 
-export default Actor("SayHello")
+export default Actor("Greeter")
   .use(import("../package"))
 
   .on({ language: "string" })
