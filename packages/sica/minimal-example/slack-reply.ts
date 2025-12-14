@@ -5,13 +5,11 @@ import { Message, Actor } from "../src";
 export default Actor("AutoReplay")
   .use(import("@taskwish/slack"))
 
-  .on(({ slack }) =>
-    slack.NewMessage({
+  .on("slack.NewMessage", {
       user: "U05KMUK39UJ",
       channel: "#general",
-    })
-  )
-
+  })
+  
   .steps(
     {
       name: "response",
