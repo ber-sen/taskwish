@@ -23,8 +23,8 @@ export namespace Boria {
     Meta = null,
   > {
     threadId: Sica.Inject<ThreadId>;
-    identityId: Sica.Inject<IdentityId>; 
-    content: Content; 
+    identityId: Sica.Inject<IdentityId>;
+    content: Content;
   }
 
   export interface Thread {

@@ -1,4 +1,6 @@
-export default App(
+import { Package } from "../src";
+
+export default Package(
   "My automation",
 
   import("./slack-reply"),

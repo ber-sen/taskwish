@@ -6,9 +6,11 @@ import { Use } from "./use";
 import { Message } from "../boria/message";
 import { Provide } from "./provide";
 
+const L = Action.Interface({ name: "string" });
+
 describe("Action", () => {
   it("works with arrow functions", async () => {
-    const succeed = Action("Succeed").handler(() => ({ success: true }))
+    const succeed = Action("Succeed").handler(() => ({ success: true }));
 
     type T = typeof succeed;
 
@@ -35,7 +37,7 @@ describe("Action", () => {
         success: true,
       }))
 
-      .meta({ description: "asdasa", input: { name: "name parameter" } })
+      .meta({ description: "asdasa", input: { name: "name parameter" } });
 
     type T = typeof succeed;
 
@@ -81,7 +83,7 @@ describe("Action", () => {
       >
     >;
 
-    const result = await succeed()
+    const result = await succeed();
 
     expect(result).toEqual({ success: true });
   });
@@ -155,7 +157,7 @@ describe("Action", () => {
 
   it("works with dynamic env", async () => {
     const dynamicEnv = Action("Stream").handler(async function* () {
-      const env = yield* Env({ API_KEY: "string" });
+      const env = yield* Use(Env("API_KEY", "string"));
 
       return Boolean(env);
     });
@@ -186,9 +188,9 @@ describe("Action", () => {
 
   it("works with AbortSignal", async () => {
     const dynamicRequire = Action("Stream").handler(async function* () {
-      const io = yield* Use("abort-signal").as<AbortSignal>();
+      const signal = yield* Use(AbortSignal);
 
-      return io.aborted;
+      return signal.aborted;
     });
 
     type T = typeof dynamicRequire;
@@ -215,7 +217,7 @@ describe("Action", () => {
     >;
 
     const dynamicRequire = Action("Stream").handler(async function* () {
-      const io = yield* Use<IO>("io");
+      const io = yield* Use(IO)
 
       yield* io({ in: "What is your favorite color?" });
     });
@@ -240,7 +242,7 @@ describe("Action", () => {
     >;
 
     const askActionAction = Action("Stream").handler(async function* () {
-      const ask = yield* Use<Ask>("ask");
+      const ask = yield* Use(Ask)
 
       const response = yield* ask({
         question: "Do you want to procceed?",
