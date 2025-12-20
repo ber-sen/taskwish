@@ -20,7 +20,7 @@ export default Actor("AutoReplay")
         }),
     },
 
-    ({ response }) => Message(response).to("Identity"),
+    ({ response }) => Forward(response).to("Identity"),
 
-    ({ response }) => Message(response)
+    ({ response }) => Reply(response)
   );
