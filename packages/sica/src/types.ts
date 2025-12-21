@@ -90,15 +90,19 @@ export namespace Sica {
       Typed<Type>,
       Promise<Return> {
     id: Inject<UUIDv7String>;
-    threadId: Inject<Boria.ThreadId>;
-    identityId: Inject<Boria.IdentityId>;
+    eventId: Inject<UUIDv7String>;
     params: Params;
   }
 
-  export interface Event<Data, Type extends string[]> extends Typed<Type> {
-    id: Inject<UUIDv7String>;
+  export interface IO {
     threadId: Inject<Boria.ThreadId>;
     identityId: Inject<Boria.IdentityId>;
+  }
+
+  export interface Event<Data, Type extends string[] = ["event"]>
+    extends Typed<Type> {
+    id: Inject<UUIDv7String>;
+    io: IO;
     handled?: boolean;
     data: Data;
   }
@@ -120,8 +124,7 @@ export namespace Sica {
   export interface Log<Data, Type extends string[] = ["info"]> // info, start, warn, success
     extends Typed<Type> {
     id: Inject<UUIDv7String>;
-    threadId: Inject<Boria.ThreadId>;
-    identityId: Inject<Boria.IdentityId>;
+    eventId: Inject<UUIDv7String>;
     data: Data;
     toString: () => string;
   }
@@ -132,8 +135,7 @@ export namespace Sica {
     Type extends string[] = ["exception"],
   > extends Typed<Type> {
     id: Inject<UUIDv7String>;
-    threadId: Inject<Boria.ThreadId>;
-    identityId: Inject<Boria.IdentityId>;
+    eventId: Inject<UUIDv7String>;
     status: Status;
     data?: Data;
     throw: () => void;
@@ -204,13 +206,13 @@ export namespace Sica {
       : Schema extends Event<infer Input, any>
         ? {
             input: Input;
-            threadId: Boria.ThreadId;
-            identityId: Boria.IdentityId;
+            event: Event<Input>;
+            io: IO;
           }
         : {
             input: type.instantiate<Schema>["infer"];
-            threadId: Boria.ThreadId;
-            identityId: Boria.IdentityId;
+            event: Event<type.instantiate<Schema>["infer"]>;
+            io: IO;
           };
 
   export interface Extendable<Scope> {
