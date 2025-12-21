@@ -28,7 +28,7 @@ describe("Event", async function* () {
     const test = async function* () {
       const res = yield* newEmail({ from: "lorem@ipsum.com", subject: "Hi" });
 
-      return res.handled;
+      return res;
     };
 
     // expect(result).toEqual({ success: true });

@@ -3,17 +3,12 @@
 import { Message, Actor } from "../src";
 
 export default Actor("AutoReplay")
-  .use(import("@taskwish/slack"))
+  .on(Message)
 
-  .on("slack.NewMessage", {
-      user: "U05KMUK39UJ",
-      channel: "#general",
-  })
-  
   .steps(
     {
       name: "response",
-      run: ({ agent, input }) =>
+      run: ({ input, agent }) =>
         agent.generateText({
           model: "gtp-4",
           messages: input.messages,

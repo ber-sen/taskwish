@@ -206,17 +206,23 @@ export namespace Sica {
   export type InferTriggerScope<Schema> =
     Schema extends StandardSchemaV1<infer Input>
       ? { input: Input; event: Event<Input>; io: IO }
-      : Schema extends Event<infer Input, any>
+      : Schema extends { Event: EventKind<infer Input, any> }
         ? {
             input: Input;
-            event: Event<Input>;
+            event: EventKind<Input>;
             io: IO;
           }
-        : {
-            input: type.instantiate<Schema>["infer"];
-            event: Event<type.instantiate<Schema>["infer"]>;
-            io: IO;
-          };
+        : Schema extends Event<infer Input, any>
+          ? {
+              input: Input;
+              event: Event<Input>;
+              io: IO;
+            }
+          : {
+              input: type.instantiate<Schema>["infer"];
+              event: Event<type.instantiate<Schema>["infer"]>;
+              io: IO;
+            };
 
   export interface Extendable<Scope> {
     use<const NewScope>(newScope: NewScope): Extendable<Scope & NewScope>;
