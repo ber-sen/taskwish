@@ -209,7 +209,7 @@ export namespace Sica {
       : Schema extends { Event: EventKind<infer Input, any> }
         ? {
             input: Input;
-            event: EventKind<Input>;
+            event: Event<Input>;
             io: IO;
           }
         : Schema extends Event<infer Input, any>

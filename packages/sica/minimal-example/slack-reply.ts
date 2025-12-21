@@ -8,10 +8,10 @@ export default Actor("AutoReplay")
   .steps(
     {
       name: "response",
-      run: ({ input, agent }) =>
+      run: ({ event, agent }) =>
         agent.generateText({
           model: "gtp-4",
-          messages: input.messages,
+          messages: event.io.messages,
         }),
     },
 
