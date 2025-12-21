@@ -29,9 +29,6 @@ export namespace Boria {
 
   export interface Thread {
     id: ThreadId;
-    state: "new" | "active" | "waiting" | "finalized" | "renewed";
     messages: Message<any, any>[];
-    workflowId?: UUIDv5String;
-    reply: (params: any) => any;
   }
 }

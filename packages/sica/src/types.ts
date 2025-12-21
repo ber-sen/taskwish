@@ -80,6 +80,22 @@ export namespace Sica {
     ): ActionReturn<Handler>;
   }
 
+  export interface IO {
+    threadId: Boria.ThreadId;
+    receiverId: Boria.IdentityId;
+    history: Boria.Message<any, any>[];
+    send: <const Content extends Array<Boria.MessagePart<any>> | string>(
+      message: Boria.Message<Content>
+    ) => Event<Boria.Message<Content>>;
+  }
+
+  export interface Event<Data, Type extends string[] = ["event"]>
+    extends Typed<Type> {
+    id: Inject<UUIDv7String>;
+    io: IO;
+    data: Data;
+  }
+
   export interface Execution<
     Stream,
     Return,
@@ -92,19 +108,6 @@ export namespace Sica {
     id: Inject<UUIDv7String>;
     eventId: Inject<UUIDv7String>;
     params: Params;
-  }
-
-  export interface IO {
-    threadId: Inject<Boria.ThreadId>;
-    identityId: Inject<Boria.IdentityId>;
-  }
-
-  export interface Event<Data, Type extends string[] = ["event"]>
-    extends Typed<Type> {
-    id: Inject<UUIDv7String>;
-    io: IO;
-    handled?: boolean;
-    data: Data;
   }
 
   export type Actor<
@@ -202,7 +205,7 @@ export namespace Sica {
 
   export type InferTriggerScope<Schema> =
     Schema extends StandardSchemaV1<infer Input>
-      ? { input: Input; threadId: Boria.ThreadId; identityId: Boria.IdentityId }
+      ? { input: Input; event: Event<Input>; io: IO }
       : Schema extends Event<infer Input, any>
         ? {
             input: Input;
