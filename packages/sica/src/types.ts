@@ -83,7 +83,7 @@ export namespace Sica {
   export interface IO {
     threadId: Boria.ThreadId;
     receiverId: Boria.IdentityId;
-    history: Boria.Message<any, any>[];
+    messages: Boria.Message<any, any>[];
     send: <const Content extends Array<Boria.MessagePart<any>> | string>(
       message: Boria.Message<Content>
     ) => Event<Boria.Message<Content>>;
