@@ -8,6 +8,7 @@ export default Actor("AutoReplay")
   .steps(
     {
       name: "response",
+
       run: ({ event, agent }) =>
         agent.generateText({
           model: "gtp-4",
@@ -15,7 +16,10 @@ export default Actor("AutoReplay")
         }),
     },
 
-    ({ response }) => Forward(response).to("Identity"),
+    Forward(response).to("Identity"),
 
-    ({ response }) => Reply(response)
+    {
+      run: ({ response }) => Reply(response),
+      needsApproval: true,
+    }
   );
