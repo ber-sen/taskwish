@@ -24,5 +24,3 @@ export default Actor("ChatBot")
         }),
     }
   );
-
-
