@@ -6,13 +6,11 @@ export default Package(
   import("./actions"),
   import("./packages/slack"),
   import("./actors/simple"),
-  import("./actors/say-hello"),
-  import("./actors/io"),
 
-  ["GET:/api/say-hello/:language", import("./package").helloWold],
-  ["CMD:say-hello :language", import("./package").helloWold],
-  ["GMAIL:pajaziti.bersen@gmail.com", import("./package").io],
-  ["SLACK:U05KMUK39UJ #general", import("./package").io],
+  ["GET", "/api/say-hello/:language", import("./actors/say-hello")],
+  ["CMD", "say-hello :language", import("./actors/say-hello")],
+  ["GMAIL", "pajaziti.bersen@gmail.com", import("./actors/io")],
+  ["SLACK", "U05KMUK39UJ #general", import("./actors/io")],
 
   Provide("env", process.env)
 );
