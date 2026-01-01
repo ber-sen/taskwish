@@ -1,7 +1,7 @@
 {
-  "$name": "NewEmail",
-  "$schema": "https://taskwish.ai/schema/event",
-  "data": {
+  "type": ["Event"],
+  "name": "NewEmail",
+  "params": {
     "from": "string",
     "subject": "string"
   }

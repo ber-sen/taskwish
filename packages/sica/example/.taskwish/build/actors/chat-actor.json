@@ -1,0 +1,31 @@
+{
+  "type": ["Actor"],
+  "name": "ChatActor",
+  "params": {
+    "on": { "tools": "string[]", "prompt": "string" },
+    "steps": [
+      {
+        "type": ["Script"],
+        "name": "tools",
+        "parmas": {
+          "body": "@{tools.filter((tool) => input.tool.includes(tool.name))}"
+        }
+      },
+      {
+        "type": ["Agent::new"],
+        "name": "MarketingAgent",
+        "params": {
+          "instructions": "asdasdadas asdas da",
+          "model": "gtp-4",
+          "tools": "@{tools}"
+        }
+      },
+      {
+        "type": ["MarketingAgent"],
+        "params": {
+          "prompt": "@{input.prompt}"
+        }
+      }
+    ]
+  }
+}
