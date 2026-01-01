@@ -15,8 +15,8 @@ export default Actor("ChatBot")
 
     {
       name: "response",
-      run: ({ agent, tools }) =>
-        agent.generateText({
+      run: ({ ai, tools }) =>
+        ai.generateText({
           system: "asdasdadas asdas da",
           model: "gtp-4",
           tools: tools,

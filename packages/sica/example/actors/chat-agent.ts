@@ -15,8 +15,8 @@ export default Actor("Chat bot")
 
     {
       name: "marketing agent",
-      run: ({ agent, tools }) =>
-        agent.new({
+      run: ({ ai, tools }) =>
+        ai.agent.new({
           system: "asdasdadas asdas da",
           model: "gtp-4",
           tools: tools,
@@ -25,8 +25,8 @@ export default Actor("Chat bot")
 
     {
       name: "response",
-      run: ({ agent, input }) =>
-        agent.marketingAgent({
+      run: ({ ai, input }) =>
+        ai.agent.marketingAgent({
           prompt: input.prompt,
         }),
     }

@@ -1,17 +1,17 @@
-import { Message, NewMessage, Actor } from "../../src";
+import { Message, Actor } from "../../src";
 import { Text } from "../../src/boria/text";
 // import tsEvent from "../events/ts-event";
 
 export default Actor("IO")
   .use(import("../package"))
 
-  .on(NewMessage)
+  .on(Message)
 
   .steps(
     {
       name: "response",
-      run: ({ agent, input }) =>
-        agent.generateText({
+      run: ({ ai, input }) =>
+        ai.generateText({
           system: "Generate response for the message",
           model: "gtp-4",
           prompt: input.content,
