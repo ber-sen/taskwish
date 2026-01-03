@@ -6,8 +6,6 @@ import { Use } from "./use";
 import { Message } from "../boria/message";
 import { Provide } from "./provide";
 
-const L = Action.Interface({ name: "string" });
-
 describe("Action", () => {
   it("works with arrow functions", async () => {
     const succeed = Action("Succeed").handler(() => ({ success: true }));
@@ -140,7 +138,7 @@ describe("Action", () => {
 
   it("works with generators", async () => {
     const streamNumbers = Action("Stream").handler(async function* () {
-      yield Message.User([
+      yield Message([
         { type: "text", text: "asd" },
         { type: "text", text: "asdasd" },
       ]);
@@ -198,12 +196,9 @@ describe("Action", () => {
     type dynamicRequire = Expect<
       Equal<
         Sica.NullaryAction<
-          () => AsyncGenerator<
-            never,
-            boolean,
-            Sica.Use<Sica.Struct<AbortSignal, ["abort-signal"]>>
-          >,
-          ["action", "Stream"]
+          () => AsyncGenerator<unknown, boolean, AbortSignal>,
+          ["action", "Stream"],
+          null
         >,
         T
       >
@@ -211,15 +206,10 @@ describe("Action", () => {
   });
 
   it("works with require env", async () => {
-    type IO = Sica.Action<
-      (params: { in: string } | { out: string }) => boolean,
-      ["io"]
-    >;
-
     const dynamicRequire = Action("Stream").handler(async function* () {
-      const io = yield* Use(IO)
+      const io = yield* Use(Sica.IO);
 
-      yield* io({ in: "What is your favorite color?" });
+      io.messages;
     });
 
     type T = typeof dynamicRequire;
@@ -227,38 +217,9 @@ describe("Action", () => {
     type dynamicRequire = Expect<
       Equal<
         Sica.NullaryAction<
-          () => AsyncGenerator<never, void, Sica.Use<IO>>,
-          ["action", "Stream"]
-        >,
-        T
-      >
-    >;
-  });
-
-  it("works with libs", async () => {
-    type Ask = Sica.Action<
-      (params: { question: string; type: "confim" | "select" }) => boolean,
-      ["ask"]
-    >;
-
-    const askActionAction = Action("Stream").handler(async function* () {
-      const ask = yield* Use(Ask)
-
-      const response = yield* ask({
-        question: "Do you want to procceed?",
-        type: "confim",
-      });
-
-      return response;
-    });
-
-    type T = typeof askActionAction;
-
-    type askActionAction = Expect<
-      Equal<
-        Sica.NullaryAction<
-          () => AsyncGenerator<never, boolean, Sica.Use<Ask>>,
-          ["action", "Stream"]
+          () => AsyncGenerator<unknown, void, Sica.IO>,
+          ["action", "Stream"],
+          null
         >,
         T
       >

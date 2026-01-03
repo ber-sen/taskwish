@@ -23,10 +23,3 @@ export function Action<
 export function Action(...args: any) {
   return {} as any;
 }
-
-Action.Interface = <const S, const R = null>(
-  input: Sica.ValidateSchema<S>,
-  output?: Sica.ValidateSchema<R>
-): Sica.InferSchema<S> => {
-  return {} as any;
-};

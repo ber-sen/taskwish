@@ -80,11 +80,11 @@ export namespace Sica {
     ): ActionReturn<Handler>;
   }
 
-  export interface IO {
-    threadId: Boria.ThreadId;
-    receiverId: Boria.IdentityId;
-    messages: Boria.Message<any, any>[];
-    send: <const Content extends Array<Boria.MessagePart<any>> | string>(
+  export class IO {
+    threadId!: Boria.ThreadId;
+    receiverId!: Boria.IdentityId;
+    messages!: Boria.Message<any, any>[];
+    send!: <const Content extends Array<Boria.MessagePart<any>> | string>(
       message: Boria.Message<Content>
     ) => Event<Boria.Message<Content>>;
   }
@@ -115,14 +115,6 @@ export namespace Sica {
     Type extends string[] = ["Actor"],
     Meta = null,
   > = Object & Resource<Type> & NullaryAction<Object["main"], Type, Meta>;
-
-  export interface Use<Dep extends Typed<any>> {
-    dep: Dep;
-  }
-
-  export interface Provide<Dep extends Typed<any>> {
-    dep: Dep;
-  }
 
   export interface Log<Data, Type extends string[] = ["info"]> // info, start, warn, success
     extends Typed<Type> {
