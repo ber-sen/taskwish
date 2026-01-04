@@ -11,7 +11,7 @@ export default Actor("Sub steps")
       options: [Source.pipeTo(Response)],
 
       run: async function* () {
-        yield Message.User([
+        yield Message([
           { type: "text", text: "asd" },
           { type: "text", text: "asdasd" },
         ]);

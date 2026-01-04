@@ -181,7 +181,7 @@ type AddOption<Option, T> = T extends string[]
     ? { [K in keyof T]: AddOption<Option, T[K]> }
     : T;
 
-type AddStep<Name extends string, Result, Next> = Result extends
+type Append<Name extends string, Result, Next> = Result extends
   | ":loop"
   | ":parallel"
   | ":if"
@@ -220,22 +220,22 @@ type RemovePrevWhenEnd<
 type FormatScope<Scope> = PartialOnUndefinedDeep<ExtractResults<Scope>>;
 
 type Scope = OperatorCalculator<
-  AddStep<
+  Append<
     "step1",
     ":loop",
-    AddStep<
+    Append<
       "step2",
       4,
-      AddStep<
+      Append<
         "step3",
         4,
-        AddStep<
+        Append<
           "step4",
           ":loop",
-          AddStep<
+          Append<
             "step5",
             3,
-            AddStep<"step6", ":end", AddStep<"step7", true, {}>>
+            Append<"step6", ":end", Append<"step7", true, {}>>
           >
         >
       >
@@ -243,6 +243,16 @@ type Scope = OperatorCalculator<
   >
 >;
 
+type Scope2 = OperatorCalculator<
+  Append<
+    typeof If(1 > 2)
+    Append<
+      { name: string; run: (scope: PrettyScope<Scope>) => any }, {}>
+  >
+>
+
 type B = Pretty<FormatScope<Scope>>;
 
 const b: B = {} as never;
+
+

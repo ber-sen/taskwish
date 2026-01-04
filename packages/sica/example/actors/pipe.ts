@@ -14,7 +14,7 @@ export default Actor("Sub steps")
     {
       name: "stream step",
       run: async function* () {
-        yield Message.User([
+        yield Message([
           { type: "text", text: "asd" },
           { type: "text", text: "asdasd" },
         ]);
