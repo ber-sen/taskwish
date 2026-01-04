@@ -89,6 +89,12 @@ export namespace Sica {
     ) => Event<Boria.Message<Content>>;
   }
 
+  export abstract class Trait {
+    static [Symbol.hasInstance](obj: any) {
+      return Boolean(obj?.traits?.has?.(this));
+    }
+  }
+
   export interface Event<Data, Type extends string[] = ["event"]>
     extends Typed<Type> {
     id: Inject<UUIDv7String>;
