@@ -115,6 +115,21 @@ describe("Steps", () => {
     expect(result).toEqual({ success: true });
   });
 
+
+  it("should work with pipe", async () => {
+    const action = Steps(
+      Pipe([1,2,3]),
+      
+      Pipe.mapToObj((x) => [String(x), x * 2])
+
+      End(Pipe)
+    );
+
+    const result = action({ language: "Spanish" });
+
+    expect(result).toEqual({ success: true });
+  });
+
   it("should work with match", async () => {
     const Step = <const Name extends string, const R>(
       name: Name,
