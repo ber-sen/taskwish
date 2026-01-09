@@ -34,7 +34,7 @@ type InferStepRecord<Step> = Step extends {
     ? Scope
     : {};
 
-export interface Steps<Scope extends Record<any, any>> {
+export interface OldSteps<Scope extends Record<any, any>> {
   <const S0 extends AnyStep<Scope>, S0R>(
     ...trumpets: [step: S0 & { run: S0R }]
   ): Return;
@@ -84,17 +84,41 @@ export const Steps: Steps<{}> = () => {
   return {} as never;
 };
 
-export const Step = <const K, const P>(key: K, params: P) =>
-  [key, () => params] as const;
+// export const Parallel = (
+//   name?: string
+// ): Sica.Flow<["parallel"], null, any> => ({
+//   [Sica.Type]: ["parallel"],
+//   group: null,
+// });
 
-export const Parallel = (
-  name?: string
-): Sica.Flow<["parallel"], null, any> => ({
-  [Sica.Type]: ["parallel"],
-  group: null,
-});
+// export const Return = (): Sica.Flow<["return"], null, any> => ({
+//   [Sica.Type]: ["return"],
+//   group: null,
+// });
 
-export const Return = (): Sica.Flow<["return"], null, any> => ({
-  [Sica.Type]: ["return"],
-  group: null,
-});
+export interface Steps<Scope extends Record<any, any>> {
+  <A>(step: (input: Scope) => A): A;
+  <A, B>(step1: (input: Scope) => A, step2: (input: A) => B): B;
+  <A, B, C>(
+    step1: (input: Scope) => A,
+    step2: (input: A) => B,
+    step3: (input: B) => C
+  ): C;
+}
+
+export const Step =
+  <const Name, const Result, Scope extends Record<any, any>>(
+    name: Name,
+    handler: (scope: PrettyScope<Scope>) => Result
+  ) =>
+  (
+    scope: Scope
+  ): Name extends string ? Scope & Record<Name, Result> : Scope => {
+    return {} as any;
+  };
+
+const a = Steps(
+  Step("lorem asd", () => 3),
+  Step("asd", ($) => $.loremAsd),
+  Step("asd lasd asd", ($) => $.asd)
+);

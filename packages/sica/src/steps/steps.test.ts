@@ -97,15 +97,15 @@ describe("Steps", () => {
 
   it("should work with match", async () => {
     const action = Steps(
-      ($) => Match($.input, { subtype: true }),
+      Match(scope => scope.input),
 
-      "me_message",
+      Match.with("me_message"),
 
-      ["lorem", ($) => asdad],
+      { name: "end", run: ($) => $.input.language },
 
-      "bot_message",
+      Match.with("asd"),
 
-      ["ipsum", ($) => asdad],
+      { name: "end", run: ($) => $.input.language },
 
       End(Match)
     );
@@ -119,7 +119,7 @@ describe("Steps", () => {
   it("should work with pipe", async () => {
     const action = Steps(
       Pipe([1,2,3]),
-      
+
       Pipe.mapToObj((x) => [String(x), x * 2])
 
       End(Pipe)
