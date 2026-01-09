@@ -119,6 +119,13 @@ export const Step =
 
 const a = Steps(
   Step("lorem asd", () => 3),
+
   Step("asd", ($) => $.loremAsd),
-  Step("asd lasd asd", ($) => $.asd)
+
+  Step("asd lasd asd", ({ action, input }) =>
+    action.slack.sendMessage({
+      channel: "#general",
+      text: `Does someone speak ${input.user.name}?`,
+    })
+  )
 );
