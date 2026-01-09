@@ -104,6 +104,12 @@ export interface Steps<Scope extends Record<any, any>> {
     step2: (input: A) => B,
     step3: (input: B) => C
   ): C;
+  <A, B, C, D>(
+    step1: (input: Scope) => A,
+    step2: (input: A) => B,
+    step3: (input: B) => C,
+    step4: (input: C) => D
+  ): D;
 }
 
 export const Step =
@@ -117,15 +123,47 @@ export const Step =
     return {} as any;
   };
 
+export const Agent = <const Name, Scope>(name: Name) => ({
+  generateText:
+    <Scope>({}: {
+      model: "gpt5";
+      prompt: ((scope: PrettyScope<Scope>) => any) | string;
+    }) =>
+    (
+      scope: Scope
+    ): Name extends string ? Scope & Record<Name, string> : Scope => {
+      return {} as any;
+    },
+});
+
+export const Action = <const Name, Scope>(name: Name) => ({
+  run:
+    <Scope>(
+      type: "slack.sendMessage",
+      {}: {
+        channel: "#general";
+        message: ((scope: PrettyScope<Scope>) => any) | string;
+      }
+    ) =>
+    (
+      scope: Scope
+    ): Name extends string ? Scope & Record<Name, string> : Scope => {
+      return {} as any;
+    },
+});
+
 const a = Steps(
-  Step("lorem asd", () => 3),
+  Step("get input", () => 3),
 
-  Step("asd", ($) => $.loremAsd),
+  Agent("dellv").generateText({ model: "gpt5", prompt: ($) => $.getInput }),
 
-  Step("asd lasd asd", ({ action, input }) =>
-    action.slack.sendMessage({
-      channel: "#general",
-      text: `Does someone speak ${input.user.name}?`,
-    })
+  Action("send message").run("slack.sendMessage", {
+    channel: "#general",
+    message: ($) => $.dellv,
+  }),
+
+  Step(
+    "get input",
+    (scope) => `a mesasge was send to slack ${scope.sendMessage}`
   )
 );
