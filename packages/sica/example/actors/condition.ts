@@ -1,4 +1,4 @@
-import { End, Actor, If, Message } from "../../src";
+import { End, Actor, If, Message, Step } from "../../src";
 
 export default Actor("Greeding")
   .use(import("../package"))
@@ -6,16 +6,11 @@ export default Actor("Greeding")
   .on({ user: { name: "string", age: "number" } })
 
   .steps(
-    If(2 > 1),
+    // If(2 > 1),
 
-    Message("case is true"),
+    Step("get name", function () {
+      return this.input.user.name;
+    }),
 
-    {
-      name: "asdasd",
-      run: ({ input }) => input.user.name,
-    },
-
-    End(If),
-
-    (scope) => scope.asdasd
+    // End(If)
   );

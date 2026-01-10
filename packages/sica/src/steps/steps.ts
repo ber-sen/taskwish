@@ -128,7 +128,7 @@ export function Step<
 ): {
   scope: (
     scope: Scope
-  ) => Name extends string ? Scope & Record<Name, Result> : Scope;
+  ) => Name extends string ? Record<Name, Result> & Scope : Scope;
 };
 
 export function Step(...args: any) {
