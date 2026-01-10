@@ -108,13 +108,8 @@ export interface Steps<Scope extends Record<any, any>> {
     step3: { scope: (input: B) => C }
   ): C;
   <A, B, C, D>(
-    step1:
-      | { if: boolean }
-      | { scope: (input: Scope) => A }
-      | ( A extends { if: boolean } ? A : never ),
-    step2: {
-      scope: (input: A extends { if: boolean } ? Scope & A : A) => B;
-    },
+    step1: { scope: (input: Scope) => A },
+    step2: { scope: (input: A) => B },
     step3: { scope: (input: B) => C },
     step4: { scope: (input: C) => D }
   ): D;
@@ -159,9 +154,6 @@ export const Steps: Steps<Scope> = () => {
 };
 
 const a = Steps(
-  { if: true },
-  // Step("init", ($) => "Say hello in spanish"),
-
   Step("get prompt", ($) => "Say hello in spanish"),
 
   Step(
