@@ -120,6 +120,7 @@ describe("Steps", () => {
     const action = Steps(
       Pipe([1,2,3]),
 
+      
       Pipe.mapToObj((x) => [String(x), x * 2])
 
       End(Pipe)

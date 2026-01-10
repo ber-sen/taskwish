@@ -93,31 +93,48 @@ export interface OldSteps<Scope extends Record<any, any>> {
 // });
 
 export interface Steps<Scope extends Record<any, any>> {
-  <A>(step: (input: Scope) => A): A;
-  <A, B>(step1: (input: Scope) => A, step2: (input: A) => B): B;
+  <A>(step: { scope: (input: Scope) => A }): A;
+  <A, B>(
+    step1: { scope: (input: Scope) => A },
+    step2: { scope: (input: A) => B }
+  ): B;
   <A, B, C>(
-    step1: (input: Scope) => A,
-    step2: (input: A) => B,
-    step3: (input: B) => C
+    step1: { scope: (input: Scope) => A },
+    step2: { scope: (input: A) => B },
+    step3: { scope: (input: B) => C }
   ): C;
   <A, B, C, D>(
-    step1: (input: Scope) => A,
-    step2: (input: A) => B,
-    step3: (input: B) => C,
-    step4: (input: C) => D
+    step1: { scope: (input: Scope) => A },
+    step2: { scope: (input: A) => B },
+    step3: { scope: (input: B) => C },
+    step4: { scope: (input: C) => D }
   ): D;
 }
 
-export const Step =
-  <const Name, const Result, Scope extends Record<any, any>>(
-    name: Name,
-    handler: (scope: PrettyScope<Scope>) => Result
-  ) =>
-  (
+export const Step = <const Name, const Result, Scope extends Record<any, any>>(
+  name: Name,
+  handler: (scope: PrettyScope<Scope>) => Result
+) => ({
+  scope: (
     scope: Scope
   ): Name extends string ? Scope & Record<Name, Result> : Scope => {
     return {} as any;
-  };
+  },
+  retry: (options: { times: number }) => ({
+    scope: (
+      scope: Scope
+    ): Name extends string ? Scope & Record<Name, Result> : Scope => {
+      return {} as any;
+    },
+  }),
+  pipe: () => ({
+    scope: (
+      scope: Scope
+    ): Name extends string ? Scope & Record<Name, Result> : Scope => {
+      return {} as any;
+    },
+  }),
+});
 
 interface Scope {
   ai: {
@@ -139,7 +156,7 @@ const a = Steps(
 
   Step("generate text", ({ ai, getPrompt }) =>
     ai.generateText({ model: "gpt5", prompt: getPrompt })
-  ),
+  ).retry({ times: 3 }),
 
   Step("send message", ({ action, generateText }) =>
     action.slack.sendMessage({ channel: "#general", message: generateText })
