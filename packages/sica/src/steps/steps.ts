@@ -121,7 +121,10 @@ export function Step<
   Scope extends Record<any, any>,
 >(
   name: Name,
-  handler: (this: PrettyScope<Scope>) => Result
+  handler:
+    | ((this: PrettyScope<Scope>) => Result)
+    | [(this: PrettyScope<Scope>) => Result]
+    | [(this: PrettyScope<Scope>) => Result, { retry: number }]
 ): {
   scope: (
     scope: Scope
@@ -152,9 +155,12 @@ const a = Steps(
     return "asdad";
   }),
 
-  Step("generate text", function () {
-    return this.ai.generateText({ model: "gpt5", prompt: this.getPrompt });
-  }),
+  Step("generate text", [
+    function () {
+      return this.ai.generateText({ model: "gpt5", prompt: this.getPrompt });
+    },
+    { retry: 3 },
+  ]),
 
   Step("send message", function () {
     return this.action.slack.sendMessage({
