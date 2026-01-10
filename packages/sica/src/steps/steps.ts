@@ -111,30 +111,28 @@ export interface Steps<Scope extends Record<any, any>> {
   ): D;
 }
 
-export const Step = <const Name, const Result, Scope extends Record<any, any>>(
+export function Step<const Name, const Result, Scope extends Record<any, any>>(
   name: Name,
   handler: (scope: PrettyScope<Scope>) => Result
-) => ({
+): {
   scope: (
     scope: Scope
-  ): Name extends string ? Scope & Record<Name, Result> : Scope => {
-    return {} as any;
-  },
-  retry: (options: { times: number }) => ({
-    scope: (
-      scope: Scope
-    ): Name extends string ? Scope & Record<Name, Result> : Scope => {
-      return {} as any;
-    },
-  }),
-  pipe: () => ({
-    scope: (
-      scope: Scope
-    ): Name extends string ? Scope & Record<Name, Result> : Scope => {
-      return {} as any;
-    },
-  }),
-});
+  ) => Name extends string ? Scope & Record<Name, Result> : Scope;
+};
+
+export function Step<const Name, const Result, Scope extends Record<any, any>>(
+  name: Name,
+  handler: (scope: PrettyScope<Scope>) => Result,
+  ...options: Array<{ retry: number } | { timeout: number }>
+): {
+  scope: (
+    scope: Scope
+  ) => Name extends string ? Scope & Record<Name, Result> : Scope;
+};
+
+export function Step(...args: any) {
+  return {} as never;
+}
 
 interface Scope {
   ai: {
@@ -154,9 +152,15 @@ export const Steps: Steps<Scope> = () => {
 const a = Steps(
   Step("get prompt", () => "Say hello in spanish"),
 
-  Step("generate text", ({ ai, getPrompt }) =>
-    ai.generateText({ model: "gpt5", prompt: getPrompt })
-  ).retry({ times: 3 }),
+  Step(
+    "generate text",
+
+    ({ ai, getPrompt }) =>
+      ai.generateText({ model: "gpt5", prompt: getPrompt }),
+
+    { timeout: 10 },
+    { retry: 100 }
+  ),
 
   Step("send message", ({ action, generateText }) =>
     action.slack.sendMessage({ channel: "#general", message: generateText })
