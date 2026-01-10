@@ -1,8 +1,6 @@
 import { Package } from "../src";
 
-export default Package(
-  "Example",
-
+export default Package("Example", [
   import("./actions"),
   import("./packages/slack"),
   import("./actors/simple"),
@@ -12,5 +10,5 @@ export default Package(
   ["GMAIL", "pajaziti.bersen@gmail.com", import("./actors/io")],
   ["SLACK", "U05KMUK39UJ #general", import("./actors/io")],
 
-  Provide("env", process.env)
-);
+  Provide("env", process.env),
+]);
