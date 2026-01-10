@@ -80,10 +80,6 @@ export interface OldSteps<Scope extends Record<any, any>> {
   ): Return;
 }
 
-export const Steps: Steps<{}> = () => {
-  return {} as never;
-};
-
 // export const Parallel = (
 //   name?: string
 // ): Sica.Flow<["parallel"], null, any> => ({
@@ -123,47 +119,29 @@ export const Step =
     return {} as any;
   };
 
-export const Agent = <const Name, Scope>(name: Name) => ({
-  generateText:
-    <Scope>({}: {
-      model: "gpt5";
-      prompt: ((scope: PrettyScope<Scope>) => any) | string;
-    }) =>
-    (
-      scope: Scope
-    ): Name extends string ? Scope & Record<Name, string> : Scope => {
-      return {} as any;
-    },
-});
+interface Scope {
+  ai: {
+    generateText: (params: { model: "gpt5"; prompt: string }) => string;
+  };
+  action: {
+    slack: {
+      sendMessage: (params: { channel: "#general"; message: string }) => string;
+    };
+  };
+}
 
-export const Action = <const Name, Scope>(name: Name) => ({
-  run:
-    <Scope>(
-      type: "slack.sendMessage",
-      {}: {
-        channel: "#general";
-        message: ((scope: PrettyScope<Scope>) => any) | string;
-      }
-    ) =>
-    (
-      scope: Scope
-    ): Name extends string ? Scope & Record<Name, string> : Scope => {
-      return {} as any;
-    },
-});
+export const Steps: Steps<Scope> = () => {
+  return {} as never;
+};
 
 const a = Steps(
-  Step("get input", () => 3),
+  Step("get prompt", () => "Say hello in spanish"),
 
-  Agent("dellv").generateText({ model: "gpt5", prompt: ($) => $.getInput }),
+  Step("generate text", ({ ai, getPrompt }) =>
+    ai.generateText({ model: "gpt5", prompt: getPrompt })
+  ),
 
-  Action("send message").run("slack.sendMessage", {
-    channel: "#general",
-    message: ($) => $.dellv,
-  }),
-
-  Step(
-    "get input",
-    (scope) => `a mesasge was send to slack ${scope.sendMessage}`
+  Step("send message", ({ action, generateText }) =>
+    action.slack.sendMessage({ channel: "#general", message: generateText })
   )
 );
