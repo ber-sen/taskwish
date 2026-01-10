@@ -4,7 +4,19 @@ import { Sica } from "./types";
 interface ActorMethod<Scope extends Record<any, any>>
   extends Sica.Scoped<Scope> {
   use<const NewScope>(newScope: NewScope): ActorMethod<Scope>;
-  steps: Steps<Scope>;
+  handler: Steps<DummyScope>;
+}
+
+
+interface DummyScope {
+  ai: {
+    generateText: (params: { model: "gpt5"; prompt: string }) => string;
+  };
+  action: {
+    slack: {
+      sendMessage: (params: { channel: "#general"; message: string }) => string;
+    };
+  };
 }
 
 export interface ActorFactory<Params, Scope extends Record<any, any> = {}>

@@ -8,6 +8,8 @@ type Return = Sica.NullaryAction<
   }
 >;
 
+const Last = Symbol.for("Last");
+
 type AnyStep<Scope> =
   | { name: string; run: (scope: PrettyScope<Scope>) => any }
   | {
@@ -97,11 +99,13 @@ export interface ScopePipe {
 }
 
 export interface Steps<Scope extends Record<any, any>> {
-  <A>(step: { scope: (input: Scope) => A }): A;
+  <A>(
+    step: { scope: (input: Scope) => A } | ((this: Scope) => A)
+  ): typeof Last extends keyof A ? A[typeof Last] : A;
   <A, B>(
     step1: { scope: (input: Scope) => A },
     step2: { scope: (input: A) => B }
-  ): B;
+  ): typeof Last extends keyof B ? B[typeof Last] : B;
   <A, B, C>(
     step1: { scope: (input: Scope) => A },
     step2: { scope: (input: A) => B },
@@ -128,7 +132,11 @@ export function Step<
 ): {
   scope: (
     scope: Scope
-  ) => Name extends string ? Record<Name, Result> & Scope : Scope;
+  ) => Name extends string
+    ? Record<Name, Result> &
+        Record<typeof Last, Result> &
+        Omit<Scope, typeof Last>
+    : Scope;
 };
 
 export function Step(...args: any) {
