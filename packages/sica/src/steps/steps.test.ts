@@ -152,6 +152,7 @@ describe("Steps", () => {
       yield Step("12", true);
     };
 
+
     type T = ReturnType<typeof steps>;
 
     type succeed = Expect<

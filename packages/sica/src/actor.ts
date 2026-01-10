@@ -1,4 +1,4 @@
-import { Steps } from "./steps/steps";
+import { Steps } from "./steps";
 import { Sica } from "./types";
 
 interface ActorMethod<Scope extends Record<any, any>>
