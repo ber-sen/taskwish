@@ -115,23 +115,17 @@ export interface Steps<Scope extends Record<any, any>> {
   ): D;
 }
 
-export function Step<const Name, const Result, Scope extends Record<any, any>>(
-  name: Name,
-  handler: (scope: PrettyScope<Scope>) => Result
+export function Step<const Name extends string>(
+  name: Name
 ): {
-  scope: (
-    scope: Scope
-  ) => Name extends string ? Scope & Record<Name, Result> : Scope;
-};
-
-export function Step<const Name, const Result, Scope extends Record<any, any>>(
-  name: Name,
-  handler: (scope: PrettyScope<Scope>) => Result,
-  ...options: Array<{ retry: number } | { timeout: number }>
-): {
-  scope: (
-    scope: Scope
-  ) => Name extends string ? Scope & Record<Name, Result> : Scope;
+  run: <const Result, Scope extends Record<any, any>>(
+    handler: (scope: PrettyScope<Scope>) => Result,
+    ...options: Array<{ retry: number } | { timeout: number }>
+  ) => {
+    scope: (
+      scope: Scope
+    ) => Name extends string ? Scope & Record<Name, Result> : Scope;
+  };
 };
 
 export function Step(...args: any) {
@@ -154,19 +148,17 @@ export const Steps: Steps<Scope> = () => {
 };
 
 const a = Steps(
-  Step("get prompt", ($) => "Say hello in spanish"),
+  Step("get prompt").run(($) => "Say hello in spanish"),
 
-  Step(
-    "generate text",
-
+  Step("generate text").run(
     ({ ai, getPrompt }) =>
       ai.generateText({ model: "gpt5", prompt: getPrompt }),
 
-    { timeout: 10 },
-    { retry: 100 }
+    { retry: 5 },
+    { timeout: 5 }
   ),
 
-  Step("send message", ({ action, generateText }) =>
+  Step("send message").run(({ action, generateText }) =>
     action.slack.sendMessage({ channel: "#general", message: generateText })
   )
 );
