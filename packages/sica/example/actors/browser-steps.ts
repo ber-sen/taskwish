@@ -1,7 +1,7 @@
 import { Actor, Step } from "../../src";
 import { SubSteps } from "../../src/steps/sub-steps";
 
-const BrowserActor: SubSteps = () => {
+const BrowserSteps: SubSteps = () => {
   return {} as never;
 };
 
@@ -9,7 +9,14 @@ export default Actor("Simple")
   .use(import("../package"))
 
   .handler(
-    BrowserActor("Scrape merrjep listing", (Step) => [
+    Step("first step", function () {
+      return this.action.slack.sendMessage({
+        channel: "#general",
+        message: "Hello World",
+      });
+    }),
+
+    BrowserSteps("Scrape merrjep listing", (Step) => [
       Step("scrollUntilVisible", {
         element: "Laptop Stand",
         centerElement: true,
@@ -20,13 +27,6 @@ export default Actor("Simple")
         below: "Laptop Stand",
       }),
     ]),
-
-    Step("first step", function () {
-      return this.action.slack.sendMessage({
-        channel: "#general",
-        message: "Hello World",
-      });
-    }),
 
     Step("last step", function () {
       return this.firstStep.length;
