@@ -1,0 +1,7 @@
+url: https://duckduckgo.com
+---
+- launchApp
+- tapOn: "Search without being tracked"
+- inputText: "Maestro e2e testing"
+- pressKey: Enter
+- assertVisible: ".*Maestro is an open-source framework.*"
