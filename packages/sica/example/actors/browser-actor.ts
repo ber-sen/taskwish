@@ -1,6 +1,6 @@
 import { Source, Actor, Step, Last } from "../../src";
 
-const Maestro = <const Name, Scope>(
+const BrowserActor = <const Name, Scope>(
   name: Name,
   step: (
     step: (
@@ -24,7 +24,7 @@ export default Actor("Simple")
   .use(import("../package"))
 
   .handler(
-    Maestro("Scrape merrjep listing", (Step) => [
+    BrowserActor("Scrape merrjep listing", (Step) => [
       Step("launchApp", "com.acme.toppicks"),
 
       Step("scrollUntilVisible", {
