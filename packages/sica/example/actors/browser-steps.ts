@@ -15,16 +15,11 @@ export default Actor("Simple")
         message: "Hello World",
       });
     }),
-
+    
     BrowserSteps("Scrape merrjep listing", (Step) => [
       Step("scrollUntilVisible", {
         element: "Laptop Stand",
         centerElement: true,
-      }),
-
-      Step("tapOn", {
-        text: "Add to Cart",
-        below: "Laptop Stand",
       }),
     ]),
 

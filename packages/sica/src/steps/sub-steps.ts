@@ -1,41 +1,29 @@
-import { Last } from "./steps";
+import { Last, StepsReturn } from "./steps";
 
 export interface SubSteps {
   <Scope extends Record<any, any>, const Name, A>(
     name: Name,
     steps: (
-      Step: (
-        name: "launchApp" | "scrollUntilVisible" | "tapOn",
+      Step: <StepName extends "launchApp" | "scrollUntilVisible" | "tapOn">(
+        name: StepName,
         options: any
-      ) => [step: { step: (input: Scope) => A }]
-    ) => void
+      ) => {
+        step: (
+          scope: Scope
+        ) => StepName extends string
+          ? Record<StepName, boolean> &
+              Record<typeof Last, boolean> &
+              Omit<Scope, typeof Last>
+          : Scope;
+      }
+    ) => [step: { step: (input: Scope) => A }]
   ): {
     step: (
       scope: Scope
-    ) => Name extends string
-      ? Record<Name, A> &
-          Record<typeof Last, A> &
-          Omit<Scope, typeof Last>
-      : Scope;
-  };
-  <Scope extends Record<any, any>, const Name, A, B>(
-    name: Name,
-    steps: (
-      Step: (
-        name: "launchApp" | "scrollUntilVisible" | "tapOn",
-        options: any
-      ) => [
-        step1: { step: (input: Scope) => A },
-        step2: { step: (input: A) => B },
-      ]
-    ) => void
-  ): {
-    step: (
-      scope: Scope
-    ) => Name extends string
-      ? Record<Name, boolean> &
-          Record<typeof Last, boolean> &
-          Omit<Scope, typeof Last>
-      : Scope;
+    ) => StepsReturn<
+      Name extends string
+        ? Record<Name, A> & Record<typeof Last, A> & Omit<Scope, typeof Last>
+        : Scope
+    >;
   };
 }
