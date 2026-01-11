@@ -1,10 +1,16 @@
 import { Last, StepsReturn } from "./steps";
 
 export interface SubSteps {
-  <Scope extends Record<any, any>, const Name, A>(
+  <Scope extends Record<any, any>, const Name extends string, A>(
     name: Name,
     steps: (
-      Step: <StepName extends "launchApp" | "scrollUntilVisible" | "tapOn">(
+      Step: <
+        StepName extends
+          | "launchApp"
+          | "scrollUntilVisible"
+          | "tapOn"
+          | (string & {}),
+      >(
         name: StepName,
         options: any
       ) => {
