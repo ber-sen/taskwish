@@ -1,7 +1,11 @@
-url: https://duckduckgo.com
+url: "https://duckduckgo.com"
 ---
 - launchApp
-- tapOn: "Search without being tracked"
-- inputText: "Maestro e2e testing"
-- pressKey: Enter
-- assertVisible: ".*Maestro is an open-source framework.*"
+- evalScript: ${output.myVariable = "hello"}
+
+- runScript:
+    file: myScript.js
+    env:
+      html: "${output.myVariable}"
+
+- evalScript: ${console.log("test")}

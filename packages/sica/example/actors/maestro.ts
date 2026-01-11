@@ -17,9 +17,8 @@ const Maestro = <const Name, Scope>(
         Omit<Scope, typeof Last>
     : Scope;
 } => {
-  return {} as never
-}
-
+  return {} as never;
+};
 
 export default Actor("Simple")
   .use(import("../package"))
