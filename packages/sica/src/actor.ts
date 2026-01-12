@@ -7,14 +7,18 @@ interface ActorMethod<Scope extends Record<any, any>>
   handler: Steps<DummyScope>;
 }
 
-
 interface DummyScope {
-  ai: {
-    generateText: (params: { model: "gpt5"; prompt: string }) => string;
-  };
-  action: {
-    slack: {
-      sendMessage: (params: { channel: "#general"; message: string }) => string;
+  scope: {
+    ai: {
+      generateText: (params: { model: "gpt5"; prompt: string }) => string;
+    };
+    action: {
+      slack: {
+        sendMessage: (params: {
+          channel: "#general";
+          message: string;
+        }) => string;
+      };
     };
   };
 }

@@ -15,12 +15,14 @@ export default Actor("Simple")
     }),
 
     Browser.Steps(
+      () => 3,
+      
       Browser.Step("launchApp", {
         element: "Laptop Stand",
         centerElement: true,
       }),
 
-      Step("mid step", function () {
+      Step("mid d", function () {
         return this.action.slack.sendMessage({
           channel: "#general",
           message: "Hello World",

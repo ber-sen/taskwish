@@ -1,36 +1,43 @@
 import { Last, StepsReturn } from "./steps";
 
 export interface SubSteps {
-  Step<Scope, StepName extends "launchApp" | "scrollUntilVisible" | "tapOn">(
-    name: StepName,
+  Step<
+    Ctx extends Record<any, any>,
+    Name extends "launchApp" | "scrollUntilVisible" | "tapOn",
+  >(
+    name: Name,
     options: any
   ): {
-    step: (
-      scope: Scope
-    ) => StepName extends string
-      ? Record<StepName, boolean> &
-          Record<typeof Last, boolean> &
-          Omit<Scope, typeof Last>
-      : Scope;
+    step: (ctx: Ctx) => Name extends string
+      ? {
+          scope: Ctx["scope"] &
+            Record<
+              Name,
+              "if" extends keyof Ctx["scope"] ? boolean | undefined : boolean
+            >;
+          [Last]: boolean;
+        }
+      : Ctx;
   };
-  Steps<Scope extends Record<any, any>, A>(step: {
-    step: (input: Scope) => A;
+  Steps<Ctx extends Record<any, any>, A>(step: {
+    step: (input: Ctx) => A;
   }): {
-    step: (input: Scope) => A;
+    step: (input: Ctx) => A;
   };
-  Steps<Scope extends Record<any, any>, A, B>(
+  Steps<Ctx extends Record<any, any>, A, B>(
     step1: {
-      step: (input: Scope) => A;
+      step: (input: Ctx) => A;
     },
     step2: {
       step: (input: A) => B;
     }
   ): {
-    step: (input: Scope) => B;
+    step: (input: Ctx) => B;
   };
-  Steps<Scope extends Record<any, any>, A, B, C>(
+  Steps<Ctx extends Record<any, any>, A, B, C, Options>(
+    options: (scope: Ctx["scope"]) => Options,
     step1: {
-      step: (input: Scope) => A;
+      step: (input: Ctx) => A;
     },
     step2: {
       step: (input: A) => B;
@@ -39,6 +46,6 @@ export interface SubSteps {
       step: (input: B) => C;
     }
   ): {
-    step: (input: Scope) => C;
+    step: (input: Ctx) => C & Record<"options", Options>;
   };
 }

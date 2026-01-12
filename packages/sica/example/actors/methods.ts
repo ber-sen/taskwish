@@ -42,22 +42,22 @@ export default Actor("Sub steps")
 
   .on({ user: { name: "string", age: "number" } })
 
-  .steps(
-    Loop(Range(0, 10)),
+  .handler(
+    Loop(
+      () => Loop.Range(0, 10),
 
-    {
-      name: "send message",
-      run: ({ action, input }) =>
-        action.slack.sendMessage({
-          channel: "#general",
-          text: `Does someone speak ${input.language}?`,
-        }),
-    },
+      {
+        name: "send message",
+        run: ({ action, input }) =>
+          action.slack.sendMessage({
+            channel: "#general",
+            text: `Does someone speak ${input.language}?`,
+          }),
+      },
 
-    {
-      name: "send message",
-      run: ({ self }) => self.doSomething({ lorem: ["asd"] }),
-    },
-
-    End(Loop)
+      {
+        name: "send message",
+        run: ({ self }) => self.doSomething({ lorem: ["asd"] }),
+      }
+    )
   );

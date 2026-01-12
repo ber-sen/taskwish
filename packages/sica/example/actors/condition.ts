@@ -5,12 +5,17 @@ export default Actor("Greeding")
 
   .on({ user: { name: "string", age: "number" } })
 
-  .steps(
-    // If(2 > 1),
+  .handler(
+    If(
+      () => 2 > 1,
 
-    Step("get name", function () {
-      return this.input.user.name;
-    }),
-
-    // End(If)
+      Step("get name", function () {
+        return this.input.user.name;
+      })
+    ),
+    Else(
+      Step("get name", function () {
+        return this.input.user.name;
+      })
+    )
   );

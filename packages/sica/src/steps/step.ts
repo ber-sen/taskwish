@@ -4,21 +4,21 @@ import { Last, Steps } from "./steps";
 export function Step<
   const Name extends string,
   Result,
-  Scope extends Record<any, any>,
+  Ctx extends Record<any, any>,
 >(
   name: Name,
   handler:
-    | ((this: PrettyScope<Scope>) => Result)
-    | [(this: PrettyScope<Scope>) => Result]
-    | [(this: PrettyScope<Scope>) => Result, { retry: number }]
+    | ((this: PrettyScope<Ctx["scope"]>) => Result)
+    | [(this: PrettyScope<Ctx["scope"]>) => Result]
+    | [(this: PrettyScope<Ctx["scope"]>) => Result, { retry: number }]
 ): {
-  step: (
-    scope: Scope
-  ) => Name extends string
-    ? Record<Name, Result> &
-        Record<typeof Last, Result> &
-        Omit<Scope, typeof Last>
-    : Scope;
+  step: (ctx: Ctx) => Name extends string
+    ? {
+        scope: Ctx["scope"] &
+          Record<Name, "if" extends keyof Ctx["scope"] ? Result | undefined : Result>;
+        [Last]: Result;
+      }
+    : Ctx;
 };
 
 export function Step(...args: any) {
