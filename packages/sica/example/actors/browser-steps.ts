@@ -1,9 +1,7 @@
 import { Actor, Step } from "../../src";
 import { SubSteps } from "../../src/steps/sub-steps";
 
-const BrowserSteps: SubSteps = () => {
-  return {} as never;
-};
+const Browser: SubSteps = {} as never;
 
 export default Actor("Simple")
   .use(import("../package"))
@@ -15,13 +13,23 @@ export default Actor("Simple")
         message: "Hello World",
       });
     }),
-    
-    BrowserSteps("Scrape merrjep listing", (Step) => [
-      Step("scrollUntilVisible", {
+
+    Browser.Steps(
+      Browser.Step("launchApp", {
         element: "Laptop Stand",
         centerElement: true,
       }),
-    ]),
+      Step("mid step", function () {
+        return this.action.slack.sendMessage({
+          channel: "#general",
+          message: "Hello World",
+        });
+      }),
+      Browser.Step("tapOn", {
+        element: "Laptop Stand",
+        centerElement: true,
+      })
+    ),
 
     Step("last step", function () {
       return this.firstStep.length;
