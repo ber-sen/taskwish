@@ -1,7 +1,10 @@
 import { Actor, Step } from "../../src";
-import { SubSteps } from "../../src/steps/sub-steps";
+import { SubSteps, SubStep } from "../../src/steps/sub-steps";
 
-const Browser: SubSteps = {} as never;
+const Browser = {
+  Steps: {} as SubSteps,
+  Step: {} as SubStep,
+};
 
 export default Actor("Simple")
   .use(import("../package"))
@@ -16,7 +19,7 @@ export default Actor("Simple")
 
     Browser.Steps(
       () => 3,
-      
+
       Browser.Step("launchApp", {
         element: "Laptop Stand",
         centerElement: true,

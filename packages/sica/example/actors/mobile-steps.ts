@@ -1,7 +1,10 @@
 import { Actor, Step } from "../../src";
-import { SubSteps } from "../../src/steps/sub-steps";
+import { SubSteps, SubStep } from "../../src/steps/sub-steps";
 
-const Mobile: SubSteps = {} as never;
+const Mobile = {
+  Steps: {} as SubSteps,
+  Step: {} as SubStep,
+};
 
 export default Actor("Simple")
   .use(import("../package"))

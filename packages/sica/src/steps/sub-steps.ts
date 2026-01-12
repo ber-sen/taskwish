@@ -1,7 +1,7 @@
-import { Last, StepsReturn } from "./steps";
+import { Last } from "./steps";
 
-export interface SubSteps {
-  Step<
+export interface SubStep {
+  <
     Ctx extends Record<any, any>,
     Name extends "launchApp" | "scrollUntilVisible" | "tapOn",
   >(
@@ -19,12 +19,18 @@ export interface SubSteps {
         }
       : Ctx;
   };
-  Steps<Ctx extends Record<any, any>, A>(step: {
-    step: (input: Ctx) => A;
-  }): {
+}
+export interface SubSteps {
+  <Ctx extends Record<any, any>, Options, A>(
+    options: (scope: Ctx["scope"]) => Options,
+    step: {
+      step: (input: Ctx) => A;
+    }
+  ): {
     step: (input: Ctx) => A;
   };
-  Steps<Ctx extends Record<any, any>, A, B>(
+  <Ctx extends Record<any, any>, Options, A, B>(
+    options: (scope: Ctx["scope"]) => Options,
     step1: {
       step: (input: Ctx) => A;
     },
@@ -34,7 +40,7 @@ export interface SubSteps {
   ): {
     step: (input: Ctx) => B;
   };
-  Steps<Ctx extends Record<any, any>, A, B, C, Options>(
+  <Ctx extends Record<any, any>, Options, A, B, C>(
     options: (scope: Ctx["scope"]) => Options,
     step1: {
       step: (input: Ctx) => A;

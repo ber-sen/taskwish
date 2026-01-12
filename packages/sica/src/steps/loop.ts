@@ -1,9 +1,7 @@
 import { Flow } from "../flow";
+import { SubSteps } from "./sub-steps";
 
-export const Loop = <const List extends any[]>(list: List) =>
-  Flow("loop").params({
-    loop: { value: {} as List[number], index: {} as number },
-  });
+export const Loop = {} as SubSteps & { Range: typeof Range };
 
 export const Range = (from: number, to: number) =>
   Flow("range").params({
