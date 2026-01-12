@@ -1,14 +1,7 @@
 import { Last, StepsReturn } from "./steps";
 
 export interface SubSteps {
-  Step<
-    Scope,
-    StepName extends
-      | "launchApp"
-      | "scrollUntilVisible"
-      | "tapOn"
-      | (string & {}),
-  >(
+  Step<Scope, StepName extends "launchApp" | "scrollUntilVisible" | "tapOn">(
     name: StepName,
     options: any
   ): {

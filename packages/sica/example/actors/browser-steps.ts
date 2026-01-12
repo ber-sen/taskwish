@@ -19,12 +19,14 @@ export default Actor("Simple")
         element: "Laptop Stand",
         centerElement: true,
       }),
+
       Step("mid step", function () {
         return this.action.slack.sendMessage({
           channel: "#general",
           message: "Hello World",
         });
       }),
+
       Browser.Step("tapOn", {
         element: "Laptop Stand",
         centerElement: true,
