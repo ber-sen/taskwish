@@ -206,20 +206,20 @@ export namespace Sica {
       ? { input: Input; event: Event<Input>; io: IO }
       : Schema extends { Event: EventKind<infer Input, any> }
         ? {
-            io: IO;
-            event: Event<Input>;
             input: Input;
+            event: Event<Input>;
+            io: IO;
           }
         : Schema extends Event<infer Input, any>
           ? {
-              io: IO;
-              event: Event<Input>;
               input: Input;
+              event: Event<Input>;
+              io: IO;
             }
           : {
-              io: IO;
-              event: Event<type.instantiate<Schema>["infer"]>;
               input: type.instantiate<Schema>["infer"];
+              event: Event<type.instantiate<Schema>["infer"]>;
+              io: IO;
             };
 
   export interface Extendable<Scope> {

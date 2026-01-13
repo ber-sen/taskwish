@@ -14,8 +14,16 @@ export function Step<
 ): {
   step: (ctx: Ctx) => Name extends string
     ? {
-        scope: Ctx["scope"] &
-          Record<Name, "if" extends keyof Ctx["scope"] ? Result | undefined : Result>;
+        steps: Ctx["steps"] &
+          Record<
+            Name,
+            "if" extends keyof Ctx["scope"] ? Result | undefined : Result
+          >;
+        scope: Record<
+          Name,
+          "if" extends keyof Ctx["scope"] ? Result | undefined : Result
+        > &
+          Ctx["scope"];
         [Last]: Result;
       }
     : Ctx;
