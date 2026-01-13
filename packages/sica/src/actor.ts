@@ -4,7 +4,7 @@ import { Sica } from "./types";
 interface ActorMethod<Scope extends Record<any, any>>
   extends Sica.Scoped<Scope> {
   use<const NewScope>(newScope: NewScope): ActorMethod<Scope>;
-  handler: Steps<DummyScope>;
+  handler: Steps<{ scope: DummyScope["scope"] & Scope }>;
 }
 
 interface DummyScope {

@@ -1,4 +1,4 @@
-import { End, Actor, If, Message, Step } from "../../src";
+import { Else, Actor, If,  Step } from "../../src";
 
 export default Actor("Greeding")
   .use(import("../package"))
@@ -13,9 +13,9 @@ export default Actor("Greeding")
         return this.input.user.name;
       })
     ),
-    Else(
-      Step("get name", function () {
-        return this.input.user.name;
-      })
-    )
+    // Else(
+    //   Step("get name", function () {
+    //     return this.input.user.name;
+    //   })
+    // )
   );
