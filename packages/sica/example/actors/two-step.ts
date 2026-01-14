@@ -1,4 +1,4 @@
-import { Source, Actor, Step } from "../../src";
+import { Actor, Step } from "../../src";
 
 export default Actor("Simple")
   .use(import("../package"))
@@ -12,6 +12,6 @@ export default Actor("Simple")
     }),
 
     Step("last step", function () {
-      return this.firstStep.length
+      return this.firstStep.length;
     })
   );

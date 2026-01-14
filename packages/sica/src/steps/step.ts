@@ -3,28 +3,39 @@ import { Last, Steps } from "./steps";
 
 export const Step = <
   const Name extends string,
-  Result,
   Ctx extends Record<any, any>,
+  Result = Ctx["step"]["result"],
 >(
-  name: Name,
-  handler:
-    | ((this: PrettyScope<Ctx["scope"]>) => Result)
-    | [(this: PrettyScope<Ctx["scope"]>) => Result]
-    | [(this: PrettyScope<Ctx["scope"]>) => Result, { retry: number }]
+  ...step: "step" extends keyof Ctx
+    ?
+        | [
+            name: Ctx["step"]["name"] | [Ctx["step"]["name"], Name],
+            handler?: Ctx["step"]["params"],
+          ]
+        | [
+            name: Name,
+            handler:
+              | ((this: PrettyScope<Ctx["scope"]>) => Result)
+              | [(this: PrettyScope<Ctx["scope"]>) => Result]
+              | [
+                  (this: PrettyScope<Ctx["scope"]>) => Result,
+                  { retry: number },
+                ],
+          ]
+    : [
+        name: Name,
+        handler:
+          | ((this: PrettyScope<Ctx["scope"]>) => Result)
+          | [(this: PrettyScope<Ctx["scope"]>) => Result]
+          | [(this: PrettyScope<Ctx["scope"]>) => Result, { retry: number }],
+      ]
 ) => {
   return {} as any as {
     step: (ctx: Ctx) => Name extends string
       ? {
-          steps: Ctx["steps"] &
-            Record<
-              Name,
-              "if" extends keyof Ctx["scope"] ? Result | undefined : Result
-            >;
-          scope: Record<
-            Name,
-            "if" extends keyof Ctx["scope"] ? Result | undefined : Result
-          > &
-            Ctx["scope"];
+          steps: Ctx["steps"] & Record<Name, Result>;
+          step: Ctx["step"];
+          scope: Record<Name, Result> & Ctx["scope"];
           [Last]: Result;
         }
       : Ctx;

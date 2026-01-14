@@ -4,10 +4,18 @@ import { Sica } from "./types";
 interface ActorMethod<Scope extends Record<any, any>>
   extends Sica.Scoped<Scope> {
   use<const NewScope>(newScope: NewScope): ActorMethod<Scope>;
-  handler: Steps<{ scope: Scope & DummyScope["scope"] }>;
+  handler: Steps<{
+    scope: Scope & DummyScope["scope"];
+    step: DummyScope["step"];
+  }>;
 }
 
 interface DummyScope {
+  step: {
+    name: "launchApp" | "scrollUntilVisible" | "tapOn" | "scroll";
+    params: object | boolean | number | string
+    result: string
+  };
   scope: {
     ai: {
       generateText: (params: { model: "gpt5"; prompt: string }) => string;

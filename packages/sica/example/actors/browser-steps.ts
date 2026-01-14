@@ -1,9 +1,7 @@
 import { Actor, Step, Steps, SubSteps } from "../../src";
-import { SubStep } from "../../src/steps/sub-steps";
 
 const Browser = {
   Steps: {} as Steps<typeof SubSteps>,
-  Step: {} as SubStep,
 };
 
 export default Actor("Simple")
@@ -18,7 +16,7 @@ export default Actor("Simple")
     }),
 
     Browser.Steps(
-      Browser.Step("launchApp", {
+      Step("launchApp", {
         element: "Laptop Stand",
         centerElement: true,
       }),
@@ -30,7 +28,7 @@ export default Actor("Simple")
         });
       }),
 
-      Browser.Step("tapOn", {
+      Step("tapOn", {
         element: "Laptop Stand",
         centerElement: true,
       })

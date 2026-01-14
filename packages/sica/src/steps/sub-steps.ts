@@ -1,25 +1,3 @@
-import { Last } from "./steps";
-
-export interface SubStep {
-  <
-    Ctx extends Record<any, any>,
-    Name extends "launchApp" | "scrollUntilVisible" | "tapOn" | "scroll",
-  >(
-    name: Name,
-    options?: any
-  ): {
-    step: (ctx: Ctx) => Name extends string
-      ? {
-          scope: Ctx["scope"] &
-            Record<
-              Name,
-              "if" extends keyof Ctx["scope"] ? boolean | undefined : boolean
-            >;
-          [Last]: boolean;
-        }
-      : Ctx;
-  };
-}
 export interface OptionSubSteps {
   <Ctx extends Record<any, any>, Options, A>(
     options: (scope: Ctx["scope"]) => Options,
@@ -55,5 +33,3 @@ export interface OptionSubSteps {
     step: (input: Ctx) => C & Record<"options", Options>;
   };
 }
-
-

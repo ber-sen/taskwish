@@ -1,9 +1,7 @@
 import { Actor, Step, Steps, SubSteps } from "../../src";
-import { SubStep } from "../../src/steps/sub-steps";
 
 const Mobile = {
   Steps: {} as Steps<typeof SubSteps>,
-  Step: {} as SubStep,
 };
 
 export default Actor("Simple")
@@ -18,15 +16,15 @@ export default Actor("Simple")
     }),
 
     Mobile.Steps(
-      Mobile.Step("launchApp", "com.inditex.zara"),
-      Mobile.Step("tapOn", "Enter"),
-      Mobile.Step("tapOn", "Accept all cookies"),
-      Mobile.Step("scroll"),
-      Mobile.Step("tapOn", "Menu"),
-      Mobile.Step("tapOn", {
+      Step("launchApp", "com.inditex.zara"),
+      Step("tapOn", "Enter"),
+      Step("tapOn", "Accept all cookies"),
+      Step("scroll"),
+      Step("tapOn", "Menu"),
+      Step("tapOn", {
         id: "container-id",
         index: 2,
-      })
+      }),
     ),
 
     Step("last step", function () {
