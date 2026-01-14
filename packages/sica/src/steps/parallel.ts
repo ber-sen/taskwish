@@ -1,3 +1,4 @@
-import { SubSteps } from "./sub-steps";
+import { Steps, SubSteps } from "./steps";
 
-export const Parallel = {} as SubSteps
+
+export const Parallel = {} as Steps<typeof SubSteps>

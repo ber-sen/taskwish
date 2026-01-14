@@ -1,8 +1,8 @@
-import { Actor, Step } from "../../src";
-import { SubSteps, SubStep } from "../../src/steps/sub-steps";
+import { Actor, Step, Steps, SubSteps } from "../../src";
+import { SubStep } from "../../src/steps/sub-steps";
 
 const Browser = {
-  Steps: {} as SubSteps,
+  Steps: {} as Steps<typeof SubSteps>,
   Step: {} as SubStep,
 };
 
