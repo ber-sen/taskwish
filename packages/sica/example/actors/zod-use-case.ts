@@ -1,21 +1,18 @@
 import { z } from "zod";
-import { Actor } from "../../src";
+import { Actor, Step } from "../../src";
 
 export default Actor("Say hello")
   .use(import("../package"))
 
   .on(z.object({ language: z.string() }))
 
-  .steps(
-    { name: "step 1", run: ({ input }) => input },
-    {
-      name: "step 2",
-      run: ({ action, input }) =>
-        action.slack.sendMessage({
-          channel: "#general",
-          text: `Does someone speak ${input.language}?`,
-        }),
-    }
+  .handler(
+    Step("first step", function () {
+      return this.action.slack.sendMessage({
+        channel: "#general",
+        message: this.input.language,
+      });
+    })
   )
 
   .meta({

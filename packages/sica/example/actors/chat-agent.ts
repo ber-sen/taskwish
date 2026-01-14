@@ -1,4 +1,4 @@
-import { Actor } from "../../src";
+import { Actor, Agent, Step } from "../../src";
 // import tsEvent from "../events/ts-event";
 
 export default Actor("Chat bot")
@@ -6,28 +6,7 @@ export default Actor("Chat bot")
 
   .on({ tools: "string[]", prompt: "string" })
 
-  .steps(
-    {
-      name: "tools",
-      run: ({ input, tools }) =>
-        tools.filter((tool) => input.tool.includes(tool.name)),
-    },
-
-    {
-      name: "marketing agent",
-      run: ({ ai, tools }) =>
-        ai.agent.new({
-          system: "asdasdadas asdas da",
-          model: "gtp-4",
-          tools: tools,
-        }),
-    },
-
-    {
-      name: "response",
-      run: ({ ai, input }) =>
-        ai.agent.marketingAgent({
-          prompt: input.prompt,
-        }),
-    }
+  .handler(
+    Agent("Lorem agent", Agent.Model("launchApp"), Agent.Model("tapOn")),
+    Agent.Run("lorem agent", {})
   );

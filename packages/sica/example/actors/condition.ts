@@ -8,14 +8,14 @@ export default Actor("Greeding")
   .handler(
     If(
       () => 2 > 1,
-
+      
       Step("get name", function () {
         return this.input.user.name;
       })
     ),
-    // Else(
-    //   Step("get name", function () {
-    //     return this.input.user.name;
-    //   })
-    // )
+    Else(
+      Step("get name", function () {
+        return this.input.user.name;
+      })
+    )
   );

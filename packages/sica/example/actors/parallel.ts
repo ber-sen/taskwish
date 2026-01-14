@@ -1,16 +1,32 @@
-import { End, Actor, Parallel } from "../../src";
+import { Actor, Parallel, Step } from "../../src";
 
 export default Actor("Say hello")
   .use(import("../package"))
 
   .on({ user: { model: "string" } })
 
-  .steps(
-    Parallel(),
+  .handler(
+    Step("first step", function () {
+      return this.action.slack.sendMessage({
+        channel: "#general",
+        message: "Hello World",
+      });
+    }),
 
-    ($) => $.input.user,
+    Parallel(
+      Step("parallel first step", function () {
+        return this.action.slack.sendMessage({
+          channel: "#general",
+          message: "Hello World",
+        });
+      }),
 
-    ($) => $.input.user,
+      Step("parallel last step", function () {
+        return this.firstStep.length;
+      })
+    ),
 
-    End(Parallel)
+    Step("last step", function () {
+      return this.firstStep.length;
+    })
   );

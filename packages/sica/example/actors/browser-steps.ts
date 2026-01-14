@@ -18,8 +18,6 @@ export default Actor("Simple")
     }),
 
     Browser.Steps(
-      () => 3,
-
       Browser.Step("launchApp", {
         element: "Laptop Stand",
         centerElement: true,

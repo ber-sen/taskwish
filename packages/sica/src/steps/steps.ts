@@ -18,10 +18,12 @@ interface Ctx {
 
 export type StepsReturn<Ctx> = typeof Last extends keyof Ctx
   ? Ctx[typeof Last]
-  : Ctx;
+  : "steps" extends keyof Ctx ? Ctx["steps"] : Ctx;
 
 export interface Steps<Ctx extends Record<any, any>> {
-  <A>(step: { step: (input: Ctx) => A } | ((this: Ctx["scope"]) => A)): StepsReturn<A>;
+  <A>(
+    step: { step: (input: Ctx) => A } | ((this: Ctx["scope"]) => A)
+  ): StepsReturn<A>;
   <A, B>(
     step1: { step: (input: Ctx) => A },
     step2: { step: (input: A) => B }

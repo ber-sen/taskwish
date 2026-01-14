@@ -1,4 +1,4 @@
-import { Event } from "../event";
+import { Event } from "../sica/src/event";
 import { Boria } from "./types";
 
 export function Message<const Content extends Array<Boria.MessagePart<any>>>(

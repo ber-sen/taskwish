@@ -1,5 +1,5 @@
 import { Message, Actor } from "../../src";
-import { Text } from "../../src/boria/text";
+import { Text } from "../../../boria/text";
 // import tsEvent from "../events/ts-event";
 
 export default Actor("IO")

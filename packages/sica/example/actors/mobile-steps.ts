@@ -10,24 +10,6 @@ export default Actor("Simple")
   .use(import("../package"))
 
   .handler(
-    Mobile.Steps(
-      ($) => $.action,
-
-      Step("if", function () {
-        return 3;
-      }),
-
-      Mobile.Step("scrollUntilVisible", {
-        element: "Laptop Stand",
-        centerElement: true,
-      }),
-
-      Mobile.Step("tapOn", {
-        text: "Add to Cart",
-        below: "Laptop Stand",
-      })
-    ),
-
     Step("first step", function () {
       return this.action.slack.sendMessage({
         channel: "#general",
@@ -35,7 +17,19 @@ export default Actor("Simple")
       });
     }),
 
+    Mobile.Steps(
+      Mobile.Step("launchApp", "com.inditex.zara"),
+      Mobile.Step("tapOn", "Enter"),
+      Mobile.Step("tapOn", "Accept all cookies"),
+      Mobile.Step("scroll"),
+      Mobile.Step("tapOn", "Menu"),
+      Mobile.Step("tapOn", {
+        id: "container-id",
+        index: 2,
+      })
+    ),
+
     Step("last step", function () {
-      return this.firstStep?.length;
+      return this.firstStep.length;
     })
   );

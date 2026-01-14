@@ -4,7 +4,7 @@ export default Actor("Simple")
   .use(import("../package"))
 
   .handler(
-    Step.Run(["slack.sendMessage", "message"], {
+    Step.Run(["slack.sendMessage", "first step"], {
       channel: "#general",
       message: "Hello World",
     }),
@@ -13,3 +13,5 @@ export default Actor("Simple")
       return this.firstStep.length;
     })
   );
+
+  

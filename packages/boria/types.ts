@@ -1,5 +1,5 @@
-import { UUIDv5String, UUIDv7String } from "../helpers";
-import { Sica } from "../types";
+import { UUIDv5String, UUIDv7String } from "../sica/src/helpers";
+import { Sica } from "../sica/src/types";
 
 interface Json {
   [x: string]: string | number | boolean | Date | Json | JsonArray;

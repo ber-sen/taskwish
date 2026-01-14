@@ -1,7 +1,7 @@
-import { Equal, Expect } from "../helpers";
+import { Equal, Expect } from "../sica/src/helpers";
 
-import { Message } from "../boria/message";
-import { Boria } from "../boria";
+import { Message } from "./message";
+import { Boria } from ".";
 import { Text } from "./text";
 import { Image } from "./image";
 

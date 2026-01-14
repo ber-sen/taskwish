@@ -1,30 +1,26 @@
 import { type } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 import {
-  ActionInput,
-  ActionReturn,
   RunnableReturn,
   UUIDv7String,
   UUIDv5String,
   DeepOptionalString,
+  ActionInput,
+  ActionReturn,
 } from "./helpers";
-import { Boria } from "./boria";
+import { Boria } from "../../boria";
 
 export namespace Sica {
   export const Type = Symbol.for("Sica.Type");
 
-  export const Scope = Symbol.for("Sica.Scope");
+  export const Meta = Symbol.for("Sica.Meta");
 
   export interface Typed<Type extends string[]> {
     [Type]: Type;
   }
 
-  export interface Attributable {
-    meta(Meta: unknown): unknown;
-  }
-
-  export interface Struct<Data, Type extends string[]> extends Typed<Type> {
-    data: Data;
+  export interface Attributable<Meta> {
+    [Meta]: Meta;
   }
 
   export interface Resource<Type extends string[]> extends Typed<Type> {
@@ -51,16 +47,14 @@ export namespace Sica {
     >(
       meta: Meta extends object ? "get" : Tags
     ): Meta extends object ? Meta : Action<Handler, Type, Tags>;
-    <const Scope extends Record<string, any>>(
-      scope?: Scope
-    ): RunnableReturn<Handler>; // get deps of scope from handler
+    <const Ctx extends Record<string, any>>(ctx?: Ctx): RunnableReturn<Handler>; // get deps of scope from handler
   }
 
   export interface Action<
     Handler extends ((...args: any) => any) | GenericHandler,
     Type extends string[] = ["action"],
     Meta = null,
-  > extends Attributable,
+  > extends Attributable<Meta>,
       Resource<Type> {
     meta<
       const Tags extends {
@@ -75,8 +69,8 @@ export namespace Sica {
     >(
       meta: Meta extends object ? "get" : Tags
     ): Meta extends object ? Meta : Action<Handler, Type, Tags>;
-    <Scope extends Array<Provide<any>>>(
-      ...args: [...Scope, ActionInput<Handler>]
+    <Ctx extends Array<any>>(
+      ...args: [...Ctx, ActionInput<Handler>]
     ): ActionReturn<Handler>;
   }
 
@@ -160,10 +154,7 @@ export namespace Sica {
     Type extends string[] = ["event"],
     Meta = null,
   > extends Resource<Type>,
-      Attributable {
-    meta<Tags extends { scope?: Record<string, any> }>(
-      meta: Meta extends object ? "get" : Tags
-    ): Meta extends object ? Meta : EventKind<Data, Type, Tags>;
+      Attributable<Meta> {
     (data: Data): AsyncGenerator<Event<Data, Type>, Event<Data, Type>, unknown>;
   }
 
@@ -178,8 +169,14 @@ export namespace Sica {
     meta: (param: "get") => Meta;
   };
 
-  export interface Scoped<Scope extends Record<any, any>> {
-    [Scope]: Scope;
+  export interface Extendable<Scope> {
+    use<const NewScope>(newScope: NewScope): Extendable<Scope & NewScope>;
+  }
+
+  export interface Triggerable<Scope extends Record<any, any>> {
+    on<const Schema>(
+      trigger: ValidateTrigger<Schema>
+    ): Triggerable<Scope & InferTriggerScope<Schema>>;
   }
 
   export type ValidateSchema<Schema, Scope = {}> =
@@ -221,23 +218,4 @@ export namespace Sica {
               event: Event<type.instantiate<Schema>["infer"]>;
               io: IO;
             };
-
-  export interface Extendable<Scope> {
-    use<const NewScope>(newScope: NewScope): Extendable<Scope & NewScope>;
-  }
-
-  export interface Flow<
-    T extends string[],
-    Params = {},
-    Group extends string[] | null = null,
-  > extends Typed<T> {
-    group: Group;
-    params: Params;
-  }
-
-  export interface Triggerable<Scope extends Record<any, any>> {
-    on<const Schema>(
-      trigger: ValidateTrigger<Schema>
-    ): Scoped<Scope & InferTriggerScope<Schema>>;
-  }
 }

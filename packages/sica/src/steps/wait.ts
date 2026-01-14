@@ -1,6 +1,5 @@
 import { StringValue } from "ms";
 import { Sica } from "../types";
-import { Flow } from "../flow";
 
 export const Wait = (duration: StringValue) => Flow("wait").params({ duration });
 
