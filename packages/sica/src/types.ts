@@ -155,7 +155,9 @@ export namespace Sica {
     Meta = null,
   > extends Resource<Type>,
       Attributable<Meta> {
-    dispatch(data: Data): AsyncGenerator<Event<Data, Type>, Event<Data, Type>, unknown>;
+    dispatch(
+      data: Data,
+    ): AsyncGenerator<Event<Data, Type>, Event<Data, Type>, unknown>;
   }
 
   export type Step<
@@ -190,13 +192,15 @@ export namespace Sica {
       : type.instantiate<Schema, Scope>["infer"];
 
   export type ValidateTrigger<Schema> =
-    Schema extends StandardSchemaV1<any>
-      ? Schema
-      : Schema extends object
-        ? type.validate<Schema>
-        : Schema extends EventKind<any, infer Input>
-          ? EventKind<any, Input>
-          : object;
+    Schema extends EventKind<any, infer Input>
+      ? EventKind<any, Input>
+      : Schema extends Event<any, infer Input>
+        ? Event<any, Input>
+        : Schema extends StandardSchemaV1<any>
+          ? Schema
+          : Schema extends object
+            ? type.validate<Schema>
+            : object;
 
   export type InferTriggerScope<Schema> =
     Schema extends StandardSchemaV1<infer Input>

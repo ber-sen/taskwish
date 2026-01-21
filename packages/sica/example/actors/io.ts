@@ -1,14 +1,14 @@
-import { Message, Actor, Step, Boria, } from "../../src";
+import { Message, Actor, Step, Boria, Text } from "../../src";
 // import tsEvent from "../events/ts-event";
 
 export default Actor("IO")
   .use(import("../package"))
 
-  .on(Message)
+  .on(Message(Text("asdsad")))
 
   .handler(
     Step("lorem", function () {
-      return this.input;
+      return this.input.content;
     }),
     // {
     //   name: "response",

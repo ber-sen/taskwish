@@ -19,7 +19,7 @@ export namespace Boria {
   };
 
   export interface Message<
-    Content extends Array<MessagePart<any>> | string,
+    Content extends Array<MessagePart<any>> | string | MessagePart<any>,
     Meta = null,
   > extends Sica.EventKind<
       Boria.Message<Content, null>,
