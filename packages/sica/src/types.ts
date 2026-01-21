@@ -1,5 +1,3 @@
-import { type } from "arktype";
-import { StandardSchemaV1 } from "@standard-schema/spec";
 import {
   RunnableReturn,
   UUIDv7String,
@@ -7,6 +5,8 @@ import {
   DeepOptionalString,
   ActionInput,
   ActionReturn,
+  ValidateTrigger,
+  InferTriggerScope,
 } from "./helpers";
 import { Boria } from "../../boria";
 
@@ -14,6 +14,8 @@ export namespace Sica {
   export const Type = Symbol.for("Sica.Type");
 
   export const Meta = Symbol.for("Sica.Meta");
+
+  export const Scope = Symbol.for("Sica.Scope");
 
   export interface Typed<Type extends string[]> {
     [Type]: Type;
@@ -170,6 +172,10 @@ export namespace Sica {
   } & {
     meta: (param: "get") => Meta;
   };
+  
+  export interface Scoped<Scope> {
+    [Scope]: Scope
+  }
 
   export interface Extendable<Scope> {
     use<const NewScope>(newScope: NewScope): Extendable<Scope & NewScope>;
@@ -178,48 +184,6 @@ export namespace Sica {
   export interface Triggerable<Scope extends Record<any, any>> {
     on<const Schema>(
       trigger: ValidateTrigger<Schema>,
-    ): Triggerable<Scope & InferTriggerScope<Schema>>;
+    ): Scoped<Scope & InferTriggerScope<Schema>>;
   }
-
-  export type ValidateSchema<Schema, Scope = {}> =
-    Schema extends StandardSchemaV1<any>
-      ? Schema
-      : type.validate<Schema, Scope>;
-
-  export type InferSchema<Schema, Scope = {}> =
-    Schema extends StandardSchemaV1<infer Input>
-      ? Input
-      : type.instantiate<Schema, Scope>["infer"];
-
-  export type ValidateTrigger<Schema> =
-    Schema extends EventKind<any, infer Input>
-      ? EventKind<any, Input>
-      : Schema extends Event<any, infer Input>
-        ? Event<any, Input>
-        : Schema extends StandardSchemaV1<any>
-          ? Schema
-          : Schema extends object
-            ? type.validate<Schema>
-            : object;
-
-  export type InferTriggerScope<Schema> =
-    Schema extends StandardSchemaV1<infer Input>
-      ? { input: Input; event: Event<Input>; io: IO }
-      : Schema extends Event<infer Input, any>
-        ? {
-            input: Input;
-            event: Event<Input>;
-            io: IO;
-          }
-        : Schema extends EventKind<infer Input, any>
-          ? {
-              input: Input;
-              event: Event<Input>;
-              io: IO;
-            }
-          : {
-              input: type.instantiate<Schema>["infer"];
-              event: Event<type.instantiate<Schema>["infer"]>;
-              io: IO;
-            };
 }

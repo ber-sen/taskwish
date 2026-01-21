@@ -1,4 +1,6 @@
+import { type } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
+import { Sica } from "./types";
 
 export type Expect<T extends true> = T;
 
@@ -31,7 +33,7 @@ export type DeepOptionalString<T> = {
 
 export async function standardValidate<T extends StandardSchemaV1>(
   schema: T,
-  input: StandardSchemaV1.InferInput<T>
+  input: StandardSchemaV1.InferInput<T>,
 ): Promise<StandardSchemaV1.InferOutput<T>> {
   let result = schema["~standard"].validate(input);
   if (result instanceof Promise) result = await result;
@@ -66,10 +68,10 @@ export type ActionInput<Handler extends (...args: any) => any> =
     : Parameters<Handler>[0];
 
 export type ActionReturn<Handler> = Handler extends (
-  scope: any
+  scope: any,
 ) => (...args: any) => Generator<infer Stream, infer Return, infer Ctx>
   ? (
-      scope: any
+      scope: any,
     ) => (...args: any) => AsyncGenerator<Stream, Return, Ctx> & Promise<Return>
   : Handler extends (
         ...args: any
@@ -80,3 +82,43 @@ export type ActionReturn<Handler> = Handler extends (
       : Handler extends (...args: any) => infer Return
         ? AsyncGenerator<never, Return, unknown> & Promise<Return>
         : never;
+
+export type ValidateSchema<Schema, Scope = {}> =
+  Schema extends StandardSchemaV1<any> ? Schema : type.validate<Schema, Scope>;
+
+export type InferSchema<Schema, Scope = {}> =
+  Schema extends StandardSchemaV1<infer Input>
+    ? Input
+    : type.instantiate<Schema, Scope>["infer"];
+
+export type ValidateTrigger<Schema> =
+  Schema extends Sica.EventKind<any, infer Input>
+    ? Sica.EventKind<any, Input>
+    : Schema extends Sica.Event<any, infer Input>
+      ? Sica.Event<any, Input>
+      : Schema extends StandardSchemaV1<any>
+        ? Schema
+        : Schema extends object
+          ? type.validate<Schema>
+          : object;
+
+export type InferTriggerScope<Schema> =
+  Schema extends StandardSchemaV1<infer Input>
+    ? { input: Input; event: Sica.Event<Input>; io: Sica.IO }
+    : Schema extends Sica.Event<infer Input, any>
+      ? {
+          input: Input;
+          event: Sica.Event<Input>;
+          io: Sica.IO;
+        }
+      : Schema extends Sica.EventKind<infer Input, any>
+        ? {
+            input: Input;
+            event: Sica.Event<Input>;
+            io: Sica.IO;
+          }
+        : {
+            input: type.instantiate<Schema>["infer"];
+            event: Sica.Event<type.instantiate<Schema>["infer"]>;
+            io: Sica.IO;
+          };

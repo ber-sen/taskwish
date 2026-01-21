@@ -1,3 +1,4 @@
+import { InferTriggerScope, ValidateTrigger } from "./helpers";
 import { Steps } from "./steps";
 import { Sica } from "./types";
 
@@ -37,8 +38,8 @@ export interface ActorFactory<Params, Scope extends Record<any, any> = {}>
     Sica.Triggerable<Scope> {
   use<const NewScope>(newScope: NewScope): ActorFactory<Params, Scope>;
   on<const Schema>(
-    trigger: Sica.ValidateTrigger<Schema>
-  ): ActorMethod<Scope & Sica.InferTriggerScope<Schema>>;
+    trigger: ValidateTrigger<Schema>
+  ): ActorMethod<Scope & InferTriggerScope<Schema>>;
 }
 
 export const Actor = <const Params extends string>(
