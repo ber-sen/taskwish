@@ -1,4 +1,4 @@
-import { PrettyScope } from "../helpers";
+import { Sica } from "../types";
 import { Last, Steps } from "./steps";
 
 export const Step = <
@@ -15,19 +15,19 @@ export const Step = <
         | [
             name: Name,
             handler:
-              | ((this: PrettyScope<Ctx["scope"]>) => Result)
-              | [(this: PrettyScope<Ctx["scope"]>) => Result]
+              | ((this: Sica.Scope<Ctx["scope"]>) => Result)
+              | [(this: Sica.Scope<Ctx["scope"]>) => Result]
               | [
-                  (this: PrettyScope<Ctx["scope"]>) => Result,
+                  (this: Sica.Scope<Ctx["scope"]>) => Result,
                   { retry: number },
                 ],
           ]
     : [
         name: Name,
         handler:
-          | ((this: PrettyScope<Ctx["scope"]>) => Result)
-          | [(this: PrettyScope<Ctx["scope"]>) => Result]
-          | [(this: PrettyScope<Ctx["scope"]>) => Result, { retry: number }],
+          | ((this: Sica.Scope<Ctx["scope"]>) => Result)
+          | [(this: Sica.Scope<Ctx["scope"]>) => Result]
+          | [(this: Sica.Scope<Ctx["scope"]>) => Result, { retry: number }],
       ]
 ) => {
   return {} as any as {

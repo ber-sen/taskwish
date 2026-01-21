@@ -7,6 +7,7 @@ import {
   ActionReturn,
   ValidateTrigger,
   InferTriggerScope,
+  PrettyScope,
 } from "./helpers";
 import { Boria } from "../../boria";
 
@@ -16,6 +17,8 @@ export namespace Sica {
   export const Meta = Symbol.for("Sica.Meta");
 
   export const Scope = Symbol.for("Sica.Scope");
+
+  export const Traits = Symbol.for("Sica.Traits");
 
   export interface Typed<Type extends string[]> {
     [Type]: Type;
@@ -27,6 +30,17 @@ export namespace Sica {
 
   export interface Resource<Type extends string[]> extends Typed<Type> {
     id: UUIDv5String;
+  }
+
+  export type Scope<Scope> = PrettyScope<Scope> & {
+    <T>(Cls: new (...args: any[]) => T): Generator<unknown, T, T>;
+  };
+
+  export abstract class HasTraits {
+    public [Traits]: Array<any> = [];
+    static [Symbol.hasInstance](obj: any) {
+      return Boolean(obj?.traits?.has?.(this));
+    }
   }
 
   export type Inject<Type> = Type | null;
@@ -57,7 +71,8 @@ export namespace Sica {
     Type extends string[] = ["action"],
     Meta = null,
   > extends Attributable<Meta>,
-      Resource<Type> {
+      Resource<Type>,
+      Traits {
     meta<
       const Tags extends {
         description?: string;
@@ -83,12 +98,6 @@ export namespace Sica {
     send!: <const Content extends Array<Boria.MessagePart<any>> | string>(
       message: Boria.Message<Content>,
     ) => Event<Boria.Message<Content>>;
-  }
-
-  export abstract class Trait {
-    static [Symbol.hasInstance](obj: any) {
-      return Boolean(obj?.traits?.has?.(this));
-    }
   }
 
   export interface Event<Data, Type extends string[] = ["event"]>
@@ -172,9 +181,9 @@ export namespace Sica {
   } & {
     meta: (param: "get") => Meta;
   };
-  
+
   export interface Scoped<Scope> {
-    [Scope]: Scope
+    [Scope]: Scope;
   }
 
   export interface Extendable<Scope> {
