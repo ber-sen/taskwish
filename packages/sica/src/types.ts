@@ -45,7 +45,7 @@ export namespace Sica {
           : never;
       },
     >(
-      meta: Meta extends object ? "get" : Tags
+      meta: Meta extends object ? "get" : Tags,
     ): Meta extends object ? Meta : Action<Handler, Type, Tags>;
     <const Ctx extends Record<string, any>>(ctx?: Ctx): RunnableReturn<Handler>; // get deps of scope from handler
   }
@@ -67,7 +67,7 @@ export namespace Sica {
           : never;
       },
     >(
-      meta: Meta extends object ? "get" : Tags
+      meta: Meta extends object ? "get" : Tags,
     ): Meta extends object ? Meta : Action<Handler, Type, Tags>;
     <Ctx extends Array<any>>(
       ...args: [...Ctx, ActionInput<Handler>]
@@ -79,7 +79,7 @@ export namespace Sica {
     receiverId!: Boria.IdentityId;
     messages!: Boria.Message<any, any>[];
     send!: <const Content extends Array<Boria.MessagePart<any>> | string>(
-      message: Boria.Message<Content>
+      message: Boria.Message<Content>,
     ) => Event<Boria.Message<Content>>;
   }
 
@@ -175,7 +175,7 @@ export namespace Sica {
 
   export interface Triggerable<Scope extends Record<any, any>> {
     on<const Schema>(
-      trigger: ValidateTrigger<Schema>
+      trigger: ValidateTrigger<Schema>,
     ): Triggerable<Scope & InferTriggerScope<Schema>>;
   }
 
@@ -201,12 +201,14 @@ export namespace Sica {
   export type InferTriggerScope<Schema> =
     Schema extends StandardSchemaV1<infer Input>
       ? { input: Input; event: Event<Input>; io: IO }
-      : Schema extends { Event: EventKind<infer Input, any> }
-        ? {
-            input: Input;
-            event: Event<Input>;
-            io: IO;
-          }
+      : Schema extends (...args: any) => any
+        ? ReturnType<Schema> extends { Event: EventKind<infer Input, any> }
+          ? {
+              input: Input;
+              event: Event<Input>;
+              io: IO;
+            }
+          : never
         : Schema extends Event<infer Input, any>
           ? {
               input: Input;
