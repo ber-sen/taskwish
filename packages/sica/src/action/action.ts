@@ -1,7 +1,7 @@
 import { Sica } from "../types";
 
 interface ActionFactory<Type extends string[] | string> {
-  handler<const Handler extends (...args: any) => any>(
+  handler<const Handler extends (this: Sica.Scope<{}>, ...args: any) => any>(
     handler: Handler,
     composer?: (fn: Handler) => any
   ): Parameters<Handler>[0] extends object

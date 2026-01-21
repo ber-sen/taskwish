@@ -1,8 +1,6 @@
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { Sica } from "../types";
-import { Env } from "./env";
-import { Use } from "./use";
 import { Message } from "../../../boria/message";
 import { Provide } from "./provide";
 
@@ -90,7 +88,7 @@ describe("Action", () => {
     const sayHello = Action("Say hello").handler(
       (params: { language: string }) => {
         return `Hello in ${params.language}`;
-      }
+      },
     );
 
     type T = typeof sayHello;
@@ -114,7 +112,7 @@ describe("Action", () => {
     const sayHello = Action("Say hello").handler(
       (params: { language: string }) => {
         return `Hello in ${params.language}`;
-      }
+      },
     );
 
     const scope = [Provide("env", process.env)] as const;
@@ -186,7 +184,7 @@ describe("Action", () => {
 
   it("works with AbortSignal", async () => {
     const dynamicRequire = Action("Stream").handler(async function* () {
-      const signal = yield* Use(AbortSignal);
+      const signal = yield* this(AbortSignal);
 
       return signal.aborted;
     });
@@ -206,8 +204,10 @@ describe("Action", () => {
   });
 
   it("works with require env", async () => {
-    const dynamicRequire = Action("Stream").handler(async function* () {
-      const io = yield* Use(Sica.IO);
+    const dynamicRequire = Action("Stream").handler(async function* ({}: {
+      lorem: string;
+    }) {
+      const io = yield* this(Sica.IO);
 
       io.messages;
     });
@@ -216,8 +216,12 @@ describe("Action", () => {
 
     type dynamicRequire = Expect<
       Equal<
-        Sica.NullaryAction<
-          () => AsyncGenerator<unknown, void, Sica.IO>,
+        Sica.Action<
+          (
+            {}: {
+              lorem: string;
+            },
+          ) => AsyncGenerator<unknown, void, Sica.IO>,
           ["action", "Stream"],
           null
         >,
