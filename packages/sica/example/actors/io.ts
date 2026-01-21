@@ -1,10 +1,10 @@
-import { Message, Actor, Step, Boria } from "../../src";
+import { Message, Actor, Step, Boria, } from "../../src";
 // import tsEvent from "../events/ts-event";
 
 export default Actor("IO")
   .use(import("../package"))
 
-  .on(Message<[Boria.MessagePart<{ type: number }>]>)
+  .on(Message)
 
   .handler(
     Step("lorem", function () {

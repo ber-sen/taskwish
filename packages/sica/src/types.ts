@@ -201,15 +201,13 @@ export namespace Sica {
   export type InferTriggerScope<Schema> =
     Schema extends StandardSchemaV1<infer Input>
       ? { input: Input; event: Event<Input>; io: IO }
-      : Schema extends (...args: any) => any
-        ? ReturnType<Schema> extends { Event: EventKind<infer Input, any> }
-          ? {
-              input: Input;
-              event: Event<Input>;
-              io: IO;
-            }
-          : never
-        : Schema extends Event<infer Input, any>
+      : Schema extends Event<infer Input, any>
+        ? {
+            input: Input;
+            event: Event<Input>;
+            io: IO;
+          }
+        : Schema extends EventKind<infer Input, any>
           ? {
               input: Input;
               event: Event<Input>;

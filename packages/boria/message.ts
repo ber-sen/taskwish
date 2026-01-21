@@ -2,10 +2,11 @@ import { Sica } from "../sica/src";
 
 import { Boria } from "./types";
 
-export function Message<const Content extends Array<Boria.MessagePart<any>>>(
-  ...content: Content
-): Boria.Message<Content> & {
-  Event: Sica.EventKind<Boria.Message<Content, null>, ["event", "message"], null>;
-} {
-  return {} as never;
+interface Message
+  extends Sica.EventKind<Array<Boria.MessagePart<any>>, ["event", "message"]> {
+  <const Content extends Array<Boria.MessagePart<any>>>(
+    ...content: Content
+  ): Boria.Message<Content>;
 }
+
+export const Message: Message = {} as never;

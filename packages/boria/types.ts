@@ -21,7 +21,11 @@ export namespace Boria {
   export interface Message<
     Content extends Array<MessagePart<any>> | string,
     Meta = null,
-  > {
+  > extends Sica.EventKind<
+      Boria.Message<Content, null>,
+      ["event", "message"],
+      null
+    > {
     threadId: Sica.Inject<ThreadId>;
     identityId: Sica.Inject<IdentityId>;
     content: Content;
