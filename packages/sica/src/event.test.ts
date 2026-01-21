@@ -26,7 +26,7 @@ describe("Event", async function* () {
     >;
 
     const test = async function* () {
-      const res = yield* newEmail({ from: "lorem@ipsum.com", subject: "Hi" });
+      const res = yield* newEmail.dispatch({ from: "lorem@ipsum.com", subject: "Hi" });
 
       return res;
     };

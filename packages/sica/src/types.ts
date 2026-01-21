@@ -155,7 +155,7 @@ export namespace Sica {
     Meta = null,
   > extends Resource<Type>,
       Attributable<Meta> {
-    (data: Data): AsyncGenerator<Event<Data, Type>, Event<Data, Type>, unknown>;
+    dispatch(data: Data): AsyncGenerator<Event<Data, Type>, Event<Data, Type>, unknown>;
   }
 
   export type Step<
