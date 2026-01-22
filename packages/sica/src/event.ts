@@ -1,3 +1,4 @@
+import { InferSchema, ValidateSchema } from "./helpers";
 import { Sica } from "./types";
 
 type PrependEvent<T extends readonly any[]> = ["event", ...T];
@@ -8,25 +9,25 @@ type ToEvent<T extends readonly any[]> = {
 
 interface EventUnion<InitialData, Type extends string[]> {
   or<const Data>(
-    schema: Sica.ValidateSchema<Data>
-  ): Sica.EventKind<Sica.InferSchema<InitialData | Data>, Type> &
+    schema: ValidateSchema<Data>
+  ): Sica.EventKind<InferSchema<InitialData | Data>, Type> &
     EventUnion<InitialData | Data, Type>;
   or<const Data>(): Sica.EventKind<InitialData | Data, Type> &
     EventUnion<InitialData | Data, Type> & {
       end(): Sica.EventKind<InitialData, Type>;
     };
-  end(): Sica.EventKind<Sica.InferSchema<InitialData>, Type>;
+  end(): Sica.EventKind<InferSchema<InitialData>, Type>;
 }
 
 interface EventFactory<Type extends string[]> {
   data<const Data>(
-    schema: Sica.ValidateSchema<Data>
-  ): Sica.EventKind<Sica.InferSchema<Data>, PrependEvent<Type>>;
+    schema: ValidateSchema<Data>
+  ): Sica.EventKind<InferSchema<Data>, PrependEvent<Type>>;
   data<const Data>(): Sica.EventKind<Data, PrependEvent<Type>>;
   union(): {
     data<const Data>(
-      schema: Sica.ValidateSchema<Data>
-    ): Sica.EventKind<Sica.InferSchema<Data>, PrependEvent<Type>> &
+      schema: ValidateSchema<Data>
+    ): Sica.EventKind<InferSchema<Data>, PrependEvent<Type>> &
       EventUnion<Data, PrependEvent<Type>>;
   };
 }
