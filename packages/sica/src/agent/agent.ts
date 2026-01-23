@@ -9,7 +9,7 @@ export interface Agent {
 export interface AgentFactory {
   <
     const Name extends string,
-    const Tools extends Array<(this: Ctx) => any>,
+    const Tools extends string[],
     Ctx extends Record<any, any>,
   >(
     name: Name,
