@@ -25,9 +25,12 @@ export default Actor("Simple")
         id: "container-id",
         index: 2,
       }),
+      Step("end mob", function () {
+        return 3;
+      }),
     ),
 
     Step("last step", function () {
       return this.firstStep.length;
-    })
+    }),
   );

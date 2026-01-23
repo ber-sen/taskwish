@@ -1,46 +1,39 @@
+import { PrettyScope } from "../helpers";
 import { Sica } from "../types";
 import { Last, Steps } from "./steps";
 
-export const Step = <
+export function Step<
   const Name extends string,
   Ctx extends Record<any, any>,
-  Result = Ctx["step"]["result"],
+  Result,
 >(
-  ...step: "step" extends keyof Ctx
-    ?
-        | [
-            name: Ctx["step"]["name"] | [Ctx["step"]["name"], Name],
-            handler?: Ctx["step"]["params"],
-          ]
-        | [
-            name: Name,
-            handler:
-              | ((this: Sica.Scope<Ctx["scope"]>) => Result)
-              | [(this: Sica.Scope<Ctx["scope"]>) => Result]
-              | [
-                  (this: Sica.Scope<Ctx["scope"]>) => Result,
-                  { retry: number },
-                ],
-          ]
-    : [
-        name: Name,
-        handler:
-          | ((this: Sica.Scope<Ctx["scope"]>) => Result)
-          | [(this: Sica.Scope<Ctx["scope"]>) => Result]
-          | [(this: Sica.Scope<Ctx["scope"]>) => Result, { retry: number }],
-      ]
-) => {
-  return {} as any as {
-    step: (ctx: Ctx) => Name extends string
-      ? {
-          steps: Ctx["steps"] & Record<Name, Result>;
-          step: Ctx["step"];
-          scope: Record<Name, Result> & Ctx["scope"];
-          [Last]: Result;
-        }
-      : Ctx;
+  name: Name,
+  handler:
+    | ((this: Sica.Scope<PrettyScope<Ctx["scope"]>>) => Result)
+    | [(this: Sica.Scope<PrettyScope<Ctx["scope"]>>) => Result]
+    | [
+        (this: Sica.Scope<PrettyScope<Ctx["scope"]>>) => Result,
+        { retry: number },
+      ],
+): {
+  step: (ctx: Ctx) => {
+    steps: Ctx["steps"] & Record<Name, Result>;
+    step: Ctx["step"];
+    scope: Record<Name, Result> & Ctx["scope"];
+    [Last]: Result;
   };
 };
+
+export function Step<Ctx extends Record<any, any>>(
+  name: Ctx["step"]["name"],
+  params?: Ctx["step"]["params"],
+): {
+  step: (ctx: Ctx) => Ctx;
+};
+
+export function Step() {
+  return {} as never;
+}
 
 type ActionPaths<T, Prefix extends string = ""> = {
   [K in keyof T]: T[K] extends Record<string, any>
@@ -58,7 +51,7 @@ Step.Run = <const Name extends string, Ctx extends Record<any, any>>(
         ActionPaths<Ctx["scope"]["action"]> | ActionPaths<Ctx["scope"]["ai"]>,
         Name,
       ],
-  params: any
+  params: any,
 ): {
   step: (ctx: Ctx) => Name extends string
     ? {
@@ -98,5 +91,5 @@ const a = Steps(
       channel: "#general",
       message: this.generateText,
     });
-  })
+  }),
 );

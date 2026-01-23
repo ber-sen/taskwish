@@ -32,7 +32,7 @@ export namespace Sica {
     id: UUIDv5String;
   }
 
-  export type Scope<Scope> = PrettyScope<Scope> & {
+  export type Scope<Scope> = Scope & {
     <T>(Cls: new (...args: any[]) => T): Generator<unknown, T, T>;
   };
 
