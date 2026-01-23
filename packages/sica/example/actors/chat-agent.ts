@@ -1,4 +1,4 @@
-import { Actor, Agent, Step } from "../../src";
+import { Actor, Agent,  Step } from "../../src";
 // import tsEvent from "../events/ts-event";
 
 export default Actor("Chat bot")
@@ -7,6 +7,16 @@ export default Actor("Chat bot")
   .on({ tools: "string[]", prompt: "string" })
 
   .handler(
-    Agent("Lorem agent", Agent.Model("launchApp"), Agent.Model("tapOn")),
-    Agent.Run("lorem agent", {})
+    Agent("chat agent", {
+      model: "anthropic/claude-sonnet-4.5",
+      instructions: "You are an expert software engineer.",
+      tools: [
+        function(){
+          return this.scope.input
+        }
+      ]
+    }),
+    Step("run", function () {
+      return this.chatAgent.generateText();
+    }),
   );
