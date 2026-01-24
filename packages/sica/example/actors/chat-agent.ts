@@ -1,5 +1,4 @@
 import { Actor, Agent, Step, Tool } from "../../src";
-import { type } from "arktype";
 
 export default Actor("Chat bot")
   .use(import("../package"))
@@ -9,11 +8,9 @@ export default Actor("Chat bot")
   .handler(
     Tool("wether", {
       description: "Get the weather in a location",
-      input: type({
-        location: type("string").describe(
-          "The location to get the weather for",
-        ),
-      }),
+      input: {
+        location: "string"
+      },
       run() {
         console.log(this.input.location)
         

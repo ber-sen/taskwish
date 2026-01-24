@@ -10,11 +10,9 @@ export default Actor("ChatBot")
   .handler(
     Tool("wether", {
       description: "Get the weather in a location",
-      input: type({
-        location: type("string").describe(
-          "The location to get the weather for",
-        ),
-      }),
+      input: {
+        location: "string",
+      },
       run() {
         console.log(this.input.location);
 

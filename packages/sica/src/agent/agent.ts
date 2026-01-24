@@ -1,4 +1,5 @@
-import { StandardSchemaV1 } from "@standard-schema/spec";
+
+import { DeepOptionalString, InferSchema, ValidateSchema } from "../helpers";
 import { Last } from "../steps";
 export interface Agent<Name extends string, Tools extends string[]> {
   name: Name;
@@ -60,9 +61,10 @@ export function Tool<
   name: Name,
   options: {
     description: string;
-    input: StandardSchemaV1<Input>;
-    run: ToolRun<Input, Output>;
+    input: ValidateSchema<Input>;
+    meta?: Array<[keyof DeepOptionalString<InferSchema<Input>>, string]>
+    run: ToolRun<InferSchema<Input>, Output>;
   },
-): ToolStep<Name, Input, Output, Ctx> {
+): ToolStep<Name, InferSchema<Input>, Output, Ctx> {
   return {} as never;
 }
