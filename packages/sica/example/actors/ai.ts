@@ -1,5 +1,4 @@
-import { Actor, Step, Tool } from "../../src";
-import { type } from "arktype";
+import { Actor, Step, Tool, Type } from "../../src";
 // import tsEvent from "../events/ts-event";
 
 export default Actor("ChatBot")
@@ -11,7 +10,7 @@ export default Actor("ChatBot")
     Tool("wether", {
       description: "Get the weather in a location",
       input: {
-        location: "string",
+        location: Type("string", "The location to get the weather for"),
       },
       run() {
         console.log(this.input.location);

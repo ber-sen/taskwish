@@ -1,19 +1,19 @@
-import { Actor, Agent, Step, Tool } from "../../src";
+import { Actor, Agent, Step, Tool, Type } from "../../src";
 
 export default Actor("Chat bot")
   .use(import("../package"))
 
-  .on({ tools: "string[]", prompt: "string" })
+  .on({ prompt: Type("string", "User's prompt") })
 
   .handler(
     Tool("wether", {
       description: "Get the weather in a location",
       input: {
-        location: "string"
+        location: Type("string", "The location to get the weather for"),
       },
       run() {
-        console.log(this.input.location)
-        
+        console.log(this.input.location);
+
         return { temperature: 72, conditions: "sunny" };
       },
     }),
@@ -25,6 +25,6 @@ export default Actor("Chat bot")
     }),
 
     Step("run", function () {
-      return this.chatAgent.generateText();
+      return this.chatAgent.generate();
     }),
   );

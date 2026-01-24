@@ -4,7 +4,7 @@ import { Last } from "../steps";
 export interface Agent<Name extends string, Tools extends string[]> {
   name: Name;
   tools: Tools;
-  generateText(): Promise<string>;
+  generate(): Promise<string>;
 }
 
 export function Agent<
@@ -62,7 +62,6 @@ export function Tool<
   options: {
     description: string;
     input: ValidateSchema<Input>;
-    meta?: Array<[keyof DeepOptionalString<InferSchema<Input>>, string]>
     run: ToolRun<InferSchema<Input>, Output>;
   },
 ): ToolStep<Name, InferSchema<Input>, Output, Ctx> {

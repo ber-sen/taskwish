@@ -9,6 +9,7 @@
 //  Copyright (c) 2025 - present Eightbits LLC
 
 export * from "../../boria";
+export * from "./type"
 export * from "./types";
 export * from "./action";
 export * from "./event";
