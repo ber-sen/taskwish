@@ -1,6 +1,6 @@
 import { type } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
-import { Sica } from "./types";
+import { Taskwish } from "./types";
 
 export type Expect<T extends true> = T;
 
@@ -92,10 +92,10 @@ export type InferSchema<Schema, Scope = {}> =
     : type.instantiate<Schema, Scope>["infer"];
 
 export type ValidateTrigger<Schema> =
-  Schema extends Sica.EventKind<any, infer Input>
-    ? Sica.EventKind<any, Input>
-    : Schema extends Sica.Event<any, infer Input>
-      ? Sica.Event<any, Input>
+  Schema extends Taskwish.EventKind<any, infer Input>
+    ? Taskwish.EventKind<any, Input>
+    : Schema extends Taskwish.Event<any, infer Input>
+      ? Taskwish.Event<any, Input>
       : Schema extends StandardSchemaV1<any>
         ? Schema
         : Schema extends object
@@ -104,21 +104,21 @@ export type ValidateTrigger<Schema> =
 
 export type InferTriggerScope<Schema> =
   Schema extends StandardSchemaV1<infer Input>
-    ? { input: Input; event: Sica.Event<Input>; io: Sica.IO }
-    : Schema extends Sica.Event<infer Input, any>
+    ? { input: Input; event: Taskwish.Event<Input>; io: Taskwish.IO }
+    : Schema extends Taskwish.Event<infer Input, any>
       ? {
           input: Input;
-          event: Sica.Event<Input>;
-          io: Sica.IO;
+          event: Taskwish.Event<Input>;
+          io: Taskwish.IO;
         }
-      : Schema extends Sica.EventKind<infer Input, any>
+      : Schema extends Taskwish.EventKind<infer Input, any>
         ? {
             input: Input;
-            event: Sica.Event<Input>;
-            io: Sica.IO;
+            event: Taskwish.Event<Input>;
+            io: Taskwish.IO;
           }
         : {
             input: type.instantiate<Schema>["infer"];
-            event: Sica.Event<type.instantiate<Schema>["infer"]>;
-            io: Sica.IO;
+            event: Taskwish.Event<type.instantiate<Schema>["infer"]>;
+            io: Taskwish.IO;
           };

@@ -1,5 +1,5 @@
 import { Equal } from "drizzle-orm";
-import { Sica } from "../types";
+import { Taskwish } from "../types";
 import { If } from "./if-else";
 import { Loop } from "./loop";
 import { Match } from "./match";
@@ -134,7 +134,7 @@ describe("Steps", () => {
     const Step = <const Name extends string, const R>(
       name: Name,
       data: R
-    ): Sica.Step<Name, R> => ({}) as never;
+    ): Taskwish.Step<Name, R> => ({}) as never;
 
     const steps = async function* () {
       yield Step("1", 3);
@@ -157,18 +157,18 @@ describe("Steps", () => {
     type succeed = Expect<
       Equal<
         AsyncGenerator<
-          | Sica.Step<"1", 3, ["step"], null>
-          | Sica.Step<"2", "sadasd", ["step"], null>
-          | Sica.Step<"3", true, ["step"], null>
-          | Sica.Step<"4", 3, ["step"], null>
-          | Sica.Step<"5", "sadasd", ["step"], null>
-          | Sica.Step<"6", true, ["step"], null>
-          | Sica.Step<"7", 3, ["step"], null>
-          | Sica.Step<"8", "sadasd", ["step"], null>
-          | Sica.Step<"9", true, ["step"], null>
-          | Sica.Step<"10", 3, ["step"], null>
-          | Sica.Step<"11", "sadasd", ["step"], null>
-          | Sica.Step<"12", true, ["step"], null>,
+          | Taskwish.Step<"1", 3, ["step"], null>
+          | Taskwish.Step<"2", "sadasd", ["step"], null>
+          | Taskwish.Step<"3", true, ["step"], null>
+          | Taskwish.Step<"4", 3, ["step"], null>
+          | Taskwish.Step<"5", "sadasd", ["step"], null>
+          | Taskwish.Step<"6", true, ["step"], null>
+          | Taskwish.Step<"7", 3, ["step"], null>
+          | Taskwish.Step<"8", "sadasd", ["step"], null>
+          | Taskwish.Step<"9", true, ["step"], null>
+          | Taskwish.Step<"10", 3, ["step"], null>
+          | Taskwish.Step<"11", "sadasd", ["step"], null>
+          | Taskwish.Step<"12", true, ["step"], null>,
           void,
           unknown
         >,

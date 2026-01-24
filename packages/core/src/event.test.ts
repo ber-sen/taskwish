@@ -1,6 +1,6 @@
 import { Expect, Equal } from "./helpers";
 import { Event } from "./event";
-import { Sica } from "./types";
+import { Taskwish } from "./types";
 
 describe("Event", async function* () {
   it("works with arrow functions", () => {
@@ -13,7 +13,7 @@ describe("Event", async function* () {
 
     type newEmail = Expect<
       Equal<
-        Sica.EventKind<
+        Taskwish.EventKind<
           {
             from: string;
             subject: string;

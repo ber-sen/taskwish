@@ -11,14 +11,14 @@ import {
 } from "./helpers";
 import { Boria } from "../../message";
 
-export namespace Sica {
-  export const Type = Symbol.for("Sica.Type");
+export namespace Taskwish {
+  export const Type = Symbol.for("Taskwish.Type");
 
-  export const Meta = Symbol.for("Sica.Meta");
+  export const Meta = Symbol.for("Taskwish.Meta");
 
-  export const Scope = Symbol.for("Sica.Scope");
+  export const Scope = Symbol.for("Taskwish.Scope");
 
-  export const Traits = Symbol.for("Sica.Traits");
+  export const Traits = Symbol.for("Taskwish.Traits");
 
   export interface Typed<Type extends string[]> {
     [Type]: Type;

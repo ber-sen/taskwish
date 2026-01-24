@@ -1,5 +1,5 @@
 import { Expect, Equal } from "../helpers";
-import { Sica } from "../types";
+import { Taskwish } from "../types";
 import { Provide } from "./provide";
 
 describe("Provide", () => {
@@ -9,7 +9,7 @@ describe("Provide", () => {
     type T = typeof env;
 
     type env = Expect<
-      Equal<Sica.Use<Sica.Struct<NodeJS.ProcessEnv, ["env"]>>, T>
+      Equal<Taskwish.Use<Taskwish.Struct<NodeJS.ProcessEnv, ["env"]>>, T>
     >;
   });
 });

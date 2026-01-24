@@ -1,4 +1,4 @@
-import { Sica } from "../types";
+import { Taskwish } from "../types";
 
 type OptionalBoolean<T> = {
   [K in keyof T]?: boolean;
@@ -7,8 +7,8 @@ type OptionalBoolean<T> = {
 export const Match = <const Input extends object>(
   input: Input,
   match: OptionalBoolean<Input>
-): Sica.Flow<["match"]> => ({
-  [Sica.Type]: ["match"],
+): Taskwish.Flow<["match"]> => ({
+  [Taskwish.Type]: ["match"],
   group: null,
   params: {}
 });

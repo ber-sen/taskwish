@@ -1,9 +1,9 @@
-import { Sica } from "../core/src";
+import { Taskwish } from "../core/src";
 
 import { Boria } from "./types";
 
 interface Message
-  extends Sica.EventKind<Array<Boria.MessagePart<any>>, ["event", "message"]> {
+  extends Taskwish.EventKind<Array<Boria.MessagePart<any>>, ["event", "message"]> {
   <const Content extends Array<Boria.MessagePart<any>>>(
     ...content: Content
   ): Boria.Message<Content>;

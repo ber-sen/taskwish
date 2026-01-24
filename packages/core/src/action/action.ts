@@ -1,15 +1,15 @@
-import { Sica } from "../types";
+import { Taskwish } from "../types";
 
 interface ActionFactory<Type extends string[] | string> {
-  handler<const Handler extends (this: Sica.Scope<{}>, ...args: any) => any>(
+  handler<const Handler extends (this: Taskwish.Scope<{}>, ...args: any) => any>(
     handler: Handler,
     composer?: (fn: Handler) => any
   ): Parameters<Handler>[0] extends object
-    ? Sica.Action<
+    ? Taskwish.Action<
         Handler,
         Type extends string[] ? ["action", ...Type] : ["action", Type]
       >
-    : Sica.NullaryAction<
+    : Taskwish.NullaryAction<
         Handler,
         Type extends string[] ? ["action", ...Type] : ["action", Type]
       >;

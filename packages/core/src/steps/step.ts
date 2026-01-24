@@ -1,5 +1,5 @@
 import { PrettyScope } from "../helpers";
-import { Sica } from "../types";
+import { Taskwish } from "../types";
 import { Last, Steps } from "./steps";
 
 export function Step<
@@ -9,10 +9,10 @@ export function Step<
 >(
   name: Name,
   handler:
-    | ((this: Sica.Scope<PrettyScope<Ctx["scope"]>>) => Result)
-    | [(this: Sica.Scope<PrettyScope<Ctx["scope"]>>) => Result]
+    | ((this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => Result)
+    | [(this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => Result]
     | [
-        (this: Sica.Scope<PrettyScope<Ctx["scope"]>>) => Result,
+        (this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => Result,
         { retry: number },
       ],
 ): {

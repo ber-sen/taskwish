@@ -1,4 +1,4 @@
-import { Action, Sica } from "../../src";
+import { Action, Taskwish } from "../../src";
 
 export default Action("succeed").handler(
   <const S0, const S1>() =>
@@ -13,10 +13,10 @@ export default Action("succeed").handler(
       trip,
     }),
   (handler) =>
-    class extends Sica.GenericHandler {
+    class extends Taskwish.GenericHandler {
       declare bind: typeof handler<
-        Sica.Generic<this, "model">,
-        Sica.Generic<this, "trip">
+        Taskwish.Generic<this, "model">,
+        Taskwish.Generic<this, "trip">
       >;
     }
 )

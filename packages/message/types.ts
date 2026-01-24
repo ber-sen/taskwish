@@ -1,5 +1,5 @@
 import { UUIDv5String, UUIDv7String } from "../core/src/helpers";
-import { Sica } from "../core/src/types";
+import { Taskwish } from "../core/src/types";
 
 interface Json {
   [x: string]: string | number | boolean | Date | Json | JsonArray;
@@ -21,13 +21,13 @@ export namespace Boria {
   export interface Message<
     Content extends Array<MessagePart<any>> | string | MessagePart<any>,
     Meta = null,
-  > extends Sica.EventKind<
+  > extends Taskwish.EventKind<
       Boria.Message<Content, null>,
       ["event", "message"],
       null
     > {
-    threadId: Sica.Inject<ThreadId>;
-    identityId: Sica.Inject<IdentityId>;
+    threadId: Taskwish.Inject<ThreadId>;
+    identityId: Taskwish.Inject<IdentityId>;
     content: Content;
   }
 

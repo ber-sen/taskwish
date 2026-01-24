@@ -1,13 +1,13 @@
-import { Sica } from "../types";
+import { Taskwish } from "../types";
 
-export function Provide<const Dep extends Sica.Typed<any>>(
+export function Provide<const Dep extends Taskwish.Typed<any>>(
   dep: Dep
-): Sica.Provide<Dep>;
+): Taskwish.Provide<Dep>;
 
 export function Provide<const Type extends string[] | string, const Dep>(
   type: Type,
   dep: Dep
-): Sica.Provide<Sica.Struct<Dep, Type extends string ? [Type] : Type>>;
+): Taskwish.Provide<Taskwish.Struct<Dep, Type extends string ? [Type] : Type>>;
 
 export function Provide(...args: any[]) {
   return {} as never;

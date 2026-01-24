@@ -1,9 +1,9 @@
 import { InferTriggerScope, ValidateTrigger } from "./helpers";
 import { Steps } from "./steps";
-import { Sica } from "./types";
+import { Taskwish } from "./types";
 
 interface ActorMethod<Scope extends Record<any, any>>
-  extends Sica.Scoped<Scope> {
+  extends Taskwish.Scoped<Scope> {
   use<const NewScope>(newScope: NewScope): ActorMethod<Scope>;
   handler: Steps<{
     scope: Scope & DummyScope["scope"];
@@ -33,9 +33,9 @@ interface DummyScope {
 }
 
 export interface ActorFactory<Params, Scope extends Record<any, any> = {}>
-  extends Sica.Scoped<Scope>,
+  extends Taskwish.Scoped<Scope>,
     ActorMethod<Scope>,
-    Sica.Triggerable<Scope> {
+    Taskwish.Triggerable<Scope> {
   use<const NewScope>(newScope: NewScope): ActorFactory<Params, Scope>;
   on<const Schema>(
     trigger: ValidateTrigger<Schema>
@@ -50,7 +50,7 @@ export const Actor = <const Params extends string>(
 
 // const ActorNew = <Obj extends { main: () => any }>(
 //   obj: Obj
-// ): Sica.Actor<Obj> => {
+// ): Taskwish.Actor<Obj> => {
 //   return {} as never;
 // };
 

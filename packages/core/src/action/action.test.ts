@@ -1,6 +1,6 @@
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
-import { Sica } from "../types";
+import { Taskwish } from "../types";
 import { Message } from "../../../message/message";
 import { Provide } from "./provide";
 
@@ -12,7 +12,7 @@ describe("Action", () => {
 
     type succeed = Expect<
       Equal<
-        Sica.NullaryAction<
+        Taskwish.NullaryAction<
           () => {
             success: boolean;
           },
@@ -39,7 +39,7 @@ describe("Action", () => {
 
     type succeed = Expect<
       Equal<
-        Sica.Action<
+        Taskwish.Action<
           (params: { name: string }) => {
             success: boolean;
           },
@@ -69,7 +69,7 @@ describe("Action", () => {
 
     type succeed = Expect<
       Equal<
-        Sica.NullaryAction<
+        Taskwish.NullaryAction<
           () => {
             success: boolean;
           },
@@ -95,7 +95,7 @@ describe("Action", () => {
 
     type sayHello = Expect<
       Equal<
-        Sica.Action<
+        Taskwish.Action<
           (params: { language: string }) => string,
           ["action", "Say hello"]
         >,
@@ -121,7 +121,7 @@ describe("Action", () => {
 
     type sayHello = Expect<
       Equal<
-        Sica.Action<
+        Taskwish.Action<
           (params: { language: string }) => string,
           ["action", "Say hello"]
         >,
@@ -162,12 +162,12 @@ describe("Action", () => {
 
     type dynamicEnv = Expect<
       Equal<
-        Sica.NullaryAction<
+        Taskwish.NullaryAction<
           () => AsyncGenerator<
             never,
             boolean,
-            Sica.Use<
-              Sica.Struct<
+            Taskwish.Use<
+              Taskwish.Struct<
                 {
                   API_KEY: string;
                 },
@@ -193,7 +193,7 @@ describe("Action", () => {
 
     type dynamicRequire = Expect<
       Equal<
-        Sica.NullaryAction<
+        Taskwish.NullaryAction<
           () => AsyncGenerator<unknown, boolean, AbortSignal>,
           ["action", "Stream"],
           null
@@ -207,7 +207,7 @@ describe("Action", () => {
     const dynamicRequire = Action("Stream").handler(async function* ({}: {
       lorem: string;
     }) {
-      const io = yield* this(Sica.IO);
+      const io = yield* this(Taskwish.IO);
 
       io.messages;
     });
@@ -216,12 +216,12 @@ describe("Action", () => {
 
     type dynamicRequire = Expect<
       Equal<
-        Sica.Action<
+        Taskwish.Action<
           (
             {}: {
               lorem: string;
             },
-          ) => AsyncGenerator<unknown, void, Sica.IO>,
+          ) => AsyncGenerator<unknown, void, Taskwish.IO>,
           ["action", "Stream"],
           null
         >,
@@ -235,7 +235,7 @@ type Action<Scope> = {
   readonly run: (scope: Scope) => string;
 };
 
-type Apply<F extends Sica.GenericHandler, scope> = (F & {
+type Apply<F extends Taskwish.GenericHandler, scope> = (F & {
   readonly scope: scope;
 })["bind"];
 
@@ -253,10 +253,10 @@ const handler =
   });
 
 const makeScoped = (fn: typeof handler) =>
-  class extends Sica.GenericHandler {
+  class extends Taskwish.GenericHandler {
     handler = fn;
     declare bind: typeof this.handler<
-      [Sica.Generic<this, "model">, Sica.Generic<this, "trip">]
+      [Taskwish.Generic<this, "model">, Taskwish.Generic<this, "trip">]
     >;
   };
 
