@@ -1,4 +1,4 @@
-import { Sica } from "../sica/src";
+import { Sica } from "../core/src";
 
 import { Boria } from "./types";
 

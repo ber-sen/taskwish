@@ -1,7 +1,7 @@
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { Sica } from "../types";
-import { Message } from "../../../boria/message";
+import { Message } from "../../../message/message";
 import { Provide } from "./provide";
 
 describe("Action", () => {

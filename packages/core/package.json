@@ -1,5 +1,6 @@
 {
-  "name": "sica",
+  "name": "@taskwish/core",
+  "publishConfig": { "access": "public" },
   "version": "0.0.1",
   "description": "Opinionated edge-first library for TypeScript",
   "license": "Elastic-2.0",

@@ -9,7 +9,7 @@ import {
   InferTriggerScope,
   PrettyScope,
 } from "./helpers";
-import { Boria } from "../../boria";
+import { Boria } from "../../message";
 
 export namespace Sica {
   export const Type = Symbol.for("Sica.Type");
