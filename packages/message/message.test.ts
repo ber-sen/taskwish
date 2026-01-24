@@ -1,4 +1,4 @@
-import { Equal, Expect } from "../sica/src/helpers";
+import { Equal, Expect } from "../core/src/helpers";
 
 import { Message } from "./message";
 import { Boria } from ".";

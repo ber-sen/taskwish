@@ -1,6 +1,6 @@
 import { Expect, Equal } from "./helpers";
 
-describe("sica", () => {
+describe("core", () => {
   it("Initial test", () => {
     const test = 1;
 
