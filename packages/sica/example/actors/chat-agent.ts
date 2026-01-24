@@ -1,18 +1,20 @@
-import z from "zod";
 import { Actor, Agent, Step, Tool } from "../../src";
+import { type } from "arktype";
 
 export default Actor("Chat bot")
   .use(import("../package"))
 
-  .on({ prompt: "string" })
+  .on({ tools: "string[]", prompt: "string" })
 
   .handler(
     Tool("wether", {
       description: "Get the weather in a location",
-      inputSchema: z.object({
-        location: z.string().describe("The location to get the weather for"),
+      inputSchema: type({
+        location: type("string").describe(
+          "The location to get the weather for",
+        ),
       }),
-      execute: async ({ location }) => {
+      run: async ({ location }) => {
         return { temperature: 72, conditions: "sunny" };
       },
     }),

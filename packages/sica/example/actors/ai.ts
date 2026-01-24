@@ -1,4 +1,5 @@
-import { Actor } from "../../src";
+import { Actor, Step, Tool } from "../../src";
+import { type } from "arktype";
 // import tsEvent from "../events/ts-event";
 
 export default Actor("ChatBot")
@@ -6,21 +7,23 @@ export default Actor("ChatBot")
 
   .on({ tools: "string[]", prompt: "string" })
 
-  .steps(
-    {
-      name: "tools",
-      run: ({ input, tools }) =>
-        tools.filter((tool) => input.tool.includes(tool.name)),
-    },
+  .handler(
+    Tool("wether", {
+      description: "Get the weather in a location",
+      inputSchema: type({
+        location: type("string").describe(
+          "The location to get the weather for",
+        ),
+      }),
+      run: async ({ location }) => {
+        return { temperature: 72, conditions: "sunny" };
+      },
+    }),
 
-    {
-      name: "response",
-      run: ({ ai, tools }) =>
-        ai.generateText({
-          system: "asdasdadas asdas da",
-          model: "gtp-4",
-          tools: tools,
-          prompt: input.prompt,
-        }),
-    }
+    Step("response", function () {
+      this.ai.generateText({
+        model: "gpt5",
+        prompt: "asdad",
+      });
+    }),
   );
