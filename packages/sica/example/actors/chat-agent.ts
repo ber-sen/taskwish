@@ -9,12 +9,14 @@ export default Actor("Chat bot")
   .handler(
     Tool("wether", {
       description: "Get the weather in a location",
-      inputSchema: type({
+      input: type({
         location: type("string").describe(
           "The location to get the weather for",
         ),
       }),
-      run: async ({ location }) => {
+      run() {
+        console.log(this.input.location)
+        
         return { temperature: 72, conditions: "sunny" };
       },
     }),
