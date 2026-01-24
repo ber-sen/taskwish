@@ -1,12 +1,10 @@
 import { Actor, Agent, Step, Tool, Type } from "../../src";
 
 export default Actor("Chat bot")
-  .use(import("../package"))
-
   .on({ prompt: Type("string", "User's prompt") })
 
   .handler(
-    Tool("wether", {
+    Tool("weather", {
       description: "Get the weather in a location",
       input: {
         location: Type("string", "The location to get the weather for"),
@@ -21,10 +19,10 @@ export default Actor("Chat bot")
     Agent("chat agent", {
       model: "anthropic/claude-sonnet-4.5",
       instructions: "You are an expert software engineer.",
-      tools: ["wether"],
+      tools: ["weather"],
     }),
 
     Step("run", function () {
-      return this.chatAgent.generate();
+      return this.chatAgent.generate({ prompt: this.input.prompt });
     }),
   );

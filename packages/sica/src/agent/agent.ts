@@ -1,10 +1,9 @@
-
 import { DeepOptionalString, InferSchema, ValidateSchema } from "../helpers";
 import { Last } from "../steps";
 export interface Agent<Name extends string, Tools extends string[]> {
   name: Name;
   tools: Tools;
-  generate(): Promise<string>;
+  generate(options: { prompt: string }): Promise<string>;
 }
 
 export function Agent<
