@@ -2,7 +2,7 @@ import { ToCamelCase } from "../helpers";
 import { Taskwish } from "../types";
 
 interface ActionFactory<Name extends string> {
-  wrap<const Handler extends (...args: any) => Promise<any>>(
+  make<const Handler extends (...args: any) => Promise<any>>(
     handler: (this: Taskwish.Scope<{}>) => Handler,
   ): {
     [key in ToCamelCase<Name>]: Taskwish.Action<Name, Handler>;

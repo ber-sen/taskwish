@@ -56,7 +56,7 @@ describe("Action", () => {
   });
 
   it("works with this", async () => {
-    const { thisGeneric } = Action("this generic").wrap(function () {
+    const { thisGeneric } = Action("this generic").make(function () {
       const handler = async <const T>(lorem: T) => {
         const abortSignal = this(AbortSignal);
 
