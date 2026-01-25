@@ -1,3 +1,3 @@
 import { Action } from "../../src";
 
-export default Action("succeed").handler(() => ({ success: true }))
+export const { succeed } = Action("succeed").handler(() => ({ success: true }));

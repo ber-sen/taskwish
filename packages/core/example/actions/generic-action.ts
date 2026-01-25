@@ -1,6 +1,6 @@
 import { Action, Taskwish } from "../../src";
 
-export default Action("succeed").handler(
+export const { genericAction } = Action("generic action").handler(
   <const S0, const S1>() =>
     <const Model extends S0, const Trip extends S1>({
       model,
@@ -18,5 +18,5 @@ export default Action("succeed").handler(
         Taskwish.Generic<this, "model">,
         Taskwish.Generic<this, "trip">
       >;
-    }
-)
+    },
+);
