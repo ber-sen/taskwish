@@ -1,4 +1,4 @@
-import { CamelCase } from "../helpers";
+import { ToCamelCase } from "../helpers";
 import { Taskwish } from "../types";
 
 interface ActionFactory<Name extends string> {
@@ -8,9 +8,7 @@ interface ActionFactory<Name extends string> {
     handler: Handler,
     composer?: (fn: Handler) => any,
   ): {
-    [key in CamelCase<Name>]: Parameters<Handler>[0] extends object
-      ? Taskwish.Action<Handler, ["action", Name]>
-      : Taskwish.NullaryAction<Handler, ["action", Name]>;
+    [key in ToCamelCase<Name>]: Taskwish.Action<Name, Handler>;
   };
 }
 

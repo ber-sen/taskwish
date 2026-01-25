@@ -2,21 +2,21 @@ import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { Taskwish } from "../types";
 import { Message } from "../../../message/message";
-import { Provide } from "./provide";
 
 describe("Action", () => {
   it("works with arrow functions", async () => {
-    const succeed = Action("Succeed").handler(() => ({ success: true }));
+    const { succeed } = Action("Succeed").handler(() => ({ success: true }));
 
     type T = typeof succeed;
 
     type succeed = Expect<
       Equal<
-        Taskwish.NullaryAction<
+        Taskwish.Action<
+          "Succeed",
           () => {
             success: boolean;
           },
-          ["action", "Succeed"]
+          null
         >,
         T
       >
@@ -28,28 +28,22 @@ describe("Action", () => {
   });
 
   it("works with schema", async () => {
-    const succeed = Action("Succeed")
-      .handler((params: { name: string }) => ({
+    const { succeed } = Action("Succeed").handler(
+      (params: { name: string }) => ({
         success: true,
-      }))
-
-      .meta({ description: "asdasa", input: { name: "name parameter" } });
+      }),
+    );
 
     type T = typeof succeed;
 
     type succeed = Expect<
       Equal<
         Taskwish.Action<
+          "Succeed",
           (params: { name: string }) => {
             success: boolean;
           },
-          ["action", "Succeed"],
-          {
-            readonly description: "asdasa";
-            readonly input: {
-              readonly name: "name parameter";
-            };
-          }
+          null
         >,
         T
       >
@@ -60,32 +54,8 @@ describe("Action", () => {
     expect(result).toEqual({ success: true });
   });
 
-  it("works with array type", async () => {
-    const succeed = Action(["io", "Succeed"]).handler(() => ({
-      success: true,
-    }));
-
-    type T = typeof succeed;
-
-    type succeed = Expect<
-      Equal<
-        Taskwish.NullaryAction<
-          () => {
-            success: boolean;
-          },
-          ["action", "io", "Succeed"]
-        >,
-        T
-      >
-    >;
-
-    const result = await succeed();
-
-    expect(result).toEqual({ success: true });
-  });
-
   it("works with params", async () => {
-    const sayHello = Action("Say hello").handler(
+    const { sayHello } = Action("Say hello").handler(
       (params: { language: string }) => {
         return `Hello in ${params.language}`;
       },
@@ -96,8 +66,9 @@ describe("Action", () => {
     type sayHello = Expect<
       Equal<
         Taskwish.Action<
+          "Say hello",
           (params: { language: string }) => string,
-          ["action", "Say hello"]
+          null
         >,
         T
       >
@@ -108,34 +79,8 @@ describe("Action", () => {
     expect(result).toEqual("Hello in Spanish");
   });
 
-  it("works with provided scope", async () => {
-    const sayHello = Action("Say hello").handler(
-      (params: { language: string }) => {
-        return `Hello in ${params.language}`;
-      },
-    );
-
-    const scope = [Provide("env", process.env)] as const;
-
-    type T = typeof sayHello;
-
-    type sayHello = Expect<
-      Equal<
-        Taskwish.Action<
-          (params: { language: string }) => string,
-          ["action", "Say hello"]
-        >,
-        T
-      >
-    >;
-
-    const result = await sayHello(...scope, { language: "Spanish" });
-
-    expect(result).toEqual("Hello in Spanish");
-  });
-
   it("works with generators", async () => {
-    const streamNumbers = Action("Stream").handler(async function* () {
+    const { myAction } = Action("my action").handler(async function* () {
       yield Message([
         { type: "text", text: "asd" },
         { type: "text", text: "asdasd" },
@@ -144,9 +89,9 @@ describe("Action", () => {
       yield 3;
     });
 
-    type T = typeof streamNumbers;
+    type T = typeof myAction;
 
-    for await (const n of streamNumbers()) {
+    for await (const n of myAction()) {
       console.log(n);
     }
   });
@@ -183,19 +128,21 @@ describe("Action", () => {
   });
 
   it("works with AbortSignal", async () => {
-    const dynamicRequire = Action("Stream").handler(async function* () {
+    const { streamer } = Action("streamer").handler(async function* () {
       const signal = yield* this(AbortSignal);
 
       return signal.aborted;
     });
 
-    type T = typeof dynamicRequire;
+    type T = typeof streamer;
 
     type dynamicRequire = Expect<
       Equal<
-        Taskwish.NullaryAction<
-          () => AsyncGenerator<unknown, boolean, AbortSignal>,
-          ["action", "Stream"],
+        Taskwish.Action<
+          "streamer",
+          (
+            this: Taskwish.Scope<{}>,
+          ) => AsyncGenerator<unknown, boolean, AbortSignal>,
           null
         >,
         T
@@ -203,7 +150,7 @@ describe("Action", () => {
     >;
   });
 
-  it("works with require env", async () => {
+  it("works with generic", async () => {
     const dynamicRequire = Action("Stream").handler(async function* ({}: {
       lorem: string;
     }) {
@@ -213,21 +160,6 @@ describe("Action", () => {
     });
 
     type T = typeof dynamicRequire;
-
-    type dynamicRequire = Expect<
-      Equal<
-        Taskwish.Action<
-          (
-            {}: {
-              lorem: string;
-            },
-          ) => AsyncGenerator<unknown, void, Taskwish.IO>,
-          ["action", "Stream"],
-          null
-        >,
-        T
-      >
-    >;
   });
 });
 

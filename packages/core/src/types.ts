@@ -12,16 +12,18 @@ import {
 import { Boria } from "../../message";
 
 export namespace Taskwish {
-  export const Type = Symbol.for("Taskwish.Type");
+  export const Name = Symbol.for("Taskwish.Name");
 
   export const Meta = Symbol.for("Taskwish.Meta");
 
   export const Scope = Symbol.for("Taskwish.Scope");
 
+  export const Handler = Symbol.for("Taskwish.Handler");
+
   export const Traits = Symbol.for("Taskwish.Traits");
 
-  export interface Typed<Type extends string[]> {
-    [Type]: Type;
+  export interface Named<Name extends string> {
+    [Name]: Name;
   }
 
   export interface Attributable<Meta> {
@@ -45,50 +47,14 @@ export namespace Taskwish {
 
   export type Inject<Type> = Type | null;
 
-  export interface NullaryAction<
-    Handler extends () => any,
-    Type extends string[] = ["action"],
-    Meta = null,
-  > extends Resource<Type> {
-    meta<
-      const Tags extends {
-        description?: string;
-        input?: Handler extends (...args: any) => any
-          ? DeepOptionalString<Parameters<Handler>[0]>
-          : never;
-        output?: Handler extends (...args: any) => any
-          ? DeepOptionalString<ReturnType<Handler>>
-          : never;
-      },
-    >(
-      meta: Meta extends object ? "get" : Tags,
-    ): Meta extends object ? Meta : Action<Handler, Type, Tags>;
-    <const Ctx extends Record<string, any>>(ctx?: Ctx): RunnableReturn<Handler>; // get deps of scope from handler
-  }
-
   export interface Action<
-    Handler extends ((...args: any) => any) | GenericHandler,
-    Type extends string[] = ["action"],
+    Name extends string,
+    Handler extends (...args: any) => any,
     Meta = null,
-  > extends Attributable<Meta>,
-      Resource<Type>,
-      Traits {
-    meta<
-      const Tags extends {
-        description?: string;
-        input?: Handler extends (...args: any) => any
-          ? DeepOptionalString<Parameters<Handler>[0]>
-          : never;
-        output?: Handler extends (...args: any) => any
-          ? DeepOptionalString<ReturnType<Handler>>
-          : never;
-      },
-    >(
-      meta: Meta extends object ? "get" : Tags,
-    ): Meta extends object ? Meta : Action<Handler, Type, Tags>;
-    <Ctx extends Array<any>>(
-      ...args: [...Ctx, ActionInput<Handler>]
-    ): ActionReturn<Handler>;
+  > extends Named<Name>,
+      Attributable<Meta> {
+    [Handler]: Handler;
+    (...args: Parameters<Handler>): Promise<ReturnType<Handler>>;
   }
 
   export class IO {
