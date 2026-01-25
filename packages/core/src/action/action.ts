@@ -3,7 +3,7 @@ import { Taskwish } from "../types";
 
 interface ActionFactory<Name extends string> {
   make<const Handler extends (...args: any) => Promise<any>>(
-    handler: (this: Taskwish.Scope<{}>) => Handler,
+    handler: (scope: Taskwish.Scope<{}>) => Handler,
   ): {
     [key in ToCamelCase<Name>]: Taskwish.Action<Name, Handler>;
   };

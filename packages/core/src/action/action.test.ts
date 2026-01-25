@@ -56,19 +56,18 @@ describe("Action", () => {
   });
 
   it("works with this", async () => {
-    const { thisGeneric } = Action("this generic").make(function () {
-      const handler = async <const T>(lorem: T) => {
-        const abortSignal = this(AbortSignal);
+    const { thisGeneric } = Action("this generic").make(
+      (scope) =>
+        async <const T>(lorem: T) => {
+          const abortSignal = scope(AbortSignal);
 
-        if (abortSignal.aborted) {
-          return true;
-        }
+          if (abortSignal.aborted) {
+            return true;
+          }
 
-        return false;
-      };
-
-      return handler;
-    });
+          return false;
+        },
+    );
 
     type T = typeof thisGeneric;
 
