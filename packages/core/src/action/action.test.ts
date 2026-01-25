@@ -1,11 +1,12 @@
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { Taskwish } from "../types";
-import { Message } from "../../../message/message";
 
 describe("Action", () => {
-  it("works with arrow functions", async () => {
-    const { succeed } = Action("Succeed").handler(() => ({ success: true }));
+  it("works with async arrow functions", async () => {
+    const { succeed } = Action("Succeed").handler(async () => ({
+      success: true,
+    }));
 
     type T = typeof succeed;
 
@@ -13,9 +14,9 @@ describe("Action", () => {
       Equal<
         Taskwish.Action<
           "Succeed",
-          () => {
+          () => Promise<{
             success: boolean;
-          },
+          }>,
           null
         >,
         T
@@ -27,181 +28,241 @@ describe("Action", () => {
     expect(result).toEqual({ success: true });
   });
 
-  it("works with schema", async () => {
-    const { succeed } = Action("Succeed").handler(
-      (params: { name: string }) => ({
-        success: true,
+  it("works with generic functions", async () => {
+    const { generic } = Action("generic").handler(
+      async <const T>(lorem: T) => ({
+        lorem,
       }),
     );
 
-    type T = typeof succeed;
+    type T = typeof generic;
 
     type succeed = Expect<
       Equal<
         Taskwish.Action<
-          "Succeed",
-          (params: { name: string }) => {
-            success: boolean;
-          },
+          "generic",
+          <const T>(lorem: T) => Promise<{
+            lorem: T;
+          }>,
           null
         >,
         T
       >
     >;
 
-    const result = await succeed({ name: "asda" });
+    const result = await generic(3);
 
     expect(result).toEqual({ success: true });
   });
 
-  it("works with params", async () => {
-    const { sayHello } = Action("Say hello").handler(
-      (params: { language: string }) => {
-        return `Hello in ${params.language}`;
-      },
-    );
+  it("works with this", async () => {
+    const { thisGeneric } = Action("this generic").wrap(function () {
+      const handler = async <const T>(lorem: T) => {
+        const abortSignal = this(AbortSignal);
 
-    type T = typeof sayHello;
+        if (abortSignal.aborted) {
+          return true;
+        }
 
-    type sayHello = Expect<
+        return false;
+      };
+
+      return handler;
+    });
+
+    type T = typeof thisGeneric;
+
+    type succeed = Expect<
       Equal<
         Taskwish.Action<
-          "Say hello",
-          (params: { language: string }) => string,
+          "this generic",
+          <const T>(lorem: T) => Promise<boolean>,
           null
         >,
         T
       >
     >;
 
-    const result = await sayHello({ language: "Spanish" });
+    const result = await thisGeneric(3);
 
-    expect(result).toEqual("Hello in Spanish");
+    expect(result).toEqual({ success: true });
   });
 
-  it("works with generators", async () => {
-    const { myAction } = Action("my action").handler(async function* () {
-      yield Message([
-        { type: "text", text: "asd" },
-        { type: "text", text: "asdasd" },
-      ]);
-      yield 2;
-      yield 3;
-    });
+  // it("works with schema", async () => {
+  //   const { succeed } = Action("Succeed").handler(
+  //     (params: { name: string }) => ({
+  //       success: true,
+  //     }),
+  //   );
 
-    type T = typeof myAction;
+  //   type T = typeof succeed;
 
-    for await (const n of myAction()) {
-      console.log(n);
-    }
-  });
+  //   type succeed = Expect<
+  //     Equal<
+  //       Taskwish.Action<
+  //         "Succeed",
+  //         (params: { name: string }) => {
+  //           success: boolean;
+  //         },
+  //         null
+  //       >,
+  //       T
+  //     >
+  //   >;
 
-  it("works with dynamic env", async () => {
-    const dynamicEnv = Action("Stream").handler(async function* () {
-      const env = yield* Use(Env("API_KEY", "string"));
+  //   const result = await succeed({ name: "asda" });
 
-      return Boolean(env);
-    });
+  //   expect(result).toEqual({ success: true });
+  // });
 
-    type T = typeof dynamicEnv;
+  // it("works with params", async () => {
+  //   const { sayHello } = Action("Say hello").handler(
+  //     (params: { language: string }) => {
+  //       return `Hello in ${params.language}`;
+  //     },
+  //   );
 
-    type dynamicEnv = Expect<
-      Equal<
-        Taskwish.NullaryAction<
-          () => AsyncGenerator<
-            never,
-            boolean,
-            Taskwish.Use<
-              Taskwish.Struct<
-                {
-                  API_KEY: string;
-                },
-                ["env"]
-              >
-            >
-          >,
-          ["action", "Stream"]
-        >,
-        T
-      >
-    >;
-  });
+  //   type T = typeof sayHello;
 
-  it("works with AbortSignal", async () => {
-    const { streamer } = Action("streamer").handler(async function* () {
-      const signal = yield* this(AbortSignal);
+  //   type sayHello = Expect<
+  //     Equal<
+  //       Taskwish.Action<
+  //         "Say hello",
+  //         (params: { language: string }) => string,
+  //         null
+  //       >,
+  //       T
+  //     >
+  //   >;
 
-      return signal.aborted;
-    });
+  //   const result = await sayHello({ language: "Spanish" });
 
-    type T = typeof streamer;
+  //   expect(result).toEqual("Hello in Spanish");
+  // });
 
-    type dynamicRequire = Expect<
-      Equal<
-        Taskwish.Action<
-          "streamer",
-          (
-            this: Taskwish.Scope<{}>,
-          ) => AsyncGenerator<unknown, boolean, AbortSignal>,
-          null
-        >,
-        T
-      >
-    >;
-  });
+  // it("works with generators", async () => {
+  //   const { myAction } = Action("my action").handler(async function* () {
+  //     yield Message([
+  //       { type: "text", text: "asd" },
+  //       { type: "text", text: "asdasd" },
+  //     ]);
+  //     yield 2;
+  //     yield 3;
+  //   });
 
-  it("works with generic", async () => {
-    const dynamicRequire = Action("Stream").handler(async function* ({}: {
-      lorem: string;
-    }) {
-      const io = yield* this(Taskwish.IO);
+  //   type T = typeof myAction;
 
-      io.messages;
-    });
+  //   for await (const n of myAction()) {
+  //     console.log(n);
+  //   }
+  // });
 
-    type T = typeof dynamicRequire;
-  });
+  // it("works with dynamic env", async () => {
+  //   const dynamicEnv = Action("Stream").handler(async function* () {
+  //     const env = yield* Use(Env("API_KEY", "string"));
+
+  //     return Boolean(env);
+  //   });
+
+  //   type T = typeof dynamicEnv;
+
+  //   type dynamicEnv = Expect<
+  //     Equal<
+  //       Taskwish.NullaryAction<
+  //         () => AsyncGenerator<
+  //           never,
+  //           boolean,
+  //           Taskwish.Use<
+  //             Taskwish.Struct<
+  //               {
+  //                 API_KEY: string;
+  //               },
+  //               ["env"]
+  //             >
+  //           >
+  //         >,
+  //         ["action", "Stream"]
+  //       >,
+  //       T
+  //     >
+  //   >;
+  // });
+
+  // it("works with AbortSignal", async () => {
+  //   const { streamer } = Action("streamer").handler(async function* () {
+  //     const signal = yield* this(AbortSignal);
+
+  //     return signal.aborted;
+  //   });
+
+  //   type T = typeof streamer;
+
+  //   type dynamicRequire = Expect<
+  //     Equal<
+  //       Taskwish.Action<
+  //         "streamer",
+  //         (
+  //           this: Taskwish.Scope<{}>,
+  //         ) => AsyncGenerator<unknown, boolean, AbortSignal>,
+  //         null
+  //       >,
+  //       T
+  //     >
+  //   >;
+  // });
+
+  // it("works with generic", async () => {
+  //   const dynamicRequire = Action("Stream").handler(async function* ({}: {
+  //     lorem: string;
+  //   }) {
+  //     const io = yield* this(Taskwish.IO);
+
+  //     io.messages;
+  //   });
+
+  //   type T = typeof dynamicRequire;
+  // });
 });
 
-type Action<Scope> = {
-  readonly run: (scope: Scope) => string;
-};
+// type Action<Scope> = {
+//   readonly run: (scope: Scope) => string;
+// };
 
-type Apply<F extends Taskwish.GenericHandler, scope> = (F & {
-  readonly scope: scope;
-})["bind"];
+// type Apply<F extends Taskwish.GenericHandler, scope> = (F & {
+//   readonly scope: scope;
+// })["bind"];
 
-const handler =
-  <const S extends unknown[]>() =>
-  <const M extends S[0], const T extends S[1]>({
-    model,
-    trip,
-  }: {
-    model: M;
-    trip: T;
-  }) => ({
-    model,
-    trip,
-  });
+// const handler =
+//   <const S extends unknown[]>() =>
+//   <const M extends S[0], const T extends S[1]>({
+//     model,
+//     trip,
+//   }: {
+//     model: M;
+//     trip: T;
+//   }) => ({
+//     model,
+//     trip,
+//   });
 
-const makeScoped = (fn: typeof handler) =>
-  class extends Taskwish.GenericHandler {
-    handler = fn;
-    declare bind: typeof this.handler<
-      [Taskwish.Generic<this, "model">, Taskwish.Generic<this, "trip">]
-    >;
-  };
+// const makeScoped = (fn: typeof handler) =>
+//   class extends Taskwish.GenericHandler {
+//     handler = fn;
+//     declare bind: typeof this.handler<
+//       [Taskwish.Generic<this, "model">, Taskwish.Generic<this, "trip">]
+//     >;
+//   };
 
-const acls = makeScoped(handler);
+// const acls = makeScoped(handler);
 
-const a = new acls();
+// const a = new acls();
 
-// const l = a.handler({ model: "asdasd", lorem: 2, trip: 3 });
+// // const l = a.handler({ model: "asdasd", lorem: 2, trip: 3 });
 
-type P = Apply<typeof a, { model: "gpt-5" | "grok"; trip: string }>;
+// type P = Apply<typeof a, { model: "gpt-5" | "grok"; trip: string }>;
 
-const oo: P = {} as never;
+// const oo: P = {} as never;
 
-const ooo = oo();
+// const ooo = oo();
 
-const ddd = ooo({ model: "gpt-5", trip: "SAdads" });
+// const ddd = ooo({ model: "gpt-5", trip: "SAdads" });

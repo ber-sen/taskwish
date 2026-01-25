@@ -18,8 +18,6 @@ export namespace Taskwish {
 
   export const Scope = Symbol.for("Taskwish.Scope");
 
-  export const Handler = Symbol.for("Taskwish.Handler");
-
   export const Traits = Symbol.for("Taskwish.Traits");
 
   export interface Named<Name extends string> {
@@ -35,7 +33,7 @@ export namespace Taskwish {
   }
 
   export type Scope<Scope> = Scope & {
-    <T>(Cls: new (...args: any[]) => T): Generator<unknown, T, T>;
+    <T>(Cls: new (...args: any[]) => T): T;
   };
 
   export abstract class HasTraits {
@@ -47,15 +45,11 @@ export namespace Taskwish {
 
   export type Inject<Type> = Type | null;
 
-  export interface Action<
+  export type Action<
     Name extends string,
     Handler extends (...args: any) => any,
     Meta = null,
-  > extends Named<Name>,
-      Attributable<Meta> {
-    [Handler]: Handler;
-    (...args: Parameters<Handler>): Promise<ReturnType<Handler>>;
-  }
+  > = Handler & Named<Name> & Attributable<Meta>;
 
   export class IO {
     threadId!: Boria.ThreadId;
