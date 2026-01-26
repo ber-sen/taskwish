@@ -1,13 +1,24 @@
 import { ToCamelCase } from "../helpers";
+import { Steps } from "../steps";
 import { Taskwish } from "../types";
 
 interface ActionFactory<
   Name extends string,
   Scope extends Record<any, any> = { model: "gpt" },
 > {
-  signature<const Signature extends (...args: any) => Promise<any>>(): {
-    handler<const Handler extends (this: Taskwish.Scope<Scope>,...args: any) => Promise<any>>(
-      handler: Handler extends Signature ? Handler: never,
+  signature<
+    const Signature extends ((...args: any) => Promise<any>) | Steps<any>,
+  >(): {
+    handler<
+      const Handler extends Signature extends Steps<any>
+        ? (this: Taskwish.Scope<Scope>, steps: Array<any>) => Promise<any>
+        : (this: Taskwish.Scope<Scope>, ...args: any) => Promise<any>,
+    >(
+      handler: Signature extends Steps<any>
+        ? (this: Taskwish.Scope<Scope>, steps: Array<any>) => Promise<any>
+        : Handler extends Signature
+          ? Handler
+          : never,
     ): {
       [key in ToCamelCase<Name>]: Taskwish.Action<Name, Signature>;
     };

@@ -1,7 +1,7 @@
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { Taskwish } from "../types";
-import { Step } from "../steps";
+import { Step, Steps, SubSteps } from "../steps";
 
 describe("Action", () => {
   it("works with async arrow functions", async () => {
@@ -83,33 +83,24 @@ describe("Action", () => {
   });
 
   it("works with this", async () => {
-    const { scopeAction } = Action("scope action").make(
-      (scope) =>
-        async <const T extends (typeof scope)["model"]>(model: T) => {
-          const abortSignal = scope(AbortSignal);
+    const { stepsAction } = Action("steps action")
+      .signature<Steps<typeof SubSteps>>()
+      .handler(async function (steps) {
+        const a = this(AbortSignal);
+        return steps;
+      });
 
-          if (abortSignal.aborted) {
-            return true;
-          }
-
-          return false;
-        },
-    );
-
-    type T = typeof scopeAction;
+    type T = typeof stepsAction;
 
     type result = Expect<
-      Equal<
-        Taskwish.Action<
-          "scope action",
-          <const T extends "gpt">(model: T) => Promise<boolean>,
-          null
-        >,
-        T
-      >
+      Equal<Taskwish.Action<"steps action", Steps<typeof SubSteps>, null>, T>
     >;
 
-    const result = await scopeAction("gpt");
+    const result = stepsAction(
+      Step("name", function () {
+        return 3;
+      }),
+    );
 
     expect(result).toEqual({ success: true });
   });
