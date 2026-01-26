@@ -58,6 +58,7 @@ describe("Action", () => {
   it("works with types", async () => {
     const { typeAction } = Action("type action")
       .signature<(lorem: string) => Promise<boolean>>()
+
       .handler(async function (lorem) {
         const a = this(AbortSignal);
         return true;
@@ -84,8 +85,10 @@ describe("Action", () => {
   it("works with this", async () => {
     const { scopeAction } = Action("scope action")
       .signature<<const T>(lorem: T) => Promise<T>>()
+
       .handler(async function (lorem) {
         const a = this(AbortSignal);
+        
         return lorem;
       });
 
@@ -114,6 +117,7 @@ describe("Action", () => {
 
     const { myHandler } = Action("my handler")
       .signature<MyHandler>()
+
       .handler(async function (lorem) {
         return 2;
       });
