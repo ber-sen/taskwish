@@ -1,7 +1,6 @@
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { Taskwish } from "../types";
-import { Step, Steps, SubSteps } from "../steps";
 
 describe("Action", () => {
   it("works with async arrow functions", async () => {
@@ -82,25 +81,24 @@ describe("Action", () => {
     expect(result).toEqual({ success: true });
   });
 
-  it("works with substeps", async () => {
-    const { stepsAction } = Action("steps action")
-      .signature<Steps<typeof SubSteps>>()
-      .handler(async function (steps) {
-        const a = this(AbortSignal);
-        return steps;
+  it("works with interface", async () => {
+    interface Input {
+      <const T extends string>(lorem: T): Promise<number>;
+    }
+
+    const { withInterface } = Action("with interface")
+      .signature<Input>()
+      .handler(async function (lorem: string) {
+        return 2;
       });
 
-    type T = typeof stepsAction;
+    type T = typeof withInterface;
 
     type result = Expect<
-      Equal<Taskwish.Action<"steps action", Steps<typeof SubSteps>, null>, T>
+      Equal<Taskwish.Action<"with interface", Input, null>, T>
     >;
 
-    const result = stepsAction(
-      Step("name", function () {
-        return 3;
-      }),
-    );
+    const result = await withInterface("gpt");
 
     expect(result).toEqual({ success: true });
   });
