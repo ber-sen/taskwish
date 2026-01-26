@@ -57,7 +57,7 @@ describe("Action", () => {
 
   it("works with types", async () => {
     const { typeAction } = Action("type action")
-      .on<(lorem: string) => Promise<boolean>>()
+      .signature<(lorem: string) => Promise<boolean>>()
       .handler(async function (lorem) {
         const a = this(AbortSignal);
         return true;
@@ -83,7 +83,7 @@ describe("Action", () => {
 
   it("works with this", async () => {
     const { scopeAction } = Action("scope action")
-      .on<<const T>(lorem: T) => Promise<T>>()
+      .signature<<const T>(lorem: T) => Promise<T>>()
       .handler(async function (lorem) {
         const a = this(AbortSignal);
         return lorem;
@@ -107,50 +107,31 @@ describe("Action", () => {
     expect(result).toEqual({ success: true });
   });
 
-  it("works with interface", async () => {
-    interface Input {
-      <const T extends string>(lorem: T): Promise<number>;
+  it("works with ctx", async () => {
+    interface MyHandler extends Taskwish.Handler {
+      run<const T extends this["ctx"]["model"]>(lorem: T): Promise<number>;
     }
 
-    const { withInterface } = Action("with interface")
-      .on<Input>()
+    const { myHandler } = Action("my handler")
+      .signature<MyHandler>()
       .handler(async function (lorem) {
         return 2;
       });
 
-    type T = typeof withInterface;
-
-    type result = Expect<
-      Equal<Taskwish.Action<"with interface", Input, null>, T>
-    >;
-
-    const result = await withInterface("gpt");
-
-    expect(result).toEqual({ success: true });
-  });
-
-  it("works with scope", async () => {
-    const { stepsAction } = Action("steps action").handler({
-      withScope: (scope) =>
-        async function <T extends (typeof scope)["model"]>(model: T) {
-          return model;
-        },
-    });
-
-    type T = typeof stepsAction;
+    type T = typeof myHandler;
 
     type result = Expect<
       Equal<
         Taskwish.Action<
-          "steps action",
-          <T extends "gpt">(model: T) => Promise<T>,
+          "my handler",
+          <const T extends "gpt">(lorem: T) => Promise<number>,
           null
         >,
         T
       >
     >;
 
-    const result = stepsAction("gpt");
+    const result = await myHandler("gpt");
 
     expect(result).toEqual({ success: true });
   });
@@ -333,4 +314,3 @@ describe("Action", () => {
 // const ooo = oo();
 
 // const ddd = ooo({ model: "gpt-5", trip: "SAdads" });
-

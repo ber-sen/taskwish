@@ -31,6 +31,11 @@ export namespace Taskwish {
     id: UUIDv5String;
   }
 
+  export abstract class Handler {
+    readonly ctx!: Record<"model", unknown>;
+    run?: (...x: never[]) => Promise<any>;
+  }
+
   export type Scope<Scope> = Scope & {
     <T>(Cls: new (...args: any[]) => T): T;
   };

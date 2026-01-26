@@ -89,3 +89,7 @@ export type InferTriggerScope<Schema> =
             event: Taskwish.Event<type.instantiate<Schema>["infer"]>;
             io: Taskwish.IO;
           };
+
+export type Apply<F extends Taskwish.Handler, ctx extends Record<any, any>> = NonNullable<(F & {
+  readonly ctx: ctx;
+})["run"]>;
