@@ -24,7 +24,7 @@ interface ActionFactory<
     };
   };
   handler<const Handler extends (...args: any) => Promise<any>>(
-    handler: Handler,
+    handler: Handler | { withScope: (scope: Taskwish.Scope<Scope>) => Handler },
   ): {
     [key in ToCamelCase<Name>]: Taskwish.Action<Name, Handler>;
   };

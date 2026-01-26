@@ -82,7 +82,7 @@ describe("Action", () => {
     expect(result).toEqual({ success: true });
   });
 
-  it("works with this", async () => {
+  it("works with substeps", async () => {
     const { stepsAction } = Action("steps action")
       .signature<Steps<typeof SubSteps>>()
       .handler(async function (steps) {
@@ -101,6 +101,32 @@ describe("Action", () => {
         return 3;
       }),
     );
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it("works with scope", async () => {
+    const { stepsAction } = Action("steps action").handler({
+      withScope: (scope) =>
+        async function <T extends (typeof scope)["model"]>(model: T) {
+          return model;
+        },
+    });
+
+    type T = typeof stepsAction;
+
+    type result = Expect<
+      Equal<
+        Taskwish.Action<
+          "steps action",
+          <T extends "gpt">(model: T) => Promise<T>,
+          null
+        >,
+        T
+      >
+    >;
+
+    const result = stepsAction("gpt");
 
     expect(result).toEqual({ success: true });
   });
