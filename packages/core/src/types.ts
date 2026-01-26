@@ -1,13 +1,8 @@
 import {
-  RunnableReturn,
   UUIDv7String,
   UUIDv5String,
-  DeepOptionalString,
-  ActionInput,
-  ActionReturn,
   ValidateTrigger,
   InferTriggerScope,
-  PrettyScope,
 } from "./helpers";
 import { Boria } from "../../message";
 
@@ -20,6 +15,10 @@ export namespace Taskwish {
 
   export const Traits = Symbol.for("Taskwish.Traits");
 
+  export interface Scoped<Scope> {
+    [Scope]: Scope;
+  }
+
   export interface Named<Name extends string> {
     [Name]: Name;
   }
@@ -28,7 +27,7 @@ export namespace Taskwish {
     [Meta]: Meta;
   }
 
-  export interface Resource<Type extends string[]> extends Typed<Type> {
+  export interface Resource<Name extends string> extends Named<Name> {
     id: UUIDv5String;
   }
 
@@ -108,18 +107,6 @@ export namespace Taskwish {
     toString: () => string;
   }
 
-  export abstract class GenericHandler {
-    readonly scope?: unknown;
-    handler?: (...args: any) => any;
-    bind?: (...x: never[]) => unknown;
-  }
-
-  export type Generic<T extends Record<any, any>, Key> = T extends {
-    scope: Record<any, any>;
-  }
-    ? T["scope"][Key]
-    : T["scope"];
-
   export interface EventKind<
     Data,
     Type extends string[] = ["event"],
@@ -141,10 +128,6 @@ export namespace Taskwish {
   } & {
     meta: (param: "get") => Meta;
   };
-
-  export interface Scoped<Scope> {
-    [Scope]: Scope;
-  }
 
   export interface Extendable<Scope> {
     use<const NewScope>(newScope: NewScope): Extendable<Scope & NewScope>;

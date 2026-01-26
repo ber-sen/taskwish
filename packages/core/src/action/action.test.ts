@@ -1,6 +1,7 @@
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { Taskwish } from "../types";
+import { Step } from "../steps";
 
 describe("Action", () => {
   it("works with async arrow functions", async () => {
@@ -51,6 +52,32 @@ describe("Action", () => {
     >;
 
     const result = await generic(3);
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it("works with this", async () => {
+    const { scopeAction } = Action("scope action")
+      .signature<<const T>(lorem: T) => Promise<T>>()
+      .handler(async function (lorem: any) {
+        const a = this(AbortSignal);
+        return lorem;
+      });
+
+    type T = typeof scopeAction;
+
+    type result = Expect<
+      Equal<
+        Taskwish.Action<
+          "scope action",
+          <const T>(lorem: T) => Promise<T>,
+          null
+        >,
+        T
+      >
+    >;
+
+    const result = await scopeAction("gpt");
 
     expect(result).toEqual({ success: true });
   });

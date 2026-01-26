@@ -50,39 +50,6 @@ export type UUIDv7String = `${string}-${string}-7${string}-${string}-${string}`;
 
 export type UUIDv5String = `${string}-${string}-5${string}-${string}-${string}`;
 
-export type RunnableReturn<Handler> = Handler extends () => Generator<
-  infer Stream,
-  infer Return,
-  infer Ctx
->
-  ? () => AsyncGenerator<Stream, Return, Ctx> & Promise<Return>
-  : Handler extends () => Promise<infer Return>
-    ? AsyncGenerator<never, Return, unknown> & Promise<Return>
-    : Handler extends () => infer Return
-      ? AsyncGenerator<never, Return, unknown> & Promise<Return>
-      : never;
-
-export type ActionInput<Handler extends (...args: any) => any> =
-  Handler extends (scope: any) => (...args: any) => any
-    ? Parameters<ReturnType<Handler>>[0]
-    : Parameters<Handler>[0];
-
-export type ActionReturn<Handler> = Handler extends (
-  scope: any,
-) => (...args: any) => Generator<infer Stream, infer Return, infer Ctx>
-  ? (
-      scope: any,
-    ) => (...args: any) => AsyncGenerator<Stream, Return, Ctx> & Promise<Return>
-  : Handler extends (
-        ...args: any
-      ) => Generator<infer Stream, infer Return, infer Ctx>
-    ? (...args: any) => AsyncGenerator<Stream, Return, Ctx> & Promise<Return>
-    : Handler extends (...args: any) => Promise<infer Return>
-      ? AsyncGenerator<never, Return, unknown> & Promise<Return>
-      : Handler extends (...args: any) => infer Return
-        ? AsyncGenerator<never, Return, unknown> & Promise<Return>
-        : never;
-
 export type ValidateSchema<Schema, Scope = {}> =
   Schema extends StandardSchemaV1<any> ? Schema : type.validate<Schema, Scope>;
 

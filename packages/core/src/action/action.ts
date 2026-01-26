@@ -5,10 +5,12 @@ interface ActionFactory<
   Name extends string,
   Scope extends Record<any, any> = { model: "gpt" },
 > {
-  make<const Handler extends (...args: any) => Promise<any>>(
-    handler: (scope: Taskwish.Scope<Scope>) => Handler,
-  ): {
-    [key in ToCamelCase<Name>]: Taskwish.Action<Name, Handler>;
+  signature<const Signature extends (...args: any) => Promise<any>>(): {
+    handler<const Handler extends (this: Taskwish.Scope<Scope>,...args: any) => Promise<any>>(
+      handler: Handler extends Signature ? Handler: never,
+    ): {
+      [key in ToCamelCase<Name>]: Taskwish.Action<Name, Signature>;
+    };
   };
   handler<const Handler extends (...args: any) => Promise<any>>(
     handler: Handler,
