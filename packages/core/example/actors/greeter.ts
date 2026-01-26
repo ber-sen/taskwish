@@ -1,3 +1,5 @@
+"use server";
+
 import { Actor } from "../../src";
 
 const { Greeter } = Actor("Greeter");
@@ -15,6 +17,3 @@ export const { bye } = Greeter("bye")
   .handler(function () {
     return `Bye ${this.input.name}`;
   });
-
-
-  
