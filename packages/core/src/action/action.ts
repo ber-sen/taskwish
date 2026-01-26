@@ -1,10 +1,36 @@
-import { ToCamelCase, Apply } from "../helpers";
+import {
+  ToCamelCase,
+  Apply,
+  ValidateTrigger,
+  InferTriggerScope,
+  PrettyScope,
+} from "../helpers";
 import { Taskwish } from "../types";
 
-interface ActionFactory<
+type ActionMethod<
+  Name extends string,
+  Scope extends Record<any, any>,
+> = Taskwish.Scoped<Scope> & {
+  use<const NewScope>(newScope: NewScope): ActionMethod<Name, Scope>;
+  handler: <Input extends Scope["input"], Output>(
+    handler: (this: PrettyScope<Scope>) => Output,
+  ) => {
+    [key in ToCamelCase<Name>]: Taskwish.Action<
+      Name,
+      Input extends object
+        ? (input: Input) => Promise<Awaited<Output>>
+        : () => Promise<Awaited<Output>>
+    >;
+  } & ActionFactory<Name, Omit<Scope, "input">>;
+};
+
+export interface ActionFactory<
   Name extends string,
   Scope extends Record<any, any> = { model: "gpt" },
 > {
+  on<const Schema>(
+    trigger: ValidateTrigger<Schema>,
+  ): ActionMethod<Name, Scope & InferTriggerScope<Schema>>;
   signature<
     const Signature extends ((...args: any) => Promise<any>) | Taskwish.Handler,
   >(): {
@@ -29,15 +55,24 @@ interface ActionFactory<
       ) => Promise<any>
         ? Taskwish.Action<Name, Signature>
         : Signature extends Taskwish.Handler
-          ? Taskwish.Action<Name, Apply<Signature, Scope>, Record<"handler", Signature>>
+          ? Taskwish.Action<
+              Name,
+              Apply<Signature, Scope>,
+              Record<"handler", Signature>
+            >
           : never;
     };
   };
-  handler<const Handler extends (...args: any) => Promise<any>>(
-    handler: Handler,
-  ): {
-    [key in ToCamelCase<Name>]: Taskwish.Action<Name, Handler>;
-  };
+  handler: <Input extends Scope["input"], Output>(
+    handler: (this: PrettyScope<Scope>) => Output,
+  ) => {
+    [key in ToCamelCase<Name>]: Taskwish.Action<
+      Name,
+      Input extends object
+        ? (input: Input) => Promise<Awaited<Output>>
+        : () => Promise<Awaited<Output>>
+    >;
+  } & ActionFactory<Name, Omit<Scope, "input">>;
 }
 
 export function Action<

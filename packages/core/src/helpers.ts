@@ -19,7 +19,14 @@ export type CamelCase<T extends string> =
 export type LowercaseFirst<T extends string> =
   T extends `${infer First}${infer Rest}` ? `${Lowercase<First>}${Rest}` : T;
 
+export type UppercaseFirst<T extends string> =
+  T extends `${infer First}${infer Rest}`
+    ? `${Uppercase<First>}${Rest}`
+    : T;
+
 export type ToCamelCase<T extends string> = LowercaseFirst<CamelCase<T>>;
+
+export type ToCapitalCase<T extends string> = UppercaseFirst<CamelCase<T>>;
 
 export type PrettyScope<T> = {
   [K in keyof T as ToCamelCase<Extract<K, string>>]: T[K];
@@ -90,6 +97,11 @@ export type InferTriggerScope<Schema> =
             io: Taskwish.IO;
           };
 
-export type Apply<F extends Taskwish.Handler, ctx extends Record<any, any>> = NonNullable<(F & {
-  readonly ctx: ctx;
-})["run"]>;
+export type Apply<
+  F extends Taskwish.Handler,
+  ctx extends Record<any, any>,
+> = NonNullable<
+  (F & {
+    readonly ctx: ctx;
+  })["run"]
+>;

@@ -1,4 +1,4 @@
-import { Actor, Agent, Step, Tool, Type } from "../../src";
+import { Action, Actor, Agent, Step, Tool, Type } from "../../src";
 
 export default Actor("Chat bot")
   .on({ prompt: Type("string", "User's prompt") })

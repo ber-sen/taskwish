@@ -1,57 +1,10 @@
-import { InferTriggerScope, ValidateTrigger } from "./helpers";
-import { Steps } from "./steps";
-import { Taskwish } from "./types";
+import { Action } from "./action";
+import { ToCapitalCase } from "./helpers";
 
-interface ActorMethod<Scope extends Record<any, any>>
-  extends Taskwish.Scoped<Scope> {
-  use<const NewScope>(newScope: NewScope): ActorMethod<Scope>;
-  handler: Steps<{
-    scope: Scope & DummyScope["scope"];
-    step: DummyScope["step"];
-  }>;
-}
-
-interface DummyScope {
-  step: {
-    name: "launchApp" | "scrollUntilVisible" | "tapOn" | "scroll";
-    params: object | boolean | number | string
-    result: string
-  };
-  scope: {
-    ai: {
-      generateText: (params: { model: "gpt5"; prompt: string }) => string;
-    };
-    action: {
-      slack: {
-        sendMessage: (params: {
-          channel: "#general";
-          message: string;
-        }) => string;
-      };
-    };
-  };
-}
-
-export interface ActorFactory<Params, Scope extends Record<any, any> = {}>
-  extends Taskwish.Scoped<Scope>,
-    ActorMethod<Scope>,
-    Taskwish.Triggerable<Scope> {
-  use<const NewScope>(newScope: NewScope): ActorFactory<Params, Scope>;
-  on<const Schema>(
-    trigger: ValidateTrigger<Schema>
-  ): ActorMethod<Scope & InferTriggerScope<Schema>>;
-}
-
-export const Actor = <const Params extends string>(
-  name: Params
-): ActorFactory<Params> => {
+export const Actor = <const Name extends string>(
+  name: Name,
+): {
+  [key in ToCapitalCase<Name>]: typeof Action;
+} => {
   return name as any;
 };
-
-// const ActorNew = <Obj extends { main: () => any }>(
-//   obj: Obj
-// ): Taskwish.Actor<Obj> => {
-//   return {} as never;
-// };
-
-// const a = ActorNew({ main: () => 3 });
