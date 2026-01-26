@@ -58,9 +58,12 @@ describe("Action", () => {
     const { typeAction } = Action("type action")
       .signature<(lorem: string) => Promise<boolean>>()
 
-      .handler(async function (lorem) {
+      .handler(async function () {
+        const [lorem] = this.input
+
         const a = this(AbortSignal);
-        return true;
+
+        return lorem.length > 0;
       });
 
     type T = typeof typeAction;
@@ -85,7 +88,9 @@ describe("Action", () => {
     const { scopeAction } = Action("scope action")
       .signature<<const T>(lorem: T) => Promise<T>>()
 
-      .handler(async function (lorem) {
+      .handler(async function () {
+        const [lorem] = this.input
+
         const a = this(AbortSignal);
 
         return lorem;
@@ -117,8 +122,10 @@ describe("Action", () => {
     const { myHandler } = Action("my handler")
       .signature<MyHandler>()
 
-      .handler(async function (lorem) {
-        return 2;
+      .handler(async function () {
+        const [lorem] = this.input
+
+        return lorem.length;
       });
 
     type T = typeof myHandler;

@@ -36,12 +36,15 @@ export interface ActionFactory<
   >(): {
     handler<
       const Handler extends (
-        this: Taskwish.Scope<Scope>,
-        ...args: Signature extends (...args: any) => Promise<any>
-          ? Parameters<Signature>
-          : Signature extends Taskwish.Handler
-            ? Parameters<Apply<Signature, Scope>>
-            : never
+        this: Taskwish.Scope<Scope> &
+          Record<
+            "input",
+            Signature extends (...args: any) => Promise<any>
+              ? Parameters<Signature>
+              : Signature extends Taskwish.Handler
+                ? Parameters<Apply<Signature, Scope>>
+                : never
+          >,
       ) => Signature extends (...args: any) => Promise<any>
         ? ReturnType<Signature>
         : Signature extends Taskwish.Handler
