@@ -1,9 +1,12 @@
 import { ToCamelCase } from "../helpers";
 import { Taskwish } from "../types";
 
-interface ActionFactory<Name extends string> {
+interface ActionFactory<
+  Name extends string,
+  Scope extends Record<any, any> = { model: "gpt" },
+> {
   make<const Handler extends (...args: any) => Promise<any>>(
-    handler: (scope: Taskwish.Scope<{}>) => Handler,
+    handler: (scope: Taskwish.Scope<Scope>) => Handler,
   ): {
     [key in ToCamelCase<Name>]: Taskwish.Action<Name, Handler>;
   };

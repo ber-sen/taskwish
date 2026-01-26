@@ -56,9 +56,9 @@ describe("Action", () => {
   });
 
   it("works with this", async () => {
-    const { thisGeneric } = Action("this generic").make(
+    const { scopeAction } = Action("scope action").make(
       (scope) =>
-        async <const T>(lorem: T) => {
+        async <const T extends (typeof scope)["model"]>(model: T) => {
           const abortSignal = scope(AbortSignal);
 
           if (abortSignal.aborted) {
@@ -69,20 +69,20 @@ describe("Action", () => {
         },
     );
 
-    type T = typeof thisGeneric;
+    type T = typeof scopeAction;
 
-    type succeed = Expect<
+    type result = Expect<
       Equal<
         Taskwish.Action<
-          "this generic",
-          <const T>(lorem: T) => Promise<boolean>,
+          "scope action",
+          <const T extends "gpt">(model: T) => Promise<boolean>,
           null
         >,
         T
       >
     >;
 
-    const result = await thisGeneric(3);
+    const result = await scopeAction("gpt");
 
     expect(result).toEqual({ success: true });
   });
