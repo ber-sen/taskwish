@@ -53,7 +53,7 @@ export namespace Taskwish {
     Name extends string,
     Handler extends (...args: any) => any,
     Meta = null,
-  > = Handler & Named<Name> & Attributable<Meta>;
+  > = NoInfer<Handler> & Named<Name> & Attributable<Meta>;
 
   export class IO {
     threadId!: Boria.ThreadId;
