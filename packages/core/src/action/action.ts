@@ -6,7 +6,7 @@ interface ActionFactory<
   Name extends string,
   Scope extends Record<any, any> = { model: "gpt" },
 > {
-  signature<
+  on<
     const Signature extends ((...args: any) => Promise<any>) | Steps<any>,
   >(): {
     handler<
