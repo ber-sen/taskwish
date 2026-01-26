@@ -29,7 +29,7 @@ interface ActionFactory<
       ) => Promise<any>
         ? Taskwish.Action<Name, Signature>
         : Signature extends Taskwish.Handler
-          ? Taskwish.Action<Name, Apply<Signature, Scope>>
+          ? Taskwish.Action<Name, Apply<Signature, Scope>, Record<"handler", Signature>>
           : never;
     };
   };

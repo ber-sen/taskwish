@@ -125,7 +125,7 @@ describe("Action", () => {
         Taskwish.Action<
           "my handler",
           <const T extends "gpt">(lorem: T) => Promise<number>,
-          null
+          Record<"handler", MyHandler>
         >,
         T
       >
