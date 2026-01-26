@@ -12,10 +12,10 @@ interface ActionFactory<
     handler<
       const Handler extends (
         this: Taskwish.Scope<Scope>,
-        ...args: any
-      ) => Promise<any>,
+        ...args: Parameters<Signature>
+      ) => ReturnType<Signature>,
     >(
-      handler: Handler extends Signature ? Handler : never,
+      handler: Handler,
     ): {
       [key in ToCamelCase<Name>]: Taskwish.Action<Name, Signature>;
     };

@@ -55,6 +55,32 @@ describe("Action", () => {
     expect(result).toEqual({ success: true });
   });
 
+  it("works with types", async () => {
+    const { typeAction } = Action("type action")
+      .signature<(lorem: string) => Promise<boolean>>()
+      .handler(async function (lorem) {
+        const a = this(AbortSignal);
+        return true;
+      });
+
+    type T = typeof typeAction;
+
+    type result = Expect<
+      Equal<
+        Taskwish.Action<
+          "type action",
+          (lorem: string) => Promise<boolean>,
+          null
+        >,
+        T
+      >
+    >;
+
+    const result = await typeAction("gpt");
+
+    expect(result).toEqual({ success: true });
+  });
+
   it("works with this", async () => {
     const { scopeAction } = Action("scope action")
       .signature<<const T>(lorem: T) => Promise<T>>()
@@ -88,7 +114,7 @@ describe("Action", () => {
 
     const { withInterface } = Action("with interface")
       .signature<Input>()
-      .handler(async function (lorem: string) {
+      .handler(async function (lorem) {
         return 2;
       });
 
