@@ -1,4 +1,4 @@
-import { InferTriggerScope, ToCamelCase, ValidateTrigger } from "./helpers";
+import { InferTriggerScope, PrettyScope, ToCamelCase, ValidateTrigger } from "./helpers";
 import { Taskwish } from "./types";
 
 type ActorMethod<
@@ -7,12 +7,27 @@ type ActorMethod<
 > = Taskwish.Scoped<Scope> & {
   use<const NewScope>(newScope: NewScope): ActorMethod<Name, Scope>;
   handler: <Input extends Scope["input"], Output>(
-    handler: (this: Input) => Output,
+    handler: (this: PrettyScope<Scope>) => Output,
   ) => {
-    [key in ToCamelCase<Name>]: Input extends object
-      ? Taskwish.Action<Name, (input: Input) => Promise<Awaited<Output>>>
-      : Taskwish.Action<Name, () => Promise<Awaited<Output>>>;
-  };
+    [key in ToCamelCase<Name>]: Taskwish.Action<
+      Name,
+      Input extends object
+        ? (input: Input) => Promise<Awaited<Output>>
+        : () => Promise<Awaited<Output>>
+    >;
+  } & ActorFactory<
+    Name,
+    Omit<Omit<Scope, "input">, "actions"> &
+      Record<
+        "actions",
+        Taskwish.Action<
+          Name,
+          Input extends object
+            ? (input: Input) => Promise<Awaited<Output>>
+            : () => Promise<Awaited<Output>>
+        >
+      >
+  >;
 };
 
 interface DummyScope {
@@ -38,7 +53,7 @@ interface DummyScope {
 
 export interface ActorFactory<
   Name extends string,
-  Scope extends Record<any, any> = {},
+  Scope extends Record<any, any> = Record<"actions", null>,
 > extends Taskwish.Scoped<Scope>,
     ActorMethod<Name, Scope>,
     Taskwish.Triggerable<Scope> {

@@ -33,7 +33,7 @@ describe("Actor", () => {
       .on({ hello: "string" })
 
       .handler(function () {
-        return `Hello ${this.hello}`;
+        return `Hello ${this.input.hello}`;
       });
 
     type T = typeof greeter;
@@ -50,6 +50,44 @@ describe("Actor", () => {
     >;
 
     const result = await greeter({ hello: "World" });
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it("works with with multiple methods", async () => {
+    const { greeter } = Actor("Greeter")
+      .on({ hello: "string" })
+
+      .handler(function () {
+        return `Hello ${this.input.hello}`;
+      })
+
+      .on({ bye: "string" })
+
+      .handler(function () {
+        return `Hello ${this.input.bye}`;
+      }); 
+
+    type T = typeof greeter;
+
+    type succeed = Expect<
+      Equal<
+        Taskwish.Action<
+          "Greeter",
+          (
+            input: {
+              hello: string;
+            } & {
+              bye: string;
+            },
+          ) => Promise<string>,
+          null
+        >,
+        T
+      >
+    >;
+
+    const result = await greeter({ hello: "sasd" });
 
     expect(result).toEqual({ success: true });
   });
