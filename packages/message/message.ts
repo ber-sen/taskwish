@@ -1,12 +1,12 @@
-import { Taskwish } from "../core/src";
+import { Taskwish as Core } from "../core/src";
 
-import { Boria } from "./types";
+import { Taskwish } from "./types";
 
 interface Message
-  extends Taskwish.EventKind<Array<Boria.MessagePart<any>>, ["event", "message"]> {
-  <const Content extends Array<Boria.MessagePart<any>>>(
+  extends Core.EventKind<"Message", Array<Taskwish.MessagePart<any>>> {
+  <const Content extends Array<Taskwish.MessagePart<any>>>(
     ...content: Content
-  ): Boria.Message<Content>;
+  ): Taskwish.Message<Content>;
 }
 
 export const Message: Message = {} as never;

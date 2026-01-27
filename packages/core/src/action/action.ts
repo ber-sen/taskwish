@@ -9,11 +9,11 @@ import { Taskwish } from "../types";
 
 type ActionMethod<
   Name extends string,
-  Scope extends Record<any, any>,
-> = Taskwish.Scoped<Scope> & {
-  use<const NewScope>(newScope: NewScope): ActionMethod<Name, Scope>;
-  handler: <Input extends Scope["input"], Output>(
-    run: (this: PrettyScope<Scope>) => Output,
+  Ctx extends Record<any, any>,
+> = Taskwish.Contextual<Ctx> & {
+  use<const NewScope>(newScope: NewScope): ActionMethod<Name, Ctx>;
+  handler: <Input extends Ctx["input"], Output>(
+    run: (this: PrettyScope<Ctx>) => Output,
   ) => {
     [key in ToCamelCase<Name>]: Taskwish.Action<
       Name,
@@ -21,7 +21,7 @@ type ActionMethod<
         ? (input: Input) => Promise<Awaited<Output>>
         : () => Promise<Awaited<Output>>
     >;
-  } & ActionFactory<Name, Omit<Scope, "input">>;
+  } & ActionFactory<Name, Omit<Ctx, "input">>;
 };
 
 export interface ActionFactory<

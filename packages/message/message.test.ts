@@ -1,7 +1,7 @@
 import { Equal, Expect } from "../core/src/helpers";
 
 import { Message } from "./message";
-import { Boria } from ".";
+import {  Taskwish } from ".";
 import { Text } from "./text";
 import { Image } from "./image";
 
@@ -13,13 +13,13 @@ describe("Message", async function* () {
 
     type newEmail = Expect<
       Equal<
-        Boria.Message<
+        Taskwish.Message<
           [
-            Boria.MessagePart<{
+            Taskwish.MessagePart<{
               type: "text";
               text: "part 1";
             }>,
-            Boria.MessagePart<{
+            Taskwish.MessagePart<{
               type: "text";
               text: "part 2";
             }>,
@@ -40,14 +40,14 @@ describe("Message", async function* () {
 
     type newEmail = Expect<
       Equal<
-        Boria.Message<
+        Taskwish.Message<
           [
-            Boria.MessagePart<{
+            Taskwish.MessagePart<{
               type: "text";
               cls: ["header"];
               text: "part 1";
             }>,
-            Boria.MessagePart<{
+            Taskwish.MessagePart<{
               type: "text";
               text: "part 2";
             }>,
@@ -71,14 +71,14 @@ describe("Message", async function* () {
 
     type newEmail = Expect<
       Equal<
-        Boria.Message<
+        Taskwish.Message<
           [
-            Boria.MessagePart<{
+            Taskwish.MessagePart<{
               type: "text";
               cls: ["header"];
               text: "Header";
             }>,
-            Boria.MessagePart<{
+            Taskwish.MessagePart<{
               type: "image";
               cls: ["logo"];
               image: "http://www.google.com/google.png";
