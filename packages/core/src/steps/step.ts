@@ -17,6 +17,7 @@ export function Step<
       ],
 ): {
   step: (ctx: Ctx) => {
+    name: Ctx["name"]
     steps: Ctx["steps"] & Record<Name, Result>;
     step: Ctx["step"];
     scope: Record<Name, Result> & Ctx["scope"];

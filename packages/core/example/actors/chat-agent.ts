@@ -23,6 +23,6 @@ export default Actor("Chat bot")
     }),
 
     Step("run", function () {
-      return this.chatAgent.generate({ prompt: this.input.prompt });
+      return this.chatAgent({ prompt: this.input.prompt });
     }),
   );

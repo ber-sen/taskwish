@@ -5,6 +5,7 @@ import {
   InferTriggerScope,
   PrettyScope,
 } from "../helpers";
+import { Steps } from "../steps";
 import { Taskwish } from "../types";
 
 type ActionMethod<
@@ -12,43 +13,37 @@ type ActionMethod<
   Ctx extends Record<any, any>,
 > = Taskwish.Contextual<Ctx> & {
   use<const NewScope>(newScope: NewScope): ActionMethod<Name, Ctx>;
-  handler: <Input extends Ctx["input"], Output>(
-    run: (this: PrettyScope<Ctx>) => Output,
-  ) => {
-    [key in ToCamelCase<Name>]: Taskwish.Action<
-      Name,
-      Input extends object
-        ? (input: Input) => Promise<Awaited<Output>>
-        : () => Promise<Awaited<Output>>
-    >;
-  } & ActionFactory<Name, Omit<Ctx, "input">>;
+  handler: Steps<Ctx>;
 };
 
 export interface ActionFactory<
   Name extends string,
-  Scope extends Record<any, any> = { model: "gpt" },
+  Ctx extends Record<any, any> = { model: "gpt"; name: Name },
 > {
   on<const Schema>(
     trigger: ValidateTrigger<Schema>,
-  ): ActionMethod<Name, Scope & InferTriggerScope<Schema>>;
+  ): ActionMethod<
+    Name,
+    { name: Ctx["name"]; scope: InferTriggerScope<Schema> }
+  >;
   signature<
     const Signature extends ((...args: any) => Promise<any>) | Taskwish.Handler,
   >(): {
     handler<
       const Handler extends (
-        this: Taskwish.Scope<Scope> &
+        this: Taskwish.Scope<Ctx> &
           Record<
             "input",
             Signature extends (...args: any) => Promise<any>
               ? Parameters<Signature>
               : Signature extends Taskwish.Handler
-                ? Parameters<Apply<Signature, Scope>>
+                ? Parameters<Apply<Signature, Ctx>>
                 : never
           >,
       ) => Signature extends (...args: any) => Promise<any>
         ? ReturnType<Signature>
         : Signature extends Taskwish.Handler
-          ? ReturnType<Apply<Signature, Scope>>
+          ? ReturnType<Apply<Signature, Ctx>>
           : never,
     >(
       run: Handler,
@@ -60,22 +55,13 @@ export interface ActionFactory<
         : Signature extends Taskwish.Handler
           ? Taskwish.Action<
               Name,
-              Apply<Signature, Scope>,
+              Apply<Signature, Ctx>,
               Record<"handler", Signature>
             >
           : never;
     };
   };
-  handler: <Input extends Scope["input"], Output>(
-    run: (this: PrettyScope<Scope>) => Output,
-  ) => {
-    [key in ToCamelCase<Name>]: Taskwish.Action<
-      Name,
-      Input extends object
-        ? (input: Input) => Promise<Awaited<Output>>
-        : () => Promise<Awaited<Output>>
-    >;
-  } & ActionFactory<Name, Omit<Scope, "input">>;
+  handler: Steps<Ctx>;
 }
 
 export function Action<
