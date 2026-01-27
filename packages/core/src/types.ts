@@ -4,7 +4,7 @@ import {
   ValidateTrigger,
   InferTriggerScope,
 } from "./helpers";
-import { Boria } from "../../message";
+import { Taskwish as Message } from "../../message";
 
 export namespace Taskwish {
   export const Id = Symbol.for("Taskwish.Id");
@@ -49,12 +49,12 @@ export namespace Taskwish {
   > = NoInfer<Handler> & Named<Name> & Attributable<Meta>;
 
   export class IO {
-    threadId!: Boria.ThreadId;
-    receiverId!: Boria.IdentityId;
-    messages!: Boria.Message<any, any>[];
-    send!: <const Content extends Array<Boria.MessagePart<any>> | string>(
-      message: Boria.Message<Content>,
-    ) => Event<Boria.Message<Content>>;
+    threadId!: Message.ThreadId;
+    receiverId!: Message.IdentityId;
+    messages!: Message.Message<any, any>[];
+    send!: <const Content extends Array<Message.MessagePart<any>> | string>(
+      message: Message.Message<Content>,
+    ) => Event<"Message", Message.Message<Content>>;
   }
 
   export interface Event<Name extends string, Data> extends Named<Name> {

@@ -1,57 +1,44 @@
 import { InferSchema, ValidateSchema } from "../helpers";
 import { Taskwish } from "../types";
 
-type PrependEvent<T extends readonly any[]> = ["event", ...T];
-
-type ToEvent<T extends readonly any[]> = {
-  [K in keyof T]: T[K] extends "action" ? "event" : T[K];
-};
-
-interface EventUnion<InitialData, Type extends string[]> {
+interface EventUnion<Name extends string, InitialData> {
   or<const Data>(
-    schema: ValidateSchema<Data>
-  ): Taskwish.EventKind<InferSchema<InitialData | Data>, Type> &
-    EventUnion<InitialData | Data, Type>;
-  or<const Data>(): Taskwish.EventKind<InitialData | Data, Type> &
-    EventUnion<InitialData | Data, Type> & {
-      end(): Taskwish.EventKind<InitialData, Type>;
+    schema: ValidateSchema<Data>,
+  ): Taskwish.EventKind<Name, InferSchema<InitialData | Data>> &
+    EventUnion<Name, InitialData | Data>;
+  or<const Data>(): Taskwish.EventKind<Name, InitialData | Data> &
+    EventUnion<Name, InitialData | Data> & {
+      end(): Taskwish.EventKind<Name, InitialData>;
     };
-  end(): Taskwish.EventKind<InferSchema<InitialData>, Type>;
+  end(): Taskwish.EventKind<Name, InferSchema<InitialData>>;
 }
 
-interface EventFactory<Type extends string[]> {
+interface EventFactory<Name extends string> {
   data<const Data>(
-    schema: ValidateSchema<Data>
-  ): Taskwish.EventKind<InferSchema<Data>, PrependEvent<Type>>;
-  data<const Data>(): Taskwish.EventKind<Data, PrependEvent<Type>>;
+    schema: ValidateSchema<Data>,
+  ): Taskwish.EventKind<Name, InferSchema<Data>>;
+  data<const Data>(): Taskwish.EventKind<Name, Data>;
   union(): {
     data<const Data>(
-      schema: ValidateSchema<Data>
-    ): Taskwish.EventKind<InferSchema<Data>, PrependEvent<Type>> &
-      EventUnion<Data, PrependEvent<Type>>;
+      schema: ValidateSchema<Data>,
+    ): Taskwish.EventKind<Name, InferSchema<Data>> & EventUnion<Name, Data>;
   };
 }
 
 export function Event<
-  const Action extends Taskwish.NullaryAction<any, any> | Taskwish.Action<any, any>,
->(): Action extends Taskwish.NullaryAction<infer Handler, infer Type>
-  ? Taskwish.EventKind<ReturnType<Handler>, ToEvent<Type>>
-  : Action extends Taskwish.Action<
-        infer Handler extends (parmas: any) => any,
-        infer Type
-      >
-    ? Taskwish.EventKind<ReturnType<Handler>, ToEvent<Type>>
-    : never;
+  const Action extends Taskwish.Action<any, any>,
+>(): Action extends Taskwish.Action<infer Name, infer Handler>
+  ? Taskwish.EventKind<Name, ReturnType<Handler>>
+  : never;
 
 export function Event<
+  const Name extends string,
   const Data,
-  const Type extends string[] | string,
->(): Taskwish.EventKind<Data, PrependEvent<Type extends string ? [Type] : Type>>;
+>(): Taskwish.EventKind<Name, Data>;
 
-export function Event<const Type extends string[] | string, const Data>(
-  type: Type
-): Taskwish.EventKind<{}, PrependEvent<Type extends string ? [Type] : Type>> &
-  EventFactory<Type extends string ? [Type] : Type>;
+export function Event<const Name extends string, const Data>(
+  type: Name,
+): Taskwish.EventKind<Name, {}> & EventFactory<Name>;
 
 export function Event(...args: any) {
   return {};

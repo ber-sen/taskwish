@@ -1,5 +1,5 @@
-import { UUIDv5String, UUIDv7String } from "../core/src/helpers";
-import { Taskwish } from "../core/src/types";
+import { UUIDv7String } from "../core/src/helpers";
+import { Taskwish as Core } from "../core/src/types";
 
 interface Json {
   [x: string]: string | number | boolean | Date | Json | JsonArray;
@@ -7,7 +7,7 @@ interface Json {
 interface JsonArray
   extends Array<string | number | boolean | Date | Json | JsonArray> {}
 
-export namespace Boria {
+export namespace Taskwish {
   export type ThreadId = UUIDv7String;
 
   export type IdentityId = `${string}:${string}`;
@@ -21,13 +21,13 @@ export namespace Boria {
   export interface Message<
     Content extends Array<MessagePart<any>> | string | MessagePart<any>,
     Meta = null,
-  > extends Taskwish.EventKind<
-      Boria.Message<Content, null>,
-      ["event", "message"],
+  > extends Core.EventKind<
+      "Message",
+      Taskwish.Message<Content, null>,
       null
     > {
-    threadId: Taskwish.Inject<ThreadId>;
-    identityId: Taskwish.Inject<IdentityId>;
+    threadId: Core.Inject<ThreadId>;
+    identityId: Core.Inject<IdentityId>;
     content: Content;
   }
 

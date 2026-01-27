@@ -4,7 +4,7 @@ import { Taskwish } from "../types";
 
 describe("Event", async function* () {
   it("works with arrow functions", () => {
-    const newEmail = Event("new-email").data({
+    const newEmail = Event("New email").data({
       from: "string",
       subject: "string",
     });
@@ -14,11 +14,11 @@ describe("Event", async function* () {
     type newEmail = Expect<
       Equal<
         Taskwish.EventKind<
+          "New email",
           {
             from: string;
             subject: string;
           },
-          ["event", "new-email"],
           null
         >,
         T
@@ -26,7 +26,10 @@ describe("Event", async function* () {
     >;
 
     const test = async function* () {
-      const res = yield* newEmail.dispatch({ from: "lorem@ipsum.com", subject: "Hi" });
+      const res = yield* newEmail.dispatch({
+        from: "lorem@ipsum.com",
+        subject: "Hi",
+      });
 
       return res;
     };
