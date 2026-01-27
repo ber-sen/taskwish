@@ -3,6 +3,7 @@ import {
   Apply,
   ValidateTrigger,
   InferTriggerScope,
+  Pretty,
 } from "../helpers";
 import { Steps } from "../steps";
 import { Taskwish } from "../types";
@@ -23,15 +24,19 @@ type SignatureBody<
   use<const NewScope>(newScope: NewScope): SignatureBody<Name, Ctx, Signature>;
   handler<
     const Handler extends (
-      this: Taskwish.Scope<Ctx> &
-        Record<
-          "input",
-          Signature extends (...args: any) => Promise<any>
-            ? Parameters<Signature>
-            : Signature extends Taskwish.Handler
-              ? Parameters<Apply<Signature, Ctx>>
-              : never
-        >,
+      this: Taskwish.Scope<
+        Pretty<
+          Record<
+            "input",
+            Signature extends (...args: any) => Promise<any>
+              ? Parameters<Signature>
+              : Signature extends Taskwish.Handler
+                ? Parameters<Apply<Signature, Ctx>>
+                : never
+          > &
+            Ctx["scope"]
+        >
+      >,
     ) => Signature extends (...args: any) => Promise<any>
       ? ReturnType<Signature>
       : Signature extends Taskwish.Handler
@@ -58,15 +63,18 @@ export interface ActionFactory<
 > {
   on<const Schema>(
     trigger: ValidateTrigger<Schema>,
-  ): ActionBody<Name, { name: Ctx["name"]; scope: InferTriggerScope<Schema> }>;
+  ): ActionBody<
+    Name,
+    { name: Ctx["name"]; scope: InferTriggerScope<Schema> & Ctx["scope"] }
+  >;
   signature<
     const Signature extends ((...args: any) => Promise<any>) | Taskwish.Handler,
   >(): SignatureBody<Name, Ctx, Signature>;
   handler: Steps<Ctx>;
 }
 
-export function Action<
-  const Name extends string,
->(name: Name): ActionFactory<Name> {
+export function Action<const Name extends string>(
+  name: Name,
+): ActionFactory<Name> {
   return {} as never;
 }
