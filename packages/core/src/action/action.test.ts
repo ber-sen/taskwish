@@ -4,18 +4,18 @@ import { Taskwish } from "../types";
 
 describe("Action", () => {
   it("works with async arrow functions", async () => {
-    const { succeed } = Action("Succeed").handler(() => ({
-      success: true,
-    }));
+    const { healthz } = Action("Healthz").handler(function () {
+      return { status: "ok" };
+    });
 
-    type T = typeof succeed;
+    type T = typeof healthz;
 
-    type succeed = Expect<
+    type healthz = Expect<
       Equal<
         Taskwish.Action<
-          "Succeed",
+          "Healthz",
           () => Promise<{
-            success: boolean;
+            status: string;
           }>,
           null
         >,
@@ -23,13 +23,13 @@ describe("Action", () => {
       >
     >;
 
-    const result = await succeed();
+    const result = await healthz();
 
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ status: "ok" });
   });
 
   it("works with with input", async () => {
-    const { hello } = Action("hello")
+    const { hello } = Action("Hello")
       .on({ name: "string" })
 
       .handler(function () {
@@ -38,10 +38,10 @@ describe("Action", () => {
 
     type T = typeof hello;
 
-    type succeed = Expect<
+    type hello = Expect<
       Equal<
         Taskwish.Action<
-          "hello",
+          "Hello",
           (input: { name: string }) => Promise<string>,
           null
         >,
@@ -54,54 +54,24 @@ describe("Action", () => {
     expect(result).toEqual({ success: true });
   });
 
-  it("works with types", async () => {
-    const { typeAction } = Action("type action")
-      .signature<(lorem: string) => Promise<boolean>>()
-
-      .handler(async function () {
-        const [lorem] = this.input
-
-        const a = this(AbortSignal);
-
-        return lorem.length > 0;
-      });
-
-    type T = typeof typeAction;
-
-    type result = Expect<
-      Equal<
-        Taskwish.Action<
-          "type action",
-          (lorem: string) => Promise<boolean>,
-          null
-        >,
-        T
-      >
-    >;
-
-    const result = await typeAction("gpt");
-
-    expect(result).toEqual({ success: true });
-  });
-
-  it("works with this", async () => {
-    const { scopeAction } = Action("scope action")
+  it("works with generics", async () => {
+    const { genericAction } = Action("generic action")
       .signature<<const T>(lorem: T) => Promise<T>>()
 
       .handler(async function () {
-        const [lorem] = this.input
+        const [lorem] = this.input;
 
         const a = this(AbortSignal);
 
         return lorem;
       });
 
-    type T = typeof scopeAction;
+    type T = typeof genericAction;
 
     type result = Expect<
       Equal<
         Taskwish.Action<
-          "scope action",
+          "generic action",
           <const T>(lorem: T) => Promise<T>,
           null
         >,
@@ -109,12 +79,12 @@ describe("Action", () => {
       >
     >;
 
-    const result = await scopeAction("gpt");
+    const result = await genericAction("gpt");
 
     expect(result).toEqual({ success: true });
   });
 
-  it("works with ctx", async () => {
+  it("works with hkt", async () => {
     interface MyHandler extends Taskwish.Handler {
       run<const T extends this["ctx"]["model"]>(lorem: T): Promise<number>;
     }
@@ -123,7 +93,7 @@ describe("Action", () => {
       .signature<MyHandler>()
 
       .handler(async function () {
-        const [lorem] = this.input
+        const [lorem] = this.input;
 
         return lorem.length;
       });

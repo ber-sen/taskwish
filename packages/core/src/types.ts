@@ -7,6 +7,8 @@ import {
 import { Boria } from "../../message";
 
 export namespace Taskwish {
+  export const Id = Symbol.for("Taskwish.Id");
+
   export const Name = Symbol.for("Taskwish.Name");
 
   export const Meta = Symbol.for("Taskwish.Meta");
@@ -28,7 +30,7 @@ export namespace Taskwish {
   }
 
   export interface Resource<Name extends string> extends Named<Name> {
-    id: UUIDv5String;
+    [Id]: UUIDv5String;
   }
 
   export abstract class Handler {
