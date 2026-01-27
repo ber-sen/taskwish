@@ -13,7 +13,7 @@ type ActionMethod<
 > = Taskwish.Scoped<Scope> & {
   use<const NewScope>(newScope: NewScope): ActionMethod<Name, Scope>;
   handler: <Input extends Scope["input"], Output>(
-    handler: (this: PrettyScope<Scope>) => Output,
+    run: (this: PrettyScope<Scope>) => Output,
   ) => {
     [key in ToCamelCase<Name>]: Taskwish.Action<
       Name,
@@ -67,7 +67,7 @@ export interface ActionFactory<
     };
   };
   handler: <Input extends Scope["input"], Output>(
-    handler: (this: PrettyScope<Scope>) => Output,
+    run: (this: PrettyScope<Scope>) => Output,
   ) => {
     [key in ToCamelCase<Name>]: Taskwish.Action<
       Name,

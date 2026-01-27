@@ -13,12 +13,10 @@ export namespace Taskwish {
 
   export const Meta = Symbol.for("Taskwish.Meta");
 
-  export const Scope = Symbol.for("Taskwish.Scope");
+  export const Scope = Symbol.for("Taskwish.Ctx");
 
-  export const Traits = Symbol.for("Taskwish.Traits");
-
-  export interface Scoped<Scope> {
-    [Scope]: Scope;
+  export interface Contextual<Ctx extends Record<any, any>> {
+    [Scope]: Ctx["scope"];
   }
 
   export interface Named<Name extends string> {
@@ -42,13 +40,6 @@ export namespace Taskwish {
     <T>(Cls: new (...args: any[]) => T): T;
   };
 
-  export abstract class HasTraits {
-    public [Traits]: Array<any> = [];
-    static [Symbol.hasInstance](obj: any) {
-      return Boolean(obj?.traits?.has?.(this));
-    }
-  }
-
   export type Inject<Type> = Type | null;
 
   export type Action<
@@ -66,46 +57,30 @@ export namespace Taskwish {
     ) => Event<Boria.Message<Content>>;
   }
 
-  export interface Event<Data, Type extends string[] = ["event"]>
-    extends Typed<Type> {
+  export interface Event<Name extends string, Data> extends Named<Name> {
     id: Inject<UUIDv7String>;
     io: IO;
     data: Data;
   }
 
-  export interface Execution<
-    Stream,
-    Return,
-    Deps,
-    Params = null,
-    Type extends string[] = ["action"],
-  > extends AsyncGenerator<Stream, Return, Deps>,
-      Typed<Type>,
+  export interface Execution<Stream, Return, Deps, Params = null>
+    extends AsyncGenerator<Stream, Return, Deps>,
       Promise<Return> {
     id: Inject<UUIDv7String>;
     eventId: Inject<UUIDv7String>;
     params: Params;
   }
 
-  export type Actor<
-    Object extends { main: () => any },
-    Type extends string[] = ["Actor"],
-    Meta = null,
-  > = Object & Resource<Type> & NullaryAction<Object["main"], Type, Meta>;
+  export interface Actor<Name extends string> extends Named<Name> {}
 
-  export interface Log<Data, Type extends string[] = ["info"]> // info, start, warn, success
-    extends Typed<Type> {
+  export interface Log<Data> {
     id: Inject<UUIDv7String>;
     eventId: Inject<UUIDv7String>;
     data: Data;
     toString: () => string;
   }
 
-  export interface Exception<
-    Status extends number,
-    Data,
-    Type extends string[] = ["exception"],
-  > extends Typed<Type> {
+  export interface Exception<Status extends number, Data> {
     id: Inject<UUIDv7String>;
     eventId: Inject<UUIDv7String>;
     status: Status;
@@ -114,35 +89,21 @@ export namespace Taskwish {
     toString: () => string;
   }
 
-  export interface EventKind<
-    Data,
-    Type extends string[] = ["event"],
-    Meta = null,
-  > extends Resource<Type>,
+  export interface EventKind<Name extends string, Data, Meta = null>
+    extends Resource<Name>,
       Attributable<Meta> {
     dispatch(
       data: Data,
-    ): AsyncGenerator<Event<Data, Type>, Event<Data, Type>, unknown>;
+    ): AsyncGenerator<Event<Name, Data>, Event<Name, Data>, unknown>;
   }
-
-  export type Step<
-    Name extends string,
-    Result,
-    Type extends string[] = ["step"],
-    Meta extends { executionId: UUIDv5String } | null = null,
-  > = {
-    [P in Name]: Result & Typed<Type>;
-  } & {
-    meta: (param: "get") => Meta;
-  };
 
   export interface Extendable<Scope> {
     use<const NewScope>(newScope: NewScope): Extendable<Scope & NewScope>;
   }
 
-  export interface Triggerable<Scope extends Record<any, any>> {
+  export interface Triggerable<Ctx extends Record<any, any>> {
     on<const Schema>(
       trigger: ValidateTrigger<Schema>,
-    ): Scoped<Scope & InferTriggerScope<Schema>>;
+    ): Contextual<Ctx & InferTriggerScope<Schema>>;
   }
 }
