@@ -1,6 +1,8 @@
 {
   "name": "@taskwish/core",
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "version": "0.0.1",
   "description": "Opinionated edge-first library for TypeScript",
   "license": "Elastic-2.0",
@@ -24,16 +26,13 @@
   "dependencies": {
     "@standard-schema/spec": "^1.0.0",
     "arktype": "^2.1.23",
-    "ms": "^2.1.3",
-    "remeda": "^2.33.0"
+    "ms": "^2.1.3"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/ms": "^2.1.0",
     "jest": "^30.1.3",
     "ts-jest": "^29.4.4",
-    "type-fest": "^5.2.0",
-    "typescript": "^5.9.2",
-    "zod": "^4.1.12"
+    "typescript": "^5.9.2"
   }
 }

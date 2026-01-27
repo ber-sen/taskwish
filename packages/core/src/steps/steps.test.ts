@@ -5,7 +5,6 @@ import { Loop } from "./loop";
 import { Match } from "./match";
 import { Steps } from "./steps";
 import { Expect, Pretty } from "../helpers";
-import { PartialOnUndefinedDeep } from "type-fest";
 import { Input } from "./input";
 
 describe("Steps", () => {
@@ -233,7 +232,7 @@ type RemovePrevWhenEnd<
     : RemovePrevWhenEnd<Rest, [...A, H]>
   : A;
 
-type FormatScope<Scope> = PartialOnUndefinedDeep<ExtractResults<Scope>>;
+type FormatScope<Scope> = ExtractResults<Scope>;
 
 type Scope = OperatorCalculator<
   Append<

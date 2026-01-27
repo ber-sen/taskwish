@@ -9,11 +9,11 @@ export type Equal<X, Y> =
     ? true
     : false;
 
-export type CamelCase<T extends string> =
+export type CamelCaseHelper<T extends string> =
   T extends `${infer Left}${infer Delimiter}${infer Right}`
     ? Delimiter extends " " | "_" | "-" | "." | "," | "!"
       ? `${Left}${Capitalize<ToCamelCase<Right>>}`
-      : `${Left}${CamelCase<`${Delimiter}${Right}`>}`
+      : `${Left}${CamelCaseHelper<`${Delimiter}${Right}`>}`
     : T;
 
 export type LowercaseFirst<T extends string> =
@@ -24,9 +24,9 @@ export type UppercaseFirst<T extends string> =
     ? `${Uppercase<First>}${Rest}`
     : T;
 
-export type ToCamelCase<T extends string> = LowercaseFirst<CamelCase<T>>;
+export type ToCamelCase<T extends string> = LowercaseFirst<CamelCaseHelper<T>>;
 
-export type ToCapitalCase<T extends string> = UppercaseFirst<CamelCase<T>>;
+export type ToCapitalCase<T extends string> = UppercaseFirst<CamelCaseHelper<T>>;
 
 export type PrettyScope<T> = {
   [K in keyof T as ToCamelCase<Extract<K, string>>]: T[K];

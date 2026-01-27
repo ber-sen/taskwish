@@ -1,5 +1,5 @@
-import { InferSchema, ValidateSchema } from "./helpers";
-import { Taskwish } from "./types";
+import { InferSchema, ValidateSchema } from "../helpers";
+import { Taskwish } from "../types";
 
 type PrependEvent<T extends readonly any[]> = ["event", ...T];
 
