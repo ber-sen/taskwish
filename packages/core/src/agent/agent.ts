@@ -1,5 +1,4 @@
 import { InferSchema, ValidateSchema } from "../helpers";
-import { Last } from "../steps";
 export interface Agent<Name extends string, Tools extends string[]> {
   name: Name;
   tools: Tools;
@@ -22,7 +21,7 @@ export function Agent<
     steps: Ctx["steps"] & Record<Name, Agent<Name, Tools>>;
     step: Ctx["step"];
     scope: Record<Name, Agent<Name, Tools>> & Ctx["scope"];
-    [Last]: Agent<Name, Tools>;
+    last: Agent<Name, Tools>;
   };
 } {
   return {} as never;
@@ -47,7 +46,7 @@ interface ToolStep<
     steps: Ctx["steps"] & Record<Name, Tool<Name, Input, Output>>;
     step: Ctx["step"];
     scope: Record<Name, Tool<Name, Input, Output>> & Ctx["scope"];
-    [Last]: Tool<Name, Input, Output>;
+    last: Tool<Name, Input, Output>;
   };
 }
 
