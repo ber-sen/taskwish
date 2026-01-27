@@ -1,4 +1,4 @@
-import { DeepOptionalString, InferSchema, ValidateSchema } from "../helpers";
+import { InferSchema, ValidateSchema } from "../helpers";
 import { Last } from "../steps";
 export interface Agent<Name extends string, Tools extends string[]> {
   name: Name;
