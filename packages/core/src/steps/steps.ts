@@ -1,7 +1,6 @@
 import { ToCamelCase } from "../helpers";
 import { Taskwish } from "../types";
 
-export const Last = Symbol.for("Last");
 
 export const SubSteps = Symbol.for("SubSteps");
 
@@ -22,8 +21,6 @@ interface Ctx {
   };
 }
 
-
-
 export type StepsReturn<Ctx, SubCtx, Last> = Ctx extends typeof SubSteps
   ? {
       step: (input: SubCtx) => Last;
@@ -33,13 +30,35 @@ export type StepsReturn<Ctx, SubCtx, Last> = Ctx extends typeof SubSteps
       ? {
           [name in ToCamelCase<Ctx["name"]>]: Taskwish.Action<
             Ctx["name"],
-            () => Promise<
-              typeof Last extends keyof Ctx
-                ? Ctx[typeof Last]
-                : "steps" extends keyof Ctx
-                  ? Ctx["steps"]
-                  : Last
-            >
+            "scope" extends keyof Ctx
+              ? "input" extends keyof Ctx["scope"]
+                ? (
+                    input: "scope" extends keyof Ctx
+                      ? "input" extends keyof Ctx["scope"]
+                        ? Ctx["scope"]["input"]
+                        : never
+                      : never,
+                  ) => Promise<
+                     "last" extends keyof Last
+                      ? Last["last"]
+                      : "steps" extends keyof Last
+                        ? Last["steps"]
+                        : Last
+                  >
+                : () => Promise<
+                    "last" extends keyof Last
+                      ? Last["last"]
+                      : "steps" extends keyof Last
+                        ? Last["steps"]
+                        : Last
+                  >
+              : () => Promise<
+                  "last" extends keyof Last
+                    ? Last["last"]
+                    : "steps" extends keyof Last
+                      ? Last["steps"]
+                      : Last
+                >
           >;
         }
       : never

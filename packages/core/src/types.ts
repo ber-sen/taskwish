@@ -37,7 +37,7 @@ export namespace Taskwish {
   }
 
   export type Scope<Scope> = Scope & {
-    <T>(Cls: new (...args: any[]) => T): T;
+    get<T>(Cls: new (...args: any[]) => T): T;
   };
 
   export type Inject<Type> = Type | null;

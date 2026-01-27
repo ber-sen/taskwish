@@ -1,6 +1,6 @@
 import { PrettyScope } from "../helpers";
 import { Taskwish } from "../types";
-import { Last, Steps } from "./steps";
+import { Steps } from "./steps";
 
 export function Step<
   const Name extends string,
@@ -17,16 +17,16 @@ export function Step<
       ],
 ): {
   step: (ctx: Ctx) => {
-    name: Ctx["name"]
+    name: Ctx["name"];
     steps: Ctx["steps"] & Record<Name, Result>;
     step: Ctx["step"];
     scope: Record<Name, Result> & Ctx["scope"];
-    [Last]: Result;
+    last: Result;
   };
 };
 
 export function Step<Ctx extends Record<any, any>>(
-  name: Ctx["step"]["name"],
+  name: Ctx["step"]["name"] extends string ? Ctx["step"]["name"] : never,
   params?: Ctx["step"]["params"],
 ): {
   step: (ctx: Ctx) => Ctx;
@@ -56,6 +56,7 @@ Step.Run = <const Name extends string, Ctx extends Record<any, any>>(
 ): {
   step: (ctx: Ctx) => Name extends string
     ? {
+        name: Ctx["name"];
         steps: Ctx["steps"] &
           Record<
             Name,
@@ -66,7 +67,7 @@ Step.Run = <const Name extends string, Ctx extends Record<any, any>>(
           "if" extends keyof Ctx["scope"] ? string | undefined : string
         > &
           Ctx["scope"];
-        [Last]: string;
+        last: string;
       }
     : Ctx;
 } => {

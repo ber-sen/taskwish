@@ -1,6 +1,7 @@
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { Taskwish } from "../types";
+import { Step } from "../steps";
 
 describe("Action", () => {
   it("works with async arrow functions", async () => {
@@ -54,6 +55,37 @@ describe("Action", () => {
     expect(result).toEqual({ success: true });
   });
 
+  it("works with with steps", async () => {
+    const { hello } = Action("Hello")
+      .on({ name: "string" })
+
+      .handler(
+        Step("First step", function () {
+          return this.input.name.length;
+        }),
+        Step("Second step", function () {
+          return this.firstStep > 0;
+        }),
+      );
+
+    type T = typeof hello;
+
+    type hello = Expect<
+      Equal<
+        Taskwish.Action<
+          "Hello",
+          (input: { name: string }) => Promise<boolean>,
+          null
+        >,
+        T
+      >
+    >;
+
+    const result = await hello({ name: "World" });
+
+    expect(result).toEqual({ success: true });
+  });
+
   it("works with generics", async () => {
     const { genericAction } = Action("generic action")
       .signature<<const T>(lorem: T) => Promise<T>>()
@@ -61,7 +93,7 @@ describe("Action", () => {
       .handler(async function () {
         const [lorem] = this.input;
 
-        const a = this(AbortSignal);
+        const a = this.get(AbortSignal);
 
         return lorem;
       });

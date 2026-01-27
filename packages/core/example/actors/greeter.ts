@@ -1,6 +1,6 @@
 "use server";
 
-import { Actor } from "../../src";
+import { Actor, Step } from "../../src";
 
 const { Greeter } = Actor("Greeter");
 
@@ -14,8 +14,14 @@ const { hello } = Greeter("hello")
 const { bye } = Greeter("bye")
   .on({ name: "string" })
 
-  .handler(function () {
-    return `Bye ${this.input.name}`;
-  });
+  .handler(
+    Step("Name", function () {
+      return this.input.name;
+    }),
+    
+    Step("End step", function () {
+      return `Bye ${this.name}`;
+    }),
+  );
 
 export { hello, bye };
