@@ -1,4 +1,4 @@
-import { Actor, Step, Steps, SubSteps } from "../../src";
+import { Actor, Step, Steps, SubSteps, Config } from "../../src";
 
 const Workflow: Steps<typeof SubSteps> = {} as never
 
@@ -21,6 +21,7 @@ export default Actor("Simple")
 
       Step("mid d", function () {
         return this.action.slack.sendMessage({
+          [Config]: "lorem@ipsum.com:workspace",
           channel: "#general",
           message: "Hello World",
         });

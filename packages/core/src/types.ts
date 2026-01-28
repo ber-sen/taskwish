@@ -15,6 +15,8 @@ export namespace Taskwish {
 
   export const Scope = Symbol.for("Taskwish.Ctx");
 
+  export const Config = Symbol.for("Taskwish.Config");
+
   export interface Contextual<Ctx extends Record<any, any>> {
     [Scope]: Ctx["scope"];
   }
