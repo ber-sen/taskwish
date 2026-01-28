@@ -61,10 +61,15 @@ export namespace Taskwish {
     ) => Event<"Message", Message.Message<Content>>;
   }
 
-  export interface Event<Type extends string, Data> extends Typed<Type> {
+  export interface Event<
+    Type extends string,
+    Data,
+    Meta extends Record<any, any> = {},
+  > extends Typed<Type>,
+      Attributable<Meta> {
     id: Inject<UUIDv7String>;
-    io: IO;
     data: Data;
+    io: "io" extends keyof Meta ? IO : never;
   }
 
   export interface Execution<Stream, Return, Deps, Params = null>
