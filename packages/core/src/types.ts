@@ -15,6 +15,8 @@ export namespace Taskwish {
 
   export const Scope = Symbol.for("Taskwish.Ctx");
 
+  export const Owner = Symbol.for("TaskWish.Owner");
+
   export interface Contextual<Ctx extends Record<any, any>> {
     [Scope]: Ctx["scope"];
   }
@@ -29,6 +31,7 @@ export namespace Taskwish {
 
   export interface Resource<Name extends string> extends Named<Name> {
     [Id]: UUIDv5String;
+    [Owner]: string;
   }
 
   export abstract class Handler {
@@ -46,7 +49,7 @@ export namespace Taskwish {
     Name extends string,
     Handler extends (...args: any) => any,
     Meta = null,
-  > = NoInfer<Handler> & Named<Name> & Attributable<Meta>;
+  > = NoInfer<Handler> & Resource<Name> & Attributable<Meta>;
 
   export class IO {
     threadId!: Message.ThreadId;
@@ -71,7 +74,7 @@ export namespace Taskwish {
     params: Params;
   }
 
-  export interface Actor<Name extends string> extends Named<Name> {}
+  export interface Actor<Name extends string> extends Resource<Name> {}
 
   export interface Log<Data> {
     id: Inject<UUIDv7String>;
