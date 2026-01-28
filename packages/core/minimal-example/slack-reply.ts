@@ -16,10 +16,6 @@ export default Actor("AutoReplay")
         }),
     },
 
-    Forward(response).to("Identity"),
-
-    {
-      run: ({ response }) => Reply(response),
-      needsApproval: true,
-    }
+    Message(response), // owner thread
+    Reply(Message(response)), // user thread
   );

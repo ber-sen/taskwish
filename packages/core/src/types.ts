@@ -15,8 +15,6 @@ export namespace Taskwish {
 
   export const Scope = Symbol.for("Taskwish.Ctx");
 
-  export const Owner = Symbol.for("TaskWish.Owner");
-
   export interface Contextual<Ctx extends Record<any, any>> {
     [Scope]: Ctx["scope"];
   }
@@ -31,7 +29,6 @@ export namespace Taskwish {
 
   export interface Resource<Type extends string> extends Typed<Type> {
     [Id]: UUIDv5String;
-    [Owner]: string;
   }
 
   export abstract class Handler {
@@ -115,4 +112,8 @@ export namespace Taskwish {
       trigger: ValidateTrigger<Schema>,
     ): Contextual<Ctx & InferTriggerScope<Schema>>;
   }
+
+  export interface ResourceKind<Type extends string> extends Typed<Type> {}
+
+  export interface Config<Type extends string> extends Typed<Type> {}
 }

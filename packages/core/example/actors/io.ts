@@ -10,6 +10,8 @@ export default Actor("IO")
     Step("lorem", function () {
       return this.input.content;
     }),
+
+    
     // {
     //   name: "response",
     //   run: ({ ai, input }) =>
