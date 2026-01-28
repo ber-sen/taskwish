@@ -53,9 +53,10 @@ export namespace Taskwish {
 
   export class IO {
     threadId!: Message.ThreadId;
+    senderId!: Message.IdentityId;
     receiverId!: Message.IdentityId;
     messages!: Message.Message<any, any>[];
-    send!: <const Content extends Array<Message.MessagePart<any>> | string>(
+    reply!: <const Content extends Array<Message.MessagePart<any>> | string>(
       message: Message.Message<Content>,
     ) => Event<"Message", Message.Message<Content>>;
   }
