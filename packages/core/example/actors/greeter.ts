@@ -2,7 +2,9 @@
 
 import { Actor, Step } from "../../src";
 
-const { Greeter } = Actor("Greeter");
+const { Greeter } = Actor("Greeter", {
+  API_KEY: "string",
+});
 
 const { hello } = Greeter("hello")
   .on({ name: "string" })
@@ -18,7 +20,7 @@ const { bye } = Greeter("bye")
     Step("Name", function () {
       return this.input.name;
     }),
-    
+
     Step("End step", function () {
       return `Bye ${this.name}`;
     }),

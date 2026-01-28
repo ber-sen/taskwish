@@ -114,6 +114,4 @@ export namespace Taskwish {
   }
 
   export interface ResourceKind<Type extends string> extends Typed<Type> {}
-
-  export interface Config<Type extends string> extends Typed<Type> {}
 }
