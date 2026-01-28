@@ -5,7 +5,7 @@ export default Actor("Simple")
 
   .on({ message: "string" })
 
-  .handler(
+  .run(
     Step("first step", function () {
       return this.action.slack.sendMessage({
         channel: "#general",

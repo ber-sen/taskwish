@@ -5,7 +5,7 @@ import { Step } from "../steps";
 
 describe("Action", () => {
   it("works with async arrow functions", async () => {
-    const { healthz } = Action("Healthz").handler(function () {
+    const { healthz } = Action("Healthz").run(function () {
       return { status: "ok" };
     });
 
@@ -33,7 +33,7 @@ describe("Action", () => {
     const { hello } = Action("Hello")
       .on({ name: "string" })
 
-      .handler(function () {
+      .run(function () {
         return `Hello ${this.input.name}`;
       });
 
@@ -59,7 +59,7 @@ describe("Action", () => {
     const { hello } = Action("Hello")
       .on({ name: "string" })
 
-      .handler(
+      .run(
         Step("First step", function () {
           return this.input.name.length;
         }),
@@ -90,7 +90,7 @@ describe("Action", () => {
     const { genericAction } = Action("generic action")
       .signature<<const T>(lorem: T) => Promise<T>>()
 
-      .handler(async function () {
+      .run(async function () {
         const [lorem] = this.input;
 
         const a = this.get(AbortSignal);
@@ -124,7 +124,7 @@ describe("Action", () => {
     const { myHandler } = Action("my handler")
       .signature<MyHandler>()
 
-      .handler(async function () {
+      .run(async function () {
         const [lorem] = this.input;
 
         return lorem.length;

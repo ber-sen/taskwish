@@ -6,7 +6,7 @@ export default Actor("ChatBot")
 
   .on({ tools: "string[]", prompt: "string" })
 
-  .handler(
+  .run(
     Tool("wether", {
       description: "Get the weather in a location",
       input: {

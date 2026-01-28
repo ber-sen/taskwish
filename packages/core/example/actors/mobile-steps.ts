@@ -7,7 +7,7 @@ const Mobile = {
 export default Actor("Simple")
   .use(import("../package"))
 
-  .handler(
+  .run(
     Step("first step", function () {
       return this.action.slack.sendMessage({
         channel: "#general",

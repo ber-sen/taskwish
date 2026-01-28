@@ -42,7 +42,7 @@ export default Actor("Sub steps")
 
   .on({ user: { name: "string", age: "number" } })
 
-  .handler(
+  .run(
     Loop(
       () => Loop.Range(0, 10),
 

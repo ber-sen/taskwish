@@ -3,7 +3,7 @@ import { Source, Actor, Step } from "../../src";
 export default Actor("Simple")
   .use(import("../package"))
 
-  .handler(
+  .run(
     Step("if", function () {
       return 3
     }),

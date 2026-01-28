@@ -6,7 +6,7 @@ export default Actor("IO")
 
   .on(Message(Text("asdsad")))
 
-  .handler(
+  .run(
     Step("lorem", function () {
       return this.input.content;
     }),

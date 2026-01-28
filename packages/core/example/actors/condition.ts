@@ -9,7 +9,7 @@ export default Actor("Greeding")
 
   .on<Input>("lorem ipsum")
 
-  .handler(
+  .run(
     If(
       () => 2 > 1,
 

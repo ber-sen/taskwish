@@ -1,5 +1,5 @@
 import { Action } from "../../src";
 
-export const { succeed } = Action("succeed").handler(async () => ({
+export const { succeed } = Action("succeed").run(async () => ({
   success: true,
 }));

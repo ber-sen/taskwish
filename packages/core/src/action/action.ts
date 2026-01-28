@@ -13,7 +13,7 @@ type ActionBody<
   Ctx extends Record<any, any>,
 > = Taskwish.Contextual<Ctx> & {
   use<const NewScope>(newScope: NewScope): ActionBody<Name, Ctx>;
-  handler: Steps<Ctx>;
+  run: Steps<Ctx>;
 };
 
 type SignatureBody<
@@ -22,7 +22,7 @@ type SignatureBody<
   Signature,
 > = {
   use<const NewScope>(newScope: NewScope): SignatureBody<Name, Ctx, Signature>;
-  handler<
+  run<
     const Handler extends (
       this: Taskwish.Scope<
         Pretty<
@@ -70,7 +70,7 @@ export interface ActionFactory<
   signature<
     const Signature extends ((...args: any) => Promise<any>) | Taskwish.Handler,
   >(): SignatureBody<Name, Ctx, Signature>;
-  handler: Steps<Ctx>;
+  run: Steps<Ctx>;
 }
 
 export function Action<const Name extends string>(
