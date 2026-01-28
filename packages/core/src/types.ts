@@ -9,7 +9,7 @@ import { Taskwish as Message } from "../../message";
 export namespace Taskwish {
   export const Id = Symbol.for("Taskwish.Id");
 
-  export const Name = Symbol.for("Taskwish.Name");
+  export const Type = Symbol.for("Taskwish.Type");
 
   export const Meta = Symbol.for("Taskwish.Meta");
 
@@ -21,15 +21,15 @@ export namespace Taskwish {
     [Scope]: Ctx["scope"];
   }
 
-  export interface Named<Name extends string> {
-    [Name]: Name;
+  export interface Typed<Type extends string> {
+    [Type]: Type;
   }
 
   export interface Attributable<Meta> {
     [Meta]: Meta;
   }
 
-  export interface Resource<Name extends string> extends Named<Name> {
+  export interface Resource<Type extends string> extends Typed<Type> {
     [Id]: UUIDv5String;
     [Owner]: string;
   }
@@ -46,10 +46,10 @@ export namespace Taskwish {
   export type Inject<Type> = Type | null;
 
   export type Action<
-    Name extends string,
+    Type extends string,
     Handler extends (...args: any) => any,
     Meta = null,
-  > = NoInfer<Handler> & Resource<Name> & Attributable<Meta>;
+  > = NoInfer<Handler> & Resource<Type> & Attributable<Meta>;
 
   export class IO {
     threadId!: Message.ThreadId;
@@ -60,7 +60,7 @@ export namespace Taskwish {
     ) => Event<"Message", Message.Message<Content>>;
   }
 
-  export interface Event<Name extends string, Data> extends Named<Name> {
+  export interface Event<Type extends string, Data> extends Typed<Type> {
     id: Inject<UUIDv7String>;
     io: IO;
     data: Data;
@@ -74,7 +74,7 @@ export namespace Taskwish {
     params: Params;
   }
 
-  export interface Actor<Name extends string> extends Resource<Name> {}
+  export interface Actor<Type extends string> extends Resource<Type> {}
 
   export interface Log<Data> {
     id: Inject<UUIDv7String>;
@@ -92,12 +92,12 @@ export namespace Taskwish {
     toString: () => string;
   }
 
-  export interface EventKind<Name extends string, Data, Meta = null>
-    extends Resource<Name>,
+  export interface EventKind<Type extends string, Data, Meta = null>
+    extends Resource<Type>,
       Attributable<Meta> {
     dispatch(
       data: Data,
-    ): AsyncGenerator<Event<Name, Data>, Event<Name, Data>, unknown>;
+    ): AsyncGenerator<Event<Type, Data>, Event<Type, Data>, unknown>;
   }
 
   export interface Extendable<Scope> {
