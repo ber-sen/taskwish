@@ -1,8 +1,6 @@
 import { Actor, Step, Steps, SubSteps } from "../../src";
 
-const Mobile = {
-  Steps: {} as Steps<typeof SubSteps>,
-};
+const Mobile = {} as Steps<typeof SubSteps>
 
 export default Actor("Simple")
   .use(import("../package"))
@@ -15,7 +13,7 @@ export default Actor("Simple")
       });
     }),
 
-    Mobile.Steps(
+    Mobile(
       Step("launchApp", "com.inditex.zara"),
       Step("tapOn", "Enter"),
       Step("tapOn", "Accept all cookies"),
