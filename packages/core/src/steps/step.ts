@@ -4,26 +4,43 @@ import { Steps } from "./steps";
 
 export function Step<
   const Name extends string,
+  const Args1,
   Ctx extends Record<any, any>,
-  Result,
 >(
   name: Name,
-  handler:
-    | ((this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => Result)
-    | [(this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => Result]
-    | [
-        (this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => Result,
-        { retry: number },
-      ],
+  handler: (this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => Args1,
 ): {
   step: (ctx: Ctx) => {
     name: Ctx["name"];
-    steps: Ctx["steps"] & Record<Name, Result>;
+    steps: Ctx["steps"] & Record<Name, Args1>;
     step: Ctx["step"];
-    scope: Record<Name, Result> & Ctx["scope"];
-    last: Result;
+    scope: Record<Name, Args1> & Ctx["scope"];
+    last: Name;
   };
 };
+
+// export function Step<
+//   const Name extends string,
+//   Ctx extends Record<any, any>,
+//   Result,
+// >(
+//   name: Name,
+//   handler:
+//     | ((this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => Result)
+//     | [(this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => Result]
+//     | [
+//         (this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => Result,
+//         { retry: number },
+//       ],
+// ): {
+//   step: (ctx: Ctx) => {
+//     name: Ctx["name"];
+//     steps: Ctx["steps"] & Record<Name, Result>;
+//     step: Ctx["step"];
+//     scope: Record<Name, Result> & Ctx["scope"];
+//     last: Result;
+//   };
+// };
 
 export function Step<Ctx extends Record<any, any>>(
   name: Ctx["step"]["name"] extends string ? Ctx["step"]["name"] : never,

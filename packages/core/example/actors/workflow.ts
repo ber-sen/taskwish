@@ -1,6 +1,6 @@
 import { Actor, Step, Steps, SubSteps, Config } from "../../src";
 
-const Workflow: Steps<typeof SubSteps> = {} as never
+const Workflow: Steps<typeof SubSteps> = {} as never;
 
 export default Actor("Simple")
   .use(import("../package"))
