@@ -34,6 +34,68 @@ export function Step<
   };
 };
 
+export function Step<
+  Ctx extends Record<any, any>,
+  const Name extends "name" extends keyof Ctx["step"]
+    ? Ctx["step"]["name"]
+    : string,
+  const Handler extends Name extends keyof Ctx["step"]["map"]
+    ? Ctx["step"]["map"][Name]
+    : (this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => any,
+  const Params extends Name extends keyof Ctx["step"]["map"]
+    ? Ctx["step"]["map"][Name]
+    : never,
+  A,
+>(
+  name: Name,
+  handler: [
+    Name extends keyof Ctx["step"]["map"] ? Params : Handler,
+    (
+      res: Name extends keyof Ctx["step"]["map"] ? string : ReturnType<Handler>,
+    ) => A,
+  ],
+): {
+  step: (ctx: Ctx) => {
+    name: Ctx["name"];
+    steps: Ctx["steps"] & Record<Name, A>;
+    step: Ctx["step"];
+    scope: Record<Name, A> & Ctx["scope"];
+    last: Name;
+  };
+};
+
+export function Step<
+  Ctx extends Record<any, any>,
+  const Name extends "name" extends keyof Ctx["step"]
+    ? Ctx["step"]["name"]
+    : string,
+  const Handler extends Name extends keyof Ctx["step"]["map"]
+    ? Ctx["step"]["map"][Name]
+    : (this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => any,
+  const Params extends Name extends keyof Ctx["step"]["map"]
+    ? Ctx["step"]["map"][Name]
+    : never,
+  A,
+  B
+>(
+  name: Name,
+  handler: [
+    Name extends keyof Ctx["step"]["map"] ? Params : Handler,
+    (
+      res: Name extends keyof Ctx["step"]["map"] ? string : ReturnType<Handler>,
+    ) => A,
+    (input: A) => B
+  ],
+): {
+  step: (ctx: Ctx) => {
+    name: Ctx["name"];
+    steps: Ctx["steps"] & Record<Name, B>;
+    step: Ctx["step"];
+    scope: Record<Name, B> & Ctx["scope"];
+    last: Name;
+  };
+};
+
 export function Step() {
   return {} as never;
 }

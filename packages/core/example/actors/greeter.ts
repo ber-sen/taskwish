@@ -21,9 +21,17 @@ const { bye } = Greeter("bye")
       return this.input.name;
     }),
 
-    Step("End step", function () {
-      return `Bye ${this.name}`;
-    }),
+    Step("End step", [
+      function () {
+        return `Bye ${this.name}`;
+      },
+      (a) => 3,
+      (b) => true as const
+    ]),
+
+    Step("Real end", function(){
+      this.endStep
+    })
   );
 
 export { hello, bye };
