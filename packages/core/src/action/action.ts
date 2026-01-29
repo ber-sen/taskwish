@@ -57,6 +57,8 @@ type SignatureBody<
   };
 };
 
+type StepName = string & {};
+
 export interface ActionFactory<
   Name extends string,
   Ctx extends Record<any, any> = { model: "gpt"; name: Name },
@@ -66,7 +68,7 @@ export interface ActionFactory<
     {
       name: Ctx["name"];
       scope: InferTriggerScope<Schema> & Ctx["scope"];
-      step: { name: "launchApp" | (string & {}); map: { launchApp: string } };
+      step: { name: "launchApp" | StepName; map: { launchApp: string } };
     }
   >;
   signature<
