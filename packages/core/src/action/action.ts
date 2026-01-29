@@ -61,11 +61,13 @@ export interface ActionFactory<
   Name extends string,
   Ctx extends Record<any, any> = { model: "gpt"; name: Name },
 > {
-  on<const Schema>(
-    trigger: ValidateTrigger<Schema>,
-  ): ActionBody<
+  on<const Schema>(trigger: ValidateTrigger<Schema>): ActionBody<
     Name,
-    { name: Ctx["name"]; scope: InferTriggerScope<Schema> & Ctx["scope"] }
+    {
+      name: Ctx["name"];
+      scope: InferTriggerScope<Schema> & Ctx["scope"];
+      step: { name: "launchApp" | (string & {}); map: { launchApp: string } };
+    }
   >;
   signature<
     const Signature extends ((...args: any) => Promise<any>) | Taskwish.Handler,

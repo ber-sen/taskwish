@@ -3,50 +3,35 @@ import { Taskwish } from "../types";
 import { Steps } from "./steps";
 
 export function Step<
-  const Name extends string,
-  const Args1,
   Ctx extends Record<any, any>,
+  const Name extends "name" extends keyof Ctx["step"]
+    ? Ctx["step"]["name"]
+    : string,
+  const Handler extends Name extends keyof Ctx["step"]["map"]
+    ? Ctx["step"]["map"][Name]
+    : (this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => any,
+  const Params extends Name extends keyof Ctx["step"]["map"]
+    ? Ctx["step"]["map"][Name]
+    : never,
 >(
   name: Name,
-  handler: (this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => Args1,
+  handler: Name extends keyof Ctx["step"]["map"] ? Params : Handler,
 ): {
   step: (ctx: Ctx) => {
     name: Ctx["name"];
-    steps: Ctx["steps"] & Record<Name, Args1>;
+    steps: Ctx["steps"] &
+      Record<
+        Name,
+        Name extends keyof Ctx["step"]["map"] ? string : ReturnType<Handler>
+      >;
     step: Ctx["step"];
-    scope: Record<Name, Args1> & Ctx["scope"];
+    scope: Record<
+      Name,
+      Name extends keyof Ctx["step"]["map"] ? string : ReturnType<Handler>
+    > &
+      Ctx["scope"];
     last: Name;
   };
-};
-
-// export function Step<
-//   const Name extends string,
-//   Ctx extends Record<any, any>,
-//   Result,
-// >(
-//   name: Name,
-//   handler:
-//     | ((this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => Result)
-//     | [(this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => Result]
-//     | [
-//         (this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => Result,
-//         { retry: number },
-//       ],
-// ): {
-//   step: (ctx: Ctx) => {
-//     name: Ctx["name"];
-//     steps: Ctx["steps"] & Record<Name, Result>;
-//     step: Ctx["step"];
-//     scope: Record<Name, Result> & Ctx["scope"];
-//     last: Result;
-//   };
-// };
-
-export function Step<Ctx extends Record<any, any>>(
-  name: Ctx["step"]["name"] extends string ? Ctx["step"]["name"] : never,
-  params?: Ctx["step"]["params"],
-): {
-  step: (ctx: Ctx) => Ctx;
 };
 
 export function Step() {
