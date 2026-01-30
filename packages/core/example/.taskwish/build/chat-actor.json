@@ -1,14 +1,14 @@
 {
-  "[actor]": "ChatActor",
+  "[Actor]": "ChatActor",
   "behaviors": [
     {
       "on": { "tools": "string[]", "prompt": "string" },
       "run": [
         {
-          "[script]": "tools",
+          "[Script]": "tools",
           "run": "@{tools.filter((tool) => input.tool.includes(tool.name))}"
         },
-        { "[if]": "@{2 > 3}" },
+        { "[If]": "@{2 > 3}" },
         {
           "[Agent::new]": "MarketingAgent",
           "instructions": "asdasdadas asdas da",
@@ -16,7 +16,7 @@
           "tools": "@{tools}"
         },
         {
-          "[emit]": "Send message",
+          "[Emit]": "Send message",
           "from": "string",
           "subject": "string"
         },
@@ -24,7 +24,7 @@
           "[MarketingAgent]": "end",
           "prompt": "@{input.prompt}"
         },
-        { "[end]": "[if]" }
+        { "[End]": "[If]" }
       ]
     }
   ]

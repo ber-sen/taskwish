@@ -1,6 +1,6 @@
 {
   "name": "example",
   "type": "module",
-  "[package]": "019c1135-b67d-79d6-b1ec-754406d37ebb",
+  "[Package]": "019c1135-b67d-79d6-b1ec-754406d37ebb",
   "actors": ["./chat-actor.json"]
 }
