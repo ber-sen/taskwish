@@ -100,7 +100,7 @@ export namespace Taskwish {
   export interface EventKind<Type extends string, Data, Meta = null>
     extends Resource<Type>,
       Attributable<Meta> {
-    dispatch(
+    emit(
       data: Data,
     ): AsyncGenerator<Event<Type, Data>, Event<Type, Data>, unknown>;
   }
