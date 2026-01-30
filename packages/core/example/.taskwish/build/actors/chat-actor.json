@@ -8,7 +8,7 @@
           "step": "tools",
           "run": "@{tools.filter((tool) => input.tool.includes(tool.name))}"
         },
-        { "if": "2 > 3" },
+        { "if": "@{2 > 3}" },
         {
           "step": "MarketingAgent",
           "type": ["Agent::new"],
