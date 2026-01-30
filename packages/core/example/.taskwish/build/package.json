@@ -1,8 +1,6 @@
 {
   "name": "example",
   "type": "module",
-  "taskwish": {
-    "type": "package",
-    "params": {}
-  }
+  "[package]": "019c1135-b67d-79d6-b1ec-754406d37ebb",
+  "actors": ["./chat-actor.json"]
 }
