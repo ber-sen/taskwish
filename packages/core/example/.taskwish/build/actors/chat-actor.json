@@ -1,31 +1,25 @@
-{
-  "type": ["Actor"],
-  "name": "ChatActor",
-  "params": {
-    "on": { "tools": "string[]", "prompt": "string" },
-    "steps": [
-      {
-        "type": ["Script"],
-        "name": "tools",
-        "parmas": {
-          "body": "@{tools.filter((tool) => input.tool.includes(tool.name))}"
-        }
-      },
-      {
-        "type": ["Agent::new"],
-        "name": "MarketingAgent",
-        "params": {
-          "instructions": "asdasdadas asdas da",
-          "model": "gtp-4",
-          "tools": "@{tools}"
-        }
-      },
-      {
-        "type": ["MarketingAgent"],
-        "params": {
-          "prompt": "@{input.prompt}"
-        }
-      }
-    ]
-  }
-}
+[
+  { "actor": "ChatActor" },
+  { "on": { "tools": "string[]", "prompt": "string" } },
+  {
+    "step": "tools",
+    "run": "@{tools.filter((tool) => input.tool.includes(tool.name))}"
+  },
+  { "if": "2 > 3" },
+  {
+    "step": "MarketingAgent",
+    "type": ["Agent::new"],
+    "params": {
+      "instructions": "asdasdadas asdas da",
+      "model": "gtp-4",
+      "tools": "@{tools}"
+    }
+  },
+  {
+    "type": ["MarketingAgent"],
+    "params": {
+      "prompt": "@{input.prompt}"
+    }
+  },
+  { "end": "if" }
+]
