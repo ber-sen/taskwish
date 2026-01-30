@@ -16,6 +16,11 @@
           "tools": "@{tools}"
         },
         {
+          "[emit]": "Send message",
+          "from": "string",
+          "subject": "string"
+        },
+        {
           "[MarketingAgent]": "end",
           "prompt": "@{input.prompt}"
         },
