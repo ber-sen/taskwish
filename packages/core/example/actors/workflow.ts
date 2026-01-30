@@ -14,6 +14,8 @@ export default Actor("Simple")
     }),
 
     Workflow(
+      "My workflow",
+
       Step("launchApp", {
         element: "Laptop Stand",
         centerElement: true,
