@@ -1,6 +1,6 @@
 {
   "actor": "ChatActor",
-  "behavors": [
+  "behaviors": [
     {
       "on": { "tools": "string[]", "prompt": "string" },
       "run": [
