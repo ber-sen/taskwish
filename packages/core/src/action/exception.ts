@@ -4,7 +4,7 @@ export const Exception = <const Status extends number, const Data>(
   status: Status,
   data?: Data
 ): Taskwish.Exception<Status, Data> => ({
-  [Taskwish.Type]: ["exception"],
+  [Taskwish.Name]: ["exception"],
   id: null,
   threadId: null,
   status,

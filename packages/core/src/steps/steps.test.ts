@@ -130,10 +130,10 @@ describe("Steps", () => {
   });
 
   it("should work with match", async () => {
-    const Step = <const Type extends string, const R>(
-      name: Type,
+    const Step = <const Name extends string, const R>(
+      name: Name,
       data: R
-    ): Taskwish.Step<Type, R> => ({}) as never;
+    ): Taskwish.Step<Name, R> => ({}) as never;
 
     const steps = async function* () {
       yield Step("1", 3);
@@ -151,7 +151,7 @@ describe("Steps", () => {
     };
 
 
-    type T = ReturnType<typeof steps>;
+    type T = ReturnName<typeof steps>;
 
     type succeed = Expect<
       Equal<
@@ -196,13 +196,13 @@ type AddOption<Option, T> = T extends string[]
     ? { [K in keyof T]: AddOption<Option, T[K]> }
     : T;
 
-type Append<Type extends string, Result, Next> = Result extends
+type Append<Name extends string, Result, Next> = Result extends
   | ":loop"
   | ":parallel"
   | ":if"
   | ":end"
   ? AddOption<Result, Next>
-  : Record<Type, { result: Result; operator: [] }> & Next;
+  : Record<Name, { result: Result; operator: [] }> & Next;
 
 type ExtractResults<T> = {
   [K in keyof T]: T[K] extends { operator: infer O; result: infer R }
