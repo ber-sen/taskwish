@@ -8,23 +8,26 @@
           "(Script)": "tools",
           "run": "@{tools.filter((tool) => input.tool.includes(tool.name))}"
         },
-        { "(If)": "@{2 > 3}" },
         {
-          "(Agent::new)": "MarketingAgent",
-          "instructions": "asdasdadas asdas da",
-          "model": "gtp-4",
-          "tools": "@{tools}"
-        },
-        {
-          "(Emit)": "Send message",
-          "from": "string",
-          "subject": "string"
-        },
-        {
-          "(MarketingAgent)": "end",
-          "prompt": "@{input.prompt}"
-        },
-        { "(End)": "If" }
+          "(If)": "@{2 > 3}",
+          "run": [
+            {
+              "(Agent)": "MarketingAgent",
+              "instructions": "asdasdadas asdas da",
+              "model": "gtp-4",
+              "tools": "@{tools}"
+            },
+            {
+              "(Emit)": "Send message",
+              "from": "string",
+              "subject": "string"
+            },
+            {
+              "(MarketingAgent)": "end",
+              "prompt": "@{input.prompt}"
+            }
+          ]
+        }
       ]
     }
   ]
