@@ -14,19 +14,26 @@ export default Actor("Simple")
     }),
 
     Job(
-      Step("second step", function () {
-        return this.action.slack.sendMessage({
-          channel: "#general",
-          message: "Hello World",
-        });
+      "lorem",
+
+      Step("last step", function () {
+        return this.firstStep.length;
       }),
 
-      Step("third step", function () {
-        return this.action.slack.sendMessage({
-          channel: "#general",
-          message: "Hello World",
-        });
-      }),
+      Mobile(
+        Step("launchApp", "com.inditex.zara"),
+        Step("tapOn", "Enter"),
+        Step("tapOn", "Accept all cookies"),
+        Step("scroll"),
+        Step("tapOn", "Menu"),
+        Step("tapOn", {
+          id: "container-id",
+          index: 2,
+        }),
+        Step("end mob", function () {
+          return 3;
+        }),
+      ),
     ),
 
     Step("last step", function () {
