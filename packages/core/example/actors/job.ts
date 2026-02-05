@@ -1,6 +1,6 @@
 import { Actor, Step, Steps, SubSteps } from "../../src";
 
-const Browser: Steps<typeof SubSteps> = {} as never;
+const Job: Steps<typeof SubSteps> = {} as never;
 
 export default Actor("Simple")
   .use(import("../package"))
@@ -13,22 +13,19 @@ export default Actor("Simple")
       });
     }),
 
-    Browser(
-      Step("launchApp", {
-        element: "Laptop Stand",
-        centerElement: true,
-      }),
-
-      Step("mid d", function () {
+    Job(
+      Step("second step", function () {
         return this.action.slack.sendMessage({
           channel: "#general",
           message: "Hello World",
         });
       }),
 
-      Step("tapOn", {
-        element: "Laptop Stand",
-        centerElement: true,
+      Step("third step", function () {
+        return this.action.slack.sendMessage({
+          channel: "#general",
+          message: "Hello World",
+        });
       }),
     ),
 

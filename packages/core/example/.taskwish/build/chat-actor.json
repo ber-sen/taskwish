@@ -5,7 +5,7 @@
       "on": { "tools": "string[]", "prompt": "string" },
       "run": [
         {
-          "(Script)": "tools",
+          "(Step)": "tools",
           "run": "@{tools.filter((tool) => input.tool.includes(tool.name))}"
         },
         {
