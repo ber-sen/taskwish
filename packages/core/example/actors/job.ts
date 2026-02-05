@@ -1,6 +1,6 @@
 import { Actor, Step, Steps, SubSteps } from "../../src";
 
-const Worker: Steps<typeof SubSteps> = {} as never;
+const Job: Steps<typeof SubSteps> = {} as never;
 
 export default Actor("Simple")
   .use(import("../package"))
@@ -13,7 +13,7 @@ export default Actor("Simple")
       });
     }),
 
-    Worker(
+    Job(
       Step("second step", function () {
         return this.action.slack.sendMessage({
           channel: "#general",
