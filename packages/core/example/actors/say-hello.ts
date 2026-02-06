@@ -17,7 +17,7 @@ export default Actor("Greeter")
       description: "Send a message to slack",
       
       run: ({ action, input }) =>
-        action.slack.sendMessage({
+        action.Slack.sendMessage({
           channel: "#general",
           text: `Does someone speak ${input.language}?`,
         }),

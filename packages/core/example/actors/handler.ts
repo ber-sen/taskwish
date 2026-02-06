@@ -4,7 +4,7 @@ export default Actor("Simple")
   .use(import("../package"))
 
   .run(function () {
-    return this.action.slack.sendMessage({
+    return this.run.Slack.sendMessage({
       channel: "#general",
       message: "Hello World",
     });

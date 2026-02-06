@@ -22,7 +22,7 @@ export default Actor("Simple")
       "first step",
       { retries: { limit: 3, delay: "5 seconds", backoff: "linear" } },
       function () {
-        return this.action.slack.sendMessage({
+        return this.run.Slack.sendMessage({
           channel: "#general",
           message: this.input.message,
         });

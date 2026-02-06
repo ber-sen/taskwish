@@ -7,7 +7,7 @@ export default Actor("Say hello")
 
   .run(
     Step("first step", function () {
-      return this.action.slack.sendMessage({
+      return this.run.Slack.sendMessage({
         channel: "#general",
         message: "Hello World",
       });
@@ -17,14 +17,14 @@ export default Actor("Say hello")
       () => Loop.Range(0, 10),
 
       Step("loop step", function () {
-        return this.action.slack.sendMessage({
+        return this.run.Slack.sendMessage({
           channel: "#general",
           message: "Hello World",
         });
       }),
 
       Step("loop step 2", function () {
-        return this.action.slack.sendMessage({
+        return this.run.Slack.sendMessage({
           channel: "#general",
           message: "Hello World",
         });
@@ -32,7 +32,7 @@ export default Actor("Say hello")
     ),
 
     Step("last step", function () {
-      return this.action.slack.sendMessage({
+      return this.run.Slack.sendMessage({
         channel: "#general",
         message: "Hello World",
       });

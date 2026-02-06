@@ -15,7 +15,7 @@ export default Actor("Sub steps")
     {
       name: "send message",
       run: ({ action, input }) =>
-        action.slack.sendMessage({
+        action.Slack.sendMessage({
           channel: "#general",
           text: `Does someone speak ${input.language}?`,
         }),
@@ -33,7 +33,7 @@ export default Actor("Sub steps")
     {
       name: "send message",
       run: ({ action, input }) =>
-        action.slack.sendMessage({
+        action.Slack.sendMessage({
           channel: "#general",
           text: `Does someone speak ${input.language}?`,
         }),
@@ -49,7 +49,7 @@ export default Actor("Sub steps")
       {
         name: "send message",
         run: ({ action, input }) =>
-          action.slack.sendMessage({
+          action.Slack.sendMessage({
             channel: "#general",
             text: `Does someone speak ${input.language}?`,
           }),

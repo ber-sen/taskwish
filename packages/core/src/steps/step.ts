@@ -153,7 +153,7 @@ const a = Steps(
   ]),
 
   Step("send message", function () {
-    return this.action.slack.sendMessage({
+    return this.run.Slack.sendMessage({
       channel: "#general",
       message: this.generateText,
     });

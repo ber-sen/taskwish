@@ -8,7 +8,7 @@ export default Actor("Simple")
     options: [Source.pipeTo(Response)],
 
     run: ({ action }) =>
-      action.slack.sendMessage({
+      action.Slack.sendMessage({
         channel: "#general",
         text: "Hello World",
       }),

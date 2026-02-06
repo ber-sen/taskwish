@@ -4,7 +4,7 @@ export default Actor("Simple")
   .use(import("../package"))
 
   .run(
-    Step.Run(["slack.sendMessage", "first step"], {
+    Step.Run(["Slack.sendMessage", "first step"], {
       channel: "#general",
       message: "Hello World",
     }),

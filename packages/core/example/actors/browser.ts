@@ -7,7 +7,7 @@ export default Actor("Simple")
 
   .run(
     Step("first step", function () {
-      return this.action.slack.sendMessage({
+      return this.run.Slack.sendMessage({
         channel: "#general",
         message: "Hello World",
       });
@@ -20,7 +20,7 @@ export default Actor("Simple")
       }),
 
       Step("mid d", function () {
-        return this.action.slack.sendMessage({
+        return this.run.Slack.sendMessage({
           channel: "#general",
           message: "Hello World",
         });

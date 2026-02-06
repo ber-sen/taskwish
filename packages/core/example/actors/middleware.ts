@@ -24,7 +24,7 @@ export default Actor("Slack")
     {
       name: "send message",
       run: ({ action, input }) =>
-        action.slack.sendMessage({
+        action.Slack.sendMessage({
           channel: "#general",
           text: `Does someone speak ${input.language}?`,
         }),
@@ -33,7 +33,7 @@ export default Actor("Slack")
     {
       name: "send message",
       run: ({ input }) =>
-        action.slack.sendMessage({
+        action.Slack.sendMessage({
           channel: "#general",
           text: `Does someone speak ${input.language}?`,
         }),
