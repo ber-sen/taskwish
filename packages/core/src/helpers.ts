@@ -1,4 +1,4 @@
-import { type } from "arktype";
+import { Type, type } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 import { Taskwish } from "./types";
 
@@ -29,7 +29,11 @@ export type ToCapitalCase<T extends string> = UppercaseFirst<
 >;
 
 export type PrettyScope<T> = {
-  [K in keyof T as ToCamelCase<Extract<K, string>>]: T[K];
+  [K in keyof T as 0 extends 1 & T[K]
+    ? ToCamelCase<Extract<K, string>>
+    : T[K] extends Type<any>
+      ? ToCapitalCase<Extract<K, string>>
+      : ToCamelCase<Extract<K, string>>]: T[K];
 } & {};
 
 export type Pretty<T> = { [K in keyof T]: T[K] } & {};
@@ -57,8 +61,8 @@ export type UUIDv7String = `${string}-${string}-7${string}-${string}-${string}`;
 
 export type UUIDv5String = `${string}-${string}-5${string}-${string}-${string}`;
 
-export type ValidateSchema<Schema> =
-  Schema extends StandardSchemaV1<any> ? Schema : type.validate<Schema>;
+export type ValidateSchema<Schema, Scope = {}> =
+  Schema extends StandardSchemaV1<any> ? Schema : type.validate<Schema, Scope>;
 
 export type InferSchema<Schema, Scope = {}> =
   Schema extends StandardSchemaV1<infer Input>

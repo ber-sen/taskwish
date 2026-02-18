@@ -1,19 +1,13 @@
 import { Actor, Step, Steps, SubSteps, Type } from "../../src";
-import { ValidateSchema } from "../../src/helpers";
+import { PrettyScope, ValidateSchema } from "../../src/helpers";
 
 const Browser: Steps<typeof SubSteps> & {
   Act: <Ctx>(prompt: string) => {
     step: (ctx: Ctx) => Ctx;
   };
-  Extract: <Ctx, const Schema>(
+  Extract: <Ctx extends Record<any, any>, const Schema>(
     name: string,
-    schema: ValidateSchema<Schema>,
-  ) => {
-    step: (ctx: Ctx) => Ctx;
-  };
-  ExtractList: <Ctx, const Schema>(
-    name: string,
-    schema: ValidateSchema<Schema>,
+    schema: ValidateSchema<Schema, PrettyScope<Ctx["scope"]>>,
   ) => {
     step: (ctx: Ctx) => Ctx;
   };
@@ -41,19 +35,17 @@ export const { browse } = BrowserActor()
 
       Browser.Act("Click the login button"),
 
-      Browser.Extract("title", {
-        title: "string",
-      }),
-
-      Browser.ExtractList("news", {
+      Type("News item", {
         title: "string",
         points: "number",
         by: "string",
         commentsURL: "string",
       }),
+
+      Browser.Extract("news", "NewsItem[] >= 5"),
     ),
 
     Step("last step", function () {
-      return this.news;
+      return this;
     }),
   );
