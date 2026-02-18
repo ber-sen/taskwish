@@ -1,11 +1,17 @@
-import { Actor, Step, Steps, SubSteps } from "../../src";
+import { Actor, Step, Steps, SubSteps, Type } from "../../src";
 import { ValidateSchema } from "../../src/helpers";
 
 const Browser: Steps<typeof SubSteps> & {
   Act: <Ctx>(prompt: string) => {
     step: (ctx: Ctx) => Ctx;
   };
-  Extract: <Ctx, Schema>(
+  Extract: <Ctx, const Schema>(
+    name: string,
+    schema: ValidateSchema<Schema>,
+  ) => {
+    step: (ctx: Ctx) => Ctx;
+  };
+  ExtractList: <Ctx, const Schema>(
     name: string,
     schema: ValidateSchema<Schema>,
   ) => {
@@ -31,21 +37,23 @@ export const { browse } = BrowserActor()
     }),
 
     Browser(
-      Step("launchBrowser", "http://www.google.com"),
-
-      Step("info", function () {
-        return 3;
-      }),
+      Step("launchBrowser", "https://news.ycombinator.com"),
 
       Browser.Act("Click the login button"),
 
-      Browser.Extract("lorem", {
-        order_id: "string",
-        total: "number",
+      Browser.Extract("title", {
+        title: "string",
+      }),
+
+      Browser.ExtractList("news", {
+        title: "string",
+        points: "number",
+        by: "string",
+        commentsURL: "string",
       }),
     ),
 
     Step("last step", function () {
-      return this.info;
+      return this.news;
     }),
   );
