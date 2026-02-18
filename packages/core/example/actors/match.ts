@@ -1,22 +1,35 @@
-import { Actor } from "../../src";
+import { Actor, Step, Steps } from "../../src";
+import { OptionSubSteps } from "../../src/steps/sub-steps";
 
-export default Actor("Slack")
-  .use(import("../package"))
+const Match: OptionSubSteps & {
+  With: OptionSubSteps;
+} = {} as never;
 
-  .on("slack.message")
+const { MyActor } = Actor("My actor");
 
-  .steps(
-    ($) => Match($.input, { subtype: true }),
+export const { match } = MyActor()
+  .Action("Match")
 
-    "me_message",
+  .on({ type: "string" })
 
-    ($) => $.match,
+  .run(
+    Match(
+      ($) => $.input,
 
-    "bot_message",
+      Match.With(
+        { type: "error" },
 
-    { name: "lorem", run: ($) => 3 },
+        Step("Lorem", function () {
+          return 3;
+        }),
+      ),
 
-    ($) => $.ipsum,
+      Match.With(
+        { type: "ok", data: { type: "text" } },
 
-    End(Match)
+        Step("Lorem", function () {
+          return 3;
+        }),
+      ),
+    ),
   );
