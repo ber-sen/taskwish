@@ -106,33 +106,3 @@ type ActionPaths<T, Prefix extends string = ""> = {
       : ActionPaths<T[K], `${Prefix}${Extract<K, string>}.`>
     : never;
 }[keyof T];
-
-Step.Run = <const Name extends string, Ctx extends Record<any, any>>(
-  action:
-    | ActionPaths<Ctx["scope"]["action"]>
-    | ActionPaths<Ctx["scope"]["ai"]>
-    | [
-        ActionPaths<Ctx["scope"]["action"]> | ActionPaths<Ctx["scope"]["ai"]>,
-        Name,
-      ],
-  params: any,
-): {
-  step: (ctx: Ctx) => Name extends string
-    ? {
-        name: Ctx["name"];
-        steps: Ctx["steps"] &
-          Record<
-            Name,
-            "if" extends keyof Ctx["scope"] ? string | undefined : string
-          >;
-        scope: Record<
-          Name,
-          "if" extends keyof Ctx["scope"] ? string | undefined : string
-        > &
-          Ctx["scope"];
-        last: string;
-      }
-    : Ctx;
-} => {
-  return {} as never;
-};

@@ -7,7 +7,7 @@ const { Greeter } = Actor("Greeter", {
 });
 
 // hello action
-const { hello } = Greeter()
+export const { hello } = Greeter()
   .Action("Hello")
 
   .on({ name: "string" })
@@ -17,7 +17,7 @@ const { hello } = Greeter()
   });
 
 // bye action
-const { bye } = Greeter()
+export const { bye } = Greeter()
   .Action("Bye")
 
   .on({ name: "string" })
@@ -35,5 +35,3 @@ const { bye } = Greeter()
       return this.midStep;
     }),
   );
-
-export { hello, bye };

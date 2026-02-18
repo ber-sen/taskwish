@@ -1,7 +1,9 @@
-import { Source, Actor, Step } from "../../src";
+import { Actor } from "../../src";
 
-export default Actor("Simple")
-  .use(import("../package"))
+const { MyActor } = Actor("My actor");
+
+export const { handle } = MyActor()
+  .Action("Handle")
 
   .run(function () {
     return this.run.slack.sendMessage({

@@ -1,6 +1,10 @@
-import { Action, Actor, Agent, Step, Tool, Type } from "../../src";
+import { Actor, Agent, Step, Tool, Type } from "../../src";
 
-export default Actor("Chat bot")
+const { ChatBot } = Actor("Chat bot");
+
+export const { chat } = ChatBot()
+  .Action("Chat")
+
   .on({ prompt: Type("string", "User's prompt") })
 
   .run(

@@ -1,28 +1,27 @@
 import { Actor, Step, Steps, SubSteps } from "../../src";
 
-const Stream: Steps<typeof SubSteps> = {} as never
+const Stream: Steps<typeof SubSteps> = {} as never;
 
+const { MyActor } = Actor("My Actor");
 
-export default Actor("Simple")
-  .use(import("../package"))
+export const { stream } = MyActor()
+  .Action("Stream")
 
   .run(
     Stream(
-      Step("launchApp", {
-        element: "Laptop Stand",
-        centerElement: true,
+      Step("First step", function () {
+        return true;
       }),
 
-      Step("mid d", function () {
-        return this.run.Slack.sendMessage({
+      Step("Mid step", function () {
+        return this.run.slack.sendMessage({
           channel: "#general",
           message: "Hello World",
         });
       }),
 
-      Step("tapOn", {
-        element: "Laptop Stand",
-        centerElement: true,
-      })
-    )
+      Step("End step", function () {
+        return this.midStep;
+      }),
+    ),
   );

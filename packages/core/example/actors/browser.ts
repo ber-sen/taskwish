@@ -17,7 +17,9 @@ const { BrowserActor } = Actor("Browser Actor", {
   API_KEY: "string",
 });
 
-const { browse } = BrowserActor("browse")
+export const { browse } = BrowserActor()
+  .Action("Browse")
+
   .on({ input: "string" })
 
   .run(
@@ -47,5 +49,3 @@ const { browse } = BrowserActor("browse")
       return this.info;
     }),
   );
-
-export { browse };

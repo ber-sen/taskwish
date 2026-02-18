@@ -1,13 +1,15 @@
-import { Loop, Actor, Message, Step } from "../../src";
+import { Loop, Actor, Step } from "../../src";
 
-export default Actor("Say hello")
-  .use(import("../package"))
+const { MyActor } = Actor("My actor");
+
+export const { loop } = MyActor()
+  .Action("Loop")
 
   .on({ user: { name: "string", age: "number" } })
 
   .run(
     Step("first step", function () {
-      return this.run.Slack.sendMessage({
+      return this.run.slack.sendMessage({
         channel: "#general",
         message: "Hello World",
       });
@@ -17,24 +19,24 @@ export default Actor("Say hello")
       () => Loop.Range(0, 10),
 
       Step("loop step", function () {
-        return this.run.Slack.sendMessage({
+        return this.run.slack.sendMessage({
           channel: "#general",
           message: "Hello World",
         });
       }),
 
       Step("loop step 2", function () {
-        return this.run.Slack.sendMessage({
+        return this.run.slack.sendMessage({
           channel: "#general",
           message: "Hello World",
         });
-      })
+      }),
     ),
 
     Step("last step", function () {
-      return this.run.Slack.sendMessage({
+      return this.run.slack.sendMessage({
         channel: "#general",
         message: "Hello World",
       });
-    })
+    }),
   );
