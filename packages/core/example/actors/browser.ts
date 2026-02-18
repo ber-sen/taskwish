@@ -18,9 +18,9 @@ export default Actor("Simple")
         url: "Laptop Stand",
       }),
 
-      Step("act", "Click the login button"),
-      
-      Step("lorem", {
+      Browser.Act("Click the login button"),
+  
+      Browser.Extract("lorem", {
         order_id: "string",
         total: "number",
         items: "string[]",
