@@ -67,7 +67,17 @@ export interface ActionFactory<
     Name,
     {
       name: Ctx["name"];
-      scope: InferTriggerScope<Schema> & Ctx["scope"];
+      scope: InferTriggerScope<Schema> & {
+        run: {
+          generateText: (params: { model: "gpt5"; prompt: string }) => string;
+          slack: {
+            sendMessage: (params: {
+              channel: "#general";
+              message: string;
+            }) => string;
+          };
+        };
+      } & Ctx["scope"];
       step: { name: "launchApp" | StepName; map: { launchApp: string } };
     }
   >;
