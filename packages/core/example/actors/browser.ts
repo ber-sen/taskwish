@@ -14,25 +14,20 @@ export default Actor("Simple")
     }),
 
     Browser(
-      Step("launchApp", {
-        element: "Laptop Stand",
-        centerElement: true,
+      Step("launchBrowser", {
+        url: "Laptop Stand",
       }),
 
-      Step("mid d", function () {
-        return this.run.Slack.sendMessage({
-          channel: "#general",
-          message: "Hello World",
-        });
-      }),
-
-      Step("tapOn", {
-        element: "Laptop Stand",
-        centerElement: true,
+      Step("act", "Click the login button"),
+      
+      Step("lorem", {
+        order_id: "string",
+        total: "number",
+        items: "string[]",
       }),
     ),
 
     Step("last step", function () {
-      return this.firstStep.length;
+      return this.lorem.total;
     }),
   );
