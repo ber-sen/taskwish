@@ -2,9 +2,9 @@ import { Actor, Step } from "../../src";
 
 const { MyActor } = Actor("My actor");
 
-const { runSteps } = MyActor()
+export const { runSteps } = MyActor()
   .Action("Run steps")
-  
+
   .on({ message: "string" })
 
   .run(
@@ -19,5 +19,3 @@ const { runSteps } = MyActor()
       return this.firstStep.length;
     }),
   );
-
-export { runSteps };

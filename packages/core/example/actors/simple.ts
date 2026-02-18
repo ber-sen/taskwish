@@ -2,7 +2,7 @@ import { Actor, Step } from "../../src";
 
 const { MyActor } = Actor("MyActor");
 
-const { sendMessage } = MyActor()
+export const { sendMessage } = MyActor()
   .Action("Send message")
 
   .run(
@@ -13,5 +13,3 @@ const { sendMessage } = MyActor()
       });
     }),
   );
-
-export { sendMessage };

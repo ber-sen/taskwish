@@ -1,13 +1,15 @@
 import { Actor, Parallel, Step } from "../../src";
 
-export default Actor("Say hello")
-  .use(import("../package"))
+const { MyActor } = Actor("My actor");
+
+export const { parallel } = MyActor()
+  .Action("Parallel")
 
   .on({ user: { model: "string" } })
 
   .run(
     Step("first step", function () {
-      return this.run.Slack.sendMessage({
+      return this.run.slack.sendMessage({
         channel: "#general",
         message: "Hello World",
       });
@@ -15,7 +17,7 @@ export default Actor("Say hello")
 
     Parallel(
       Step("parallel first step", function () {
-        return this.run.Slack.sendMessage({
+        return this.run.slack.sendMessage({
           channel: "#general",
           message: "Hello World",
         });
@@ -23,10 +25,10 @@ export default Actor("Say hello")
 
       Step("parallel last step", function () {
         return this.firstStep.length;
-      })
+      }),
     ),
 
     Step("last step", function () {
       return this.firstStep.length;
-    })
+    }),
   );
