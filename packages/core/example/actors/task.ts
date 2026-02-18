@@ -1,6 +1,6 @@
 import { Actor, Step, Steps, SubSteps } from "../../src";
 
-const Mobile = {} as Steps<typeof SubSteps>
+const Mobile = {} as Steps<typeof SubSteps>;
 
 const Task: Steps<typeof SubSteps> = {} as never;
 
