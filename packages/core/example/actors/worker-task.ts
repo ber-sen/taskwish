@@ -2,7 +2,7 @@ import { Actor, Step, Steps, SubSteps } from "../../src";
 
 const Mobile = {} as Steps<typeof SubSteps>
 
-const WorkerTask: Steps<typeof SubSteps> = {} as never;
+const Task: Steps<typeof SubSteps> = {} as never;
 
 export default Actor("Simple")
   .use(import("../package"))
@@ -15,7 +15,7 @@ export default Actor("Simple")
       });
     }),
 
-    WorkerTask(
+    Task(
       Step("last step", function () {
         return this.firstStep.length;
       }),
