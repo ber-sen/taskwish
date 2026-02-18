@@ -20,7 +20,7 @@ export default Actor("ChatBot")
     }),
 
     Step("response", function () {
-      this.ai.generateText({
+      this.run.generateText({
         model: "gpt5",
         prompt: "asdad",
       });

@@ -1,25 +1,7 @@
 import { ToCamelCase } from "../helpers";
 import { Taskwish } from "../types";
 
-
 export const SubSteps = Symbol.for("SubSteps");
-
-interface Ctx {
-  name: string;
-  scope: {
-    ai: {
-      generateText: (params: { model: "gpt5"; prompt: string }) => string;
-    };
-    action: {
-      slack: {
-        sendMessage: (params: {
-          channel: "#general";
-          message: string;
-        }) => string;
-      };
-    };
-  };
-}
 
 export type StepsReturn<Ctx, SubCtx, Last> = Ctx extends typeof SubSteps
   ? {

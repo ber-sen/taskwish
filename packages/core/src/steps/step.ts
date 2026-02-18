@@ -1,6 +1,5 @@
 import { PrettyScope } from "../helpers";
 import { Taskwish } from "../types";
-import { Steps } from "./steps";
 
 export function Step<
   Ctx extends Record<any, any>,
@@ -30,7 +29,7 @@ export function Step<
       Name extends keyof Ctx["step"]["map"] ? string : ReturnType<Handler>
     > &
       Ctx["scope"];
-    last: Name;
+    last: ReturnType<Handler>;
   };
 };
 
@@ -60,7 +59,7 @@ export function Step<
     steps: Ctx["steps"] & Record<Name, A>;
     step: Ctx["step"];
     scope: Record<Name, A> & Ctx["scope"];
-    last: Name;
+    last: ReturnType<Handler>;
   };
 };
 
@@ -76,7 +75,7 @@ export function Step<
     ? Ctx["step"]["map"][Name]
     : never,
   A,
-  B
+  B,
 >(
   name: Name,
   handler: [
@@ -84,7 +83,7 @@ export function Step<
     (
       res: Name extends keyof Ctx["step"]["map"] ? string : ReturnType<Handler>,
     ) => A,
-    (input: A) => B
+    (input: A) => B,
   ],
 ): {
   step: (ctx: Ctx) => {
@@ -92,7 +91,7 @@ export function Step<
     steps: Ctx["steps"] & Record<Name, B>;
     step: Ctx["step"];
     scope: Record<Name, B> & Ctx["scope"];
-    last: Name;
+    last: ReturnType<Handler>;
   };
 };
 
@@ -137,25 +136,3 @@ Step.Run = <const Name extends string, Ctx extends Record<any, any>>(
 } => {
   return {} as never;
 };
-
-// example
-
-const a = Steps(
-  Step("get prompt", function () {
-    return "asdad";
-  }),
-
-  Step("generate text", [
-    function () {
-      return this.ai.generateText({ model: "gpt5", prompt: this.getPrompt });
-    },
-    { retry: 3 },
-  ]),
-
-  Step("send message", function () {
-    return this.run.Slack.sendMessage({
-      channel: "#general",
-      message: this.generateText,
-    });
-  }),
-);

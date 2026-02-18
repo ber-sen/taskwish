@@ -6,6 +6,7 @@ const { Greeter } = Actor("Greeter", {
   API_KEY: "string",
 });
 
+// hello
 const { hello } = Greeter("hello")
   .on({ name: "string" })
 
@@ -13,6 +14,7 @@ const { hello } = Greeter("hello")
     return `Hello ${this.input.name}`;
   });
 
+// bye
 const { bye } = Greeter("bye")
   .on({ name: "string" })
 
@@ -21,17 +23,13 @@ const { bye } = Greeter("bye")
       return this.input.name;
     }),
 
-    Step("End step", [
-      function () {
-        return `Bye ${this.name}`;
-      },
-      (a) => 3,
-      (b) => true as const
-    ]),
+    Step("Mid step", function () {
+      return `Bye ${this.name}`;
+    }),
 
-    Step("Real end", function(){
-      this.endStep
-    })
+    Step("Last step", function () {
+      return this.midStep;
+    }),
   );
 
 export { hello, bye };

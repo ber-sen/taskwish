@@ -20,13 +20,13 @@ export type LowercaseFirst<T extends string> =
   T extends `${infer First}${infer Rest}` ? `${Lowercase<First>}${Rest}` : T;
 
 export type UppercaseFirst<T extends string> =
-  T extends `${infer First}${infer Rest}`
-    ? `${Uppercase<First>}${Rest}`
-    : T;
+  T extends `${infer First}${infer Rest}` ? `${Uppercase<First>}${Rest}` : T;
 
 export type ToCamelCase<T extends string> = LowercaseFirst<CamelCaseHelper<T>>;
 
-export type ToCapitalCase<T extends string> = UppercaseFirst<CamelCaseHelper<T>>;
+export type ToCapitalCase<T extends string> = UppercaseFirst<
+  CamelCaseHelper<T>
+>;
 
 export type PrettyScope<T> = {
   [K in keyof T as ToCamelCase<Extract<K, string>>]: T[K];
@@ -57,8 +57,8 @@ export type UUIDv7String = `${string}-${string}-7${string}-${string}-${string}`;
 
 export type UUIDv5String = `${string}-${string}-5${string}-${string}-${string}`;
 
-export type ValidateSchema<Schema, Scope = {}> =
-  Schema extends StandardSchemaV1<any> ? Schema : type.validate<Schema, Scope>;
+export type ValidateSchema<Schema> =
+  Schema extends StandardSchemaV1<any> ? Schema : type.validate<Schema>;
 
 export type InferSchema<Schema, Scope = {}> =
   Schema extends StandardSchemaV1<infer Input>
@@ -78,7 +78,7 @@ export type ValidateTrigger<Schema> =
 
 export type InferTriggerScope<Schema> =
   Schema extends StandardSchemaV1<infer Input>
-    ? { input: Input; event: Taskwish.Event<"command", Input>; }
+    ? { input: Input; event: Taskwish.Event<"command", Input> }
     : Schema extends Taskwish.Event<infer Name, infer Input>
       ? {
           input: Input;
