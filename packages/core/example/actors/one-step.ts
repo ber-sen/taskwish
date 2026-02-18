@@ -1,13 +1,19 @@
-import { Source, Actor, Step } from "../../src";
+import { Actor, Step } from "../../src";
 
-export default Actor("Simple")
-  .use(import("../package"))
+const { MyActor } = Actor("My actor");
+
+const { myAction } = MyActor()
+  .Action("My action")
+
+  .on({ name: "string" })
 
   .run(
     Step("first step", function () {
-      return this.run.Slack.sendMessage({
+      return this.run.slack.sendMessage({
         channel: "#general",
-        message: "Hello World",
+        message: `Hello ${this.input.name}`,
       });
-    })
+    }),
   );
+
+export { myAction };

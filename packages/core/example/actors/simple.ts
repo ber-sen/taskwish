@@ -1,17 +1,17 @@
-import { Source, Actor } from "../../src";
+import { Actor, Step } from "../../src";
 
-export default Actor("Simple")
-  .use(import("../package"))
+const { MyActor } = Actor("MyActor");
 
-  .steps({
-    name: "asds ipsum",
-    options: [Source.pipeTo(Response)],
+const { sendMessage } = MyActor()
+  .Action("Send message")
 
-    run: ({ action }) =>
-      action.Slack.sendMessage({
+  .run(
+    Step("First step", function () {
+      return this.run.slack.sendMessage({
         channel: "#general",
-        text: "Hello World",
-      }),
-  })
+        message: `Hello World`,
+      });
+    }),
+  );
 
-  .meta({ description: "Send a message to slack" });
+export { sendMessage };

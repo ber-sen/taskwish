@@ -61,23 +61,26 @@ type StepName = string & {};
 
 export interface ActionFactory<
   Name extends string,
-  Ctx extends Record<any, any> = { model: "gpt"; name: Name },
+  Ctx extends Record<any, any> = {
+    name: Name,
+    scope: {
+      run: {
+        generateText: (params: { model: "gpt5"; prompt: string }) => string;
+        slack: {
+          sendMessage: (params: {
+            channel: "#general";
+            message: string;
+          }) => string;
+        };
+      };
+    };
+  },
 > {
   on<const Schema>(trigger: ValidateTrigger<Schema>): ActionBody<
     Name,
     {
       name: Ctx["name"];
-      scope: InferTriggerScope<Schema> & {
-        run: {
-          generateText: (params: { model: "gpt5"; prompt: string }) => string;
-          slack: {
-            sendMessage: (params: {
-              channel: "#general";
-              message: string;
-            }) => string;
-          };
-        };
-      } & Ctx["scope"];
+      scope: InferTriggerScope<Schema> & Ctx["scope"];
       step: { name: "launchApp" | StepName; map: { launchApp: string } };
     }
   >;

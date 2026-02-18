@@ -6,16 +6,20 @@ const { Greeter } = Actor("Greeter", {
   API_KEY: "string",
 });
 
-// hello
-const { hello } = Greeter("hello")
+// hello action
+const { hello } = Greeter()
+  .Action("Hello")
+
   .on({ name: "string" })
 
   .run(function () {
     return `Hello ${this.input.name}`;
   });
 
-// bye
-const { bye } = Greeter("bye")
+// bye action
+const { bye } = Greeter()
+  .Action("Bye")
+
   .on({ name: "string" })
 
   .run(
