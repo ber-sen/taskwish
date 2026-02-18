@@ -35,7 +35,7 @@ export const { browse } = BrowserActor()
 
       Browser.Act("Click the login button"),
 
-      Type("News item", {
+      Type.New("News item", {
         title: "string",
         points: "number",
         by: "string",

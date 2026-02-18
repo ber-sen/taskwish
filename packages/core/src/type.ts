@@ -1,6 +1,15 @@
 import { type } from "arktype";
 
-export function Type<
+export function Type<const Schema>(
+  t: type.validate<Schema>,
+  description?: string,
+): type.instantiate<Schema>;
+
+export function Type() {
+  return {} as never;
+}
+
+Type.New = function <
   const Name extends string,
   const Schema,
   const Ctx extends Record<any, any>,
@@ -27,12 +36,3 @@ export function Type<
     last: type.instantiate<Schema>;
   };
 };
-
-export function Type<const Schema>(
-  t: type.validate<Schema>,
-  description?: string,
-): type.instantiate<Schema>;
-
-export function Type() {
-  return {} as never;
-}
