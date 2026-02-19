@@ -48,7 +48,7 @@ export type StepsReturn<Ctx, SubCtx, Last> = Ctx extends typeof SubSteps
 
 export interface Steps<Ctx extends Record<any, any> | typeof SubSteps> {
   <SubCtx extends Record<any, any>, A>(
-    [Taskwish.Step]:
+    step:
       | { [Taskwish.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
       | ((
           this: Ctx extends typeof SubSteps ? SubCtx["scope"] : Ctx["scope"],
