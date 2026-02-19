@@ -1,33 +1,29 @@
-import { Actor, Step, Steps, SubSteps } from "../../src";
-import { OptionSubSteps } from "../../src/steps/sub-steps";
+import { Actor, Step } from "../../src";
 
-const Options = Object.assign(
-  (...args: any) => {
-    return {} as never;
-  },
-  {
-    default: () => {
-      return {} as never;
-    },
-  },
-);
+const Options = {
+  retry:
+    (times: number) =>
+    <T>(R: T) =>
+      R,
+};
 
-export default Actor("Simple")
-  .use(import("../package"))
+const { MyActor } = Actor("My actor");
 
+export const { withOptions } = MyActor()
+  .Action("With options")
+  
   .on({ message: "string" })
 
   .run(
-    Step(
-      "first step",
-      { retries: { limit: 3, delay: "5 seconds", backoff: "linear" } },
+    Step("first step", [
       function () {
-        return this.run.Slack.sendMessage({
+        return this.run.slack.sendMessage({
           channel: "#general",
           message: this.input.message,
         });
       },
-    ),
+      Options.retry(5),
+    ]),
 
     Step("last step", function () {
       return this.firstStep.length;
