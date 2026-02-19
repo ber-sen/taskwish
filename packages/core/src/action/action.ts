@@ -28,7 +28,7 @@ type SignatureBody<
         Pretty<
           Record<
             "input",
-            Signature extends (...args: any) => Promise<any>
+            Signature extends (...args: any) => any
               ? Parameters<Signature>
               : Signature extends Taskwish.Handler
                 ? Parameters<Apply<Signature, Ctx>>
@@ -37,7 +37,7 @@ type SignatureBody<
             Ctx["scope"]
         >
       >,
-    ) => Signature extends (...args: any) => Promise<any>
+    ) => Signature extends (...args: any) => any
       ? ReturnType<Signature>
       : Signature extends Taskwish.Handler
         ? ReturnType<Apply<Signature, Ctx>>
@@ -45,7 +45,7 @@ type SignatureBody<
   >(
     run: Handler,
   ): {
-    [key in ToCamelCase<Name>]: Signature extends (...args: any) => Promise<any>
+    [key in ToCamelCase<Name>]: Signature extends (...args: any) => any
       ? Taskwish.Action<Name, Signature>
       : Signature extends Taskwish.Handler
         ? Taskwish.Action<
@@ -85,7 +85,7 @@ export interface ActionFactory<
   },
 > {
   on<const Schema>(trigger?: ValidateTrigger<Schema>): Schema extends
-    | ((...args: any) => Promise<any>)
+    | ((...args: any) => any)
     | Taskwish.Handler
     ? SignatureBody<Name, Ctx, Schema>
     : ActionBody<
