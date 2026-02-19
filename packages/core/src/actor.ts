@@ -1,9 +1,9 @@
 import { Action } from "./action";
 import { ToCapitalCase, ValidateSchema } from "./helpers";
 
-export const Actor = <const Name extends string, const Config>(
+export const Actor = <const Name extends string, const Env>(
   name: Name,
-  config?: ValidateSchema<Config>,
+  env?: ValidateSchema<Env>,
 ): {
   [key in ToCapitalCase<Name>]: () => { Action: typeof Action };
 } => {
