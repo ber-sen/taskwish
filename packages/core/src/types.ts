@@ -13,6 +13,8 @@ export namespace Taskwish {
 
   export const Meta = Symbol.for("Taskwish.Meta");
 
+  export const Step = Symbol.for("Taskwish.Step");
+
   export const Scope = Symbol.for("Taskwish.Ctx");
 
   export const Config = Symbol.for("Taskwish.Config");

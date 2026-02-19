@@ -1,5 +1,4 @@
 import { Actor, Step } from "../../src";
-import { z } from "zod";
 
 const { MyActor } = Actor("My actor");
 

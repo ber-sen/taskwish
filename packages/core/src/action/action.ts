@@ -93,7 +93,7 @@ export interface ActionFactory<
         {
           name: Ctx["name"];
           scope: InferTriggerScope<Schema> & Ctx["scope"];
-          step: { name: "launchApp" | StepName; map: { launchApp: string } };
+          [Taskwish.Step]: { name: "launchApp" | StepName; map: { launchApp: string } };
         }
       >;
   run: Steps<Ctx>;

@@ -1,17 +1,17 @@
-import { Actor, Step, Steps, SubSteps, Type } from "../../src";
+import { Actor, Step, Steps, SubSteps, Taskwish, Type } from "../../src";
 import { PrettyScope, ValidateSchema } from "../../src/helpers";
 
 export const Browser: Steps<typeof SubSteps> & {
   [key: `@${string}`]: Steps<typeof SubSteps>;
 } & {
   Act: <Ctx>(prompt: string) => {
-    step: (ctx: Ctx) => Ctx;
+    [Taskwish.Step]: (ctx: Ctx) => Ctx;
   };
   Extract: <Ctx extends Record<any, any>, const Schema>(
     name: string,
     schema: ValidateSchema<Schema, PrettyScope<Ctx["scope"]>>,
   ) => {
-    step: (ctx: Ctx) => Ctx;
+    [Taskwish.Step]: (ctx: Ctx) => Ctx;
   };
 } = {} as never;
 

@@ -1,4 +1,5 @@
 import { type } from "arktype";
+import { Taskwish } from "./types";
 
 export function Desc(
   strings: TemplateStringsArray,
@@ -16,7 +17,7 @@ export function Type<
   t: type.validate<Schema>,
   description?: string,
 ): {
-  step: (ctx: Ctx) => {
+  [Taskwish.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["steps"] &
       Record<
@@ -25,7 +26,7 @@ export function Type<
           ? string
           : type.instantiate<Schema>
       >;
-    step: Ctx["step"];
+    [Taskwish.Step]: Ctx["step"];
     scope: Record<
       Name,
       Name extends keyof Ctx["step"]["map"] ? string : type.instantiate<Schema>

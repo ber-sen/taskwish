@@ -16,14 +16,14 @@ export function Step<
   name: Name,
   handler: Name extends keyof Ctx["step"]["map"] ? Params : Handler,
 ): {
-  step: (ctx: Ctx) => {
+  [Taskwish.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["steps"] &
       Record<
         Name,
         Name extends keyof Ctx["step"]["map"] ? string : ReturnType<Handler>
       >;
-    step: Ctx["step"];
+    [Taskwish.Step]: Ctx["step"];
     scope: Record<
       Name,
       Name extends keyof Ctx["step"]["map"] ? string : ReturnType<Handler>
@@ -54,10 +54,10 @@ export function Step<
     ) => A,
   ],
 ): {
-  step: (ctx: Ctx) => {
+  [Taskwish.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["steps"] & Record<Name, A>;
-    step: Ctx["step"];
+    [Taskwish.Step]: Ctx["step"];
     scope: Record<Name, A> & Ctx["scope"];
     last: ReturnType<Handler>;
   };
@@ -86,10 +86,10 @@ export function Step<
     (input: A) => B,
   ],
 ): {
-  step: (ctx: Ctx) => {
+  [Taskwish.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["steps"] & Record<Name, B>;
-    step: Ctx["step"];
+    [Taskwish.Step]: Ctx["step"];
     scope: Record<Name, B> & Ctx["scope"];
     last: ReturnType<Handler>;
   };

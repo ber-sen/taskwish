@@ -1,4 +1,5 @@
 import { InferSchema, ValidateSchema } from "../helpers";
+import { Taskwish } from "../types";
 export interface Agent<Name extends string, Tools extends string[]> {
   name: Name;
   tools: Tools;
@@ -17,9 +18,9 @@ export function Agent<
     tools: Tools;
   },
 ): {
-  step: (input: Ctx) => {
+  [Taskwish.Step]: (input: Ctx) => {
     steps: Ctx["steps"] & Record<Name, Agent<Name, Tools>>;
-    step: Ctx["step"];
+    [Taskwish.Step]: Ctx["step"];
     scope: Record<Name, Agent<Name, Tools>> & Ctx["scope"];
     last: Agent<Name, Tools>;
   };
@@ -42,9 +43,9 @@ interface ToolStep<
   Output,
   Ctx extends Record<any, any>,
 > {
-  step: (input: Ctx) => {
+  [Taskwish.Step]: (input: Ctx) => {
     steps: Ctx["steps"] & Record<Name, Tool<Name, Input, Output>>;
-    step: Ctx["step"];
+    [Taskwish.Step]: Ctx["step"];
     scope: Record<Name, Tool<Name, Input, Output>> & Ctx["scope"];
     last: Tool<Name, Input, Output>;
   };

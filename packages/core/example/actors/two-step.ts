@@ -1,4 +1,4 @@
-import { Actor, Desc, Step } from "../../src";
+import { Actor, Desc, Step, Taskwish } from "../../src";
 
 const { MyActor } = Actor("My actor");
 
