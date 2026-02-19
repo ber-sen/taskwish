@@ -62,11 +62,18 @@ type StepName = string & {};
 export interface ActionFactory<
   Name extends string,
   Ctx extends Record<any, any> = {
-    name: Name,
+    name: Name;
     scope: {
       run: {
         generateText: (params: { model: "gpt5"; prompt: string }) => string;
         slack: {
+          [key: string]: {
+            sendMessage: (params: {
+              channel: "#general";
+              message: string;
+            }) => string;
+          };
+        } & {
           sendMessage: (params: {
             channel: "#general";
             message: string;

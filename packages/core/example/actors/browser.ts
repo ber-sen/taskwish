@@ -1,7 +1,9 @@
 import { Actor, Step, Steps, SubSteps, Type } from "../../src";
 import { PrettyScope, ValidateSchema } from "../../src/helpers";
 
-const Browser: Steps<typeof SubSteps> & {
+export const Browser: Steps<typeof SubSteps> & {
+  [key: string]: Steps<typeof SubSteps>;
+} & {
   Act: <Ctx>(prompt: string) => {
     step: (ctx: Ctx) => Ctx;
   };
@@ -31,7 +33,7 @@ export const { browse } = BrowserActor()
     }),
 
     Browser(
-      Step("launchBrowser", "https://news.ycombinator.com"),
+      Step("launchBrowser", { url: "https://news.ycombinator.com" }),
 
       Browser.Act("Click the login button"),
 
