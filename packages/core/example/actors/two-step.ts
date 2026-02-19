@@ -1,11 +1,11 @@
-import { Actor, Step } from "../../src";
+import { Actor, Desc, Step } from "../../src";
 
 const { MyActor } = Actor("My actor");
 
 export const { runSteps } = MyActor()
   .Action("Run steps")
 
-  .on({ message: "string" })
+  .on({ message: ["string", Desc`Slack message`] })
 
   .run(
     Step("first step", function () {

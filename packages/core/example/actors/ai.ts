@@ -1,4 +1,4 @@
-import { Actor, Description, Step, Tool, Type } from "../../src";
+import { Actor, Desc, Step, Tool, Type } from "../../src";
 // import tsEvent from "../events/ts-event";
 
 export default Actor("ChatBot")
@@ -10,7 +10,7 @@ export default Actor("ChatBot")
     Tool("wether", {
       description: "Get the weather in a location",
       input: {
-        location: ["string", Description`The location to get the weather for`],
+        location: ["string", Desc`The location to get the weather for`],
       },
       run() {
         console.log(this.input.location);

@@ -1,6 +1,6 @@
 import { type } from "arktype";
 
-export function Description(
+export function Desc(
   strings: TemplateStringsArray,
   ...values: any[]
 ): "string" {

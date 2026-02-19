@@ -1,4 +1,4 @@
-import { Actor, Description, Step, Steps, SubSteps, Type } from "../../src";
+import { Actor, Step, Steps, SubSteps, Type } from "../../src";
 import { PrettyScope, ValidateSchema } from "../../src/helpers";
 
 export const Browser: Steps<typeof SubSteps> & {

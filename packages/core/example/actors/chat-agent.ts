@@ -1,17 +1,17 @@
-import { Actor, Agent, Description, Step, Tool, Type } from "../../src";
+import { Actor, Agent, Desc, Step, Tool, Type } from "../../src";
 
 const { ChatBot } = Actor("Chat bot");
 
 export const { chat } = ChatBot()
   .Action("Chat")
 
-  .on({ prompt: ["string", Description`User's prompt`] })
+  .on({ prompt: ["string", Desc`User's prompt`] })
 
   .run(
     Tool("weather", {
       description: "Get the weather in a location",
       input: {
-        location: ["string", Description`The location to get the weather for`],
+        location: ["string", Desc`The location to get the weather for`],
       },
       run() {
         console.log(this.input.location);
