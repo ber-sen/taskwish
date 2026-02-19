@@ -30,4 +30,8 @@ export const { runSteps } = MyActor()
 
       Browser.Extract("news", "NewsItem[] >= 5"),
     ),
+
+    Step("end", function () {
+      return this;
+    }),
   );

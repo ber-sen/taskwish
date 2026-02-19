@@ -1,10 +1,10 @@
 import { type } from "arktype";
 
-export function Describe<const Schema>(
-  t: type.validate<Schema>,
-  description?: string,
-): type.instantiate<Schema> {
-  return {} as never;
+export function Description(
+  strings: TemplateStringsArray,
+  ...values: any[]
+): "string" {
+  return strings.join("") as never;
 }
 
 export function Type<
