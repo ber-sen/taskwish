@@ -63,6 +63,7 @@ export interface ActionFactory<
   Name extends string,
   Ctx extends Record<any, any> = {
     name: Name;
+    model: "gpt5";
     scope: {
       run: {
         generateText: (params: { model: "gpt5"; prompt: string }) => string;
@@ -83,17 +84,18 @@ export interface ActionFactory<
     };
   },
 > {
-  on<const Schema>(trigger?: ValidateTrigger<Schema>): ActionBody<
-    Name,
-    {
-      name: Ctx["name"];
-      scope: InferTriggerScope<Schema> & Ctx["scope"];
-      step: { name: "launchApp" | StepName; map: { launchApp: string } };
-    }
-  >;
-  signature<
-    const Signature extends ((...args: any) => Promise<any>) | Taskwish.Handler,
-  >(): SignatureBody<Name, Ctx, Signature>;
+  on<const Schema>(trigger?: ValidateTrigger<Schema>): Schema extends
+    | ((...args: any) => Promise<any>)
+    | Taskwish.Handler
+    ? SignatureBody<Name, Ctx, Schema>
+    : ActionBody<
+        Name,
+        {
+          name: Ctx["name"];
+          scope: InferTriggerScope<Schema> & Ctx["scope"];
+          step: { name: "launchApp" | StepName; map: { launchApp: string } };
+        }
+      >;
   run: Steps<Ctx>;
 }
 

@@ -86,9 +86,35 @@ describe("Action", () => {
     expect(result).toEqual({ success: true });
   });
 
+  it("works with ts type", async () => {
+    const { tsAction } = Action("ts action")
+      .on<{ name: string }>()
+
+      .run(async function () {
+        return `Hello ${this.input.name}`;
+      });
+
+    type T = typeof tsAction;
+
+    type result = Expect<
+      Equal<
+        Taskwish.Action<
+          "ts action",
+          (input: { name: string }) => Promise<Promise<string>>,
+          null
+        >,
+        T
+      >
+    >;
+
+    const result = await tsAction({ name: "Test" });
+
+    expect(result).toEqual(`Hello Test`);
+  });
+
   it("works with generics", async () => {
     const { genericAction } = Action("generic action")
-      .signature<<const T>(lorem: T) => Promise<T>>()
+      .on<<const T>(lorem: T) => Promise<T>>()
 
       .run(async function () {
         const [lorem] = this.input;
@@ -122,7 +148,7 @@ describe("Action", () => {
     }
 
     const { myHandler } = Action("my handler")
-      .signature<MyHandler>()
+      .on<MyHandler>()
 
       .run(async function () {
         const [lorem] = this.input;
@@ -136,14 +162,14 @@ describe("Action", () => {
       Equal<
         Taskwish.Action<
           "my handler",
-          <const T extends "gpt">(lorem: T) => Promise<number>,
+          <const T extends "gpt5">(lorem: T) => Promise<number>,
           Record<"handler", MyHandler>
         >,
         T
       >
     >;
 
-    const result = await myHandler("gpt");
+    const result = await myHandler("gpt5");
 
     expect(result).toEqual({ success: true });
   });
