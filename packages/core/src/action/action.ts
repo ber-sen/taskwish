@@ -83,7 +83,7 @@ export interface ActionFactory<
     };
   },
 > {
-  on<const Schema>(trigger: ValidateTrigger<Schema>): ActionBody<
+  on<const Schema>(trigger?: ValidateTrigger<Schema>): ActionBody<
     Name,
     {
       name: Ctx["name"];

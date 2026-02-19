@@ -1,4 +1,4 @@
-import { Type, type } from "arktype";
+import { Type, type, validateDefinition } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 import { Taskwish } from "./types";
 
@@ -93,10 +93,18 @@ export type InferTriggerScope<Schema> =
             input: Input;
             event: Taskwish.Event<Name, Input>;
           }
-        : {
-            input: type.instantiate<Schema>["infer"];
-            event: Taskwish.Event<"command", type.instantiate<Schema>["infer"]>;
-          };
+        : type.instantiate<Schema>["infer"] extends Record<any, never>
+          ? {
+              input: Schema;
+              event: Taskwish.Event<"command", Schema>;
+            }
+          : {
+              input: type.instantiate<Schema>["infer"];
+              event: Taskwish.Event<
+                "command",
+                type.instantiate<Schema>["infer"]
+              >;
+            };
 
 export type Apply<
   F extends Taskwish.Handler,
