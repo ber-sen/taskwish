@@ -67,7 +67,7 @@ export interface ActionFactory<
       run: {
         generateText: (params: { model: "gpt5"; prompt: string }) => string;
         slack: {
-          [key: string]: {
+          [key: `@${string}`]: {
             sendMessage: (params: {
               channel: "#general";
               message: string;
