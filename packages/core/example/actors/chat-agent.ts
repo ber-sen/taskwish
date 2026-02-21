@@ -19,7 +19,7 @@ export const { chat } = ChatBot()
         return { temperature: 72, conditions: "sunny" };
       },
     }),
-
+    
     Agent("chat agent", {
       model: "anthropic/claude-sonnet-4.5",
       instructions: "You are an expert software engineer.",

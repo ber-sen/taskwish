@@ -44,7 +44,7 @@ export const { browse } = BrowserActor()
         commentsURL: "string",
       }),
 
-      Browser.Extract("news", "NewsItem[] >= 5"),
+      Browser.Extract("news", "NewsItem[] <= 5"),
     ),
 
     Step("last step", function () {
