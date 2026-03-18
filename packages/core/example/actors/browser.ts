@@ -15,9 +15,21 @@ export const Browser: Steps<typeof SubSteps> & {
   };
 } = {} as never;
 
-const { BrowserActor } = Actor("Browser Actor", {
+export const { BrowserActor } = Actor("Browser Actor", {
   API_KEY: "string",
 });
+
+BrowserActor()
+  .on("newMessage")
+
+  .run(
+    Step("first step", function () {
+      return this.run.slack.sendMessage({
+        channel: "#general",
+        message: "Hello World",
+      });
+    }),
+  );
 
 export const { browse } = BrowserActor()
   .Action("Browse")
