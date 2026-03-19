@@ -8,9 +8,9 @@ const { Greeter } = Actor("Greeter", {
 
 // hello action
 export const { hello } = Greeter()
-  .Action("Hello")
+  .on("Action", "Hello")
 
-  .on({ name: "string" })
+  .input({ name: "string" })
 
   .run(function () {
     return `Hello ${this.input.name}`;
@@ -18,9 +18,9 @@ export const { hello } = Greeter()
 
 // bye action
 export const { bye } = Greeter()
-  .Action("Bye")
+  .on("Action", "Bye")
 
-  .on({ name: "string" })
+  .input({ name: "string" })
 
   .run(
     Step("Name", function () {
