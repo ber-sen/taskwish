@@ -1,29 +1,39 @@
 {
-  "(Actor)": "ChatActor",
-  "actions": [
+  "(type)": "Actor",
+  "(name)": "ChatActor",
+
+  "behaviors": [
     {
-      "on": { "tools": "string[]", "prompt": "string" },
+      "(on)": "Command",
+      "(name)": "Chat",
+
+      "input": {
+        "tools": "string[]",
+        "prompt": "string"
+      },
       "run": [
         {
-          "(Step)": "tools",
+          "(type)": "Step",
+          "(name)": "Selected Tools",
+
           "run": "@{tools.filter((tool) => input.tool.includes(tool.name))}"
         },
         {
-          "(If)": "@{2 > 3}",
+          "(if)": "@{3 > 2}",
+
           "run": [
             {
-              "(Agent)": "MarketingAgent",
+              "(type)": "Agent",
+              "(name)": "Marketing Agent",
+
               "instructions": "asdasdadas asdas da",
               "model": "gtp-4",
-              "tools": "@{tools}"
+              "tools": "@{selectedTools}"
             },
             {
-              "(Emit)": "Send message",
-              "from": "string",
-              "subject": "string"
-            },
-            {
-              "(MarketingAgent)": "end",
+              "(type)": "MarketingAgent",
+              "(name)": "End",
+
               "prompt": "@{input.prompt}"
             }
           ]
