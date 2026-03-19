@@ -84,7 +84,7 @@ export interface ActionFactory<
     };
   },
 > {
-  on<const Schema>(trigger?: ValidateTrigger<Schema>): Schema extends
+  input<const Schema>(trigger?: ValidateTrigger<Schema>): Schema extends
     | ((...args: any) => any)
     | Taskwish.Handler
     ? SignatureBody<Name, Ctx, Schema>

@@ -31,7 +31,7 @@ describe("Action", () => {
 
   it("works with with input", async () => {
     const { hello } = Action("Hello")
-      .on({ name: "string" })
+      .input({ name: "string" })
 
       .run(function () {
         return `Hello ${this.input.name}`;
@@ -57,7 +57,7 @@ describe("Action", () => {
 
   it("works with with steps", async () => {
     const { hello } = Action("Hello")
-      .on({ name: "string" })
+      .input({ name: "string" })
 
       .run(
         Step("First step", function () {
@@ -88,7 +88,7 @@ describe("Action", () => {
 
   it("works with ts type", async () => {
     const { tsAction } = Action("ts action")
-      .on<{ name: string }>()
+      .input<{ name: string }>()
 
       .run(async function () {
         return `Hello ${this.input.name}`;
@@ -114,7 +114,7 @@ describe("Action", () => {
 
   it("works with generics", async () => {
     const { genericAction } = Action("generic action")
-      .on<<const T>(lorem: T) => Promise<T>>()
+      .input<<const T>(lorem: T) => Promise<T>>()
 
       .run(async function () {
         const [lorem] = this.input;
@@ -148,7 +148,7 @@ describe("Action", () => {
     }
 
     const { myHandler } = Action("my handler")
-      .on<MyHandler>()
+      .input<MyHandler>()
 
       .run(async function () {
         const [lorem] = this.input;

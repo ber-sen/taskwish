@@ -15,12 +15,10 @@ export const Browser: Steps<typeof SubSteps> & {
   };
 } = {} as never;
 
-export const { BrowserActor } = Actor("Browser Actor", {
-  API_KEY: "string",
-});
+export const { BrowserActor } = Actor("Browser Actor");
 
 BrowserActor()
-  .on("newMessage")
+  .on("NewMessage")
 
   .run(
     Step("first step", function () {
@@ -32,9 +30,9 @@ BrowserActor()
   );
 
 export const { browse } = BrowserActor()
-  .Action("Browse")
+  .on("Action", "Browse")
 
-  .on({ input: "string" })
+  .input({ name: "string" })
 
   .run(
     Step("first step", function () {
