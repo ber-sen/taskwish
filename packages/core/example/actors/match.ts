@@ -8,9 +8,9 @@ const Match: OptionSubSteps & {
 const { MyActor } = Actor("My actor");
 
 export const { match } = MyActor()
-  .Action("Match")
+  .on("Command", "Match")
 
-  .on({ type: "string" })
+  .input({ type: "string" })
 
   .run(
     Match(

@@ -3,7 +3,7 @@ import { Action } from "./action";
 import { Taskwish } from "../types";
 import { Step } from "../steps";
 
-describe("Action", () => {
+describe("Command", () => {
   it("works with async arrow functions", async () => {
     const { healthz } = Action("Healthz").run(function () {
       return { status: "ok" };

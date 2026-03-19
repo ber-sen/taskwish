@@ -10,9 +10,9 @@ const Options = {
 const { MyActor } = Actor("My actor");
 
 export const { withOptions } = MyActor()
-  .Action("With options")
+  .on("Command", "With options")
   
-  .on({ message: "string" })
+  .input({ message: "string" })
 
   .run(
     Step("first step", [

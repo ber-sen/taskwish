@@ -3,9 +3,9 @@ import { Actor, Parallel, Step } from "../../src";
 const { MyActor } = Actor("My actor");
 
 export const { parallel } = MyActor()
-  .Action("Parallel")
+  .on("Command", "Parallel")
 
-  .on({ user: { model: "string" } })
+  .input({ user: { model: "string" } })
 
   .run(
     Step("first step", function () {

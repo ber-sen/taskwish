@@ -3,9 +3,9 @@ import { Loop, Actor, Step } from "../../src";
 const { MyActor } = Actor("My actor");
 
 export const { loop } = MyActor()
-  .Action("Loop")
+  .on("Command", "Loop")
 
-  .on({ user: { name: "string", age: "number" } })
+  .input({ user: { name: "string", age: "number" } })
 
   .run(
     Step("first step", function () {

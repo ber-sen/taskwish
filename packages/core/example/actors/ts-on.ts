@@ -3,9 +3,9 @@ import { Actor, Step } from "../../src";
 const { MyActor } = Actor("My actor");
 
 export const { runSteps } = MyActor()
-  .Action("Run steps")
+  .on("Command", "Run steps")
 
-  .on<{ message: string }>()
+  .input<{ message: string }>()
 
   .run(
     Step("first step", function () {
