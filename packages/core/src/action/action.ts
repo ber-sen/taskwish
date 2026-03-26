@@ -76,6 +76,7 @@ export interface ActionFactory<
           };
         } & {
           sendMessage: (params: {
+            '@'?: string;
             channel: "#general";
             message: string;
           }) => string;

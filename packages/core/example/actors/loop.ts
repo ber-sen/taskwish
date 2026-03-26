@@ -18,7 +18,7 @@ export const { loop } = MyActor()
     Loop(
       () => Loop.Range(0, 10),
 
-      Step("loop step", function () {
+      Step("gt", function () {
         return this.run.slack.sendMessage({
           channel: "#general",
           message: "Hello World",
@@ -28,7 +28,7 @@ export const { loop } = MyActor()
       Step("loop step 2", function () {
         return this.run.slack.sendMessage({
           channel: "#general",
-          message: "Hello World",
+          message: this.gt,
         });
       }),
     ),

@@ -2,8 +2,6 @@ import { Actor, Step, Steps, SubSteps, Taskwish, Type } from "../../src";
 import { PrettyScope, ValidateSchema } from "../../src/helpers";
 
 export const Browser: Steps<typeof SubSteps> & {
-  [key: `@${string}`]: Steps<typeof SubSteps>;
-} & {
   Act: <Ctx>(prompt: string) => {
     [Taskwish.Step]: (ctx: Ctx) => Ctx;
   };

@@ -10,14 +10,18 @@ export const { runSteps } = MyActor()
 
   .run(
     Step("first step", function () {
-      return this.run.slack["@work"].sendMessage({
+      return this.run.slack.sendMessage({
+        "@": "work",
         channel: "#general",
         message: this.input.message,
       });
     }),
 
-    Browser["@myBrowser"](
-      Step("launchBrowser", { url: "https://news.ycombinator.com" }),
+    Browser(
+      Step("launchBrowser", {
+        "@": "myBrowser",
+        url: "https://news.ycombinator.com",
+      }),
 
       Browser.Act("Click the login button"),
 
