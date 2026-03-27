@@ -3,7 +3,7 @@ import { Actor, Agent, Desc, Step, Tool, Type } from "../../src";
 const { ChatBot } = Actor("Chat bot");
 
 export const { chat } = ChatBot()
-  .on("Command", "chat")
+  .on("command", "chat")
 
   .input({ prompt: ["string", Desc`User's prompt`] })
 

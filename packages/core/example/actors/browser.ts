@@ -16,7 +16,7 @@ export const Browser: Steps<typeof SubSteps> & {
 export const { BrowserActor } = Actor("Browser Actor");
 
 BrowserActor()
-  .on("NewMessage")
+  .on("newMessage")
 
   .run(
     Step("first step", function () {
@@ -28,7 +28,7 @@ BrowserActor()
   );
 
 export const { browse } = BrowserActor()
-  .on("Command", "Browse")
+  .on("command", "Browse")
 
   .input({ name: "string" })
 

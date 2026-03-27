@@ -4,7 +4,7 @@ import { Browser } from "./browser";
 const { MyActor } = Actor("My actor");
 
 export const { runSteps } = MyActor()
-  .on("Command", "Run steps")
+  .on("command", "Run steps")
 
   .input({ message: "string" })
 

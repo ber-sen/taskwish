@@ -3,7 +3,7 @@ import { Actor, Step } from "../../src";
 const { MyActor } = Actor("My actor");
 
 const { myAction } = MyActor()
-  .on("Command", "My action")
+  .on("command", "My action")
 
   .input({ name: "string" })
 
