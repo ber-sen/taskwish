@@ -1,4 +1,4 @@
-import { InferSchema, ValidateSchema } from "../helpers";
+import { CamelCase, InferSchema, ValidateSchema } from "../helpers";
 import { Taskwish } from "../types";
 export interface Agent<Name extends string, Tools extends string[]> {
   name: Name;
@@ -57,7 +57,7 @@ export function Tool<
   const Output,
   Ctx extends Record<any, any>,
 >(
-  name: Name,
+  name: CamelCase<Name>,
   options: {
     description: string;
     input: ValidateSchema<Input>;
