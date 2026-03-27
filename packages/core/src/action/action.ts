@@ -1,9 +1,9 @@
 import {
-  ToCamelCase,
   Apply,
   ValidateTrigger,
   InferTriggerScope,
   Pretty,
+  CamelCase,
 } from "../helpers";
 import { Steps } from "../steps";
 import { Taskwish } from "../types";
@@ -45,7 +45,7 @@ type SignatureBody<
   >(
     run: Handler,
   ): {
-    [key in ToCamelCase<Name>]: Signature extends (...args: any) => any
+    [key in Name]: Signature extends (...args: any) => any
       ? Taskwish.Action<Name, Signature>
       : Signature extends Taskwish.Handler
         ? Taskwish.Action<
@@ -101,7 +101,7 @@ export interface ActionFactory<
 }
 
 export function Action<const Name extends string>(
-  name: Name,
+  name: CamelCase<Name>,
 ): ActionFactory<Name> {
   return {} as never;
 }

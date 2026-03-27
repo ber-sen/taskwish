@@ -4,7 +4,6 @@ import {
   ValidateTrigger,
   InferTriggerScope,
 } from "./helpers";
-import { Taskwish as Message } from "../../message";
 
 export namespace Taskwish {
   export const Id = Symbol.for("Taskwish.Id");
@@ -51,13 +50,13 @@ export namespace Taskwish {
   > = NoInfer<Handler> & Resource<Name> & Attributable<Meta>;
 
   export class IO {
-    threadId!: Message.ThreadId;
-    senderId!: Message.IdentityId;
-    receiverId!: Message.IdentityId;
-    messages!: Message.Message<any, any>[];
-    reply!: <const Content extends Array<Message.MessagePart<any>> | string>(
-      message: Message.Message<Content>,
-    ) => Event<"Message", Message.Message<Content>>;
+    // threadId!: Message.ThreadId;
+    // senderId!: Message.IdentityId;
+    // receiverId!: Message.IdentityId;
+    // messages!: Message.Message<any, any>[];
+    // reply!: <const Content extends Array<Message.MessagePart<any>> | string>(
+    //   message: Message.Message<Content>,
+    // ) => Event<"Message", Message.Message<Content>>;
   }
 
   export interface Event<

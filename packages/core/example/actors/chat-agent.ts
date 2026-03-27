@@ -20,7 +20,7 @@ export const { chat } = ChatBot()
       },
     }),
     
-    Agent("chat agent", {
+    Agent("chatAgent", {
       model: "anthropic/claude-sonnet-4.5",
       instructions: "You are an expert software engineer.",
       tools: ["weather"],

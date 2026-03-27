@@ -5,7 +5,7 @@ import { Step } from "../steps";
 
 describe("Command", () => {
   it("works with async arrow functions", async () => {
-    const { healthz } = Action("Healthz").run(function () {
+    const { healthz } = Action("healthz").run(function () {
       return { status: "ok" };
     });
 
@@ -14,7 +14,7 @@ describe("Command", () => {
     type healthz = Expect<
       Equal<
         Taskwish.Action<
-          "Healthz",
+          "healthz",
           () => Promise<{
             status: string;
           }>,
@@ -30,7 +30,7 @@ describe("Command", () => {
   });
 
   it("works with with input", async () => {
-    const { hello } = Action("Hello")
+    const { hello } = Action("hello")
       .input({ name: "string" })
 
       .run(function () {
@@ -42,7 +42,7 @@ describe("Command", () => {
     type hello = Expect<
       Equal<
         Taskwish.Action<
-          "Hello",
+          "hello",
           (input: { name: string }) => Promise<string>,
           null
         >,
@@ -56,7 +56,7 @@ describe("Command", () => {
   });
 
   it("works with with steps", async () => {
-    const { hello } = Action("Hello")
+    const { hello } = Action("hello")
       .input({ name: "string" })
 
       .run(
@@ -73,7 +73,7 @@ describe("Command", () => {
     type hello = Expect<
       Equal<
         Taskwish.Action<
-          "Hello",
+          "hello",
           (input: { name: string }) => Promise<boolean>,
           null
         >,
@@ -87,7 +87,7 @@ describe("Command", () => {
   });
 
   it("works with ts type", async () => {
-    const { tsAction } = Action("ts action")
+    const { tsAction } = Action("tsAction")
       .input<{ name: string }>()
 
       .run(async function () {
@@ -99,7 +99,7 @@ describe("Command", () => {
     type result = Expect<
       Equal<
         Taskwish.Action<
-          "ts action",
+          "tsAction",
           (input: { name: string }) => Promise<Promise<string>>,
           null
         >,
@@ -113,7 +113,7 @@ describe("Command", () => {
   });
 
   it("works with generics", async () => {
-    const { genericAction } = Action("generic action")
+    const { genericAction } = Action("genericAction")
       .input<<const T>(lorem: T) => Promise<T>>()
 
       .run(async function () {
@@ -129,7 +129,7 @@ describe("Command", () => {
     type result = Expect<
       Equal<
         Taskwish.Action<
-          "generic action",
+          "genericAction",
           <const T>(lorem: T) => Promise<T>,
           null
         >,
@@ -147,7 +147,7 @@ describe("Command", () => {
       run<const T extends this["ctx"]["model"]>(lorem: T): Promise<number>;
     }
 
-    const { myHandler } = Action("my handler")
+    const { myHandler } = Action("myHandler")
       .input<MyHandler>()
 
       .run(async function () {
@@ -161,7 +161,7 @@ describe("Command", () => {
     type result = Expect<
       Equal<
         Taskwish.Action<
-          "my handler",
+          "myHandler",
           <const T extends "gpt5">(lorem: T) => Promise<number>,
           Record<"handler", MyHandler>
         >,

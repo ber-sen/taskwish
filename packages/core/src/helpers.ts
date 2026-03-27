@@ -114,3 +114,10 @@ export type Apply<
     readonly ctx: ctx;
   })["run"]
 >;
+
+export type CamelCase<S extends string> =
+  S extends `${string}_${string}` | `${string}-${string}` | `${string} ${string}`
+    ? never
+    : S extends Uncapitalize<S>
+      ? S
+      : never;
