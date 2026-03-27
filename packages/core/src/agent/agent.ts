@@ -11,7 +11,7 @@ export function Agent<
   const Tools extends string[],
   Ctx extends Record<any, any>,
 >(
-  name: Name,
+  name: CamelCase<Name>,
   options: {
     model: string;
     instructions?: string;
