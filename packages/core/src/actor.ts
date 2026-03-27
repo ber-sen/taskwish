@@ -2,15 +2,15 @@ import { type ActionFactory } from "./action";
 import { ToCapitalCase, ValidateSchema } from "./helpers";
 
 interface Behavior {
-  on<Name extends string>(behavior: "command", name: Name): ActionFactory<Name>;
+  on<Name extends string>(behavior: "Command", name: Name): ActionFactory<Name>;
 
   on<
     Behavior extends
-      | "schedule"
-      | "newMention"
-      | "newMessage"
-      | "reaction"
-      | "subscribedMessage",
+      | "Schedule"
+      | "NewMention"
+      | "NewMessage"
+      | "Reaction"
+      | "SubscribedMessage",
   >(
     behavior: Behavior,
   ): ActionFactory<`on${Behavior}`>;

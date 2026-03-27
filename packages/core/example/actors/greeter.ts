@@ -6,7 +6,7 @@ const { Greeter } = Actor("Greeter");
 
 // hello action
 export const { hello } = Greeter()
-  .on("command", "Hello")
+  .on("Command", "Hello")
 
   .input({ name: "string" })
 

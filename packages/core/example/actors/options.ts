@@ -10,7 +10,7 @@ const Options = {
 const { MyActor } = Actor("My actor");
 
 export const { withOptions } = MyActor()
-  .on("command", "With options")
+  .on("Command", "With options")
   
   .input({ message: "string" })
 

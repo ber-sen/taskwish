@@ -5,7 +5,7 @@ const Stream: Steps<typeof SubSteps> = {} as never;
 const { MyActor } = Actor("My Actor");
 
 export const { stream } = MyActor()
-  .on("command", "Stream")
+  .on("Command", "Stream")
 
   .run(
     Stream(

@@ -3,7 +3,7 @@ import { Actor, Desc, Step, Taskwish } from "../../src";
 const { MyActor } = Actor("My actor");
 
 export const { runSteps } = MyActor()
-  .on("command", "Run steps")
+  .on("Command", "Run steps")
 
   .input({ message: ["string", Desc`Slack message`] })
 

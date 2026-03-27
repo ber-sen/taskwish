@@ -82,7 +82,7 @@ export type ValidateTrigger<Schema> =
 
 export type InferTriggerScope<Schema> =
   Schema extends StandardSchemaV1<infer Input>
-    ? { input: Input; event: Taskwish.Event<"command", Input> }
+    ? { input: Input; event: Taskwish.Event<"Command", Input> }
     : Schema extends Taskwish.Event<infer Name, infer Input>
       ? {
           input: Input;
@@ -96,12 +96,12 @@ export type InferTriggerScope<Schema> =
         : type.instantiate<Schema>["infer"] extends Record<any, never>
           ? {
               input: Schema;
-              event: Taskwish.Event<"command", Schema>;
+              event: Taskwish.Event<"Command", Schema>;
             }
           : {
               input: type.instantiate<Schema>["infer"];
               event: Taskwish.Event<
-                "command",
+                "Command",
                 type.instantiate<Schema>["infer"]
               >;
             };

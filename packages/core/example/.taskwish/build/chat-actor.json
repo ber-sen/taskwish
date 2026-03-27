@@ -4,7 +4,7 @@
 
   "behaviors": [
     {
-      "(on)": "command",
+      "(on)": "Command",
       "(name)": "Chat",
 
       "input": {
