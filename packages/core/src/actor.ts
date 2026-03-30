@@ -1,5 +1,5 @@
 import { type ActionFactory } from "./action";
-import { ToCapitalCase, ValidateSchema } from "./helpers";
+import { PascalCase, ToCapitalCase, ValidateSchema } from "./helpers";
 
 interface Behavior {
   on<Name extends string>(behavior: "Command", name: Name): ActionFactory<Name>;
@@ -17,7 +17,7 @@ interface Behavior {
 }
 
 export const Actor = <const Name extends string, const Env>(
-  name: Name,
+  name: PascalCase<Name>,
   env?: ValidateSchema<Env>,
 ): {
   [key in ToCapitalCase<Name>]: () => Behavior;

@@ -115,9 +115,20 @@ export type Apply<
   })["run"]
 >;
 
-export type CamelCase<S extends string> =
-  S extends `${string}_${string}` | `${string}-${string}` | `${string} ${string}`
-    ? never
-    : S extends Uncapitalize<S>
-      ? S
-      : never;
+export type CamelCase<S extends string> = S extends
+  | `${string}_${string}`
+  | `${string}-${string}`
+  | `${string} ${string}`
+  ? never
+  : S extends Uncapitalize<S>
+    ? S
+    : never;
+
+export type PascalCase<S extends string> = S extends
+  | `${string}_${string}`
+  | `${string}-${string}`
+  | `${string} ${string}`
+  ? never
+  : S extends Capitalize<S>
+    ? S
+    : never;
