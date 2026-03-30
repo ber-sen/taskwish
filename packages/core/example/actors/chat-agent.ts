@@ -1,6 +1,6 @@
 import { Actor, Agent, Desc, Step, Tool, Type } from "../../src";
 
-const { ChatBot } = Actor("Chat bot");
+const { ChatBot } = Actor("ChatBot");
 
 export const { chat } = ChatBot()
   .on("Command", "chat")
