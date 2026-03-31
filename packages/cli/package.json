@@ -1,0 +1,28 @@
+{
+  "name": "taskwish",
+  "version": "0.0.5",
+  "description": "TaskWish CLI toolchain",
+  "license": "Elastic License 2.0",
+  "bin": {
+    "taskwish": "./dist/cli.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bunup"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.11",
+    "bunup": "^0.16.31",
+    "typescript": "^6.0.2"
+  },
+  "peerDependencies": {
+    "typescript": ">=4.5.0"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
+  }
+}
