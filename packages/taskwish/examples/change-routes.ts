@@ -1,29 +1,9 @@
 import { serve } from "bun";
+import { wrap } from "comlink";
 
-const worker = new Worker("./worker.ts");
+const MyWorker = wrap<typeof import("./worker")>(new Worker("./worker.ts"));
 
-function runWorkerTask(taskData: any): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const handleMessage = (e: MessageEvent) => {
-      worker.removeEventListener("message", handleMessage);
-      worker.removeEventListener("error", handleError);
-      resolve(e.data);
-    };
-
-    const handleError = (e: ErrorEvent) => {
-      worker.removeEventListener("message", handleMessage);
-      worker.removeEventListener("error", handleError);
-      reject(e.error || e);
-    };
-
-    worker.addEventListener("message", handleMessage);
-    worker.addEventListener("error", handleError);
-
-    worker.postMessage(taskData);
-  });
-}
-
-const workerPort = await runWorkerTask("hello")
+const workerPort = await MyWorker.init();
 
 console.log(workerPort)
 

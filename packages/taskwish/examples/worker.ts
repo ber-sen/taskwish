@@ -1,7 +1,5 @@
 import { serve } from "bun";
-
-// prevents TS errors
-declare var self: Worker;
+import { expose } from "comlink";
 
 const server = serve({
   port: 0,
@@ -10,6 +8,10 @@ const server = serve({
   },
 });
 
-self.onmessage = (event: MessageEvent) => {
-  postMessage(server.port);
+export const init = () => {
+  return server.port;
 };
+
+expose({
+  init
+});

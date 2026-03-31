@@ -24,5 +24,8 @@
     "typescript": {
       "optional": true
     }
+  },
+  "dependencies": {
+    "comlink": "^4.4.2"
   }
 }

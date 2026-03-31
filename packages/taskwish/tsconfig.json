@@ -16,7 +16,6 @@
 		"noImplicitOverride": true,
 
 		"declaration": true,
-		"isolatedDeclarations": true,
 
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
