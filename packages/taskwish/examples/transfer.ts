@@ -1,4 +1,4 @@
-import { proxy, TransferHandler, transferHandlers } from "comlink";
+import { proxy, TransferHandler, transferHandlers } from "./comlink";
 
 const proxyTransferHandler = transferHandlers.get("proxy")!;
 
