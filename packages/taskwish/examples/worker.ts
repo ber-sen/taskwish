@@ -1,5 +1,8 @@
 import { serve } from "bun";
-import { expose } from "comlink";
+import { expose, transferHandlers } from "comlink";
+import { asyncGeneratorTransferHandler } from "./transfer"
+
+transferHandlers.set("async", asyncGeneratorTransferHandler)
 
 const server = serve({
   port: 0,
@@ -9,7 +12,7 @@ const server = serve({
 });
 
 export const init = () => {
-  return server.port;
+  return new Response("test")
 };
 
 expose({
