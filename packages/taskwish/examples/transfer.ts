@@ -1,14 +1,38 @@
-import { type TransferHandler } from "comlink";
+import { proxy, TransferHandler, transferHandlers } from "comlink";
 
-export const asyncGeneratorTransferHandler: TransferHandler<Response, unknown> =
-  {
-    canHandle(obj: any): obj is Response {
-      return obj instanceof Response;
-    },
-    serialize(obj) {
-      return ["test", []];
-    },
-    deserialize(obj) {
-      return new Response(obj as any);
-    },
-  };
+const proxyTransferHandler = transferHandlers.get("proxy")!;
+
+export const asyncGeneratorTransferHandler: TransferHandler<
+  AsyncGenerator<unknown>,
+  unknown
+> = {
+  canHandle(obj: any): obj is AsyncGenerator<unknown> {
+    return (
+      obj &&
+      typeof obj === "object" &&
+      typeof obj.next === "function" &&
+      (typeof obj[Symbol.iterator] === "function" ||
+        typeof obj[Symbol.asyncIterator] === "function")
+    );
+  },
+  serialize(obj) {
+    const data = proxyTransferHandler.serialize(proxy(obj)) as any;
+
+    return data;
+  },
+  async *deserialize(obj) {
+    const iterator = proxyTransferHandler.deserialize(
+      obj,
+    ) as AsyncIterator<unknown>;
+
+    while (true) {
+      const { value, done } = await iterator.next();
+
+      if (done) {
+        break;
+      }
+
+      yield value;
+    }
+  },
+};

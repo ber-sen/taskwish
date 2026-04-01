@@ -1,14 +1,16 @@
 import { serve } from "bun";
-import { wrap, transferHandlers } from "comlink";
-import { asyncGeneratorTransferHandler } from "./transfer"
+import { wrap, transferHandlers } from "./comlink";
+import { asyncGeneratorTransferHandler } from "./transfer";
 
-transferHandlers.set("async", asyncGeneratorTransferHandler)
+transferHandlers.set("async", asyncGeneratorTransferHandler);
 
 const MyWorker = wrap<typeof import("./worker")>(new Worker("./worker.ts"));
 
-const workerPort = await MyWorker.init();
+const workerPort = await MyWorker.init().then((a) => a.next());
 
-console.log(await workerPort.text())
+// const workerPort = await MyWorker.test();
+
+console.log(workerPort);
 
 const server = serve({
   routes: {

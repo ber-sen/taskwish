@@ -1,8 +1,8 @@
 import { serve } from "bun";
-import { expose, transferHandlers } from "comlink";
-import { asyncGeneratorTransferHandler } from "./transfer"
+import { expose, transferHandlers } from "./comlink";
+import { asyncGeneratorTransferHandler } from "./transfer";
 
-transferHandlers.set("async", asyncGeneratorTransferHandler)
+transferHandlers.set("async", asyncGeneratorTransferHandler);
 
 const server = serve({
   port: 0,
@@ -11,10 +11,19 @@ const server = serve({
   },
 });
 
-export const init = () => {
-  return new Response("test")
-};
+export async function* init() {
+  yield "asdasd";
+
+  return 3;
+}
+
+export async function test() {
+
+
+  return 3;
+}
 
 expose({
-  init
+  init,
+  test
 });
