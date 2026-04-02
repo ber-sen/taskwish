@@ -2,7 +2,6 @@ import { Actor, Step, Type } from "../../src";
 import { Browser } from "./browser";
 
 const { MyActor } = Actor("MyActor");
-
 export const { runSteps } = MyActor()
   .on("Command", "runSteps")
 
