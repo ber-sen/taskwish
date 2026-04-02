@@ -5,7 +5,7 @@ const Match: OptionSubSteps & {
   With: OptionSubSteps;
 } = {} as never;
 
-const { MyActor } = Actor("My actor");
+const { MyActor } = Actor("MyActor");
 
 export const { match } = MyActor()
   .on("Command", "Match")

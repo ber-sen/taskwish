@@ -1,8 +1,9 @@
 import { type ActionFactory } from "./action";
-import { PascalCase, ToCapitalCase, ValidateSchema } from "./helpers";
+import { CamelCase, PascalCase, ToCapitalCase, ValidateSchema } from "./helpers";
 
 interface Behavior {
-  on<Name extends string>(behavior: "Command", name: Name): ActionFactory<Name>;
+  action<Name extends string>(name: CamelCase<Name>): ActionFactory<Name>
+  on<Name extends string>(behavior: "Command", name: CamelCase<Name>): ActionFactory<Name>;
 
   on<
     Behavior extends

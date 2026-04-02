@@ -1,10 +1,10 @@
 import { Actor, Step, Type } from "../../src";
 import { Browser } from "./browser";
 
-const { MyActor } = Actor("My actor");
+const { MyActor } = Actor("MyActor");
 
 export const { runSteps } = MyActor()
-  .on("Command", "Run steps")
+  .on("Command", "runSteps")
 
   .input({ message: "string" })
 

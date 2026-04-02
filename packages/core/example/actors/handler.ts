@@ -1,9 +1,9 @@
 import { Actor } from "../../src";
 
-const { MyActor } = Actor("My actor");
+const { MyActor } = Actor("MyActor");
 
 export const { handle } = MyActor()
-  .on("Command", "Handle")
+  .on("Command", "handle")
 
   .run(function () {
     return this.run.slack.sendMessage({

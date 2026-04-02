@@ -1,6 +1,6 @@
 import { Loop, Actor, Step } from "../../src";
 
-const { MyActor } = Actor("My actor");
+const { MyActor } = Actor("MyActor");
 
 export const { loop } = MyActor()
   .on("Command", "Loop")

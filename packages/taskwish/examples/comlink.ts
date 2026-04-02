@@ -5,12 +5,12 @@
  */
 
 import {
-  Endpoint,
-  EventSource,
-  Message,
+  type Endpoint,
+  type EventSource,
+  type Message,
   MessageType,
-  PostMessageWithOrigin,
-  WireValue,
+  type PostMessageWithOrigin,
+  type WireValue,
   WireValueType,
 } from "./protocol";
 export type { Endpoint };
@@ -327,7 +327,7 @@ export function expose(
           break;
         case MessageType.SET:
           {
-            parent[path.slice(-1)[0]] = fromWireValue(ev.data.value);
+            parent[path.slice(-1)[0]!] = fromWireValue(ev.data.value);
             returnValue = true;
           }
           break;

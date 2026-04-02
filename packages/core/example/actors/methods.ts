@@ -1,7 +1,7 @@
 import { Loop, End, Range, Actor } from "../../src";
 import newEmail from "../events/new-email";
 
-export default Actor("Sub steps")
+export default Actor("SubSteps")
   .use(import("../package"))
 
   .on("Do something", { lorem: "string[]" })

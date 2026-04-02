@@ -1,4 +1,4 @@
-import { TransferHandler } from "./comlink";
+import type { TransferHandler } from "./comlink";
 
 export const asyncGeneratorTransferHandler: TransferHandler<
   Promise<Response>,
