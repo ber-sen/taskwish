@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
-import type { IoMessage } from "../src/interface.ts"
-import { createRelay } from "../src/relay.ts"
+import type { IoMessage } from "../src/interface"
+import { createRelay } from "../src/relay"
 
 describe("Transparent Relay", () => {
 	test("should forward messages from A to B", async () => {

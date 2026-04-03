@@ -1,10 +1,10 @@
 import { createServer } from "http"
 import { afterAll, beforeAll, expect, test } from "bun:test"
 import { Server as SocketIOServer } from "socket.io"
-import { RPCChannel } from "../mod.ts"
-import { SocketIOClientIO, SocketIOServerIO } from "../src/adapters/socketio.ts"
-import type { IoInterface } from "../src/interface.ts"
-import { apiMethods, type API } from "./scripts/api.ts"
+import { RPCChannel } from "../mod"
+import { SocketIOClientIO, SocketIOServerIO } from "../src/adapters/socketio"
+import type { IoInterface } from "../src/interface"
+import { apiMethods, type API } from "./scripts/api"
 
 const PORT = 3002
 let httpServer: ReturnType<typeof createServer>

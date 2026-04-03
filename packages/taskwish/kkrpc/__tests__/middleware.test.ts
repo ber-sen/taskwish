@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 import { WebSocketServer } from "ws"
-import { WebSocketClientIO, WebSocketServerIO } from "../src/adapters/websocket.ts"
-import { RPCChannel } from "../src/channel.ts"
+import { WebSocketClientIO, WebSocketServerIO } from "../src/adapters/websocket"
+import { RPCChannel } from "../src/channel"
 import type { IoInterface } from "../src/interface.ts"
-import { runInterceptors, type RPCCallContext, type RPCInterceptor } from "../src/middleware.ts"
+import { runInterceptors, type RPCCallContext, type RPCInterceptor } from "../src/middleware"
 
 // ---------------------------------------------------------------------------
 // Unit tests: runInterceptors

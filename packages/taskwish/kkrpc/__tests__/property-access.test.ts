@@ -31,10 +31,10 @@
  */
 
 import { describe, expect, test } from "bun:test"
-import { RPCChannel, WorkerParentIO, type IoInterface } from "../mod.ts"
-import { apiMethods, type API } from "./scripts/api.ts"
+import { RPCChannel, WorkerParentIO, type IoInterface } from "../mod"
+import { apiMethods, type API } from "./scripts/api"
 
-const worker = new Worker(new URL("./scripts/worker.ts", import.meta.url).href, { type: "module" })
+const worker = new Worker(new URL("./scripts/worker", import.meta.url).href, { type: "module" })
 const io = new WorkerParentIO(worker)
 const rpc = new RPCChannel<API, API, IoInterface>(io, { expose: apiMethods })
 const api = rpc.getAPI()

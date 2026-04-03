@@ -1,8 +1,8 @@
 import { type Server } from "bun"
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
-import { RPCChannel } from "../mod.ts"
-import { HTTPClientIO, HTTPServerIO } from "../src/adapters/http.ts"
-import { apiMethods, type API } from "./scripts/api.ts"
+import { RPCChannel } from "../mod"
+import { HTTPClientIO, HTTPServerIO } from "../src/adapters/http"
+import { apiMethods, type API } from "./scripts/api"
 
 describe("HTTP RPC", () => {
 	let server: Server<any>

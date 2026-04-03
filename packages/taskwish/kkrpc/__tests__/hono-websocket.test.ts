@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, expect, test } from "bun:test"
 import { Hono } from "hono"
 import { upgradeWebSocket, websocket } from "hono/bun"
-import { createHonoWebSocketHandler, RPCChannel, WebSocketClientIO } from "../mod.ts"
+import { createHonoWebSocketHandler, RPCChannel, WebSocketClientIO } from "../mod"
 import type { IoInterface } from "../src/interface.ts"
-import { apiMethods, type API } from "./scripts/api.ts"
+import { apiMethods, type API } from "./scripts/api"
 
 const PORT = 3002
 let server: ReturnType<typeof Bun.serve> | null = null

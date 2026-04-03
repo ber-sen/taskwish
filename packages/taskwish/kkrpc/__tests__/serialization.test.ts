@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import superjson from "superjson"
-import { deserializeMessage, serializeMessage, type Message } from "../src/serialization.ts"
+import { deserializeMessage, serializeMessage, type Message } from "../src/serialization"
 
 describe("Serializer", () => {
 	test("should serialize and deserialize a message", async () => {

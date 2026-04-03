@@ -3,8 +3,8 @@ import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, test } from "bun:test";
-import { NodeIo } from "../mod.ts";
-import { RPCChannel } from "../src/channel.ts";
+import { NodeIo } from "../mod";
+import { RPCChannel } from "../src/channel";
 
 const isCI = process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
 
