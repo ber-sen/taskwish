@@ -1,4 +1,4 @@
-import type { IoInterface, IoMessage } from "./interface.ts"
+import type { IoInterface, IoMessage } from "./interface"
 
 export interface Relay {
 	destroy: () => void

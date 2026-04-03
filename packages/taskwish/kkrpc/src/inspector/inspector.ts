@@ -1,6 +1,6 @@
 import type { IoInterface } from "../interface.ts"
 import type { Message } from "../serialization.ts"
-import { InspectableIo } from "./inspectable-io.ts"
+import { InspectableIo } from "./inspectable-io"
 import type { InspectEvent, InspectorBackend, InspectorOptions } from "./types.ts"
 
 export interface InspectorConfig {

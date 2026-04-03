@@ -1,5 +1,5 @@
 import type { IoInterface, IoMessage } from "./interface.ts"
-import { runInterceptors, type RPCInterceptor } from "./middleware.ts"
+import { runInterceptors, type RPCInterceptor } from "./middleware"
 import {
 	decodeMessage,
 	deserializeError,
@@ -12,14 +12,14 @@ import {
 	type Response,
 	type SerializationOptions,
 	type TransferSlot
-} from "./serialization.ts"
-import { generateUUID } from "./utils.ts"
+} from "./serialization"
+import { generateUUID } from "./utils"
 import {
 	lookupValidator,
 	RPCValidationError,
 	runValidation,
 	type RPCValidators
-} from "./validation.ts"
+} from "./validation"
 
 // ---------------------------------------------------------------------------
 // RPCTimeoutError

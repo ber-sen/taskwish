@@ -1,11 +1,11 @@
-import type { IoInterface, IoMessage } from "../interface.ts"
+import type { IoInterface, IoMessage } from "../interface"
 import {
 	decodeMessage,
 	encodeMessage,
 	type Message,
 	type SerializationOptions
-} from "../serialization.ts"
-import type { InspectEvent, InspectorBackend, InspectorOptions } from "./types.ts"
+} from "../serialization"
+import type { InspectEvent, InspectorBackend, InspectorOptions } from "./types"
 
 /**
  * Wraps an IoInterface to intercept and log all messages

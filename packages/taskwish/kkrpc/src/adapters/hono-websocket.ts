@@ -1,5 +1,5 @@
-import { RPCChannel } from "../channel.ts"
-import type { IoCapabilities, IoInterface, IoMessage } from "../interface.ts"
+import { RPCChannel } from "../channel"
+import type { IoCapabilities, IoInterface, IoMessage } from "../interface"
 
 /**
  * Options for creating a Hono WebSocket handler

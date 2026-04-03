@@ -1,4 +1,4 @@
-import type { IoCapabilities, IoInterface, IoMessage } from "../interface.ts"
+import type { IoCapabilities, IoInterface, IoMessage } from "../interface"
 
 const DESTROY_SIGNAL = "__DESTROY__"
 const textDecoder = typeof TextDecoder !== "undefined" ? new TextDecoder() : null

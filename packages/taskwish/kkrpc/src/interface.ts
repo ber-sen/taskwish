@@ -2,7 +2,7 @@
  * Common IO abstractions used by kkrpc adapters.
  * Theoretically, any bidirectional channel that fits this interface can back an RPC channel.
  */
-import type { WireEnvelope } from "./serialization.ts"
+import type { WireEnvelope } from "./serialization"
 
 /**
  * Capabilities exposed by an IO adapter.

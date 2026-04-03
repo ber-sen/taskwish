@@ -1,5 +1,5 @@
 import superjson from "superjson"
-import type { IoCapabilities, IoInterface, IoMessage } from "../interface.ts"
+import type { IoCapabilities, IoInterface, IoMessage } from "../interface"
 
 interface HTTPClientOptions {
 	url: string

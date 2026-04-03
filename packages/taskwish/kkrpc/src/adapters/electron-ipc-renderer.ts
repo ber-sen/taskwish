@@ -1,5 +1,5 @@
-import type { IoCapabilities, IoInterface, IoMessage } from "../interface.ts"
-import type { WireEnvelope } from "../serialization.ts"
+import type { IoCapabilities, IoInterface, IoMessage } from "../interface"
+import type { WireEnvelope } from "../serialization"
 
 const DESTROY_SIGNAL = "__DESTROY__"
 

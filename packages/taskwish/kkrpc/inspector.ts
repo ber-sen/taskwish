@@ -16,4 +16,4 @@ export {
 	type MemoryBackendQuery,
 	type TrackedInspectEvent,
 	type WebSocketBackendOptions
-} from "./src/inspector/index.ts"
+} from "./src/inspector/index"

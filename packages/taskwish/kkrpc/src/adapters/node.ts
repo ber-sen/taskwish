@@ -1,6 +1,6 @@
 import { type Buffer } from "node:buffer"
 import { Readable, Writable } from "node:stream"
-import { type IoCapabilities, type IoInterface, type IoMessage } from "../interface.ts"
+import { type IoCapabilities, type IoInterface, type IoMessage } from "../interface"
 
 export class NodeIo implements IoInterface {
 	name = "node-io"

@@ -1,6 +1,6 @@
 import superjson from "superjson"
-import { transferHandlers } from "./transfer-handlers.ts"
-import { takeTransferDescriptor } from "./transfer.ts"
+import { transferHandlers } from "./transfer-handlers"
+import { takeTransferDescriptor } from "./transfer"
 
 /**
  * This file contains the serialization and deserialization helpers for the RPC protocol.
