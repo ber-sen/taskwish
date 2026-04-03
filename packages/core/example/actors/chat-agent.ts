@@ -30,3 +30,4 @@ export const { chat } = ChatBot()
       return this.chatAgent({ prompt: this.input.prompt });
     }),
   );
+  

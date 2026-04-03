@@ -13,7 +13,7 @@ export const Browser: Steps<typeof SubSteps> & {
   };
 } = {} as never;
 
-export const { BrowserActor } = Actor("Browser Actor");
+export const { BrowserActor } = Actor("BrowserActor");
 
 BrowserActor()
   .on("newMessage")
