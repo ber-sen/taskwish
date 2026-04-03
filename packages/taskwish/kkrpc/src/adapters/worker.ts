@@ -49,8 +49,6 @@ export class WorkerParentIO implements IoInterface {
     const raw = event.data;
     const message = this.normalizeIncoming(raw);
 
-    console.log({ message });
-
     if (message === DESTROY_SIGNAL) {
       this.destroy();
       return;
