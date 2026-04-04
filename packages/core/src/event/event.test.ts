@@ -4,17 +4,17 @@ import { Taskwish } from "../types";
 
 describe("Event", async function* () {
   it("works with arrow functions", () => {
-    const newEmail = Event("New email").data({
+    const emailSent = Event("emailSent").data({
       from: "string",
       subject: "string",
     });
 
-    type T = typeof newEmail;
+    type T = typeof emailSent;
 
     type newEmail = Expect<
       Equal<
         Taskwish.EventKind<
-          "New email",
+          "emailSent",
           {
             from: string;
             subject: string;

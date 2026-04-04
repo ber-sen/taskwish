@@ -8,6 +8,10 @@ export interface Event {
   content: any;
 }
 
+export interface EmitContent {
+  type: "message" | "command" | "email" | "slash-command";
+}
+
 /**
  * This file contains the serialization and deserialization helpers for the RPC protocol.
  */
