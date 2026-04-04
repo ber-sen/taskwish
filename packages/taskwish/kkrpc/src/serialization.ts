@@ -2,6 +2,12 @@ import superjson from "superjson";
 import { transferHandlers } from "./transfer-handlers";
 import { takeTransferDescriptor } from "./transfer";
 
+export interface Event {
+  sender: string;
+  type: "register" | "update" | "remove" | "emit" | "outcome";
+  content: any;
+}
+
 /**
  * This file contains the serialization and deserialization helpers for the RPC protocol.
  */
