@@ -13,9 +13,9 @@ export interface BaseMessage<Type extends string, Content = unknown> {
 }
 
 /* Peer Layer
- +--------+        +--------+        +--------+
- | Peer A |        | Peer B |        | Peer C |
- +----+---+        +----+---+        +----+---+
+ +--------+         +--------+         +--------+
+ | Peer A |         | Peer B |         | Peer C |
+ +----+---+         +----+---+         +----+---+
       |                  |                  |
       |---- Register ----|---- Update ------|---- Register ---->
       |                  |                  |
@@ -31,16 +31,16 @@ export interface PeerUpdate
 export interface PeerRemove extends BaseMessage<"peerRemove", {}> {}
 
 /* Signal
-          +-----------------+
-          |  Peer A         |
-          |  Broadcast SIG1 |
-          +--------+--------+
+          +----------------+
+          | Peer A         |
+          | Broadcast SIG1 |
+          +--------+-------+
                    |
         +----------+----------+
         |                     |
-    +---v----+             +--v-----+
-    | Peer B |             | Peer C |
-    +--------+             +--------+
+    +---v----+            +---v----+
+    | Peer B |            | Peer C |
+    +--------+            +--------+
         |                     |
   +-----v----------+     +----v-----------+
   | ExecutionChunk |     | ExecutionChunk |
@@ -63,21 +63,21 @@ export interface Signal<Params = unknown>
   > {}
 
 /* Task
-    +--------+          +---------+
-    | Peer A |          | Peer B  |
-    +---+----+          +----+----+
+    +--------+           +--------+
+    | Peer A |           | Peer B |
+    +---+----+           +---+----+
         |                    |
         |---- Task(SIG2) --> |  <-- Direct assignment
         |                    |
-    +---v------------+    +--v-------------+
-    | ExecutionChunk |    | ExecutionChunk |
-    +----------------+    +----------------+
+        |                +---v------------+
+        |                | ExecutionChunk |
+        |                +----------------+
         |                    |
-    +---v-------+         +--v--------+
-    | Execution |         | Execution |
-    +-----------+         +-----------+
+        |                +---v-------+
+        |                | Execution |
+        |                +-----------+
         |
-    [Optional Abort(SIG2)]
+    [Optional Abort(SIG2)] --> stops Peer B execution
 */
 export interface Task<Params = unknown>
   extends BaseMessage<
@@ -109,7 +109,7 @@ export interface Execution<Result = unknown>
     {
       id: SignalId;
       executor: PeerId;
-
+      
       ok: boolean;
       result: Result;
     }
@@ -124,3 +124,13 @@ export interface Abort
       reason?: string;
     }
   > {}
+
+export type Message =
+  | PeerRegister
+  | PeerUpdate
+  | PeerRemove
+  | Signal
+  | Task
+  | ExecutionChunk
+  | Execution
+  | Abort;
