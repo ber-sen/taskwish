@@ -147,3 +147,52 @@ export type Message =
   | ExecutionChunk
   | Execution
   | Abort;
+
+/*
+    Global Registry
+    ===============
+    [✔] Peer A registered
+        • A1: ["task","signal"]
+        • A2: ["task","signal"]
+        • A3: ["task","signal"]
+    [✔] Peer B registered
+        • B1: ["task","signal"]
+        • B2: ["task","signal"]
+
+    Peer A (global)
+    ---------------
+    Local Peers:
+    ├── A1
+    ├── A2
+    └── A3
+
+    Peer B (global)
+    ---------------
+    Local Peers:
+    ├── B1
+    └── B2
+
+    Cross-Global Task Assignment
+    ----------------------------
+    Peer B2 → Task(SIG100) → Peer A3
+    │
+    ├─ Task message (Task<Params>) sent to global Peer A
+    │      └─ executor: "A3"
+    ├─ Peer A routes task to local peer A3
+    └─ Peer A3 executes task
+        ├─ [✔] ExecutionChunk 0
+        ├─ [✔] ExecutionChunk 1
+        ├─ [~] ExecutionChunk 2 (in progress)
+        └─ [ ] Execution result pending
+
+    Peer B2
+    -------
+    └─ Receives execution progress and final Execution result from A3
+
+    Notes
+    -----
+    - All messages use the same protocol types: 
+    PeerRegister, PeerUpdate, PeerRemove, Task, ExecutionChunk, Execution, Signal, Abort.
+    - Global registry publishes capabilities of internal peers.
+    - Cross-global tasks specify the internal executor (A3) and flow naturally.
+*/
