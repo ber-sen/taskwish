@@ -1,5 +1,5 @@
 export type PeerId = string;
-export type EventId = string;
+export type SignalId = string;
 export type Timestamp = string; // ISO 8601
 export type Signature = string;
 
@@ -12,7 +12,16 @@ export interface BaseMessage<Type extends string, Content = unknown> {
   sig?: Signature;
 }
 
-// Peer Layer
+/* Peer Layer
+ +--------+        +--------+        +--------+
+ | Peer A |        | Peer B |        | Peer C |
+ +----+---+        +----+---+        +----+---+
+      |                  |                  |
+      |---- Register ----|---- Update ------|---- Register ---->
+      |                  |                  |
+ [Peers announce capabilities to network]
+*/
+
 export interface PeerRegister
   extends BaseMessage<"peerRegister", { eventTypes: string[] }> {}
 
@@ -21,33 +30,73 @@ export interface PeerUpdate
 
 export interface PeerRemove extends BaseMessage<"peerRemove", {}> {}
 
-// Emit Layer
-export interface Emit<Params = unknown>
+/* Signal
+          +-----------------+
+          |  Peer A         |
+          |  Broadcast SIG1 |
+          +--------+--------+
+                   |
+        +----------+----------+
+        |                     |
+    +---v----+             +--v-----+
+    | Peer B |             | Peer C |
+    +--------+             +--------+
+        |                     |
+  +-----v----------+     +----v-----------+
+  | ExecutionChunk |     | ExecutionChunk |
+  +----------------+     +----------------+
+        |                     |
+  +-----v-----+          +----v------+
+  | Execution |          | Execution |
+  +-----------+          +-----------+
+        |
+     [Optional Abort(SIG1)]
+*/
+
+export interface Signal<Params = unknown>
   extends BaseMessage<
-    "emit",
+    "signal",
     {
-      id: EventId;
-      eventType: string;
+      id: SignalId;
       params: Params;
     }
   > {}
 
-export interface Abort
+/* Task
+    +--------+          +---------+
+    | Peer A |          | Peer B  |
+    +---+----+          +----+----+
+        |                    |
+        |---- Task(SIG2) --> |  <-- Direct assignment
+        |                    |
+    +---v------------+    +--v-------------+
+    | ExecutionChunk |    | ExecutionChunk |
+    +----------------+    +----------------+
+        |                    |
+    +---v-------+         +--v--------+
+    | Execution |         | Execution |
+    +-----------+         +-----------+
+        |
+    [Optional Abort(SIG2)]
+*/
+export interface Task<Params = unknown>
   extends BaseMessage<
-    "abort",
+    "task",
     {
-      id: EventId;
-      reason?: string;
+      id: SignalId;
+      params: Params;
+      executor: PeerId;
     }
   > {}
 
-// Execution Layer
+// Execution
 export interface ExecutionChunk<Chunk = unknown>
   extends BaseMessage<
     "executionChunk",
     {
-      id: EventId;
-      eventType: string;
+      id: SignalId;
+      executor: PeerId;
+
       chunkIndex: number;
       chunkCount?: number;
       params: Chunk;
@@ -58,18 +107,20 @@ export interface Execution<Result = unknown>
   extends BaseMessage<
     "execution",
     {
-      id: EventId;
-      eventType: string;
+      id: SignalId;
+      executor: PeerId;
+
       ok: boolean;
       result: Result;
     }
   > {}
 
-export type Message =
-  | PeerRegister
-  | PeerUpdate
-  | PeerRemove
-  | Emit
-  | Abort
-  | ExecutionChunk
-  | Execution;
+// Abort
+export interface Abort
+  extends BaseMessage<
+    "abort",
+    {
+      id: SignalId;
+      reason?: string;
+    }
+  > {}
