@@ -89,7 +89,20 @@ export interface Task<Params = unknown>
     }
   > {}
 
-// Execution
+/* Execution
+    
+    Task   : process-data
+    Flow   : Peer A → Peer B
+    State  : executing
+
+    ──────── Execution ────────
+    [✔] Step A
+    [✔] Step B
+    [✖] Step C
+    [~] Step D
+    [ ] Result
+*/
+
 export interface ExecutionChunk<Chunk = unknown>
   extends BaseMessage<
     "executionChunk",
@@ -109,7 +122,7 @@ export interface Execution<Result = unknown>
     {
       id: SignalId;
       executor: PeerId;
-      
+
       ok: boolean;
       result: Result;
     }
