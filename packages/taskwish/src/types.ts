@@ -38,7 +38,7 @@ export interface Peer<
 > extends BaseMessage<"peer", { name: Name; register: Capabilities }> {}
 
 /* Signal
-  Peer A → Signal<{ ">": "onEmail", subject: "Welcome }>
+  Peer A → Signal<{ ">": "onEmail", subject: "Welcome" }>
 
           +----------------+
           |   Peer A       |
