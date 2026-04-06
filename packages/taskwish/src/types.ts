@@ -18,12 +18,12 @@ export interface BaseMessage<Type extends string, Content = unknown> {
  +-----------+                     +-----------+                     +-----------+
       |                               |                               |
       |--- register --->              |                               |
-      | ["$", "sendEmail"]            |                               |
+      | [["$", "sendEmail"],          |                               |
       | ["$", "generateReport"]       |                               |
-      | [">", "onUserSignup"]         |                               |
+      | [">", "onUserSignup"]]        |                               |
       |                               |--- register --->              |
-      |                               | ["$", "generateInvoice"]      |
-      |                               | [">", "onInvoiceApproved"]    |
+      |                               | [["$", "generateInvoice"],    |
+      |                               | [">", "onInvoiceApproved"]]    |
       |                               |                               |
       |--- register: [] --------------------------------------------> |
       |                               |                               |
