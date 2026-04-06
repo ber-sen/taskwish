@@ -132,6 +132,7 @@ export interface Task<
     {
       id: SignalId;
       task: TaskDef;
+      start: string; // format: "PeerId"
     }
   > {}
 
@@ -157,7 +158,7 @@ export interface Operation<Result = unknown, Error = unknown>
       parentId?: SignalId;
 
       // Next step
-      next?: string; // format: "PeerId:actionName"
+      next?: string; // format: "PeerId:stepPath"
 
       // state
       done: boolean;
