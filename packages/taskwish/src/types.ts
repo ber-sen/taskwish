@@ -53,8 +53,9 @@ export interface PeerRemove extends BaseMessage<"peerRemove", {}> {}
      [Optional Abort(SIG1)]
 */
 
-export interface Signal<SignalDef extends { ">": string } = { ">": "null" }>
-  extends BaseMessage<
+export interface Signal<
+  SignalDef extends { ">": string } & Record<string, any> = { ">": "null" },
+> extends BaseMessage<
     "signal",
     {
       id: SignalId;
