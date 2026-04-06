@@ -1,5 +1,5 @@
 export type PeerId = string;
-export type SignalId = string;
+export type SignalId = `${string}-${string}-7${string}-${string}-${string}`;
 export type Timestamp = string; // ISO 8601
 export type Signature = string;
 
@@ -105,21 +105,21 @@ export interface Abort
                       +------v--------+
                       | transformData |
                       +---------------+
-                             | Operation (done: false, stepDone: true)
+                             | Operation (next: "A:1")
                              |
         +--------------------+
         |                    
    +----v---------+        
    | validateData |      
    +--------------+
-        | Operation (done: false, stepDone: true)      
+        | Operation (next: "A:2")
         |                    
         +-------------------+
                             |
                     +-------v-------+
                     | sendReport    |
                     +---------------+
-                     Operation (streaming/final)
+                     Operation (done: true)
 
 [Optional Abort(SIGX)] --> stops all in-flight execution
 */
@@ -161,8 +161,7 @@ export interface Operation<Result = unknown, Error = unknown>
       next?: string; // format: "PeerId:stepPath"
 
       // state
-      done: boolean;
-      ok?: boolean;
+      done?: boolean;
 
       // data
       data?: Result;
