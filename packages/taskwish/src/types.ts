@@ -23,7 +23,7 @@ export interface BaseMessage<Type extends string, Content = unknown> {
       | [">", "onUserSignup"]]        |                               |
       |                               |--- register --->              |
       |                               | [["$", "generateInvoice"],    |
-      |                               | [">", "onInvoiceApproved"]]    |
+      |                               | [">", "onInvoiceApproved"]]   |
       |                               |                               |
       |--- register: [] --------------------------------------------> |
       |                               |                               |
