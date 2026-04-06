@@ -152,7 +152,7 @@ export interface Task<
 
 export interface Operation<Result = unknown, Error = unknown>
   extends BaseMessage<
-    "op",
+    "operation",
     {
       id: SignalId;
       pid?: SignalId;
