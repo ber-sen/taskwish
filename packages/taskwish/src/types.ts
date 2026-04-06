@@ -22,10 +22,11 @@ export interface BaseMessage<Type extends string, Content = unknown> {
  [Peers announce capabilities to network]
 */
 
-export interface PeerRegister<Capabilities = string[]>
-  extends BaseMessage<"peerRegister", Capabilities> {}
+export interface PeerRegister<
+  Capabilities = ["$" | ">" | (string & {}), string][],
+> extends BaseMessage<"peerRegister", Capabilities> {}
 
-export interface PeerUpdate<Capabilities = string[]>
+export interface PeerUpdate<Capabilities = ["$" | ">" | (string & {}), string][]>
   extends BaseMessage<"peerUpdate", Capabilities> {}
 
 export interface PeerRemove extends BaseMessage<"peerRemove", {}> {}
