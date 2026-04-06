@@ -85,7 +85,6 @@ export interface Abort
     "abort",
     {
       id: SignalId;
-      reason?: string;
     }
   > {}
 
@@ -156,7 +155,7 @@ export interface Operation<Result = unknown, Error = unknown>
     "op",
     {
       id: SignalId;
-      parentId?: SignalId;
+      pid?: SignalId;
 
       // Next step
       next?: `${PeerName}:${StepPath}`;
@@ -166,6 +165,11 @@ export interface Operation<Result = unknown, Error = unknown>
 
       // data
       data?: Result;
+
+      // chunk info
+      chunkIndex: number;
+      chunkCount?: number;
+
       error?: Error;
     }
   > {}
