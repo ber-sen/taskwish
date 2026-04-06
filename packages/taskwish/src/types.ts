@@ -156,9 +156,8 @@ export interface Operation<Result = unknown, Error = unknown>
       id: SignalId;
       parentId?: SignalId;
 
-      // step progress
-      stepIndex: number;
-      stepDone: boolean;
+      // Next step
+      next?: string; // format: "PeerId:actionName"
 
       // state
       done: boolean;
