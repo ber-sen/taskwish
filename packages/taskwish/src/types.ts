@@ -23,11 +23,12 @@ export interface BaseMessage<Type extends string, Content = unknown> {
 */
 
 export interface PeerRegister<
-  Capabilities = ["$" | ">" | (string & {}), string][],
+  Capabilities extends ["$" | ">" | (string & {}), string][] = [],
 > extends BaseMessage<"peerRegister", Capabilities> {}
 
-export interface PeerUpdate<Capabilities = ["$" | ">" | (string & {}), string][]>
-  extends BaseMessage<"peerUpdate", Capabilities> {}
+export interface PeerUpdate<
+  Capabilities extends ["$" | ">" | (string & {}), string][] = [],
+> extends BaseMessage<"peerUpdate", Capabilities> {}
 
 export interface PeerRemove extends BaseMessage<"peerRemove", {}> {}
 
@@ -91,7 +92,9 @@ export interface Abort
     [Optional Abort(SIG2)] --> stops Peer B execution
 */
 export interface Task<
-  TaskDef extends { $: string } & Record<string, any> = { $: "noop" },
+  TaskDef extends
+    | ({ $: string } & Record<string, any>)
+    | Array<{ $: string } & Record<string, any>> = { $: "noop" },
 > extends BaseMessage<
     "task",
     {
@@ -152,50 +155,51 @@ export type Message =
   | Abort;
 
 /*
-    Global Registry
-    ===============
-    Peer A registered
-        • A1: ["task","signal"]
-        • A2: ["task","signal"]
-        • A3: ["task","signal"]
-    Peer B registered
-        • B1: ["task","signal"]
-        • B2: ["task","signal"]
+  Global Registry
+  ===============
+  Peer A registered
+      • A1: [[">","onNewEmail"], ["$","processEmail"], [">","onUserSignup"]]
+      • A2: [[">","onFileUpload"], ["$","generateThumbnail"]]
+      • A3: [[">","onPaymentReceived"], ["$","sendInvoice"], ["$","updateCRM"]]
 
-    Peer A (global)
-    ---------------
-    Local Peers:
-    ├── A1
-    ├── A2
-    └── A3
+  Peer B registered
+      • B1: [[">","onNewComment"], ["$","moderateComment"]]
+      • B2: [[">","onServerAlert"], ["$","restartService"], [">","onHighCPU"]]
 
-    Peer B (global)
-    ---------------
-    Local Peers:
-    ├── B1
-    └── B2
+  Peer A (global)
+  ---------------
+  Local Peers:
+  ├── A1
+  ├── A2
+  └── A3
 
-    Cross-Global Task Assignment
-    ----------------------------
-    Peer B2 → Task(SIG100) → Peer A3
-    │
-    ├─ Task message (Task<Params>) sent to global Peer A
-    │      └─ executor: "A3"
-    ├─ Peer A routes task to local peer A3
-    └─ Peer A3 executes task
-        ├─ [✔] ExecutionChunk 0
-        ├─ [✔] ExecutionChunk 1
-        ├─ [~] ExecutionChunk 2 (in progress)
-        └─ [ ] Execution result pending
+  Peer B (global)
+  ---------------
+  Local Peers:
+  ├── B1
+  └── B2
 
-    Peer B2
-    -------
-    └─ Receives execution progress and final Execution result from A3
+  Cross-Global Task Assignment
+  ----------------------------
+  Peer B2 → Task({ $: "sendInvoice", invoiceId: 'INV-2026-0423-001' }) → Peer A3
+  │
+  ├─ `Task` message sent to global Peer A
+  │      └─ executor: "A3"
+  ├─ Peer A routes task to local peer A3
+  └─ Peer A3 executes task
+      ├─ [✔] ExecutionChunk 0
+      ├─ [✔] ExecutionChunk 1
+      ├─ [~] ExecutionChunk 2 (in progress)
+      └─ [ ] Execution result pending
 
-    Notes
-    -----
-    - All messages use the same protocol types: 
-    PeerRegister, PeerUpdate, PeerRemove, Task, ExecutionChunk, Execution, Signal, Abort.
-    - Global registry publishes capabilities of internal peers.
-    - Cross-global tasks specify the internal executor (A3) and flow naturally.
+  Peer B2
+  -------
+  └─ Receives `ExecutionChunk` updates and final `Execution` result from A3
+
+  Notes
+  -----
+  - All messages use the same protocol types: `PeerRegister`, `PeerUpdate`, `PeerRemove`, `Task`, `ExecutionChunk`, `Execution`, `Signal`, `Abort`.
+  - Global registry publishes `[">" | "$", string]` capabilities of internal peers via `PeerRegister` / `PeerUpdate`.
+  - Cross-global tasks specify the internal `executor` and follow the natural flow of `Task` → `ExecutionChunk` → `Execution`.
+  - Optional task cancellation uses `Abort` referencing the task `SignalId`.
 */
