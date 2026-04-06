@@ -62,6 +62,15 @@ export interface Signal<Params = unknown>
     }
   > {}
 
+export interface Abort
+  extends BaseMessage<
+    "abort",
+    {
+      id: SignalId;
+      reason?: string;
+    }
+  > {}
+
 /* Task
     +--------+           +--------+
     | Peer A |           | Peer B |
@@ -91,11 +100,12 @@ export interface Task<Params = unknown>
 
 /* Execution
     
-    Task   : process-data
-    Flow   : Peer A → Peer B
-    State  : executing
+    Task      : process-data
+    Sender    : Peer A
+    Executor  : Peer B
+    State     : executing
 
-    ──────── Execution ────────
+    ────────── Execution ──────────
     [✔] Step A
     [✔] Step B
     [✖] Step C
@@ -128,16 +138,6 @@ export interface Execution<Result = unknown>
     }
   > {}
 
-// Abort
-export interface Abort
-  extends BaseMessage<
-    "abort",
-    {
-      id: SignalId;
-      reason?: string;
-    }
-  > {}
-
 export type Message =
   | PeerRegister
   | PeerUpdate
@@ -151,11 +151,11 @@ export type Message =
 /*
     Global Registry
     ===============
-    [✔] Peer A registered
+    Peer A registered
         • A1: ["task","signal"]
         • A2: ["task","signal"]
         • A3: ["task","signal"]
-    [✔] Peer B registered
+    Peer B registered
         • B1: ["task","signal"]
         • B2: ["task","signal"]
 
