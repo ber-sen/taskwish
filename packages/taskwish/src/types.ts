@@ -114,12 +114,12 @@ export interface Abort
    +--------------+
         | Operation (next: "C:2")
         |                    
-        +-------------------+
-                            |
-                    +-------v-------+
-                    | sendReport    |
-                    +---------------+
-                     Operation (done: true)
+        +--------------------+
+                             |
+                     +-------v-------+
+                     | sendReport    |
+                     +---------------+
+                      Operation (done: true)
 
 [Optional Abort(SIGX)] --> stops all in-flight execution
 */
