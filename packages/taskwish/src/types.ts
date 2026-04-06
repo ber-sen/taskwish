@@ -112,7 +112,7 @@ export interface Abort
    +----v---------+        
    | validateData |      
    +--------------+
-        | Operation (next: "A:2")
+        | Operation (next: "C:2")
         |                    
         +-------------------+
                             |
