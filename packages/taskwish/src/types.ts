@@ -53,12 +53,12 @@ export interface PeerRemove extends BaseMessage<"peerRemove", {}> {}
      [Optional Abort(SIG1)]
 */
 
-export interface Signal<Params = unknown>
+export interface Signal<SignalDef extends { ">": string } = { ">": "null" }>
   extends BaseMessage<
     "signal",
     {
       id: SignalId;
-      params: Params;
+      signal: SignalDef;
     }
   > {}
 
@@ -88,12 +88,13 @@ export interface Abort
         |
     [Optional Abort(SIG2)] --> stops Peer B execution
 */
-export interface Task<Params = unknown>
-  extends BaseMessage<
+export interface Task<
+  TaskDef extends { $: string } & Record<string, any> = { $: "noop" },
+> extends BaseMessage<
     "task",
     {
       id: SignalId;
-      params: Params;
+      task: TaskDef;
       executor: PeerId;
     }
   > {}
