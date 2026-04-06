@@ -154,6 +154,7 @@ export interface Operation<Result = unknown, Error = unknown>
     "op",
     {
       id: SignalId;
+      parentId?: SignalId;
 
       // step progress
       stepIndex: number;
