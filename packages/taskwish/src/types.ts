@@ -19,7 +19,7 @@ export interface BaseMessage<Type extends string, Content = unknown> {
       |                               |                               |
       |--- register --->              |                               |
       | [["$", "sendEmail"],          |                               |
-      | ["$", "generateReport"]       |                               |
+      | ["$", "generateReport"],      |                               |
       | [">", "onUserSignup"]]        |                               |
       |                               |--- register --->              |
       |                               | [["$", "generateInvoice"],    |
