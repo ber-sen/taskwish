@@ -1,4 +1,5 @@
-export type PeerId = string;
+export type PeerName = string;
+export type StepPath = string; // 0 | 1 | a.run.0
 export type SignalId = `${string}-${string}-7${string}-${string}-${string}`;
 export type Timestamp = string; // ISO 8601
 export type Signature = string;
@@ -6,7 +7,7 @@ export type Signature = string;
 export interface BaseMessage<Type extends string, Content = unknown> {
   v: 1;
   type: Type;
-  sender: PeerId;
+  sender: PeerName;
   ts: Timestamp;
   content: Content;
   sig?: Signature;
@@ -33,7 +34,7 @@ export interface BaseMessage<Type extends string, Content = unknown> {
 export type Capability = ["$" | ">" | (string & {}), string];
 
 export interface Peer<
-  Name extends string = string,
+  Name extends PeerName = string,
   Capabilities extends Capability[] = Capability[],
 > extends BaseMessage<"peer", { name: Name; register: Capabilities }> {}
 
@@ -132,7 +133,7 @@ export interface Task<
     {
       id: SignalId;
       task: TaskDef;
-      start: string; // format: "PeerId"
+      start: PeerName; // format: "PeerId"
     }
   > {}
 
@@ -158,7 +159,7 @@ export interface Operation<Result = unknown, Error = unknown>
       parentId?: SignalId;
 
       // Next step
-      next?: string; // format: "PeerId:stepPath"
+      next?: `${PeerName}:${StepPath}`;
 
       // state
       done?: boolean;
@@ -212,42 +213,42 @@ Flow:
 3. Workflow executes synchronously, step-by-step:
 
    Step 1 — B2 (fetchMetrics)
-   ├─ Operation 0 (collect CPU/memory) (done: false)
-   └─ Operation 1 (metrics collected) (done: false)
+   ├─ Operation chunk (collect CPU/memory)
+   └─ Operation chunk (metrics collected)
 
-   Step 2 — B1 (processEmail)  ← local override
-   ├─ Operation 0 (parse email) (done: false)
-   ├─ Operation 1 (extract entities) (done: false)
-   └─ Operation 2 (email processed) (done: false)
+   Step 2 — B1 (processEmail) ← local override
+   ├─ Operation chunk (parse email)
+   ├─ Operation chunk (extract entities)
+   └─ Operation chunk (email processed)
 
    Step 3 — B1 (aggregateResults)
-   ├─ Operation 0 (combine metrics + email data) (done: false)
-   └─ Operation 1 (aggregation complete) (done: false)
+   ├─ Operation chunk (combine metrics + email data)
+   └─ Operation chunk (aggregation complete)
 
    Step 4 — A2 (generateThumbnail)
-   ├─ Operation 0 (load file) (done: false)
-   ├─ Operation 1 (resize image) (done: false)
-   └─ Operation 2 (thumbnail generated) (done: false)
+   ├─ Operation chunk (load file)
+   ├─ Operation chunk (resize image)
+   └─ Operation chunk (thumbnail generated)
 
    Step 5 — A3 (sendInvoice)
-   ├─ Operation 0 (prepare invoice) (done: false)
-   ├─ Operation 1 (send email) (done: false)
-   └─ Operation 2 (invoice sent) (done: false)
+   ├─ Operation chunk (prepare invoice)
+   ├─ Operation chunk (send email)
+   └─ Operation chunk (invoice sent)
 
    Step 6 — B2 (restartService)
-   ├─ Operation 0 (stop service) (done: false)
-   ├─ Operation 1 (start service) (done: false)
-   └─ Final aggregated Operation (done: true) ← **sent only at the end**
+   ├─ Operation chunk (stop service)
+   ├─ Operation chunk (start service)
+   └─ Operation (done: true)
 
 Peer B1
 -------
-Receives a single aggregated `Operation` with `done: true` after the full workflow completes.
+Receives a single `Operation` with `done: true` after the full workflow completes.
 
 Notes
 -----
 - Workflow originates from B1 and spans local (B1, B2) and remote (A1, A2, A3) peers  
 - Local peers override global peers when action names conflict   
 - Routing is resolved via capability registry across peers  
-- Each intermediate step emits Operations with `done: false`  
-- Only the final step emits the **aggregated Operation with `done: true`**
+- Each intermediate step emits Operation chunks
+- Only the final step emits the Operation chunks with `done: true`
 */
