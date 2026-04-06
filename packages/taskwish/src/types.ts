@@ -181,7 +181,7 @@ export type Message =
 
   Cross-Global Task Assignment
   ----------------------------
-  Peer B2 → Task({ $: "sendInvoice", invoiceId: 'INV-2026-0423-001' }) → Peer A3
+  Peer B2 → Task<{ $: "sendInvoice", invoiceId: 'INV-2026-0423-001' }> → Peer A3
   │
   ├─ `Task` message sent to global Peer A
   │      └─ executor: "A3"
