@@ -10,10 +10,6 @@ const worker = new Worker("./worker.js");
 //   random.byteOffset + random.byteLength,
 // );
 
-// const { port1 } = new MessageChannel();
-// worker.postMessage({ port1 }, [port1]);
-// worker.postMessage({ buffer }, [buffer]);
-
 // worker.on("message", (message) => {
 //   console.log(message);
 // });
@@ -21,9 +17,19 @@ const worker = new Worker("./worker.js");
 const bc = new BroadcastChannel("tasks");
 
 bc.onmessage = (event) => {
-  bc.postMessage("lorem")
-  console.log("channel parent")
+  console.log("channel parent");
   console.log(event);
+
+  const channel = new MessageChannel();
+
+  // send port2 to worker
+  worker.postMessage({ port: channel.port2 }, [channel.port2]);
+
+  // listen on port1
+  channel.port1.onmessage = (e) => {
+    console.log("from worker:", e.data);
+  };
+
+  // optional but recommended in some environments
+  channel.port1.start();
 };
-
-

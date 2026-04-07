@@ -160,6 +160,8 @@ export class WorkerChildIO implements IoInterface {
   }
 
   private handleMessage = (event: MessageEvent) => {
+    console.log(event);
+
     const raw = event.data;
     const message = this.normalizeIncoming(raw);
 
