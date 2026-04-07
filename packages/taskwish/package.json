@@ -30,6 +30,6 @@
     }
   },
   "dependencies": {
-    "superjson": "^2.2.6"
+    "cbor2": "^2.3.0"
   }
 }
