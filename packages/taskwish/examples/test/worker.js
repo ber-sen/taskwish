@@ -44,8 +44,8 @@ async function pipeGeneratorToPort(gen, port) {
 self.onmessage = (event) => {
   const port = event.data.port;
 
-  console.log("buffer from main:")
-  console.log(event.data.buffer)
+  console.log("buffer from main:");
+  console.log(event.data.buffer);
 
   port.onmessage = (msg) => {
     // handle incoming if needed
@@ -54,13 +54,13 @@ self.onmessage = (event) => {
   port.start();
 
   async function* stream() {
-    yield "a";
-    yield "b";
+    // yield "a";
+    // yield "b";
 
-    const buf = new ArrayBuffer(8);
+    const buf = new SharedArrayBuffer(1024);
     yield buf;
 
-    return "done";
+    // return "done";
   }
 
   pipeGeneratorToPort(stream(), port);

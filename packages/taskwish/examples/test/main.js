@@ -22,14 +22,11 @@ bc.onmessage = (event) => {
   console.log(event);
 
   const channel = new MessageChannel();
-
-  const buffer = new ArrayBuffer(1024);
-  const copy = buffer.slice(0);
+  const buffer = new SharedArrayBuffer(1024);
 
   // send port2 to worker
-  worker.postMessage({ buffer, port: channel.port2 }, [channel.port2, buffer]);
-
-  workerC.postMessage({ buffer: copy }, [copy]);
+  worker.postMessage({ buffer, port: channel.port2 }, [channel.port2]);
+  workerC.postMessage({ buffer });
 
   // listen on port1
   channel.port1.onmessage = (e) => {
