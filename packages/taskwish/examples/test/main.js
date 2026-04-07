@@ -21,17 +21,28 @@ bc.onmessage = (event) => {
   console.log("channel parent");
   console.log(event);
 
+
+  const task = new SharedArrayBuffer(1024 * 5);
+  const view = new Uint8Array(task);
+
+  const offset = 200;
+  const length = 100;
+  const randomBytes = new Uint8Array(length);
+  crypto.getRandomValues(randomBytes);
+
+  // Copy into SharedArrayBuffer
+  view.set(randomBytes, offset);
+
   const channel = new MessageChannel();
-  const buffer = new SharedArrayBuffer(1024);
 
   // send port2 to worker
-  worker.postMessage({ buffer, port: channel.port2 }, [channel.port2]);
-  workerC.postMessage({ buffer });
+  worker.postMessage({ task, port: channel.port2 }, [channel.port2]);
+  workerC.postMessage({ task });
 
   // listen on port1
   channel.port1.onmessage = (e) => {
     console.log("from worker:", e.data);
-    workerC.postMessage(e.data);
+   
   };
 
   // optional but recommended in some environments
