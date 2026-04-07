@@ -44,6 +44,9 @@ async function pipeGeneratorToPort(gen, port) {
 self.onmessage = (event) => {
   const port = event.data.port;
 
+  console.log("buffer from main:")
+  console.log(event.data.buffer)
+
   port.onmessage = (msg) => {
     // handle incoming if needed
   };

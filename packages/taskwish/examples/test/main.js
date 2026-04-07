@@ -1,6 +1,7 @@
 // main.js
 const { Worker } = require("node:worker_threads");
 const worker = new Worker("./worker.js");
+const workerC = new Worker("./workerC.js");
 
 // import { randomBytes } from "crypto";
 
@@ -22,12 +23,18 @@ bc.onmessage = (event) => {
 
   const channel = new MessageChannel();
 
+  const buffer = new ArrayBuffer(1024);
+  const copy = buffer.slice(0);
+
   // send port2 to worker
-  worker.postMessage({ port: channel.port2 }, [channel.port2]);
+  worker.postMessage({ buffer, port: channel.port2 }, [channel.port2, buffer]);
+
+  workerC.postMessage({ buffer: copy }, [copy]);
 
   // listen on port1
   channel.port1.onmessage = (e) => {
     console.log("from worker:", e.data);
+    workerC.postMessage(e.data);
   };
 
   // optional but recommended in some environments
