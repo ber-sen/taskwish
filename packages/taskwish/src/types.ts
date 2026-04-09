@@ -90,11 +90,11 @@ export interface Abort
   > {}
 
 /* Task
-  Peer A → Task<
+  Peer A → Task<[
     { $: "transformData", dataId: "d_001" },    // Peer C
     { $: "validateData", schemaId: "s_01" },    // Peer A
     { $: "sendReport", reportId: "r_2026" }     // Peer C
-  >
+  ]>
 
     +--------+                +----------------+              +--------+ 
     | Peer A |                |  Orchestrator  |              | Peer C |
