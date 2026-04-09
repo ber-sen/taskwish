@@ -108,24 +108,24 @@ export interface Abort
                                                                   |
                                       <-----Result----------------+
                                       |
-                          +-----------v---------------+
-                          | CTX1 = ExecutionContext() |
-                          | Append(CTX1, Result)      |
-                          +---------------------------+
+                        +-------------v-------------+
+                        | CTX1 = ExecutionContext() |
+                        | Append(CTX1, Result)      |
+                        +---------------------------+
                                       |
 +----------------+    RunStep(CTX1)   |
 | validateData   | <------------------+
 +----------------+ 
         |
         +---Append(CTX1, Result)------> 
-                                      | RunStep(CTX1)       +------------+
+                                      |    RunStep(CTX1)    +------------+
                                       +-------------------> | sendReport |
                                                             +------------+
                                                                   |
                                       <----Append(CTX1, Result)---+
                                       |
-        <------------------Result-----+
-                      (Task Completed)
+        <-----------------Result------+
+                     (Task Completed)
 
     [Optional Abort(SIGX)] --> stops execution
 */
