@@ -41,33 +41,40 @@ export interface Peer<
 /* Signal
   Peer A → Signal<{ ">": "onEmail", subject: "Welcome" }>
 
-          +----------------+
-          |   Peer A       |
-          | Broadcast SIG1 |
-          +--------+-------+
-                   |
-                   v
-        +----------+--------+
-        |                   |
-   +----v----+         +----v----+
-   | Peer B  |         | Peer C  |
-   +----+----+         +----+----+
-        |                   |
-  +-----v---------+    +----v----------+
-  | Log Email     |    | Step 1        | 
-  +---------------+    +---------------+
-                            |
-                            |              
-                       +----v----------+
-                       | Step 2        | 
-                       +---------------+
-                            | 
-                            |
-                       +----v----------+
-                       | Response.     | 
-                       +---------------+
+               +---------+
+               | Peer A  |
+               +----+----+
+                    |
+                  (SIG1)
+                    |
+                    v
+             +--------------+
+             | Orchestrator |
+             +------+-------+
+                    |
+             (Broadcast SIG1)
+                    |
+        +-----------+-----------+
+        |                       |
+   +----v----+             +----v----+
+   | Peer B  |             | Peer C  |
+   +----+----+             +----+----+
+        |                       |
+  +-----v---------+       +-----v---------+
+  | Log Email     |       | Step 1        |
+  +---------------+       +---------------+
+                                |
+                                |              
+                           +----v----------+
+                           | Step 2        |
+                           +---------------+
+                                | 
+                                |
+                           +----v----+
+                           | Reply   |
+                           +---------+
                             
-                    [Optional Abort(SIG1)]
+    [Optional Abort(SIG1)]
 */
 
 export interface Signal<
@@ -89,32 +96,34 @@ export interface Abort
   > {}
 
 /* Task
-  Peer A → Task<[
+  Peer A → Task<
     { $: "transformData", dataId: "d_001" },    // Peer C
     { $: "validateData", schemaId: "s_01" },    // Peer A
     { $: "sendReport", reportId: "r_2026" }     // Peer C
-  ]>
+  >
 
     +--------+                +----------------+              +--------+ 
     | Peer A |                |  Orchestrator  |              | Peer C |
     +--------+                +----------------+              +--------+
-        |                                                                
+        |                                                 
         +------- Task(SIGX) ---------->
-                                      |
-                              +-------v--------+
-                              | New Execution  |       
-                              | Context (CTX1) |       
-                              +----------------+       
-                                      |  RunStep(CTX1)     +---------------+
-                                      +------------------> | transformData |
-                                                           +---------------+
+                                      |        
+                                      |                   +---------------+
+                                      +-----RunStep()---> | transformData |
+                                                          +---------------+
                                                                   |
-                                      <-----Append(CTX1, Result)--+
+                                      <-----Result----------------+
+                                      |
+                          +-----------v---------------+
+                          | CTX1 = ExecutionContext() |
+                          | Append(CTX1, Result)      |
+                          +---------------------------+
+                                      |
 +----------------+    RunStep(CTX1)   |
 | validateData   | <------------------+
 +----------------+ 
         |
-        +---Append(CTX1,Result)-------> 
+        +---Append(CTX1, Result)------> 
                                       | RunStep(CTX1)       +------------+
                                       +-------------------> | sendReport |
                                                             +------------+
@@ -135,17 +144,16 @@ export interface Task<
     {
       id: SignalId;
       task: TaskDef;
-      start: PeerName; // format: "PeerId"
     }
   > {}
 
-/* Operation
+/* Fulfillment
     
     Task      : SIG2
     Sender    : Peer A
     State     : executing
 
-    ────────── Operation ──────────
+    ────────── Steps ──────────
     [✔] Step A
     [✔] Step B
     [✖] Step C
@@ -153,31 +161,24 @@ export interface Task<
     [ ] Result
 */
 
-export interface Operation<Result = unknown, Error = unknown>
+export interface Fulfillment<Result = unknown, Error = unknown>
   extends BaseMessage<
-    "operation",
+    "fulfillment",
     {
-      id: SignalId;
-      pid?: SignalId;
+      taskId: SignalId;
+      sender: PeerName;
+      state?: "executing" | "completed" | "failed"; 
 
-      // Next step
-      next?: `${PeerName}:${StepPath}`;
-
-      // state
-      done?: boolean;
-
-      // data
-      data?: Result;
-
-      // chunk info
-      chunkIndex: number;
-      chunkCount?: number;
-
-      error?: Error;
+      step: {
+        path: StepPath;
+        executor: PeerName;
+        data?: Result;
+        error?: Error;
+      }
     }
   > {}
 
-export type Message = Peer | Signal | Task | Operation | Abort;
+export type Message = Peer | Signal | Task | Fulfillment | Abort;
 
 /*
 Global Registry
