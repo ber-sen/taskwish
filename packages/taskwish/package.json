@@ -30,6 +30,7 @@
     }
   },
   "dependencies": {
+    "capnweb": "^0.6.1",
     "cbor2": "^2.3.0"
   }
 }
