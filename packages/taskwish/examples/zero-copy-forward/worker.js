@@ -1,21 +1,16 @@
-import { randomBytes } from "crypto";
+import { encode } from "cbor2";
 
 self.onmessage = (event) => {
   const port = event.data.port;
 
   port.start();
 
-  const random = randomBytes(16);
-
-  const buffer = random.buffer.slice(
-    random.byteOffset,
-    random.byteOffset + random.byteLength,
-  );
+  const message = encode({ hello: "world" });
 
   console.log("worker");
-  console.log(buffer);
+  console.log(message);
 
-  port.postMessage({ buffer }, [buffer]);
+  port.postMessage({ message }, [message.buffer]);
 
   pipeGeneratorToPort(stream(), port);
 };

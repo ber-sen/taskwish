@@ -8,13 +8,13 @@ worker.postMessage({ port: channel.port2 }, [channel.port2]);
 
 // listen on port1
 channel.port1.onmessage = (e) => {
-  const buffer = e.data.buffer;
+  const message = e.data.message;
   console.log("main:");
-  console.log(buffer);
-  workerC.postMessage({ buffer }, [buffer]);
+  console.log(message);
+  workerC.postMessage({ message }, [message.buffer]);
 
   console.log("main after transfer:");
-  console.log(buffer);
+  console.log(message);
   
 };
 
