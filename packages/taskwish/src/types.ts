@@ -95,33 +95,36 @@ export interface Abort
     { $: "sendReport", reportId: "r_2026" }     // Peer C
   ]>
 
-    +--------+           +--------+
-    | Peer A |           | Peer C |
-    +---+----+           +---+----+
-        |                    
-        +---- Task(SIGX) ----+
-                             |
-                             |
-                      +------v--------+
-                      | transformData |
-                      +---------------+
-                             | Operation (next: "A:1")
-                             |
-        +--------------------+
-        |                    
-   +----v---------+        
-   | validateData |      
-   +--------------+
-        | Operation (next: "C:2")
-        |                    
-        +--------------------+
-                             |
-                     +-------v-------+
-                     | sendReport    |
-                     +---------------+
-                      Operation (done: true)
+    +--------+                +----------------+              +--------+ 
+    | Peer A |                |  Orchestrator  |              | Peer C |
+    +--------+                +----------------+              +--------+
+        |                                                                
+        +------- Task(SIGX) ---------->
+                                      |
+                              +-------v--------+
+                              | New Execution  |       
+                              | Context (CTX1) |       
+                              +----------------+       
+                                      |  RunStep(CTX1)     +---------------+
+                                      +------------------> | transformData |
+                                                           +---------------+
+                                                                  |
+                                      <-----Append(CTX1, Result)--+
++----------------+    RunStep(CTX1)   |
+| validateData   | <------------------+
++----------------+ 
+        |
+        +---Append(CTX1,Result)-------> 
+                                      | RunStep(CTX1)       +------------+
+                                      +-------------------> | sendReport |
+                                                            +------------+
+                                                                  |
+                                      <----Append(CTX1, Result)---+
+                                      |
+        <------------------Result-----+
+                      (Task Completed)
 
-[Optional Abort(SIGX)] --> stops all in-flight execution
+    [Optional Abort(SIGX)] --> stops execution
 */
 export interface Task<
   TaskDef extends
