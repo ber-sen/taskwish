@@ -1,0 +1,102 @@
+import { RpcSession } from "capnweb"
+
+export function newMessagePortRpcSession(port, localMain, options) {
+  const transport = new MessagePortTransport(port);
+  const rpc = new RpcSession(transport, localMain, options);
+  return rpc.getRemoteMain();
+}
+
+class MessagePortTransport {
+  #port;
+  #error;
+  #receiveQueue = [];
+  #receiveResolver;
+  #receiveRejecter;
+
+  constructor(port) {
+    this.#port = port;
+
+    port.start();
+
+    port.addEventListener("message", (event) => {
+      if (this.#error) {
+        return;
+      }
+
+      console.log({ event });
+
+      if (event.data === null) {
+        this.#receivedError(new Error("Peer closed MessagePort connection."));
+        return;
+      }
+
+      if (typeof event.data === "string") {
+        if (this.#receiveResolver) {
+          this.#receiveResolver(event.data);
+          this.#receiveResolver = undefined;
+          this.#receiveRejecter = undefined;
+        } else {
+          this.#receiveQueue.push(event.data);
+        }
+        return;
+      }
+
+      this.#receivedError(
+        new TypeError("Received non-string message from MessagePort."),
+      );
+    });
+
+    port.addEventListener("messageerror", () => {
+      this.#receivedError(new Error("MessagePort message error."));
+    });
+  }
+
+  async send(message) {
+    if (this.#error) {
+      throw this.#error;
+    }
+
+    this.#port.postMessage(message);
+  }
+
+  async receive() {
+    if (this.#receiveQueue.length > 0) {
+      return this.#receiveQueue.shift();
+    }
+
+    if (this.#error) {
+      throw this.#error;
+    }
+
+    return new Promise((resolve, reject) => {
+      this.#receiveResolver = resolve;
+      this.#receiveRejecter = reject;
+    });
+  }
+
+  abort(reason) {
+    try {
+      this.#port.postMessage(null);
+    } catch (err) {
+      // ignore
+    }
+
+    this.#port.close();
+
+    if (!this.#error) {
+      this.#error = reason;
+    }
+  }
+
+  #receivedError(reason) {
+    if (this.#error) return;
+
+    this.#error = reason;
+
+    if (this.#receiveRejecter) {
+      this.#receiveRejecter(reason);
+      this.#receiveResolver = undefined;
+      this.#receiveRejecter = undefined;
+    }
+  }
+}

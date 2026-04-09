@@ -1,4 +1,4 @@
-import { newMessagePortRpcSession } from "capnweb";
+import { newMessagePortRpcSession } from "./transport";
 
 const worker = new Worker("./worker.js");
 
@@ -9,7 +9,7 @@ worker.postMessage(port1, [port1]);
 const api = newMessagePortRpcSession(port2);
 
 async function run() {
-  const a = await api.greet("Bersen");
+  const a = await api.greet(api.greet("Bersen"));
   console.log(a)
 }
 

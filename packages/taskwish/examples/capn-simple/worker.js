@@ -1,4 +1,5 @@
-import { RpcTarget, newMessagePortRpcSession } from "capnweb";
+import { newMessagePortRpcSession } from "./transport";
+import { RpcTarget } from "capnweb";
 
 class Greeter extends RpcTarget {
   greet(name) {
