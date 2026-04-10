@@ -1,8 +1,8 @@
-import { RpcSession } from "capnweb"
+import { RpcSession } from "capnweb";
 
-export function newMessagePortRpcSession(port, localMain, options) {
-  const transport = new MessagePortTransport(port);
-  const rpc = new RpcSession(transport, localMain, options);
+export function newMessagePortRpcSession(port, localMain, p) {
+  const transport = new MessagePortTransport(port, p);
+  const rpc = new RpcSession(transport, localMain);
   return rpc.getRemoteMain();
 }
 
@@ -13,7 +13,7 @@ class MessagePortTransport {
   #receiveResolver;
   #receiveRejecter;
 
-  constructor(port) {
+  constructor(port, p) {
     this.#port = port;
 
     port.start();
@@ -23,7 +23,9 @@ class MessagePortTransport {
         return;
       }
 
-      console.log({ event });
+      if (!p) {
+        console.log({ p, event });
+      }
 
       if (event.data === null) {
         this.#receivedError(new Error("Peer closed MessagePort connection."));

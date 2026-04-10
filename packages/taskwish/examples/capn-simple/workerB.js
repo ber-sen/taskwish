@@ -18,5 +18,5 @@ self.onmessage = (event) => {
   const port = event.data;
 
   // bind RPC server
-  newMessagePortRpcSession(port, new Greeter());
+  newMessagePortRpcSession(port, new Greeter(), "b");
 };
