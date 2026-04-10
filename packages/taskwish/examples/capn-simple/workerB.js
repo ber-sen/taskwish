@@ -2,13 +2,16 @@ import { newMessagePortRpcSession } from "./transport";
 import { RpcTarget } from "capnweb";
 
 class Greeter extends RpcTarget {
-  greet(name) {
-    return Promise.resolve(`Hello, ${name}`);
+  a = null;
+
+  setA(a) {
+    this.a = a.dub();
+  }
+  hi(name) {
+    return this.a.greet(name);
   }
 
-  dub(){
-    return new Greeter()
-  }
+  [Symbol.dispose]() {}
 }
 
 self.onmessage = (event) => {
