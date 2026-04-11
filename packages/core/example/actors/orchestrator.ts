@@ -1,10 +1,10 @@
 import { Actor, Agent, Desc, Step, Tool, Type } from "../../src";
-import { DeviceHandler } from "../../src/device-handler";
+import { Orchestrator } from "../../src/orchestrator";
 
-const { Handler } = Actor(DeviceHandler("Handler"));
+const { Handler } = Actor(Orchestrator("Handler"));
 
 export const { chat } = Handler()
-  .on("Command", "chat")
+  .action("chat")
 
   .input({ prompt: "string" })
 
