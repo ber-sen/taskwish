@@ -1,13 +1,15 @@
 import { newMessagePortRpcSession } from "./transport";
 import { RpcTarget } from "capnweb";
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 class Greeter extends RpcTarget {
-  greet(name) {
+  async hi(name) {
+    await sleep(1000)
     return Promise.resolve(`Hello, ${name}`);
   }
 
-  init(orchestrator) {
-    orchestrator.register(this, [["$greet", "greet"]]);
+  greet(name) {
+    return Promise.resolve(`Hello, ${name}`);
   }
 
   dub() {

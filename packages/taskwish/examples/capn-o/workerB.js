@@ -6,10 +6,6 @@ class Greeter extends RpcTarget {
     return Promise.resolve(`Hi, ${name}`);
   }
 
-  init(orchestrator) {
-    orchestrator.register(this, [["$hi", "hi"]]);
-  }
-
   dub() {
     return new Greeter();
   }

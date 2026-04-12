@@ -1,17 +1,23 @@
 import { newMessagePortRpcSession } from "./transport";
 import { RpcTarget } from "capnweb";
 
+const worker = new Worker("./worker.js");
+
+const ch1 = new MessageChannel();
+
+worker.postMessage(ch1.port1, [ch1.port1]);
+
+const workerApi = newMessagePortRpcSession(ch1.port2);
+
 class Orchestrator extends RpcTarget {
   actions = new Map();
 
-  register(service, actions) {
-    const servicedub = service.dub();
-
-    actions.forEach((a) => this.actions.set(a[0], servicedub[a[1]]));
+  async hi(name) {
+    return workerApi.greet(name)
   }
 
-  run(name, params) {
-    return this.actions.get(name)?.(params);
+  greet(name) {
+    return Promise.resolve(`Hello, ${name}`);
   }
 
   dub() {
