@@ -30,12 +30,9 @@ export class Orchestrator {
   }
 
   async run(name) {
-    const res = await this.actions.greet(name);
-
-    if (Array.isArray(res) && res.length === 3 && res[0] === "$") {
-      return this.actions[res[1]](res[2]);
-    }
-
-    return res;
+    return this.actions.greet(
+      name,
+      async (key, params) => await this.actions[key](params),
+    );
   }
 }

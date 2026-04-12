@@ -10,8 +10,8 @@ class Greeter extends RpcTarget {
     return Promise.resolve(`Hello, ${name}`);
   }
 
-  greet(name) {
-    return ["$", "lorem", name]
+  async greet(name, next) {
+    return `${name} ${await next("lorem", name)}`;
   }
 
   register() {
