@@ -4,17 +4,7 @@ import { RpcTarget } from "capnweb";
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 class Greeter extends RpcTarget {
-  port = null;
-
-  constructor(port) {
-    super();
-
-    this.port = port;
-  }
-
   async hi(name) {
-    this.port.postMessage(["lorem", 3]);
-
     await sleep(1000);
 
     return Promise.resolve(`Hello, ${name}`);
@@ -24,8 +14,11 @@ class Greeter extends RpcTarget {
     return Promise.resolve(`Hello, ${name}`);
   }
 
-  register(orchestrator) {
-    this.orchestrator = orchestrator.dub();
+  register() {
+    return [
+      ["greet", this.greet],
+      ["hi", this.hi],
+    ];
   }
 
   dub() {
@@ -37,5 +30,5 @@ self.onmessage = (event) => {
   const port = event.data;
 
   // bind RPC server
-  newMessagePortRpcSession(port, new Greeter(port), "a");
+  newMessagePortRpcSession(port, new Greeter(), "a");
 };

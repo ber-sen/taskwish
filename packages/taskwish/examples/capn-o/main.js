@@ -8,8 +8,13 @@ orchestrator.postMessage(ch1.port1, [ch1.port1]);
 
 const orchestratorApi = newMessagePortRpcSession(ch1.port2);
 
+await orchestratorApi.addWorker("./worker.js")
+await orchestratorApi.addWorker("./workerB.js")
+
 async function run() {
-  const b = await orchestratorApi.hi("World");
+  console.log("HERE")
+
+  const b = await orchestratorApi.run("World");
 
   console.log(b)
 }

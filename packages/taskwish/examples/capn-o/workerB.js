@@ -2,8 +2,12 @@ import { newMessagePortRpcSession } from "./transport";
 import { RpcTarget } from "capnweb";
 
 class Greeter extends RpcTarget {
-  hi(name) {
+  lorem(name) {
     return Promise.resolve(`Hi, ${name}`);
+  }
+
+  register() {
+    return [["lorem", this.lorem]];
   }
 
   dub() {
@@ -15,5 +19,5 @@ self.onmessage = (event) => {
   const port = event.data;
 
   // bind RPC server
-  newMessagePortRpcSession(port, new Greeter(), "a");
+  newMessagePortRpcSession(port, new Greeter(), "b");
 };

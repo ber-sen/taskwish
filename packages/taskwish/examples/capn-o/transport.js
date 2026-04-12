@@ -23,9 +23,9 @@ export class MessagePortTransport {
         return;
       }
 
-      // if (!p) {
+      if (p === undefined) {
         console.log({ p, data: event.data });
-      // }
+      }
 
       if (event.data === null) {
         this.#receivedError(new Error("Peer closed MessagePort connection."));
