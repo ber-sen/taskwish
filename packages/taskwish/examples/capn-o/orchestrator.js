@@ -29,7 +29,13 @@ export class Orchestrator {
     return register.map(([key]) => key);
   }
 
-  run(name) {
-    return this.actions.greet(name);
+  async run(name) {
+    const res = await this.actions.greet(name);
+
+    if (Array.isArray(res) && res.length === 3 && res[0] === "$") {
+      return this.actions[res[1]](res[2]);
+    }
+
+    return res;
   }
 }
