@@ -1,8 +1,8 @@
 import { newMessagePortRpcSession } from "./transport";
-import { RpcTarget } from "capnweb";
 
-class Orchestrator extends RpcTarget {
-  actions = new Map();
+export class Orchestrator {
+  actions = {};
+  workers = [];
   count = 1;
 
   async addWorker(path) {
@@ -20,24 +20,16 @@ class Orchestrator extends RpcTarget {
 
     const register = await workerApi.register();
 
+    this.workers.push(workerApi);
+
     for (const [name, method] of register) {
-      this.actions.set(name, method);
+      this.actions[name] = method;
     }
 
     return register.map(([key]) => key);
   }
 
   run(name) {
-    return this.actions.get("greet")(this.actions.get("lorem")(name));
-  }
-
-  dub() {
-    return new Orchestrator();
+    return this.actions.greet(name);
   }
 }
-
-self.onmessage = (event) => {
-  const port = event.data;
-
-  newMessagePortRpcSession(port, new Orchestrator(), "o");
-};

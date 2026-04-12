@@ -9,10 +9,6 @@ class Greeter extends RpcTarget {
   register() {
     return [["lorem", this.lorem]];
   }
-
-  dub() {
-    return new Greeter();
-  }
 }
 
 self.onmessage = (event) => {

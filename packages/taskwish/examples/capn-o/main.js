@@ -1,22 +1,16 @@
-import { newMessagePortRpcSession } from "./transport";
+import { Orchestrator } from "./orchestrator";
 
-const orchestrator = new Worker("./orchestrator.js");
+const orchestrator = new Orchestrator();
 
-const ch1 = new MessageChannel();
-
-orchestrator.postMessage(ch1.port1, [ch1.port1]);
-
-const orchestratorApi = newMessagePortRpcSession(ch1.port2);
-
-await orchestratorApi.addWorker("./worker.js")
-await orchestratorApi.addWorker("./workerB.js")
+await orchestrator.addWorker("./worker.js");
+await orchestrator.addWorker("./workerB.js");
 
 async function run() {
-  console.log("HERE")
+  console.log("HERE");
 
-  const b = await orchestratorApi.run("World");
+  const b = await orchestrator.run("World");
 
-  console.log(b)
+  console.log(b);
 }
 
 run();

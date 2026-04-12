@@ -4,6 +4,8 @@ import { RpcTarget } from "capnweb";
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 class Greeter extends RpcTarget {
+  orchestrator = null;
+
   async hi(name) {
     await sleep(1000);
 
@@ -19,10 +21,6 @@ class Greeter extends RpcTarget {
       ["greet", this.greet],
       ["hi", this.hi],
     ];
-  }
-
-  dub() {
-    return new Greeter();
   }
 }
 
