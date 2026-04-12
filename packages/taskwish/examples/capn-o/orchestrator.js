@@ -1,5 +1,5 @@
-import { newMessagePortRpcSession } from "./transport";
-import { RpcTarget } from "capnweb";
+import { newMessagePortRpcSession, MessagePortTransport } from "./transport";
+import { RpcTarget, RpcSession } from "capnweb";
 
 const worker = new Worker("./worker.js");
 
@@ -13,7 +13,7 @@ class Orchestrator extends RpcTarget {
   actions = new Map();
 
   async hi(name) {
-    return workerApi.greet(name)
+    return Promise.resolve(`Hi, ${name}`);
   }
 
   greet(name) {
@@ -28,6 +28,8 @@ class Orchestrator extends RpcTarget {
 self.onmessage = (event) => {
   const port = event.data;
 
-  // bind RPC server
-  newMessagePortRpcSession(port, new Orchestrator(), "o");
+  const transport = new MessagePortTransport(port, "o");
+  const rpc = new RpcSession(transport, new Orchestrator());
+
+  rpc.getRemoteMain();
 };

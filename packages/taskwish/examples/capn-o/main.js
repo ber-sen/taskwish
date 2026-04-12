@@ -1,6 +1,6 @@
 import { newMessagePortRpcSession } from "./transport";
 
-const orchestrator = new Worker("./worker.js");
+const orchestrator = new Worker("./orchestrator.js");
 
 const ch1 = new MessageChannel();
 

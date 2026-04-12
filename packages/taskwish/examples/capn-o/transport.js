@@ -6,7 +6,7 @@ export function newMessagePortRpcSession(port, localMain, p) {
   return rpc.getRemoteMain();
 }
 
-class MessagePortTransport {
+export class MessagePortTransport {
   #port;
   #error;
   #receiveQueue = [];
@@ -23,9 +23,9 @@ class MessagePortTransport {
         return;
       }
 
-      // if (!p) {
+      if (!p) {
         console.log({ p, event });
-      // }
+      }
 
       if (event.data === null) {
         this.#receivedError(new Error("Peer closed MessagePort connection."));
