@@ -24,7 +24,7 @@ export class MessagePortTransport {
       }
 
       // if (!p) {
-        console.log({ p, event });
+        console.log({ p, data: event.data });
       // }
 
       if (event.data === null) {
@@ -42,10 +42,6 @@ export class MessagePortTransport {
         }
         return;
       }
-
-      this.#receivedError(
-        new TypeError("Received non-string message from MessagePort."),
-      );
     });
 
     port.addEventListener("messageerror", () => {
