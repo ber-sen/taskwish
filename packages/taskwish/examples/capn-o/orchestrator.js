@@ -12,8 +12,8 @@ const workerApi = newMessagePortRpcSession(ch1.port2);
 class Orchestrator extends RpcTarget {
   actions = new Map();
 
-  async hi(name) {
-    return Promise.resolve(`Hi, ${name}`);
+  hi(name) {
+    return workerApi.hi(name);
   }
 
   greet(name) {
