@@ -115,14 +115,20 @@ export type Apply<
   })["run"]
 >;
 
+const Fail = Symbol("Fail")
+
+export type Fail<Message extends string> = {
+  [Fail]: Message;
+}
+
 export type CamelCase<S extends string> = S extends
   | `${string}_${string}`
   | `${string}-${string}`
   | `${string} ${string}`
-  ? never
+  ? Fail<"Expected camelCase string">
   : S extends Uncapitalize<S>
     ? S
-    : never;
+    : Fail<"Expected camelCase string">;
 
 export type PascalCase<S extends string> = S extends
   | `${string}_${string}`

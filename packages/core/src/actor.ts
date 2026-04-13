@@ -30,7 +30,7 @@ export const Actor = <const Name extends string, const Env>(
   name: PascalCase<Name> | Taskwish.Named<PascalCase<Name>>,
   env?: ValidateSchema<Env>,
 ): {
-  [key in ToCapitalCase<Name>]: () => Behavior;
+  [key in Name]: () => Behavior;
 } => {
   return name as any;
 };
