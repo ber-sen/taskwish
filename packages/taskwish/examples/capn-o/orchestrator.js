@@ -26,7 +26,7 @@ export class Orchestrator {
       this.actions[name] = method;
     }
 
-    return register.map(([key]) => key);
+    return capabilities.map(([key]) => key);
   }
 
   async run(name) {
