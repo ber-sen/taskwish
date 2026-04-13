@@ -18,11 +18,11 @@ export class Orchestrator {
       `o-${this.count++}`,
     );
 
-    const register = await workerApi.register();
+    const capabilities = await workerApi.register();
 
     this.workers.push(workerApi);
 
-    for (const [name, method] of register) {
+    for (const [name, method] of capabilities) {
       this.actions[name] = method;
     }
 
