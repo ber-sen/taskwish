@@ -1,48 +1,49 @@
 import { RpcTarget } from "capnweb";
 
-export type Capability = ["$" | ">" | (string & {}), string];
+export namespace Proto {
+  export type Capability = ["$" | ">" | (string & {}), string];
 
-export interface Peer extends RpcTarget {
-/* 
-  Capability State Timeline 
-  
-  - t0  (initial state)
+  export interface Peer extends RpcTarget {
+    /* Capability State Timeline 
+    
+    - t0  (initial state)
 
-    capabilities ---> [
-      ["$", "sendEmail"],
-      ["$", "generateReport"],
-      [">", "onUserSignup"]
-    ]
+      capabilities ---> [
+        ["$", "sendEmail"],
+        ["$", "generateReport"],
+        [">", "onUserSignup"]
+      ]
 
-  - t1  (peer offline)
+    - t1  (peer offline)
 
-    capabilities ---> []
-  */
-  capabilities(): Promise<Capability[]>;
-  
-/* 
-  Orchestrator Connection
+      capabilities ---> []
+      
+    */
+    capabilities(): Promise<Capability[]>;
 
-          connect(orchestrator)
-  Peer ───────────────────────────▶ Orchestrator
-    │                                  │
-    │                                  │
-    │──────── returns ───────────────▶ │
-    │        Capability[]              │
-    │                                  │
-    ▼                                  ▼
-  capabilities()                 snapshot/state
-  */
+    /* Orchestrator Connection
 
-  connect(orchestrator: Orchestrator): Promise<Capability[]>;
-}
+            connect(orchestrator)
+    Peer ───────────────────────────▶ Orchestrator
+      │                                  │
+      │                                  │
+      │──────── returns ───────────────▶ │
+      │        Capability[]              │
+      │                                  │
+      ▼                                  ▼
+    capabilities()                 snapshot/state
+    
+    */
 
-export type SignalId = `${string}-${string}-7${string}-${string}-${string}`;
+    connect(orchestrator: Orchestrator): Promise<Capability[]>;
+  }
 
-export type Signal = { ">": string } & Record<string, any> 
+  export type SignalId = `${string}-${string}-7${string}-${string}-${string}`;
 
-export interface Orchestrator {
-/* Signal
+  export type Signal = { ">": string } & Record<string, any>;
+
+  export interface Orchestrator {
+    /* Signal
   Peer A → Signal<{ ">": "onEmail", subject: "Welcome" }>
 
                +---------+
@@ -74,21 +75,20 @@ export interface Orchestrator {
                             
     [Optional Abort(SIG1)]
 */
-signal<SignalDef extends Signal>(signal: SignalDef): Promise<{ id: SignalId; }>;
+    signal<SignalDef extends Signal>(
+      signal: SignalDef,
+    ): Promise<{ id: SignalId }>;
+  }
 
-}
+  export interface Abort
+    extends BaseMessage<
+      "abort",
+      {
+        id: SignalId;
+      }
+    > {}
 
-
-
-export interface Abort
-  extends BaseMessage<
-    "abort",
-    {
-      id: SignalId;
-    }
-  > {}
-
-/* Task
+  /* Task
   Peer A → Task<[
     { $: "transformData", dataId: "d_001" },    // Peer C
     { $: "validateData", schemaId: "s_01" },    // Peer A
@@ -128,19 +128,19 @@ export interface Abort
 
     [Optional Abort(SIGX)] --> stops execution
 */
-export interface Task<
-  TaskDef extends
-    | ({ $: string } & Record<string, any>)
-    | Array<{ $: string } & Record<string, any>> = { $: "noop" },
-> extends BaseMessage<
-    "task",
-    {
-      id: SignalId;
-      task: TaskDef;
-    }
-  > {}
+  export interface Task<
+    TaskDef extends
+      | ({ $: string } & Record<string, any>)
+      | Array<{ $: string } & Record<string, any>> = { $: "noop" },
+  > extends BaseMessage<
+      "task",
+      {
+        id: SignalId;
+        task: TaskDef;
+      }
+    > {}
 
-/* Fulfillment
+  /* Fulfillment
     
     Task      : SIG2
     Sender    : Peer A
@@ -154,26 +154,26 @@ export interface Task<
     [ ] Result
 */
 
-export interface Fulfillment<Result = unknown, Error = unknown>
-  extends BaseMessage<
-    "fulfillment",
-    {
-      taskId: SignalId;
-      sender: PeerName;
-      state?: "executing" | "completed" | "failed"; 
+  export interface Fulfillment<Result = unknown, Error = unknown>
+    extends BaseMessage<
+      "fulfillment",
+      {
+        taskId: SignalId;
+        sender: PeerName;
+        state?: "executing" | "completed" | "failed";
 
-      step: {
-        path: StepPath;
-        executor: PeerName;
-        data?: Result;
-        error?: Error;
+        step: {
+          path: StepPath;
+          executor: PeerName;
+          data?: Result;
+          error?: Error;
+        };
       }
-    }
-  > {}
+    > {}
 
-export type Message = Peer | Signal | Task | Fulfillment | Abort;
+  export type Message = Peer | Signal | Task | Fulfillment | Abort;
 
-/*
+  /*
 Global Registry
 ===============
 Peer A registered
@@ -253,3 +253,4 @@ Notes
 - Each intermediate step emits Operation chunks
 - Only the final step emits the Operation chunks with `done: true`
 */
+}

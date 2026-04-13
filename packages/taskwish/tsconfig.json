@@ -22,6 +22,6 @@
 		"noPropertyAccessFromIndexSignature": false
 	},
 
-	"include": ["src/**/*", "examples/change-routes.ts"],
+	"include": ["src/**/*", "examples/change-routes.ts", "../proto/proto.ts"],
 	"exclude": ["node_modules", "dist", "bunup.config.ts"]
 }
