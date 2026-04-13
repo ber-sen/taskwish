@@ -1,43 +1,47 @@
-export type PeerName = string;
-export type StepPath = string; // 0 | 1 | a.run.0
-export type SignalId = `${string}-${string}-7${string}-${string}-${string}`;
-export type Timestamp = string; // ISO 8601
-export type Signature = string;
-
-export interface BaseMessage<Type extends string, Content = unknown> {
-  v: 1;
-  type: Type;
-  sender: PeerName;
-  ts: Timestamp;
-  content: Content;
-  sig?: Signature;
-}
-
-/* Peer Layer 
- +-----------+                     +-----------+                     +-----------+
- | Peer A    |                     | Peer B    |                     | Peer C    |
- +-----------+                     +-----------+                     +-----------+
-      |                               |                               |
-      |--- register --->              |                               |
-      | [["$", "sendEmail"],          |                               |
-      | ["$", "generateReport"],      |                               |
-      | [">", "onUserSignup"]]        |                               |
-      |                               |--- register --->              |
-      |                               | [["$", "generateInvoice"],    |
-      |                               | [">", "onInvoiceApproved"]]   |
-      |                               |                               |
-      |--- register: [] --------------------------------------------> |
-      |                               |                               |
- [Peers announce capabilities; updates modify array; empty array = offline]
-*/
+import { RpcTarget } from "capnweb";
 
 export type Capability = ["$" | ">" | (string & {}), string];
 
-export interface Peer<
-  Name extends PeerName = string,
-  Capabilities extends Capability[] = Capability[],
-> extends BaseMessage<"peer", { name: Name; register: Capabilities }> {}
+export interface Peer extends RpcTarget {
+/* 
+  Capability State Timeline 
+  
+  - t0  (initial state)
 
+    capabilities ---> [
+      ["$", "sendEmail"],
+      ["$", "generateReport"],
+      [">", "onUserSignup"]
+    ]
+
+  - t1  (peer offline)
+
+    capabilities ---> []
+  */
+  capabilities(): Promise<Capability[]>;
+  
+/* 
+  Orchestrator Connection
+
+          connect(orchestrator)
+  Peer ───────────────────────────▶ Orchestrator
+    │                                  │
+    │                                  │
+    │──────── returns ───────────────▶ │
+    │        Capability[]              │
+    │                                  │
+    ▼                                  ▼
+  capabilities()                 snapshot/state
+  */
+
+  connect(orchestrator: Orchestrator): Promise<Capability[]>;
+}
+
+export type SignalId = `${string}-${string}-7${string}-${string}-${string}`;
+
+export type Signal = { ">": string } & Record<string, any> 
+
+export interface Orchestrator {
 /* Signal
   Peer A → Signal<{ ">": "onEmail", subject: "Welcome" }>
 
@@ -70,16 +74,11 @@ export interface Peer<
                             
     [Optional Abort(SIG1)]
 */
+signal<SignalDef extends Signal>(signal: SignalDef): Promise<{ id: SignalId; }>;
 
-export interface Signal<
-  SignalDef extends { ">": string } & Record<string, any> = { ">": "null" },
-> extends BaseMessage<
-    "signal",
-    {
-      id: SignalId;
-      signal: SignalDef;
-    }
-  > {}
+}
+
+
 
 export interface Abort
   extends BaseMessage<

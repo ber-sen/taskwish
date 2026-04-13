@@ -18,7 +18,12 @@ export class Orchestrator {
       `o-${this.count++}`,
     );
 
-    const capabilities = await workerApi.register();
+    const capabilities = await workerApi.connect({
+      signal: () => console.log(this.actions),
+      dub: () => ({
+        signal: () => console.log(this.actions),
+      }),
+    });
 
     this.workers.push(workerApi);
 
