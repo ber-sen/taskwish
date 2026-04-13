@@ -1,9 +1,9 @@
 import { Actor, Step } from "../../src";
 
-const { MyActor } = Actor("My actor");
+const { MyActor } = Actor("MyActor");
 
 const { myAction } = MyActor()
-  .on("Command", "My action")
+  .on("Command", "myAction")
 
   .input({ name: "string" })
 

@@ -7,10 +7,10 @@ const Options = {
       R,
 };
 
-const { MyActor } = Actor("My actor");
+const { MyActor } = Actor("MyActor");
 
 export const { withOptions } = MyActor()
-  .on("Command", "With options")
+  .on("Command", "withOptions")
   
   .input({ message: "string" })
 

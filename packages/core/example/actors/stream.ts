@@ -2,10 +2,10 @@ import { Actor, Step, Steps, SubSteps } from "../../src";
 
 const Stream: Steps<typeof SubSteps> = {} as never;
 
-const { MyActor } = Actor("My Actor");
+const { MyActor } = Actor("MyActor");
 
 export const { stream } = MyActor()
-  .on("Command", "Stream")
+  .on("Command", "stream")
 
   .run(
     Stream(

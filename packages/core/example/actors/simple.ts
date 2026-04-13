@@ -3,7 +3,7 @@ import { Actor, Step } from "../../src";
 const { MyActor } = Actor("MyActor");
 
 export const { sendMessage } = MyActor()
-  .on("Command", "Send message")
+  .on("Command", "sendMessage")
 
   .run(
     Step("First step", function () {

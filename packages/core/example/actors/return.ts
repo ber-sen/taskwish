@@ -1,6 +1,6 @@
 import { Actor, If, Loop, Return } from "../../src";
 
-export default Actor("Say hello")
+export default Actor("SayHello")
   .use(import("../package"))
 
   .on({ user: { name: "string", age: "number" } })
