@@ -13,8 +13,6 @@ class Greeter extends RpcTarget {
   }
 
   async greet({ name }) {
-    // await this.orchestrator.signal();
-
     return `${name}`;
   }
 
