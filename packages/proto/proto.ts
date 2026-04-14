@@ -71,7 +71,7 @@ export namespace TWProto {
              | Orchestrator |
              +------+-------+
                     |
-             (Forward SIG1)
+              (Forward SIG1)
                     |
         +-----------+-----------+
         |                       |
