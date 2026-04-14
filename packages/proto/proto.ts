@@ -1,7 +1,20 @@
 import { RpcTarget } from "capnweb";
-
+import { StandardSchemaV1 } from "@standard-schema/spec";
 export namespace TWProto {
   export type Capability = ["$" | ">" | (string & {}), string];
+
+  export type SignalId = `${string}-${string}-7${string}-${string}-${string}`;
+
+  export type SignalInput = { ">": string } & Record<string, any>;
+
+  export type Signal<S extends SignalInput> = { signalId: SignalId, signal: S }
+
+  export type TaskInput = 
+      | ({ $: string } & Record<string, any>)
+      | Array<{ $: string } & Record<string, any>> 
+
+  export type Task<S extends TaskInput, Output = unknown> = { signalId: SignalId, task: S, result?: Output }
+
 
   export interface Peer extends RpcTarget {
     /* Capability State Timeline 
@@ -38,9 +51,7 @@ export namespace TWProto {
     connect(orchestrator: Orchestrator): Promise<Capability[]>;
   }
 
-  export type SignalId = `${string}-${string}-7${string}-${string}-${string}`;
 
-  export type Signal = { ">": string } & Record<string, any>;
 
   export interface Orchestrator {
     /* Signal
@@ -74,21 +85,16 @@ export namespace TWProto {
                             +-------+
                             
     [Optional Abort(SIG1)]
-*/
-    signal<SignalDef extends Signal>(
-      signal: SignalDef,
-    ): Promise<{ id: SignalId }>;
-  }
+  */
+    signal<S extends SignalInput>(
+      signal: S,
+    ): Signal<S>;
 
-  export interface Abort
-    extends BaseMessage<
-      "abort",
-      {
-        id: SignalId;
-      }
-    > {}
+    abort(
+      id: SignalId
+    ): Promise<Boolean>;
 
-  /* Task
+     /* Task
   Peer A → Task<[
     { $: "transformData", dataId: "d_001" },    // Peer C
     { $: "validateData", schemaId: "s_01" },    // Peer A
@@ -128,7 +134,18 @@ export namespace TWProto {
 
     [Optional Abort(SIGX)] --> stops execution
 */
-  export interface Task<
+
+ task<T extends TaskInput, R>(
+      task: T,
+      output?: StandardSchemaV1<R>
+    ): Task<T, R>
+
+  }
+
+
+
+ 
+  export interface Task2<
     TaskDef extends
       | ({ $: string } & Record<string, any>)
       | Array<{ $: string } & Record<string, any>> = { $: "noop" },
