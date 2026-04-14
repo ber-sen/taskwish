@@ -52,11 +52,9 @@ export namespace TWProto {
     capabilities(): Promise<Capability[]>;
 
     connect(
-      orchestrator: Orchestrator,
+      orchestrator: Peer<any>,
     ): Promise<{ name: Name; capabilities: Capability[] }>;
-  }
-
-  export interface Orchestrator {
+ 
     /* Signal
   Peer A → Signal<{ ">": "onEmail", subject: "Welcome" }>
 
