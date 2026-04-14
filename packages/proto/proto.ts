@@ -126,7 +126,7 @@ export namespace TWProto {
 +----------------+ 
                                           run(Task, Ctx)    +------------+
                                       <-------------------> | sendReport |
-                     Result                                     +------------+                          
+                     Result                                 +------------+                          
         <----------------------------+
                 (Task Completed)
 
