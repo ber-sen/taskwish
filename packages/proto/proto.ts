@@ -107,7 +107,7 @@ export namespace TWProto {
     abort(id: ExecutionId): Promise<Boolean>;
 
     /* Run task
-    
+
     Peer A → Task<[
       { $: "transformData", dataId: "d_001" },    // Peer C
       { $: "validateData", schemaId: "s_01" },    // Peer A
@@ -119,13 +119,13 @@ export namespace TWProto {
       +--------+                +----------------+              +--------+
                     run(Task)                                  
           +----------------------------->
-                                            run(Task)      +---------------+
+                                            run(Task)       +---------------+
                                         <-----------------> | transformData |
     +--------------+    run(Task, Ctx)                      +---------------+
     | validateData | <------------------>
     +--------------+                        run(Task, Ctx)    +------------+
                                         <-------------------> | sendReport |
-                      Result                                 +------------+                          
+                      Result                                  +------------+                          
           <-----------------------------+
                   (Task Completed)
 
