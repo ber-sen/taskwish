@@ -3,17 +3,17 @@ import { StandardSchemaV1 } from "@standard-schema/spec";
 export namespace TWProto {
   export type Capability = ["$" | ">" | (string & {}), string];
 
-  export type SignalId = `${string}-${string}-7${string}-${string}-${string}`;
+  export type ExecutionId = `${string}-${string}-7${string}-${string}-${string}`;
 
   export type SignalInput = { ">": string } & Record<string, any>;
 
-  export type Signal<S extends SignalInput> = { signalId: SignalId, signal: S }
+  export type Signal<S extends SignalInput> = { id: ExecutionId, signal: S }
 
   export type TaskInput = 
       | ({ $: string } & Record<string, any>)
       | Array<{ $: string } & Record<string, any>> 
 
-  export type Task<S extends TaskInput, Output = unknown> = { signalId: SignalId, task: S, result?: Output }
+  export type Task<S extends TaskInput, Output = unknown> = { id: ExecutionId, task: S, result?: Output }
 
 
   export interface Peer extends RpcTarget {
@@ -91,7 +91,7 @@ export namespace TWProto {
     ): Signal<S>;
 
     abort(
-      id: SignalId
+      id: ExecutionId
     ): Promise<Boolean>;
 
      /* Task
@@ -135,7 +135,7 @@ export namespace TWProto {
     [Optional Abort(SIGX)] --> stops execution
 */
 
- task<T extends TaskInput, R>(
+    invoke<T extends TaskInput, R>(
       task: T,
       output?: StandardSchemaV1<R>
     ): Task<T, R>
