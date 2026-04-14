@@ -5,7 +5,7 @@ import {
   ToCapitalCase,
   ValidateSchema,
 } from "./helpers";
-import { Taskwish } from "./core";
+import { TW } from "./core";
 
 interface Behavior {
   action<Name extends string>(name: CamelCase<Name>): ActionFactory<Name>;
@@ -27,7 +27,7 @@ interface Behavior {
 }
 
 export const Actor = <const Name extends string, const Env>(
-  name: PascalCase<Name> | Taskwish.Named<PascalCase<Name>>,
+  name: PascalCase<Name> | TW.Named<PascalCase<Name>>,
   env?: ValidateSchema<Env>,
 ): {
   [key in Name]: () => Behavior;

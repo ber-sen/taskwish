@@ -1,14 +1,14 @@
 "use server";
 
-import { Actor, Step, Steps, SubSteps, Taskwish } from "../../src";
+import { Actor, Step, Steps, SubSteps, TW } from "../../src";
 
 export const Reply = {} as <Ctx>(prompt: string) => {
-  [Taskwish.Step]: (ctx: Ctx) => Ctx;
+  [TW.Step]: (ctx: Ctx) => Ctx;
 };
 
 export const Commander: {
   Notify: <Ctx>(prompt: string) => {
-    [Taskwish.Step]: (ctx: Ctx) => Ctx;
+    [TW.Step]: (ctx: Ctx) => Ctx;
   };
   NeedsApproval: Steps<typeof SubSteps>;
 } = {} as never;

@@ -1,6 +1,6 @@
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
-import { Taskwish } from "../core";
+import { TW } from "../core";
 import { Step } from "../steps";
 
 describe("Command", () => {
@@ -13,7 +13,7 @@ describe("Command", () => {
 
     type healthz = Expect<
       Equal<
-        Taskwish.Action<
+        TW.Action<
           "healthz",
           () => Promise<{
             status: string;
@@ -41,7 +41,7 @@ describe("Command", () => {
 
     type hello = Expect<
       Equal<
-        Taskwish.Action<
+        TW.Action<
           "hello",
           (input: { name: string }) => Promise<string>,
           null
@@ -72,7 +72,7 @@ describe("Command", () => {
 
     type hello = Expect<
       Equal<
-        Taskwish.Action<
+        TW.Action<
           "hello",
           (input: { name: string }) => Promise<boolean>,
           null
@@ -98,7 +98,7 @@ describe("Command", () => {
 
     type result = Expect<
       Equal<
-        Taskwish.Action<
+        TW.Action<
           "tsAction",
           (input: { name: string }) => Promise<Promise<string>>,
           null
@@ -128,7 +128,7 @@ describe("Command", () => {
 
     type result = Expect<
       Equal<
-        Taskwish.Action<
+        TW.Action<
           "genericAction",
           <const T>(lorem: T) => Promise<T>,
           null
@@ -143,7 +143,7 @@ describe("Command", () => {
   });
 
   it("works with hkt", async () => {
-    interface MyHandler extends Taskwish.Handler {
+    interface MyHandler extends TW.Handler {
       run<const T extends this["ctx"]["model"]>(lorem: T): Promise<number>;
     }
 
@@ -160,7 +160,7 @@ describe("Command", () => {
 
     type result = Expect<
       Equal<
-        Taskwish.Action<
+        TW.Action<
           "myHandler",
           <const T extends "gpt5">(lorem: T) => Promise<number>,
           Record<"handler", MyHandler>

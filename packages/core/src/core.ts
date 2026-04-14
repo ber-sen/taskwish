@@ -5,16 +5,16 @@ import {
   InferTriggerScope,
 } from "./helpers";
 
-export namespace Taskwish {
-  export const Id = Symbol.for("Taskwish.Id");
+export namespace TW {
+  export const Id = Symbol.for("TW.Id");
 
-  export const Name = Symbol.for("Taskwish.Name");
+  export const Name = Symbol.for("TW.Name");
 
-  export const Meta = Symbol.for("Taskwish.Meta");
+  export const Meta = Symbol.for("TW.Meta");
 
-  export const Step = Symbol.for("Taskwish.Step");
+  export const Step = Symbol.for("TW.Step");
 
-  export const Scope = Symbol.for("Taskwish.Ctx");
+  export const Scope = Symbol.for("TW.Ctx");
 
   export interface Contextual<Ctx extends Record<any, any>> {
     [Scope]: Ctx["scope"];

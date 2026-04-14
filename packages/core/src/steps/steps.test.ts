@@ -1,5 +1,5 @@
 import { Equal } from "drizzle-orm";
-import { Taskwish } from "../core";
+import { TW } from "../core";
 import { If } from "./if-else";
 import { Loop } from "./loop";
 import { Match } from "./match";
@@ -133,7 +133,7 @@ describe("Steps", () => {
     const Step = <const Name extends string, const R>(
       name: Name,
       data: R
-    ): Taskwish.Step<Name, R> => ({}) as never;
+    ): TW.Step<Name, R> => ({}) as never;
 
     const steps = async function* () {
       yield Step("1", 3);
@@ -156,18 +156,18 @@ describe("Steps", () => {
     type succeed = Expect<
       Equal<
         AsyncGenerator<
-          | Taskwish.Step<"1", 3, ["step"], null>
-          | Taskwish.Step<"2", "sadasd", ["step"], null>
-          | Taskwish.Step<"3", true, ["step"], null>
-          | Taskwish.Step<"4", 3, ["step"], null>
-          | Taskwish.Step<"5", "sadasd", ["step"], null>
-          | Taskwish.Step<"6", true, ["step"], null>
-          | Taskwish.Step<"7", 3, ["step"], null>
-          | Taskwish.Step<"8", "sadasd", ["step"], null>
-          | Taskwish.Step<"9", true, ["step"], null>
-          | Taskwish.Step<"10", 3, ["step"], null>
-          | Taskwish.Step<"11", "sadasd", ["step"], null>
-          | Taskwish.Step<"12", true, ["step"], null>,
+          | TW.Step<"1", 3, ["step"], null>
+          | TW.Step<"2", "sadasd", ["step"], null>
+          | TW.Step<"3", true, ["step"], null>
+          | TW.Step<"4", 3, ["step"], null>
+          | TW.Step<"5", "sadasd", ["step"], null>
+          | TW.Step<"6", true, ["step"], null>
+          | TW.Step<"7", 3, ["step"], null>
+          | TW.Step<"8", "sadasd", ["step"], null>
+          | TW.Step<"9", true, ["step"], null>
+          | TW.Step<"10", 3, ["step"], null>
+          | TW.Step<"11", "sadasd", ["step"], null>
+          | TW.Step<"12", true, ["step"], null>,
           void,
           unknown
         >,

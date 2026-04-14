@@ -10,6 +10,8 @@
     "build": "turbo build"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^22.15.21",
     "turbo": "^2.5.3"
   },

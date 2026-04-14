@@ -1,5 +1,5 @@
 import { CamelCase, InferSchema, ValidateSchema } from "../helpers";
-import { Taskwish } from "../core";
+import { TW } from "../core";
 export interface Agent<Name extends string, Tools extends string[]> {
   name: Name;
   tools: Tools;
@@ -18,9 +18,9 @@ export function Agent<
     tools: Tools;
   },
 ): {
-  [Taskwish.Step]: (input: Ctx) => {
+  [TW.Step]: (input: Ctx) => {
     steps: Ctx["steps"] & Record<Name, Agent<Name, Tools>>;
-    [Taskwish.Step]: Ctx["step"];
+    [TW.Step]: Ctx["step"];
     scope: Record<Name, Agent<Name, Tools>> & Ctx["scope"];
     last: Agent<Name, Tools>;
   };
@@ -43,9 +43,9 @@ interface ToolStep<
   Output,
   Ctx extends Record<any, any>,
 > {
-  [Taskwish.Step]: (input: Ctx) => {
+  [TW.Step]: (input: Ctx) => {
     steps: Ctx["steps"] & Record<Name, Tool<Name, Input, Output>>;
-    [Taskwish.Step]: Ctx["step"];
+    [TW.Step]: Ctx["step"];
     scope: Record<Name, Tool<Name, Input, Output>> & Ctx["scope"];
     last: Tool<Name, Input, Output>;
   };

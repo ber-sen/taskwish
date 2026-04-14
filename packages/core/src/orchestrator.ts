@@ -1,5 +1,5 @@
-import { Taskwish } from "./core";
+import { TW } from "./core";
 
 export const Orchestrator: <Name extends string>(
   name: Name,
-) => Taskwish.Named<Name> = {} as never;
+) => TW.Named<Name> = {} as never;

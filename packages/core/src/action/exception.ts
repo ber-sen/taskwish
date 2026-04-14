@@ -1,10 +1,10 @@
-import { Taskwish } from "../core";
+import { TW } from "../core";
 
 export const Exception = <const Status extends number, const Data>(
   status: Status,
   data?: Data
-): Taskwish.Exception<Status, Data> => ({
-  [Taskwish.Name]: ["exception"],
+): TW.Exception<Status, Data> => ({
+  [TW.Name]: ["exception"],
   id: null,
   threadId: null,
   status,

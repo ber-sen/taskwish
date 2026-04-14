@@ -1,5 +1,5 @@
 import { PrettyScope } from "../helpers";
-import { Taskwish } from "../core";
+import { TW } from "../core";
 
 export function Step<
   Ctx extends Record<any, any>,
@@ -8,7 +8,7 @@ export function Step<
     : string,
   const Handler extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
-    : (this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => any,
+    : (this: TW.Scope<PrettyScope<Ctx["scope"]>>) => any,
   const Params extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
     : never,
@@ -16,14 +16,14 @@ export function Step<
   name: Name,
   handler: Name extends keyof Ctx["step"]["map"] ? Params : Handler,
 ): {
-  [Taskwish.Step]: (ctx: Ctx) => {
+  [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["steps"] &
       Record<
         Name,
         Name extends keyof Ctx["step"]["map"] ? string : ReturnType<Handler>
       >;
-    [Taskwish.Step]: Ctx["step"];
+    [TW.Step]: Ctx["step"];
     scope: Record<
       Name,
       Name extends keyof Ctx["step"]["map"] ? string : ReturnType<Handler>
@@ -40,7 +40,7 @@ export function Step<
     : string,
   const Handler extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
-    : (this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => any,
+    : (this: TW.Scope<PrettyScope<Ctx["scope"]>>) => any,
   const Params extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
     : never,
@@ -54,10 +54,10 @@ export function Step<
     ) => A,
   ],
 ): {
-  [Taskwish.Step]: (ctx: Ctx) => {
+  [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["steps"] & Record<Name, A>;
-    [Taskwish.Step]: Ctx["step"];
+    [TW.Step]: Ctx["step"];
     scope: Record<Name, A> & Ctx["scope"];
     last: ReturnType<Handler>;
   };
@@ -70,7 +70,7 @@ export function Step<
     : string,
   const Handler extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
-    : (this: Taskwish.Scope<PrettyScope<Ctx["scope"]>>) => any,
+    : (this: TW.Scope<PrettyScope<Ctx["scope"]>>) => any,
   const Params extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
     : never,
@@ -86,10 +86,10 @@ export function Step<
     (input: A) => B,
   ],
 ): {
-  [Taskwish.Step]: (ctx: Ctx) => {
+  [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["steps"] & Record<Name, B>;
-    [Taskwish.Step]: Ctx["step"];
+    [TW.Step]: Ctx["step"];
     scope: Record<Name, B> & Ctx["scope"];
     last: ReturnType<Handler>;
   };

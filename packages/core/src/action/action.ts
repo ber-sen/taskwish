@@ -6,12 +6,12 @@ import {
   CamelCase,
 } from "../helpers";
 import { Steps } from "../steps";
-import { Taskwish } from "../core";
+import { TW } from "../core";
 
 type ActionBody<
   Name extends string,
   Ctx extends Record<any, any>,
-> = Taskwish.Contextual<Ctx> & {
+> = TW.Contextual<Ctx> & {
   use<const NewScope>(newScope: NewScope): ActionBody<Name, Ctx>;
   run: Steps<Ctx>;
 };
@@ -24,13 +24,13 @@ type SignatureBody<
   use<const NewScope>(newScope: NewScope): SignatureBody<Name, Ctx, Signature>;
   run<
     const Handler extends (
-      this: Taskwish.Scope<
+      this: TW.Scope<
         Pretty<
           Record<
             "input",
             Signature extends (...args: any) => any
               ? Parameters<Signature>
-              : Signature extends Taskwish.Handler
+              : Signature extends TW.Handler
                 ? Parameters<Apply<Signature, Ctx>>
                 : never
           > &
@@ -39,16 +39,16 @@ type SignatureBody<
       >,
     ) => Signature extends (...args: any) => any
       ? ReturnType<Signature>
-      : Signature extends Taskwish.Handler
+      : Signature extends TW.Handler
         ? ReturnType<Apply<Signature, Ctx>>
         : never,
   >(
     run: Handler,
   ): {
     [key in Name]: Signature extends (...args: any) => any
-      ? Taskwish.Action<Name, Signature>
-      : Signature extends Taskwish.Handler
-        ? Taskwish.Action<
+      ? TW.Action<Name, Signature>
+      : Signature extends TW.Handler
+        ? TW.Action<
             Name,
             Apply<Signature, Ctx>,
             Record<"handler", Signature>
@@ -87,14 +87,14 @@ export interface ActionFactory<
 > {
   input<const Schema>(trigger?: ValidateTrigger<Schema>): Schema extends
     | ((...args: any) => any)
-    | Taskwish.Handler
+    | TW.Handler
     ? SignatureBody<Name, Ctx, Schema>
     : ActionBody<
         Name,
         {
           name: Ctx["name"];
           scope: InferTriggerScope<Schema> & Ctx["scope"];
-          [Taskwish.Step]: { name: "launchApp" | StepName; map: { launchApp: string } };
+          [TW.Step]: { name: "launchApp" | StepName; map: { launchApp: string } };
         }
       >;
   run: Steps<Ctx>;

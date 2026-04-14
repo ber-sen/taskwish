@@ -1,4 +1,4 @@
-import { Taskwish } from "../core";
+import { TW } from "../core";
 
 type OptionalBoolean<T> = {
   [K in keyof T]?: boolean;
@@ -7,8 +7,8 @@ type OptionalBoolean<T> = {
 export const Match = <const Input extends object>(
   input: Input,
   match: OptionalBoolean<Input>
-): Taskwish.Flow<["match"]> => ({
-  [Taskwish.Name]: ["match"],
+): TW.Flow<["match"]> => ({
+  [TW.Name]: ["match"],
   group: null,
   params: {}
 });

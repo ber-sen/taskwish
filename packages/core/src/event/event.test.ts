@@ -1,6 +1,6 @@
 import { Expect, Equal } from "../helpers";
 import { Event } from "./event";
-import { Taskwish } from "../core";
+import { TW } from "../core";
 
 describe("Event", async function* () {
   it("works with arrow functions", () => {
@@ -13,7 +13,7 @@ describe("Event", async function* () {
 
     type newEmail = Expect<
       Equal<
-        Taskwish.EventKind<
+        TW.EventKind<
           "emailSent",
           {
             from: string;

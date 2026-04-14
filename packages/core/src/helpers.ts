@@ -1,6 +1,6 @@
 import { Type, type, validateDefinition } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
-import { Taskwish } from "./core";
+import { TW } from "./core";
 
 export type Expect<T extends true> = T;
 
@@ -70,10 +70,10 @@ export type InferSchema<Schema, Scope = {}> =
     : type.instantiate<Schema, Scope>["infer"];
 
 export type ValidateTrigger<Schema> =
-  Schema extends Taskwish.EventKind<any, infer Input>
-    ? Taskwish.EventKind<any, Input>
-    : Schema extends Taskwish.Event<any, infer Input>
-      ? Taskwish.Event<any, Input>
+  Schema extends TW.EventKind<any, infer Input>
+    ? TW.EventKind<any, Input>
+    : Schema extends TW.Event<any, infer Input>
+      ? TW.Event<any, Input>
       : Schema extends StandardSchemaV1<any>
         ? Schema
         : Schema extends object
@@ -82,32 +82,32 @@ export type ValidateTrigger<Schema> =
 
 export type InferTriggerScope<Schema> =
   Schema extends StandardSchemaV1<infer Input>
-    ? { input: Input; event: Taskwish.Event<"Command", Input> }
-    : Schema extends Taskwish.Event<infer Name, infer Input>
+    ? { input: Input; event: TW.Event<"Command", Input> }
+    : Schema extends TW.Event<infer Name, infer Input>
       ? {
           input: Input;
-          event: Taskwish.Event<Name, Input>;
+          event: TW.Event<Name, Input>;
         }
-      : Schema extends Taskwish.EventKind<infer Name, infer Input>
+      : Schema extends TW.EventKind<infer Name, infer Input>
         ? {
             input: Input;
-            event: Taskwish.Event<Name, Input>;
+            event: TW.Event<Name, Input>;
           }
         : type.instantiate<Schema>["infer"] extends Record<any, never>
           ? {
               input: Schema;
-              event: Taskwish.Event<"Command", Schema>;
+              event: TW.Event<"Command", Schema>;
             }
           : {
               input: type.instantiate<Schema>["infer"];
-              event: Taskwish.Event<
+              event: TW.Event<
                 "Command",
                 type.instantiate<Schema>["infer"]
               >;
             };
 
 export type Apply<
-  F extends Taskwish.Handler,
+  F extends TW.Handler,
   ctx extends Record<any, any>,
 > = NonNullable<
   (F & {
