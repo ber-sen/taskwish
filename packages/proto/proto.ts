@@ -10,7 +10,7 @@ export namespace TWProto {
     `${string}-${string}-7${string}-${string}-${string}`;
 
   export type Connect<Name extends PeerName, Capabilities extends Capability[]> = {
-    name: PeerName;
+    name: Name;
     capabilities: Capabilities
   };
 
@@ -60,14 +60,11 @@ export namespace TWProto {
 
     Peer A ---> Orchestator 
       
-      Connect<{
-        name: "Peer A", 
-        capabilities: [
+      Connect<"Peer A", [
           ["$", "sendEmail"],
           ["$", "generateReport"],
           [">", "onUserSignup"]
-        ]
-      }>
+      ]>
       
     */
     connect(
