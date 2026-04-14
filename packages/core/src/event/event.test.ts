@@ -1,6 +1,6 @@
 import { Expect, Equal } from "../helpers";
 import { Event } from "./event";
-import { Taskwish } from "../types";
+import { Taskwish } from "../core";
 
 describe("Event", async function* () {
   it("works with arrow functions", () => {

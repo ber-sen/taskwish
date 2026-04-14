@@ -1,5 +1,5 @@
 import { InferSchema, ValidateSchema } from "../helpers";
-import { Taskwish } from "../types";
+import { Taskwish } from "../core";
 
 interface EventUnion<Name extends string, InitialData> {
   or<const Data>(

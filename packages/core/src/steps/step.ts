@@ -1,5 +1,5 @@
 import { PrettyScope } from "../helpers";
-import { Taskwish } from "../types";
+import { Taskwish } from "../core";
 
 export function Step<
   Ctx extends Record<any, any>,

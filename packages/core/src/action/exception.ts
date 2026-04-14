@@ -1,4 +1,4 @@
-import { Taskwish } from "../types";
+import { Taskwish } from "../core";
 
 export const Exception = <const Status extends number, const Data>(
   status: Status,

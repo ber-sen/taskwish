@@ -6,7 +6,7 @@ import {
   CamelCase,
 } from "../helpers";
 import { Steps } from "../steps";
-import { Taskwish } from "../types";
+import { Taskwish } from "../core";
 
 type ActionBody<
   Name extends string,

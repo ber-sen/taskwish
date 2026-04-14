@@ -1,6 +1,6 @@
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
-import { Taskwish } from "../types";
+import { Taskwish } from "../core";
 import { Step } from "../steps";
 
 describe("Command", () => {

@@ -1,5 +1,5 @@
 import { StringValue } from "ms";
-import { Taskwish } from "../types";
+import { Taskwish } from "../core";
 
 export const Wait = (duration: StringValue) => Flow("wait").params({ duration });
 

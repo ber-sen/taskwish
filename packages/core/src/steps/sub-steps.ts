@@ -1,4 +1,4 @@
-import { Taskwish } from "../types"
+import { Taskwish } from "../core"
 
 export interface OptionSubSteps {
   <Ctx extends Record<any, any>, Options, A>(

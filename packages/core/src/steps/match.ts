@@ -1,4 +1,4 @@
-import { Taskwish } from "../types";
+import { Taskwish } from "../core";
 
 type OptionalBoolean<T> = {
   [K in keyof T]?: boolean;

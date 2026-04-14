@@ -1,4 +1,4 @@
-import { Taskwish } from "./types";
+import { Taskwish } from "./core";
 
 export const Orchestrator: <Name extends string>(
   name: Name,

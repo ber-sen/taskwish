@@ -1,5 +1,5 @@
 import { CamelCase, InferSchema, ValidateSchema } from "../helpers";
-import { Taskwish } from "../types";
+import { Taskwish } from "../core";
 export interface Agent<Name extends string, Tools extends string[]> {
   name: Name;
   tools: Tools;

@@ -1,6 +1,6 @@
 import { Type, type, validateDefinition } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
-import { Taskwish } from "./types";
+import { Taskwish } from "./core";
 
 export type Expect<T extends true> = T;
 

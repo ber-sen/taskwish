@@ -5,7 +5,7 @@ import {
   ToCapitalCase,
   ValidateSchema,
 } from "./helpers";
-import { Taskwish } from "./types";
+import { Taskwish } from "./core";
 
 interface Behavior {
   action<Name extends string>(name: CamelCase<Name>): ActionFactory<Name>;

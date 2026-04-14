@@ -1,5 +1,5 @@
 import { ToCamelCase } from "../helpers";
-import { Taskwish } from "../types";
+import { Taskwish } from "../core";
 
 export const SubSteps = Symbol.for("SubSteps");
 

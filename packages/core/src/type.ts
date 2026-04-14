@@ -1,5 +1,5 @@
 import { type } from "arktype";
-import { Taskwish } from "./types";
+import { Taskwish } from "./core";
 
 export function Desc(
   strings: TemplateStringsArray,

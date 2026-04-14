@@ -1,5 +1,5 @@
 import { Equal } from "drizzle-orm";
-import { Taskwish } from "../types";
+import { Taskwish } from "../core";
 import { If } from "./if-else";
 import { Loop } from "./loop";
 import { Match } from "./match";
