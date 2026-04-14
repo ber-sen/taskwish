@@ -22,7 +22,7 @@ class Greeter extends RpcTarget {
     return this.capabilities();
   }
 
-  async run(name) {
+  async handoff(name) {
     const step1 = await this.hi(name);
     const step2 = await this.greet({ name: step1 });
 
@@ -32,7 +32,7 @@ class Greeter extends RpcTarget {
   capabilities() {
     return Object.getOwnPropertyNames(Object.getPrototypeOf(this))
       .filter(
-        (item) => !["constructor", "connect", "capabilities"].includes(item),
+        (item) => !["constructor", "connect", "capabilities", "handoff"].includes(item),
       )
       .map((capability) => [capability, this[capability].bind(this)]);
   }

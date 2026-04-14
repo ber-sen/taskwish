@@ -6,7 +6,7 @@ await orchestrator.addWorker("./worker.js");
 await orchestrator.addWorker("./workerB.js");
 
 async function run() {
-  const b = await orchestrator.run("World");
+  const b = await orchestrator.handoff("World");
 
   console.log(b);
 }

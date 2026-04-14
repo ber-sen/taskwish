@@ -47,9 +47,9 @@ export class Orchestrator extends RpcTarget {
     return orchestrator;
   }
 
-  async run(name) {
+  async handoff(name) {
     console.log("HERE");
 
-    return this.workers[0].run(name);
+    return this.actions.greet({ name: this.actions.lorem(name) });
   }
 }
