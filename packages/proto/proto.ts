@@ -1,6 +1,6 @@
 import { RpcTarget } from "capnweb";
 
-export namespace Proto {
+export namespace TaskwishProto {
   export type Capability = ["$" | ">" | (string & {}), string];
 
   export interface Peer extends RpcTarget {
