@@ -9,6 +9,11 @@ export namespace TWProto {
   export type ExecutionId =
     `${string}-${string}-7${string}-${string}-${string}`;
 
+  export type Connect<Name extends PeerName, Capabilities extends Capability[]> = {
+    name: PeerName;
+    capabilities: Capabilities
+  };
+
   export type SignalInput = { ">": string } & Record<string, any>;
 
   export type Signal<S extends SignalInput> = { id: ExecutionId; signal: S };
@@ -50,10 +55,24 @@ export namespace TWProto {
       
     */
     capabilities(): Promise<Capability[]>;
+    
+    /* Connect
 
+    Peer A ---> Orchestator 
+      
+      Connect<{
+        name: "Peer A", 
+        capabilities: [
+          ["$", "sendEmail"],
+          ["$", "generateReport"],
+          [">", "onUserSignup"]
+        ]
+      }>
+      
+    */
     connect(
-      orchestrator: Peer<any>,
-    ): Promise<{ name: Name; capabilities: Capability[] }>;
+      peer: Peer<any>,
+    ): Connect<Name, Capability[]>;
  
     /* Signal
     
