@@ -1,5 +1,6 @@
 import { RpcTarget } from "capnweb";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
+
 export namespace TWProto {
   export type PeerName = string;
 
