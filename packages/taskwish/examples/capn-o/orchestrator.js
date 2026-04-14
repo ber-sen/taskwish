@@ -35,6 +35,6 @@ export class Orchestrator {
   }
 
   async run(name) {
-    return this.actions.greet(this.actions.hi(name));
+    return this.workers[0].run(name)
   }
 }

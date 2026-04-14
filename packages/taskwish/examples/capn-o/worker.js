@@ -12,7 +12,7 @@ class Greeter extends RpcTarget {
     return Promise.resolve(`Hello, ${name}`);
   }
 
-  async greet(name) {
+  async greet({ name }) {
     // await this.orchestrator.signal();
 
     return `${name}`;
@@ -22,6 +22,13 @@ class Greeter extends RpcTarget {
     this.orchestrator = orchestrator.dub();
 
     return this.capabilities();
+  }
+
+  async run(name) {
+    const step1 = await this.hi(name);
+    const step2 = await this.greet({ name: step1 });
+
+    return step2;
   }
 
   capabilities() {
