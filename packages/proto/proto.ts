@@ -101,7 +101,7 @@ export namespace TWProto {
       { $: "sendReport", reportId: "r_2026" }     // Peer C
     ]>
 
-      +--------+                +----------------+              +--------+ 
+      +--------+                +----------------+              +--------+
       | Peer A |                |  Orchestrator  |              | Peer C |
       +--------+                +----------------+              +--------+
                     run(Task)                                  
