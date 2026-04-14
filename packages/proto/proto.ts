@@ -1,7 +1,7 @@
 import { RpcTarget } from "capnweb";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 export namespace TWProto {
-  export type PeerName = string
+  export type PeerName = string;
 
   export type Capability = ["$" | ">" | (string & {}), string];
 
@@ -57,7 +57,7 @@ export namespace TWProto {
       │                                  │
       │                                  │
       │──────── returns ───────────────▶ │
-      │        Capability[]              │
+      │       Capability[]               │
       │                                  │
       ▼                                  ▼
     capabilities()                 snapshot/state
@@ -136,7 +136,7 @@ export namespace TWProto {
     run<T extends TaskInput, O>(
       task: T,
       ctx?: Record<any, any> & {
-        output?: StandardSchemaV1<O>
+        output?: StandardSchemaV1<O>;
       },
     ): Task<T, O>;
   }
