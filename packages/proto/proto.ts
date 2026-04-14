@@ -120,6 +120,7 @@ export namespace TWProto {
     run<T extends TaskInput, O>(
       task: T,
       ctx?: Record<any, any> & {
+        id?: string // reuse id
         output?: StandardSchemaV1<O>;
       },
     ): Task<T, O>;
