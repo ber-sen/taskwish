@@ -56,7 +56,8 @@ export namespace TWProto {
     ): Promise<{ name: Name; capabilities: Capability[] }>;
  
     /* Signal
-  Peer A → Signal<{ ">": "onEmail", subject: "Welcome" }>
+    
+    Peer A → Signal<{ ">": "onEmail", subject: "Welcome" }>
 
                +---------+
                | Peer A  |
@@ -85,8 +86,8 @@ export namespace TWProto {
                             | Reply |
                             +-------+
                             
-    [Optional Abort(SIG1)]
-  */
+      [Optional Abort(SIG1)]
+    */
     signal<S extends SignalInput>(signal: S): Signal<S>;
 
     abort(id: ExecutionId): Promise<Boolean>;
@@ -115,7 +116,7 @@ export namespace TWProto {
                   (Task Completed)
 
       [Optional Abort(SIGX)] --> stops execution
-*/
+    */
 
     run<T extends TaskInput, O>(
       task: T,
@@ -138,5 +139,5 @@ export namespace TWProto {
     [✖] Step C
     [~] Step D
     [ ] Result
-*/
+  */
 }
