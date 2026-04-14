@@ -1,21 +1,38 @@
 import { RpcTarget } from "capnweb";
-import { StandardSchemaV1 } from "@standard-schema/spec";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 export namespace TWProto {
+  export type PeerName = string
+
   export type Capability = ["$" | ">" | (string & {}), string];
 
-  export type ExecutionId = `${string}-${string}-7${string}-${string}-${string}`;
+  export type ExecutionId =
+    `${string}-${string}-7${string}-${string}-${string}`;
 
   export type SignalInput = { ">": string } & Record<string, any>;
 
-  export type Signal<S extends SignalInput> = { id: ExecutionId, signal: S }
+  export type Signal<S extends SignalInput> = { id: ExecutionId; signal: S };
 
-  export type TaskInput = 
-      | ({ $: string } & Record<string, any>)
-      | Array<{ $: string } & Record<string, any>> 
+  export type TaskInput =
+    | ({ $: string } & Record<string, any>)
+    | Array<{ $: string } & Record<string, any>>;
 
-  export type Task<S extends TaskInput, Output = unknown> = { id: ExecutionId, task: S, result?: Output }
+  export type Task<S extends TaskInput, Output = unknown> = {
+    id: ExecutionId;
+    task: S;
+    result: Output;
+  };
 
-  export interface Peer extends RpcTarget {
+  export type Fulfillment = {
+    state?: "executing" | "completed" | "failed";
+    step: {
+      path: string;
+      executor: string;
+      data?: string;
+      error?: Error;
+    };
+  };
+
+  export interface Peer<Name extends PeerName> extends RpcTarget {
     /* Capability State Timeline 
     
     - t0  (initial state)
@@ -47,10 +64,10 @@ export namespace TWProto {
     
     */
 
-    connect(orchestrator: Orchestrator): Promise<Capability[]>;
+    connect(
+      orchestrator: Orchestrator,
+    ): Promise<{ name: Name; capabilities: Capability[] }>;
   }
-
-
 
   export interface Orchestrator {
     /* Signal
@@ -85,15 +102,11 @@ export namespace TWProto {
                             
     [Optional Abort(SIG1)]
   */
-    signal<S extends SignalInput>(
-      signal: S,
-    ): Signal<S>;
+    signal<S extends SignalInput>(signal: S): Signal<S>;
 
-    abort(
-      id: ExecutionId
-    ): Promise<Boolean>;
+    abort(id: ExecutionId): Promise<Boolean>;
 
-     /* Task
+    /* Task
   Peer A → Task<[
     { $: "transformData", dataId: "d_001" },    // Peer C
     { $: "validateData", schemaId: "s_01" },    // Peer A
@@ -130,9 +143,8 @@ export namespace TWProto {
 
     run<T extends TaskInput, O>(
       task: T,
-      output?: StandardSchemaV1<O>
-    ): Task<T, O>
-
+      output?: StandardSchemaV1<O>,
+    ): Task<T, O>;
   }
 
   /* Fulfillment
@@ -147,105 +159,5 @@ export namespace TWProto {
     [✖] Step C
     [~] Step D
     [ ] Result
-*/
-
-  export interface Fulfillment<Result = unknown, Error = unknown>
-    extends BaseMessage<
-      "fulfillment",
-      {
-        taskId: SignalId;
-        sender: PeerName;
-        state?: "executing" | "completed" | "failed";
-
-        step: {
-          path: StepPath;
-          executor: PeerName;
-          data?: Result;
-          error?: Error;
-        };
-      }
-    > {}
-
-  export type Message = Peer | Signal | Task | Fulfillment | Abort;
-
-  /*
-Global Registry
-===============
-Peer A registered
------------------
-Local Peers:
-├── A1: [[">","onNewEmail"], ["$","processEmail"], [">","onUserSignup"]]
-├── A2: [[">","onFileUpload"], ["$","generateThumbnail"]]
-└── A3: [[">","onPaymentReceived"], ["$","sendInvoice"], ["$","updateCRM"]]
-
-Peer B registered
------------------
-Local Peers:
-├── B1: [[">","onNewComment"], ["$","moderateComment"], ["$","aggregateResults"], ["$","processEmail"]]  
-└── B2: [[">","onServerAlert"], ["$","restartService"], ["$","fetchMetrics"], [">","onHighCPU"]]
-
-Cross-Global Workflow (Synchronous)
------------------------------------
-Peer B1 → Task<[
-  { $: "fetchMetrics", target: "api-server" },           // B2
-  { $: "processEmail", emailId: "eml_123" },             // local B1 overrides global A1
-  { $: "aggregateResults" },                             // B1
-  { $: "generateThumbnail", fileId: "file_456" },        // A2
-  { $: "sendInvoice", invoiceId: "INV-2026-0423-001" },  // A3
-  { $: "restartService", service: "api" }                // B2
-]>
-
-Flow:
-1. Task created and sent by Peer B1
-
-2. Global registry resolves actions (local overrides global):
-   ├─ "fetchMetrics"      → B2
-   ├─ "processEmail"      → B1 (local overrides A1)
-   ├─ "aggregateResults"  → B1
-   ├─ "generateThumbnail" → A2
-   ├─ "sendInvoice"       → A3
-   └─ "restartService"    → B2
-
-3. Workflow executes synchronously, step-by-step:
-
-   Step 1 — B2 (fetchMetrics)
-   ├─ Operation chunk (collect CPU/memory)
-   └─ Operation chunk (metrics collected)
-
-   Step 2 — B1 (processEmail) ← local override
-   ├─ Operation chunk (parse email)
-   ├─ Operation chunk (extract entities)
-   └─ Operation chunk (email processed)
-
-   Step 3 — B1 (aggregateResults)
-   ├─ Operation chunk (combine metrics + email data)
-   └─ Operation chunk (aggregation complete)
-
-   Step 4 — A2 (generateThumbnail)
-   ├─ Operation chunk (load file)
-   ├─ Operation chunk (resize image)
-   └─ Operation chunk (thumbnail generated)
-
-   Step 5 — A3 (sendInvoice)
-   ├─ Operation chunk (prepare invoice)
-   ├─ Operation chunk (send email)
-   └─ Operation chunk (invoice sent)
-
-   Step 6 — B2 (restartService)
-   ├─ Operation chunk (stop service)
-   ├─ Operation chunk (start service)
-   └─ Operation (done: true)
-
-Peer B1
--------
-Receives a single `Operation` with `done: true` after the full workflow completes.
-
-Notes
------
-- Workflow originates from B1 and spans local (B1, B2) and remote (A1, A2, A3) peers  
-- Local peers override global peers when action names conflict   
-- Routing is resolved via capability registry across peers  
-- Each intermediate step emits Operation chunks
-- Only the final step emits the Operation chunks with `done: true`
 */
 }
