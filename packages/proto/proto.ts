@@ -116,9 +116,9 @@ export namespace TWProto {
     +--------+                +----------------+              +--------+ 
     | Peer A |                |  Orchestrator  |              | Peer C |
     +--------+                +----------------+              +--------+
-                                                       
-        +-------- run(Task) ---------->     
-                                          run(Task)       +---------------+
+                  run(Task)                                  
+        +---------------------------->     
+                                           run(Task)      +---------------+
                                       <-----------------> | transformData |
                                                           +---------------+          
 +----------------+    run(Task, Ctx)      
@@ -126,16 +126,18 @@ export namespace TWProto {
 +----------------+ 
                                           run(Task, Ctx)    +------------+
                                       <-------------------> | sendReport |
-                                                            +------------+                          
-        <-----------------Result------+
-                     (Task Completed)
+                     Result                                     +------------+                          
+        <----------------------------+
+                (Task Completed)
 
     [Optional Abort(SIGX)] --> stops execution
 */
 
     run<T extends TaskInput, O>(
       task: T,
-      output?: StandardSchemaV1<O>,
+      ctx?: Record<any, any> & {
+        output?: StandardSchemaV1<O>
+      },
     ): Task<T, O>;
   }
 
