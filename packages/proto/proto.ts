@@ -119,13 +119,13 @@ export namespace TWProto {
       +--------+                +----------------+              +--------+
       | Peer A |                |  Orchestrator  |              | Peer C |
       +--------+                +----------------+              +--------+
-                    run(Task)                                  
+                  handoff(Task)                                  
           +----------------------------->
-                                            run(Task)       +---------------+
+                                            handoff(Task)   +---------------+
                                         <-----------------> | transformData |
-    +--------------+    run(Task, Ctx)                      +---------------+
+    +--------------+  handoff(Task, Ctx)                    +---------------+
     | validateData | <------------------>
-    +--------------+                        run(Task, Ctx)    +------------+
+    +--------------+                      handoff(Task, Ctx)  +------------+
                                         <-------------------> | sendReport |
                       Result                                  +------------+                          
           <-----------------------------+
@@ -134,7 +134,7 @@ export namespace TWProto {
       [Optional Abort(SIGX)] --> stops execution
     */
 
-    run<T extends TaskInput, O>(
+    handoff<T extends TaskInput, O>(
       task: T,
       ctx?: Record<any, any> & {
         id?: string // reuse id

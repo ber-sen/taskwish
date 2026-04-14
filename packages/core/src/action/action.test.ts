@@ -1,176 +1,163 @@
+import { expect, test } from "bun:test";
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { TW } from "../core";
 import { Step } from "../steps";
 
-describe("Command", () => {
-  it("works with async arrow functions", async () => {
-    const { healthz } = Action("healthz").run(function () {
-      return { status: "ok" };
+test("works with async arrow functions", async () => {
+  const { healthz } = Action("healthz").run(function () {
+    return { status: "ok" };
+  });
+
+  type T = typeof healthz;
+
+  type healthz = Expect<
+    Equal<
+      TW.Action<
+        "healthz",
+        () => Promise<{
+          status: string;
+        }>,
+        null
+      >,
+      T
+    >
+  >;
+
+  const result = await healthz();
+
+  expect(result).toEqual({ status: "ok" });
+});
+
+test("works with with input", async () => {
+  const { hello } = Action("hello")
+    .input({ name: "string" })
+
+    .run(function () {
+      return `Hello ${this.input.name}`;
     });
 
-    type T = typeof healthz;
+  type T = typeof hello;
 
-    type healthz = Expect<
-      Equal<
-        TW.Action<
-          "healthz",
-          () => Promise<{
-            status: string;
-          }>,
-          null
-        >,
-        T
-      >
-    >;
+  type hello = Expect<
+    Equal<
+      TW.Action<"hello", (input: { name: string }) => Promise<string>, null>,
+      T
+    >
+  >;
 
-    const result = await healthz();
+  const result = await hello({ name: "World" });
 
-    expect(result).toEqual({ status: "ok" });
-  });
+  expect(result).toEqual("World");
+});
 
-  it("works with with input", async () => {
-    const { hello } = Action("hello")
-      .input({ name: "string" })
+test("works with with steps", async () => {
+  const { hello } = Action("hello")
+    .input({ name: "string" })
 
-      .run(function () {
-        return `Hello ${this.input.name}`;
-      });
+    .run(
+      Step("First step", function () {
+        return this.input.name.length;
+      }),
+      Step("Second step", function () {
+        return this.firstStep > 0;
+      }),
+    );
 
-    type T = typeof hello;
+  type T = typeof hello;
 
-    type hello = Expect<
-      Equal<
-        TW.Action<
-          "hello",
-          (input: { name: string }) => Promise<string>,
-          null
-        >,
-        T
-      >
-    >;
+  type hello = Expect<
+    Equal<
+      TW.Action<"hello", (input: { name: string }) => Promise<boolean>, null>,
+      T
+    >
+  >;
 
-    const result = await hello({ name: "World" });
+  const result = await hello({ name: "World" });
 
-    expect(result).toEqual({ success: true });
-  });
+  expect(result).toEqual({ success: true });
+});
 
-  it("works with with steps", async () => {
-    const { hello } = Action("hello")
-      .input({ name: "string" })
+test("works with ts type", async () => {
+  const { tsAction } = Action("tsAction")
+    .input<{ name: string }>()
 
-      .run(
-        Step("First step", function () {
-          return this.input.name.length;
-        }),
-        Step("Second step", function () {
-          return this.firstStep > 0;
-        }),
-      );
+    .run(async function () {
+      return `Hello ${this.input.name}`;
+    });
 
-    type T = typeof hello;
+  type T = typeof tsAction;
 
-    type hello = Expect<
-      Equal<
-        TW.Action<
-          "hello",
-          (input: { name: string }) => Promise<boolean>,
-          null
-        >,
-        T
-      >
-    >;
+  type result = Expect<
+    Equal<
+      TW.Action<
+        "tsAction",
+        (input: { name: string }) => Promise<Promise<string>>,
+        null
+      >,
+      T
+    >
+  >;
 
-    const result = await hello({ name: "World" });
+  const result = await tsAction({ name: "Test" });
 
-    expect(result).toEqual({ success: true });
-  });
+  expect(result).toEqual(`Hello Test`);
+});
 
-  it("works with ts type", async () => {
-    const { tsAction } = Action("tsAction")
-      .input<{ name: string }>()
+test("works with generics", async () => {
+  const { genericAction } = Action("genericAction")
+    .input<<const T>(lorem: T) => Promise<T>>()
 
-      .run(async function () {
-        return `Hello ${this.input.name}`;
-      });
+    .run(async function () {
+      const [lorem] = this.input;
 
-    type T = typeof tsAction;
+      const a = this.get(AbortSignal);
 
-    type result = Expect<
-      Equal<
-        TW.Action<
-          "tsAction",
-          (input: { name: string }) => Promise<Promise<string>>,
-          null
-        >,
-        T
-      >
-    >;
+      return lorem;
+    });
 
-    const result = await tsAction({ name: "Test" });
+  type T = typeof genericAction;
 
-    expect(result).toEqual(`Hello Test`);
-  });
+  type result = Expect<
+    Equal<
+      TW.Action<"genericAction", <const T>(lorem: T) => Promise<T>, null>,
+      T
+    >
+  >;
 
-  it("works with generics", async () => {
-    const { genericAction } = Action("genericAction")
-      .input<<const T>(lorem: T) => Promise<T>>()
+  const result = await genericAction("gpt");
 
-      .run(async function () {
-        const [lorem] = this.input;
+  expect(result).toEqual({ success: true });
+});
 
-        const a = this.get(AbortSignal);
+test("works with hkt", async () => {
+  interface MyHandler extends TW.Handler {
+    run<const T extends this["ctx"]["model"]>(lorem: T): Promise<number>;
+  }
 
-        return lorem;
-      });
+  const { myHandler } = Action("myHandler")
+    .input<MyHandler>()
 
-    type T = typeof genericAction;
+    .run(async function () {
+      const [lorem] = this.input;
 
-    type result = Expect<
-      Equal<
-        TW.Action<
-          "genericAction",
-          <const T>(lorem: T) => Promise<T>,
-          null
-        >,
-        T
-      >
-    >;
+      return lorem.length;
+    });
 
-    const result = await genericAction("gpt");
+  type T = typeof myHandler;
 
-    expect(result).toEqual({ success: true });
-  });
+  type result = Expect<
+    Equal<
+      TW.Action<
+        "myHandler",
+        <const T extends "gpt5">(lorem: T) => Promise<number>,
+        Record<"handler", MyHandler>
+      >,
+      T
+    >
+  >;
 
-  it("works with hkt", async () => {
-    interface MyHandler extends TW.Handler {
-      run<const T extends this["ctx"]["model"]>(lorem: T): Promise<number>;
-    }
+  const result = await myHandler("gpt5");
 
-    const { myHandler } = Action("myHandler")
-      .input<MyHandler>()
-
-      .run(async function () {
-        const [lorem] = this.input;
-
-        return lorem.length;
-      });
-
-    type T = typeof myHandler;
-
-    type result = Expect<
-      Equal<
-        TW.Action<
-          "myHandler",
-          <const T extends "gpt5">(lorem: T) => Promise<number>,
-          Record<"handler", MyHandler>
-        >,
-        T
-      >
-    >;
-
-    const result = await myHandler("gpt5");
-
-    expect(result).toEqual({ success: true });
-  });
+  expect(result).toEqual({ success: true });
 });
