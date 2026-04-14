@@ -106,31 +106,30 @@ export namespace TWProto {
 
     abort(id: ExecutionId): Promise<Boolean>;
 
-    /* Task
-  Peer A → Task<[
-    { $: "transformData", dataId: "d_001" },    // Peer C
-    { $: "validateData", schemaId: "s_01" },    // Peer A
-    { $: "sendReport", reportId: "r_2026" }     // Peer C
-  ]>
+    /* Run task
+    
+    Peer A → Task<[
+      { $: "transformData", dataId: "d_001" },    // Peer C
+      { $: "validateData", schemaId: "s_01" },    // Peer A
+      { $: "sendReport", reportId: "r_2026" }     // Peer C
+    ]>
 
-    +--------+                +----------------+              +--------+ 
-    | Peer A |                |  Orchestrator  |              | Peer C |
-    +--------+                +----------------+              +--------+
-                  run(Task)                                  
-        +---------------------------->     
-                                           run(Task)      +---------------+
-                                      <-----------------> | transformData |
-                                                          +---------------+          
-+----------------+    run(Task, Ctx)      
-| validateData   | <------------------>
-+----------------+ 
-                                          run(Task, Ctx)    +------------+
-                                      <-------------------> | sendReport |
-                     Result                                 +------------+                          
-        <-----------------------------+
-                (Task Completed)
+      +--------+                +----------------+              +--------+ 
+      | Peer A |                |  Orchestrator  |              | Peer C |
+      +--------+                +----------------+              +--------+
+                    run(Task)                                  
+          +----------------------------->
+                                            run(Task)      +---------------+
+                                        <-----------------> | transformData |
+    +--------------+    run(Task, Ctx)                      +---------------+
+    | validateData | <------------------>
+    +--------------+                        run(Task, Ctx)    +------------+
+                                        <-------------------> | sendReport |
+                      Result                                 +------------+                          
+          <-----------------------------+
+                  (Task Completed)
 
-    [Optional Abort(SIGX)] --> stops execution
+      [Optional Abort(SIGX)] --> stops execution
 */
 
     run<T extends TaskInput, O>(
