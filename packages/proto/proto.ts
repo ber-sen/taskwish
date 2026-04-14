@@ -15,7 +15,6 @@ export namespace TWProto {
 
   export type Task<S extends TaskInput, Output = unknown> = { id: ExecutionId, task: S, result?: Output }
 
-
   export interface Peer extends RpcTarget {
     /* Capability State Timeline 
     
@@ -105,19 +104,13 @@ export namespace TWProto {
     | Peer A |                |  Orchestrator  |              | Peer C |
     +--------+                +----------------+              +--------+
         |                                                 
-        +------- Task(SIGX) ---------->
+        +-------- run(Task) ---------->
                                       |        
                                       |                   +---------------+
-                                      +-----RunStep()---> | transformData |
+                                      +-----run(Step)---> | transformData |
                                                           +---------------+
                                                                   |
                                       <-----Result----------------+
-                                      |
-                        +-------------v-------------+
-                        | CTX1 = ExecutionContext() |
-                        | Append(CTX1, Result)      |
-                        +---------------------------+
-                                      |
 +----------------+    RunStep(CTX1)   |
 | validateData   | <------------------+
 +----------------+ 
@@ -135,27 +128,12 @@ export namespace TWProto {
     [Optional Abort(SIGX)] --> stops execution
 */
 
-    invoke<T extends TaskInput, R>(
+    run<T extends TaskInput, O>(
       task: T,
-      output?: StandardSchemaV1<R>
-    ): Task<T, R>
+      output?: StandardSchemaV1<O>
+    ): Task<T, O>
 
   }
-
-
-
- 
-  export interface Task2<
-    TaskDef extends
-      | ({ $: string } & Record<string, any>)
-      | Array<{ $: string } & Record<string, any>> = { $: "noop" },
-  > extends BaseMessage<
-      "task",
-      {
-        id: SignalId;
-        task: TaskDef;
-      }
-    > {}
 
   /* Fulfillment
     
