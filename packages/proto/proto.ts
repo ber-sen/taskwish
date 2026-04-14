@@ -127,7 +127,7 @@ export namespace TWProto {
                                           run(Task, Ctx)    +------------+
                                       <-------------------> | sendReport |
                      Result                                 +------------+                          
-        <----------------------------+
+        <-----------------------------+
                 (Task Completed)
 
     [Optional Abort(SIGX)] --> stops execution
