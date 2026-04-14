@@ -50,20 +50,6 @@ export namespace TWProto {
     */
     capabilities(): Promise<Capability[]>;
 
-    /* Orchestrator Connection
-
-            connect(orchestrator)
-    Peer ───────────────────────────▶ Orchestrator
-      │                                  │
-      │                                  │
-      │──────── returns ───────────────▶ │
-      │       Capability[]               │
-      │                                  │
-      ▼                                  ▼
-    capabilities()                 snapshot/state
-    
-    */
-
     connect(
       orchestrator: Orchestrator,
     ): Promise<{ name: Name; capabilities: Capability[] }>;
