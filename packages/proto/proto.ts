@@ -18,24 +18,24 @@ export namespace TWProto {
   export type ExecutionId =
     `${string}-${string}-7${string}-${string}-${string}`;
 
-  export type Execution<Params> = {
+  export type Execution<Command > = {
     $: "execution";
     id: ExecutionId;
-    content: Params;
+    command: Command ;
   };
 
-  export type SignalInput = { ">": string } & Record<string, any>;
+  export type SignalCommand = { ">": string } & Record<string, any>;
 
-  export type Signal<S extends SignalInput> = Execution<S>;
+  export type Signal<S extends SignalCommand> = Execution<S>;
 
   export type Abort<Id extends ExecutionId> = { $: "abort"; id: Id };
 
-  export type TaskInput =
+  export type TaskCommand =
     | ({ $: string } & Record<string, any>)
     | Array<{ $: string } & Record<string, any>>;
 
   export type Task<
-    S extends TaskInput,
+    S extends TaskCommand,
     Return = unknown,
     Yield = undefined,
   > = AsyncGenerator<
@@ -121,7 +121,7 @@ export namespace TWProto {
                             
       [Optional Abort<SIG1>]
     */
-    signal<S extends SignalInput>(signal: S): Promise<Signal<S>>;
+    signal<S extends SignalCommand>(signal: S): Promise<Signal<S>>;
 
     abort<Id extends ExecutionId>(id: Id): Promise<Abort<Id>>;
 
@@ -151,7 +151,7 @@ export namespace TWProto {
       [Optional Abort<SIGX>] --> stops execution
     */
 
-    handoff<T extends TaskInput, O>(
+    handoff<T extends TaskCommand, O>(
       task: T,
       ctx?: Record<any, any> & {
         pid?: string; // parent id
