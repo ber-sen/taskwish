@@ -24,24 +24,24 @@ export namespace TWProto {
     command: Command ;
   };
 
-  export type SignalCommand = { ">": string } & Record<string, any>;
+  export type AnySignalCommand = { ">": string } & Record<string, any>;
 
-  export type Signal<S extends SignalCommand> = Execution<S>;
+  export type Signal<SignalCommand extends AnySignalCommand> = Execution<SignalCommand>;
 
   export type Abort<Id extends ExecutionId> = { $: "abort"; id: Id };
 
-  export type TaskCommand =
+  export type AnyTaskCommand =
     | ({ $: string } & Record<string, any>)
     | Array<{ $: string } & Record<string, any>>;
 
   export type Task<
-    S extends TaskCommand,
+    TaskCommand extends AnyTaskCommand,
     Return = unknown,
     Yield = undefined,
   > = AsyncGenerator<
     Yield extends undefined
-      ? Execution<S> & Fulfillment
-      : Execution<S> & Fulfillment & Yield,
+      ? Execution<TaskCommand> & Fulfillment
+      : Execution<TaskCommand> & Fulfillment & Yield,
     Return
   >;
 
@@ -121,7 +121,7 @@ export namespace TWProto {
                             
       [Optional Abort<SIG1>]
     */
-    signal<S extends SignalCommand>(signal: S): Promise<Signal<S>>;
+    signal<SignalCommand extends AnySignalCommand>(signal: SignalCommand): Promise<Signal<SignalCommand>>;
 
     abort<Id extends ExecutionId>(id: Id): Promise<Abort<Id>>;
 
@@ -151,13 +151,13 @@ export namespace TWProto {
       [Optional Abort<SIGX>] --> stops execution
     */
 
-    handoff<T extends TaskCommand, O>(
-      task: T,
+    handoff<TaskCommand extends AnyTaskCommand, O>(
+      task: TaskCommand,
       ctx?: Record<any, any> & {
         pid?: string; // parent id
         output?: StandardSchemaV1<O>;
       },
-    ): Task<T, O>;
+    ): Task<TaskCommand, O>;
   }
 
   /* Fulfillment
