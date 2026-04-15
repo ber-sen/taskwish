@@ -6,9 +6,6 @@ export namespace TWProto {
 
   export type Capability = ["$" | ">" | (string & {}), string];
 
-  export type ExecutionId =
-    `${string}-${string}-7${string}-${string}-${string}`;
-
   export type Connect<
     Name extends PeerName,
     Capabilities extends Capability[],
@@ -18,13 +15,8 @@ export namespace TWProto {
     capabilities: Capabilities;
   };
 
-  export type SignalInput = { ">": string } & Record<string, any>;
-
-  export type Signal<S extends SignalInput> = Execution<S>;
-
-  export type TaskInput =
-    | ({ $: string } & Record<string, any>)
-    | Array<{ $: string } & Record<string, any>>;
+  export type ExecutionId =
+    `${string}-${string}-7${string}-${string}-${string}`;
 
   export type Execution<Params> = {
     $: "execution";
@@ -32,16 +24,15 @@ export namespace TWProto {
     content: Params;
   };
 
-  export type Fulfillment = {
-    $: "fulfillment";
-    state?: "executing" | "completed" | "failed";
-    step: {
-      path: string;
-      executor: string;
-      data?: string;
-      error?: Error;
-    };
-  };
+  export type SignalInput = { ">": string } & Record<string, any>;
+
+  export type Signal<S extends SignalInput> = Execution<S>;
+
+  export type Abort<Id extends ExecutionId> = { $: "abort"; id: Id };
+
+  export type TaskInput =
+    | ({ $: string } & Record<string, any>)
+    | Array<{ $: string } & Record<string, any>>;
 
   export type Task<
     S extends TaskInput,
@@ -53,6 +44,18 @@ export namespace TWProto {
       : Execution<S> & Fulfillment & Yield,
     Return
   >;
+
+  export type Fulfillment = {
+    $: "fulfillment";
+    id: ExecutionId;
+    state?: "executing" | "completed" | "failed";
+    step: {
+      path: string;
+      executor: string;
+      data?: string;
+      error?: Error;
+    };
+  };
 
   export interface Peer<Name extends PeerName> extends RpcTarget {
     /* Capability State Timeline 
@@ -89,24 +92,24 @@ export namespace TWProto {
     
     Peer A → Signal<{ ">": "onEmail", subject: "Welcome", text: "Hi" }>
 
-                +---------+
-                | Peer A  |
-                +----+----+
+                 +---------+
+                 | Peer A  |
+                 +----+----+
                       |
                     (SIG1)
                       |
                       v
-              +--------------+
-              | Orchestrator |
-              +------+-------+
+               +--------------+
+               | Orchestrator |
+               +------+-------+
                       |
                 (Forward SIG1)
                       |
           +-----------+-----------+
           |                       |
-    +----v----+             +----v----+
-    | Peer B  |             | Peer C  |
-    +----+----+             +----+----+
+     +----v----+             +----v----+
+     | Peer B  |             | Peer C  |
+     +----+----+             +----+----+
           |                       |
     +-----v-----+         +-------v--------+
     | Log email |         | Generate reply |
@@ -116,11 +119,11 @@ export namespace TWProto {
                               | Reply |
                               +-------+
                             
-      [Optional Abort(SIG1)]
+      [Optional Abort<SIG1>]
     */
     signal<S extends SignalInput>(signal: S): Promise<Signal<S>>;
 
-    abort(id: ExecutionId): Promise<Boolean>;
+    abort<Id extends ExecutionId>(id: Id): Promise<Abort<Id>>;
 
     /* Run task
 
@@ -145,7 +148,7 @@ export namespace TWProto {
           <-----------------------------+
                   (Task Completed)
 
-      [Optional Abort(SIGX)] --> stops execution
+      [Optional Abort<SIGX>] --> stops execution
     */
 
     handoff<T extends TaskInput, O>(
