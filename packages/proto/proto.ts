@@ -6,13 +6,15 @@ export namespace TWProto {
 
   export type Capability = ["$" | ">" | (string & {}), string];
 
-  export type ExecutionId = `${string}-${string}-7${string}-${string}-${string}`
+  export type ExecutionId =
+    `${string}-${string}-7${string}-${string}-${string}`;
 
   export type Connect<
     Name extends PeerName,
     Capabilities extends Capability[],
   > = {
-    name: Name;
+    $: "connect";
+    peer: Name;
     capabilities: Capabilities;
   };
 
@@ -31,6 +33,7 @@ export namespace TWProto {
   };
 
   export type Fulfillment = {
+    $: "fulfillment";
     state?: "executing" | "completed" | "failed";
     step: {
       path: string;
@@ -74,48 +77,48 @@ export namespace TWProto {
     Peer A ---> Orchestator 
       
       Connect<"Peer A", [
-          ["$", "sendEmail"],
-          ["$", "generateReport"],
-          [">", "onUserSignup"]
+        ["$", "sendEmail"],
+        ["$", "generateReport"],
+        [">", "onUserSignup"]
       ]>
       
     */
-    connect(peer: Peer<any>): Connect<Name, Capability[]>;
+    connect(peer: Peer<any>): Promise<Connect<Name, Capability[]>>;
 
     /* Signal
     
-    Peer A → Signal<{ ">": "onEmail", subject: "Welcome" }>
+    Peer A → Signal<{ ">": "onEmail", subject: "Welcome", text: "Hi" }>
 
-               +---------+
-               | Peer A  |
-               +----+----+
-                    |
-                  (SIG1)
-                    |
-                    v
-             +--------------+
-             | Orchestrator |
-             +------+-------+
-                    |
-              (Forward SIG1)
-                    |
-        +-----------+-----------+
-        |                       |
-   +----v----+             +----v----+
-   | Peer B  |             | Peer C  |
-   +----+----+             +----+----+
-        |                       |
-  +-----v-----+         +-------v--------+
-  | Log email |         | Generate reply |
-  +-----------+         +----------------+
-                                |
-                            +---v---+
-                            | Reply |
-                            +-------+
+                +---------+
+                | Peer A  |
+                +----+----+
+                      |
+                    (SIG1)
+                      |
+                      v
+              +--------------+
+              | Orchestrator |
+              +------+-------+
+                      |
+                (Forward SIG1)
+                      |
+          +-----------+-----------+
+          |                       |
+    +----v----+             +----v----+
+    | Peer B  |             | Peer C  |
+    +----+----+             +----+----+
+          |                       |
+    +-----v-----+         +-------v--------+
+    | Log email |         | Generate reply |
+    +-----------+         +----------------+
+                                  |
+                              +---v---+
+                              | Reply |
+                              +-------+
                             
       [Optional Abort(SIG1)]
     */
-    signal<S extends SignalInput>(signal: S): Signal<S>;
+    signal<S extends SignalInput>(signal: S): Promise<Signal<S>>;
 
     abort(id: ExecutionId): Promise<Boolean>;
 
@@ -148,7 +151,7 @@ export namespace TWProto {
     handoff<T extends TaskInput, O>(
       task: T,
       ctx?: Record<any, any> & {
-        id?: string; // reuse id
+        pid?: string; // parent id
         output?: StandardSchemaV1<O>;
       },
     ): Task<T, O>;
