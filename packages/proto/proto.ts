@@ -6,26 +6,28 @@ export namespace TWProto {
 
   export type Capability = ["$" | ">" | (string & {}), string];
 
-  export type ExecutionId =
-    `${string}-${string}-7${string}-${string}-${string}`;
+  export type ExecutionId = `${string}-${string}-7${string}-${string}-${string}`
 
-  export type Connect<Name extends PeerName, Capabilities extends Capability[]> = {
+  export type Connect<
+    Name extends PeerName,
+    Capabilities extends Capability[],
+  > = {
     name: Name;
-    capabilities: Capabilities
+    capabilities: Capabilities;
   };
 
   export type SignalInput = { ">": string } & Record<string, any>;
 
-  export type Signal<S extends SignalInput> = { id: ExecutionId; signal: S };
+  export type Signal<S extends SignalInput> = Execution<S>;
 
   export type TaskInput =
     | ({ $: string } & Record<string, any>)
     | Array<{ $: string } & Record<string, any>>;
 
-  export type Task<S extends TaskInput, Output = unknown> = {
+  export type Execution<Params> = {
+    $: "execution";
     id: ExecutionId;
-    task: S;
-    result: Output;
+    content: Params;
   };
 
   export type Fulfillment = {
@@ -37,6 +39,17 @@ export namespace TWProto {
       error?: Error;
     };
   };
+
+  export type Task<
+    S extends TaskInput,
+    Return = unknown,
+    Yield = undefined,
+  > = AsyncGenerator<
+    Yield extends undefined
+      ? Execution<S> & Fulfillment
+      : Execution<S> & Fulfillment & Yield,
+    Return
+  >;
 
   export interface Peer<Name extends PeerName> extends RpcTarget {
     /* Capability State Timeline 
@@ -55,7 +68,7 @@ export namespace TWProto {
       
     */
     capabilities(): Promise<Capability[]>;
-    
+
     /* Connect
 
     Peer A ---> Orchestator 
@@ -67,10 +80,8 @@ export namespace TWProto {
       ]>
       
     */
-    connect(
-      peer: Peer<any>,
-    ): Connect<Name, Capability[]>;
- 
+    connect(peer: Peer<any>): Connect<Name, Capability[]>;
+
     /* Signal
     
     Peer A → Signal<{ ">": "onEmail", subject: "Welcome" }>
@@ -137,7 +148,7 @@ export namespace TWProto {
     handoff<T extends TaskInput, O>(
       task: T,
       ctx?: Record<any, any> & {
-        id?: string // reuse id
+        id?: string; // reuse id
         output?: StandardSchemaV1<O>;
       },
     ): Task<T, O>;
