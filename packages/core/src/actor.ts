@@ -45,5 +45,5 @@ export class TWActor<Name extends string> implements TW.Actor<Name> {
     this[TW.Name] = name;
     this[TW.Id] = 3 as never;
   }
-  run: Steps<{}> = {} as never
+  protected run: Steps<{}> = {} as never
 }
