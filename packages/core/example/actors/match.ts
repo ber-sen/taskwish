@@ -8,7 +8,7 @@ const Match: OptionSubSteps & {
 const { MyActor } = Actor("MyActor");
 
 export const { match } = MyActor()
-  .on("Command", "Match")
+  .on("Command", "match")
 
   .input({ type: "string" })
 
@@ -16,20 +16,16 @@ export const { match } = MyActor()
     Match(
       ($) => $.input,
 
-      Match.With(
-        { type: "error" },
+      Match.With({ type: "error" }),
 
-        Step("Lorem", function () {
-          return 3;
-        }),
-      ),
+      Step("Lorem", function () {
+        return 3;
+      }),
 
-      Match.With(
-        { type: "ok", data: { type: "text" } },
+      Match.With({ type: "ok", data: { type: "text" } }),
 
-        Step("Lorem", function () {
-          return 3;
-        }),
-      ),
+      Step("Lorem", function () {
+        return 3;
+      }),
     ),
   );

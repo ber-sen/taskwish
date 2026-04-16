@@ -3,7 +3,7 @@ import { Loop, Actor, Step } from "../../src";
 const { MyActor } = Actor("MyActor");
 
 export const { loop } = MyActor()
-  .on("Command", "Loop")
+  .on("Command", "loop")
 
   .input({ user: { name: "string", age: "number" } })
 
