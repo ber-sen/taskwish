@@ -8,7 +8,7 @@ export default Actor("Say hello")
 
   .run(
     Step("first step", function () {
-      return this.run.Slack.sendMessage({
+      return this.actions.Slack.sendMessage({
         channel: "#general",
         message: this.input.language,
       });

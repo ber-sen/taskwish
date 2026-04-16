@@ -9,7 +9,7 @@ export default Actor("Simple")
 
   .run(
     Step("first step", function () {
-      return this.run.Slack.sendMessage({
+      return this.actions.Slack.sendMessage({
         channel: "#general",
         message: "Hello World",
       });

@@ -9,7 +9,7 @@ export const { parallel } = MyActor()
 
   .run(
     Step("first step", function () {
-      return this.run.slack.sendMessage({
+      return this.actions.slack.sendMessage({
         channel: "#general",
         message: "Hello World",
       });
@@ -17,7 +17,7 @@ export const { parallel } = MyActor()
 
     Parallel(
       Step("parallel first step", function () {
-        return this.run.slack.sendMessage({
+        return this.actions.slack.sendMessage({
           channel: "#general",
           message: "Hello World",
         });

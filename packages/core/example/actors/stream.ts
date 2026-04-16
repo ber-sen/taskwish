@@ -14,7 +14,7 @@ export const { stream } = MyActor()
       }),
 
       Step("Mid step", function () {
-        return this.run.slack.sendMessage({
+        return this.actions.slack.sendMessage({
           channel: "#general",
           message: "Hello World",
         });

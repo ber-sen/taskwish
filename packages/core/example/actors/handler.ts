@@ -6,7 +6,7 @@ export const { handle } = MyActor()
   .on("Command", "handle")
 
   .run(function () {
-    return this.run.slack.sendMessage({
+    return this.actions.slack.sendMessage({
       channel: "#general",
       message: "Hello World",
     });

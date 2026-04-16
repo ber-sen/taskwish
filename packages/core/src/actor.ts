@@ -6,6 +6,9 @@ import {
   ValidateSchema,
 } from "./helpers";
 import { TW } from "./core";
+import { Name } from "drizzle-orm";
+import { uuid } from "drizzle-orm/pg-core";
+import { Steps } from "./steps";
 
 interface Behavior {
   action<Name extends string>(name: CamelCase<Name>): ActionFactory<Name>;
@@ -34,3 +37,13 @@ export const Actor = <const Name extends string, const Env>(
 } => {
   return name as any;
 };
+
+export class TWActor<Name extends string> implements TW.Actor<Name> {
+  [TW.Id]: `${string}-${string}-5${string}-${string}-${string}`;
+  [TW.Name]: Name;
+  constructor(name: Name) {
+    this[TW.Name] = name;
+    this[TW.Id] = 3 as never;
+  }
+  run: Steps<{}> = {} as never
+}

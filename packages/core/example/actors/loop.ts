@@ -9,7 +9,7 @@ export const { loop } = MyActor()
 
   .run(
     Step("first step", function () {
-      return this.run.slack.sendMessage({
+      return this.actions.slack.sendMessage({
         channel: "#general",
         message: "Hello World",
       });
@@ -19,14 +19,14 @@ export const { loop } = MyActor()
       () => Loop.Range(0, 10),
 
       Step("gt", function () {
-        return this.run.slack.sendMessage({
+        return this.actions.slack.sendMessage({
           channel: "#general",
           message: "Hello World",
         });
       }),
 
       Step("loop step 2", function () {
-        return this.run.slack.sendMessage({
+        return this.actions.slack.sendMessage({
           channel: "#general",
           message: this.gt,
         });
@@ -34,7 +34,7 @@ export const { loop } = MyActor()
     ),
 
     Step("last step", function () {
-      return this.run.slack.sendMessage({
+      return this.actions.slack.sendMessage({
         channel: "#general",
         message: "Hello World",
       });

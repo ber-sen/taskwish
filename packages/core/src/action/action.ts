@@ -65,7 +65,7 @@ export interface ActionFactory<
     name: Name;
     model: "gpt5";
     scope: {
-      run: {
+      actions: {
         generateText: (params: { model: "gpt5"; prompt: string }) => string;
         slack: {
           [key: `@${string}`]: {
