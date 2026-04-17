@@ -1,4 +1,3 @@
-import { RpcTarget } from "capnweb";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
 export namespace TWProto {
@@ -18,15 +17,16 @@ export namespace TWProto {
   export type ExecutionId =
     `${string}-${string}-7${string}-${string}-${string}`;
 
-  export type Execution<Command > = {
+  export type Execution<Command> = {
     $: "execution";
     id: ExecutionId;
-    command: Command ;
+    command: Command;
   };
 
   export type AnySignalCommand = { ">": string } & Record<string, any>;
 
-  export type Signal<SignalCommand extends AnySignalCommand> = Execution<SignalCommand>;
+  export type Signal<SignalCommand extends AnySignalCommand> =
+    Execution<SignalCommand>;
 
   export type Abort<Id extends ExecutionId> = { $: "abort"; id: Id };
 
@@ -57,7 +57,7 @@ export namespace TWProto {
     };
   };
 
-  export interface Peer<Name extends PeerName> extends RpcTarget {
+  export interface Peer<Name extends PeerName> {
     /* Capability State Timeline 
     
     - t0  (initial state)
@@ -121,7 +121,9 @@ export namespace TWProto {
                             
       [Optional Abort<SIG1>]
     */
-    signal<SignalCommand extends AnySignalCommand>(signal: SignalCommand): Promise<Signal<SignalCommand>>;
+    signal<SignalCommand extends AnySignalCommand>(
+      signal: SignalCommand,
+    ): Promise<Signal<SignalCommand>>;
 
     abort<Id extends ExecutionId>(id: Id): Promise<Abort<Id>>;
 
