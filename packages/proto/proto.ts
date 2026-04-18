@@ -123,6 +123,7 @@ export namespace TWProto {
     */
     signal<SignalCommand extends AnySignalCommand>(
       signal: SignalCommand,
+      ctx?: { abortSignal?: AbortSignal },
     ): Promise<Signal<SignalCommand>>;
 
     abort<Id extends ExecutionId>(id: Id): Promise<Abort<Id>>;
@@ -158,6 +159,7 @@ export namespace TWProto {
       ctx?: Record<any, any> & {
         pid?: string; // parent id
         output?: StandardSchemaV1<O>;
+        abortSignal?: AbortSignal
       },
     ): Task<TaskCommand, O>;
   }
