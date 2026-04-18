@@ -17,16 +17,13 @@ export namespace TWProto {
   export type ExecutionId =
     `${string}-${string}-7${string}-${string}-${string}`;
 
-  export type Execution<Command> = {
-    $: "execution";
-    id: ExecutionId;
-    command: Command;
-  };
-
   export type AnySignalCommand = { ">": string } & Record<string, any>;
 
-  export type Signal<SignalCommand extends AnySignalCommand> =
-    Execution<SignalCommand>;
+  export type Signal<SignalCommand extends AnySignalCommand> = {
+    $: "signal";
+    id: ExecutionId;
+    run: SignalCommand;
+  };
 
   export type Abort<Id extends ExecutionId> = { $: "abort"; id: Id };
 
@@ -34,14 +31,20 @@ export namespace TWProto {
     | ({ $: string } & Record<string, any>)
     | Array<{ $: string } & Record<string, any>>;
 
+  export type TaskExecution<Command> = {
+    $: "task";
+    id: ExecutionId;
+    run: Command;
+  };
+
   export type Task<
     TaskCommand extends AnyTaskCommand,
     Return = unknown,
     Yield = undefined,
   > = AsyncGenerator<
     Yield extends undefined
-      ? Execution<TaskCommand> & Fulfillment
-      : Execution<TaskCommand> & Fulfillment & Yield,
+      ? TaskExecution<TaskCommand> & Fulfillment
+      : TaskExecution<TaskCommand> & Fulfillment & Yield,
     Return
   >;
 
@@ -159,7 +162,7 @@ export namespace TWProto {
       ctx?: Record<any, any> & {
         pid?: string; // parent id
         output?: StandardSchemaV1<O>;
-        abortSignal?: AbortSignal
+        abortSignal?: AbortSignal;
       },
     ): Task<TaskCommand, O>;
   }
