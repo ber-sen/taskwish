@@ -6,8 +6,6 @@ import {
 } from "./helpers";
 
 export namespace TW {
-  export const Id = Symbol.for("TW.Id");
-
   export const Name = Symbol.for("TW.Name");
 
   export const Meta = Symbol.for("TW.Meta");
@@ -28,9 +26,7 @@ export namespace TW {
     [Meta]: Meta;
   }
 
-  export interface Resource<Name extends string> extends Named<Name> {
-    [Id]: UUIDv5String;
-  }
+  export interface Resource<Name extends string> extends Named<Name> {}
 
   export abstract class Handler {
     readonly ctx!: Record<"model", unknown>;

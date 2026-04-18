@@ -1,15 +1,6 @@
 import { type ActionFactory } from "./action";
-import {
-  CamelCase,
-  PascalCase,
-  ToCapitalCase,
-  ValidateSchema,
-} from "./helpers";
+import { CamelCase, PascalCase, ValidateSchema } from "./helpers";
 import { TW } from "./core";
-import { Name } from "drizzle-orm";
-import { uuid } from "drizzle-orm/pg-core";
-import { Steps } from "./steps";
-
 interface Behavior {
   action<Name extends string>(name: CamelCase<Name>): ActionFactory<Name>;
   on<Name extends string>(
@@ -37,3 +28,11 @@ export const Actor = <const Name extends string, const Env>(
 } => {
   return name as any;
 };
+
+export class TWActor<Name extends string> implements TW.Actor<Name> {
+  public [TW.Name]: Name;
+
+  constructor(name: Name) {
+    this[TW.Name] = name;
+  }
+}
