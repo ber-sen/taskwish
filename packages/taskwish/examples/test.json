@@ -1,0 +1,14 @@
+{
+  "$schema": "https://taskwish.ai/schema/task.json",
+  "$": "task",
+  "run": [
+    {
+      "$": "transformData",
+      "dataId": "123123"
+    },
+    {
+      "$": "validateData",
+      "schemaId": "23123"
+    }
+  ]
+}
