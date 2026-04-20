@@ -76,6 +76,8 @@ export namespace TW {
 
   export interface Actor<Name extends string> extends Resource<Name> {}
 
+  export interface Service<Name extends string> extends Resource<Name> {}
+
   export interface Log<Data> {
     id: Inject<UUIDv7String>;
     eventId: Inject<UUIDv7String>;
