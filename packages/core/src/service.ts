@@ -6,7 +6,7 @@ interface Registry {
   action<Name extends string>(name: CamelCase<Name>): ActionFactory<Name>;
 }
 
-export const Service = <const Name extends string, const Env>(
+export const MCPService = <const Name extends string, const Env>(
   name: PascalCase<Name> | TW.Named<PascalCase<Name>>,
   env?: ValidateSchema<Env>,
 ): {
