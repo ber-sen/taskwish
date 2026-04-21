@@ -14,3 +14,5 @@ export const { Slack } = MCPService("Slack")
   
 const slack = Slack()
 slack.sendMessage({ channel: "#general", message: "Hello" })
+
+@taskwish/slack

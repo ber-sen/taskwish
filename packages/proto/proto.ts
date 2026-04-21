@@ -85,6 +85,7 @@ export namespace TWProto {
       Connect<"Peer A", [
         ["$", "sendEmail"],
         ["$", "generateReport"],
+        ["&", "playwright"],
         [">", "onUserSignup"]
       ]>
       
