@@ -28,7 +28,7 @@ BrowserActor()
   );
 
 export const { browse } = BrowserActor()
-  .on("Command", "Browse")
+  .on("Command", "browse")
 
   .input({ name: "string" })
 
