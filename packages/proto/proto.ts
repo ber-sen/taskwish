@@ -3,7 +3,7 @@ import type { StandardSchemaV1 } from "@standard-schema/spec";
 export namespace TWProto {
   export type PeerName = string;
 
-  export type Capability = ["$" | ">" | (string & {}), string];
+  export type Capability = ["$" | ">" | (string & {}), string, string] | ["$" | ">" | (string & {}), string];
 
   export type Connect<
     Name extends PeerName,
@@ -82,9 +82,9 @@ export namespace TWProto {
 
     Peer A ---> Orchestator 
       
-      Connect<"Peer A", [
+      Connect<"PeerA", [
         ["$", "sendEmail"],
-        ["$", "generateReport"],
+        ["$", "PeerA", "generateReport"],
         ["&", "playwright"],
         [">", "onUserSignup"]
       ]>
