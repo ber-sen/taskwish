@@ -1,6 +1,6 @@
 import { Actor } from "../../src";
 
-export default Actor("Say hello")
+export default Actor("SayHello")
   .use(import("../package"))
 
   .on("zod-new-email")

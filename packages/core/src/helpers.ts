@@ -134,7 +134,7 @@ export type PascalCase<S extends string> = S extends
   | `${string}_${string}`
   | `${string}-${string}`
   | `${string} ${string}`
-  ? never
+  ? Fail<"Expected PascalCase string">
   : S extends Capitalize<S>
     ? S
-    : never;
+    : Fail<"Expected PascalCase string">;

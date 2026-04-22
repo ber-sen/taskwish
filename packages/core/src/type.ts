@@ -1,5 +1,6 @@
 import { type } from "arktype";
 import { TW } from "./core";
+import { PascalCase } from "./helpers";
 
 export function Desc(
   strings: TemplateStringsArray,
@@ -13,7 +14,7 @@ export function Type<
   const Schema,
   const Ctx extends Record<any, any>,
 >(
-  name: Name,
+  name: PascalCase<Name>,
   t: type.validate<Schema>,
   description?: string,
 ): {

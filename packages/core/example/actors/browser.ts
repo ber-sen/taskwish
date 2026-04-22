@@ -16,7 +16,7 @@ export const Browser: Steps<typeof SubSteps> & {
 export const { BrowserActor } = Actor("BrowserActor");
 
 BrowserActor()
-  .on("newMessage")
+  .on("NewMessage")
 
   .run(
     Step("first step", function () {
@@ -45,7 +45,7 @@ export const { browse } = BrowserActor()
 
       Browser.Act("Click the login button"),
 
-      Type("News item", {
+      Type("NewsItem", {
         title: "string",
         points: "number",
         by: "string",

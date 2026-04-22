@@ -24,7 +24,7 @@ export const { runSteps } = MyActor()
 
       Browser.Act("Click the login button"),
 
-      Type("News item", {
+      Type("NewsItem", {
         title: "string",
         points: "number",
         by: "string",
