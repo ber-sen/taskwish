@@ -3,7 +3,9 @@ import type { StandardSchemaV1 } from "@standard-schema/spec";
 export namespace TWProto {
   export type PeerName = string;
 
-  export type Capability = ["$" | ">" | (string & {}), string, string] | ["$" | ">" | (string & {}), string];
+  export type Capability =
+    | [type: "$" | ">" | (string & {}), namespace: string, capability: string]
+    | [type: "$" | ">" | (string & {}), capability: string];
 
   export type Connect<
     Name extends PeerName,
