@@ -1,18 +1,21 @@
 {
   "$": "Actor",
-  "=": "FearlessCoordinator",
-  "color": "#349723",
+  "=": "SwiftWrangler",
+  "color": "#c42e5b",
   "behaviors": [
     {
-      ">": "Select",
+      ">": "ChatMessage",
       "run": [
         {
-          "$": "generateText",
-          "=": "gent"
+          "$": "Slack.sendMessage",
+          "=": "senm",
+          "channel": "#general"
         },
         {
-          "$": "GoogleSheets.getRows",
-          "=": "getr"
+          "$": "generateText",
+          "=": "gent",
+          "model": "gpt-3.5-turbo-1106",
+          "prompt": "@{senm.text}"
         }
       ]
     }
