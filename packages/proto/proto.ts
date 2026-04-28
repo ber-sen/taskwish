@@ -106,7 +106,7 @@ export namespace TWProto {
                       |
                       v
                +--------------+
-               | Orchestrator |
+               | Coordinator  |
                +------+-------+
                       |
                 (Forward SIG1)
@@ -142,9 +142,9 @@ export namespace TWProto {
       { $: "sendReport", reportId: "r_2026" }     // Peer C
     ]>
 
-      +--------+                +----------------+              +--------+
-      | Peer A |                |  Orchestrator  |              | Peer C |
-      +--------+                +----------------+              +--------+
+      +--------+                  +-------------+              +--------+
+      | Peer A |                  | Coordinator |              | Peer C |
+      +--------+                  +-------------+              +--------+
                   handoff(Task)                                  
           +----------------------------->
                                             handoff(Task)   +---------------+
