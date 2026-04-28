@@ -117,9 +117,7 @@ export type Apply<
 
 const Fail = Symbol("Fail")
 
-export type Fail<Message extends string> = {
-  [Fail]: Message;
-}
+export type Fail<Message extends string> = Message
 
 export type CamelCase<S extends string> = S extends
   | `${string}_${string}`

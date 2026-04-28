@@ -1,6 +1,6 @@
 import { Actor } from "../../src";
 
-export default Actor("Chat bot")
+export default Actor("ChatBot")
   .use(import("../package"))
 
   .on({ message: "string[]"})
