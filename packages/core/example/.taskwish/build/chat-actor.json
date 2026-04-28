@@ -1,42 +1,18 @@
 {
-  "(type)": "Actor",
-  "(name)": "ChatActor",
-
+  "$": "Actor",
+  "=": "FearlessCoordinator",
+  "color": "#349723",
   "behaviors": [
     {
-      "(on)": "Command",
-      "(name)": "Chat",
-
-      "input": {
-        "tools": "string[]",
-        "prompt": "string"
-      },
+      ">": "Select",
       "run": [
         {
-          "(type)": "Step",
-          "(name)": "Selected Tools",
-
-          "run": "@{tools.filter((tool) => input.tool.includes(tool.name))}"
+          "$": "generateText",
+          "=": "gent"
         },
         {
-          "(if)": "@{3 > 2}",
-
-          "run": [
-            {
-              "(type)": "Agent",
-              "(name)": "Marketing Agent",
-
-              "instructions": "asdasdadas asdas da",
-              "model": "gtp-4",
-              "tools": "@{selectedTools}"
-            },
-            {
-              "(type)": "MarketingAgent",
-              "(name)": "End",
-
-              "prompt": "@{input.prompt}"
-            }
-          ]
+          "$": "GoogleSheets.getRows",
+          "=": "getr"
         }
       ]
     }
