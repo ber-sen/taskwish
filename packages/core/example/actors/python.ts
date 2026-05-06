@@ -3,12 +3,16 @@ import { InferSchema, ValidateSchema } from "../../src/helpers";
 
 const { MyActor } = Actor("MyActor");
 
+export function py(strings: TemplateStringsArray, ...values: any[]) {
+  return strings.reduce((acc, str, i) => acc + str + (values[i] ?? ""), "");
+}
+
 const Python = {
   Step: <Ctx extends Record<any, any>, Name extends string, Result>(
     name: Name,
     options: {
+      install?: string[];
       output?: ValidateSchema<Result>;
-      import?: string[];
       run: (ctx: TW.Scope<Ctx["scope"]>) => string | string;
     },
   ): {
@@ -33,14 +37,16 @@ export const { handle } = MyActor()
     }),
 
     Python.Step("pyStep", {
-      import: ["requests"],
+      install: ["requests"],
       output: {
         name: "string",
         company: "string",
         public_repos: "string",
         followers: "number",
       },
-      run: (ctx) => `
+      run: (ctx) => py`
+        import requests
+
         def fetch_github_user(username):
             url = f"${ctx.baseUrl}/{username}"
             response = requests.get(url)

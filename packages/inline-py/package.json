@@ -1,0 +1,21 @@
+{
+  "name": "inline-py",
+  "displayName": "inline-py",
+  "description": "Python highlighting in `py` template strings.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.118.0"
+  },
+  "contributes": {
+    "grammars": [
+      {
+        "scopeName": "inline.python",
+        "path": "./syntaxes/py-template.json",
+        "injectTo": [
+          "source.js",
+          "source.ts"
+        ]
+      }
+    ]
+  }
+}
