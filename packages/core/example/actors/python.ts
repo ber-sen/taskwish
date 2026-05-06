@@ -8,7 +8,7 @@ export function py(strings: TemplateStringsArray, ...values: any[]) {
 }
 
 const Python = {
-  Step: <Ctx extends Record<any, any>, Name extends string, Result>(
+  Step: <Ctx extends Record<any, any>, Name extends string, const Result>(
     name: Name,
     options: {
       install?: string[];
