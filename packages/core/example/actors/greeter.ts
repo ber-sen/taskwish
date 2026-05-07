@@ -2,11 +2,11 @@
 
 import { Actor, Step } from "../../src";
 
-const { Greeter } = Actor("Greeter");
+export const { Greeter } = Actor("Greeter");
 
 // hello action
 export const { hello } = Greeter()
-  .action("hello")
+  .on("Command", "hello")
 
   .input({ name: "string" })
 
@@ -16,7 +16,7 @@ export const { hello } = Greeter()
 
 // bye action
 export const { bye } = Greeter()
-  .action("bye")
+  .on("Command", "bye")
 
   .input({ name: "string" })
 

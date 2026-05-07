@@ -2,7 +2,6 @@ import { type ActionFactory } from "./action";
 import { CamelCase, PascalCase, ValidateSchema } from "./helpers";
 import { TW } from "./core";
 interface Behavior {
-  action<Name extends string>(name: CamelCase<Name>): ActionFactory<Name>;
   on<Name extends string>(
     behavior: "Command",
     name: CamelCase<Name>,
