@@ -16,7 +16,7 @@ export const { hello } = Greeter()
   .run(function () {
     return this.actions.slack.sendMessage({
       channel: "#general",
-      message: "Hello",
+      message: `Hello ${this.input.name}`,
     });
   });
 
@@ -30,7 +30,7 @@ export const { bye } = Greeter()
     Step("First", function () {
       return this.actions.slack.sendMessage({
         channel: "#general",
-        message: "Bye",
+        message: `Bye ${this.input.name}`,
       });
     }),
 
