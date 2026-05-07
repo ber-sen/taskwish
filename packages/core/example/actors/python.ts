@@ -29,8 +29,8 @@ const Shell = {
   },
 };
 
-export const { handle } = MyActor()
-  .on("Command", "handle")
+export const { runPython } = MyActor()
+  .on("Command", "runPython")
 
   .run(
     Step("baseUrl", function () {
