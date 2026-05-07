@@ -1,33 +1,7 @@
-import { Actor, Step, TW } from "../../src";
-import { InferSchema, ValidateSchema } from "../../src/helpers";
+import { Actor, Step } from "../../src";
+import { py, Shell } from "./shell";
 
 const { MyActor } = Actor("MyActor");
-
-export function py(strings: TemplateStringsArray, ...values: any[]) {
-  return strings.reduce((acc, str, i) => acc + str + (values[i] ?? ""), "");
-}
-
-const Shell = {
-  Step: <Ctx extends Record<any, any>, Name extends string, const Result>(
-    name: Name,
-    options: {
-      use: "python",
-      install?: string[];
-      output?: ValidateSchema<Result>;
-    },
-    run: (ctx: TW.Scope<Ctx["scope"]>) => string | string,
-  ): {
-    [TW.Step]: (ctx: Ctx) => {
-      name: Ctx["name"];
-      steps: Ctx["steps"] & Record<Name, InferSchema<Result>>;
-      [TW.Step]: Ctx["step"];
-      scope: Record<Name, InferSchema<Result>> & Ctx["scope"];
-      last: InferSchema<Result>;
-    };
-  } => {
-    return {} as never;
-  },
-};
 
 export const { runPython } = MyActor()
   .on("Command", "runPython")
@@ -41,7 +15,7 @@ export const { runPython } = MyActor()
       "pyStep",
 
       {
-        use: "python",
+        runtime: "python",
         install: ["requests"],
         output: {
           name: "string",
