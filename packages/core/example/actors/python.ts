@@ -7,14 +7,15 @@ export function py(strings: TemplateStringsArray, ...values: any[]) {
   return strings.reduce((acc, str, i) => acc + str + (values[i] ?? ""), "");
 }
 
-const Python = {
+const Shell = {
   Step: <Ctx extends Record<any, any>, Name extends string, const Result>(
     name: Name,
     options: {
+      use: "python",
       install?: string[];
       output?: ValidateSchema<Result>;
-      run: (ctx: TW.Scope<Ctx["scope"]>) => string | string;
     },
+    run: (ctx: TW.Scope<Ctx["scope"]>) => string | string,
   ): {
     [TW.Step]: (ctx: Ctx) => {
       name: Ctx["name"];
@@ -36,15 +37,21 @@ export const { handle } = MyActor()
       return "https://api.github.com/users/";
     }),
 
-    Python.Step("pyStep", {
-      install: ["requests"],
-      output: {
-        name: "string",
-        company: "string",
-        public_repos: "string",
-        followers: "number",
+    Shell.Step(
+      "pyStep",
+
+      {
+        use: "python",
+        install: ["requests"],
+        output: {
+          name: "string",
+          company: "string",
+          public_repos: "string",
+          followers: "number",
+        },
       },
-      run: (ctx) => py`
+
+      (ctx) => py`
         import requests
 
         def fetch_github_user(username):
@@ -67,7 +74,7 @@ export const { handle } = MyActor()
             result = fetch_github_user(user)
             print(result)
         `,
-    }),
+    ),
 
     Step("return", function () {
       return this.pyStep.company;
