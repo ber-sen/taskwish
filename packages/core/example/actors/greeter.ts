@@ -2,34 +2,44 @@
 
 import { Actor, Step } from "../../src";
 
+/* start Service */
+/* start Actor */
 export const { Greeter } = Actor("Greeter");
+/* end Actor */
 
-// hello action
+// Action
 export const { hello } = Greeter()
   .on("Command", "hello")
 
   .input({ name: "string" })
 
   .run(function () {
-    return `Hello ${this.input.name}`;
+    return this.actions.slack.sendMessage({
+      channel: "#general",
+      message: "Hello",
+    });
   });
 
-// bye action
+// Action
 export const { bye } = Greeter()
   .on("Command", "bye")
 
   .input({ name: "string" })
 
   .run(
-    Step("Name", function () {
-      return this.input.name;
+    Step("First", function () {
+      return this.actions.slack.sendMessage({
+        channel: "#general",
+        message: "Bye",
+      });
     }),
 
-    Step("Mid step", function () {
-      return `Bye ${this.name}`;
-    }),
-
-    Step("Last step", function () {
-      return this.midStep;
+    Step("Final", function () {
+      return this.actions.slack.sendMessage({
+        channel: "#general",
+        message: "Until next time!",
+      });
     }),
   );
+
+/* end Service */
