@@ -1,7 +1,6 @@
 import { Actor, Step, TW } from "../../src";
 import { CamelCase, InferSchema, ValidateSchema } from "../../src/helpers";
 
-const { MyActor } = Actor("MyActor");
 
 export function py(strings: TemplateStringsArray, ...values: any[]) {
   return strings.reduce((acc, str, i) => acc + str + (values[i] ?? ""), "");
@@ -39,6 +38,8 @@ export const Shell = {
     return {} as never;
   },
 };
+
+const { MyActor } = Actor("MyActor");
 
 export const { getFileSize } = MyActor()
   .on("Command", "getFileSize")
