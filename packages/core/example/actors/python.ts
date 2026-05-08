@@ -14,17 +14,6 @@ export const { runPython } = MyActor()
     Shell.Step(
       "pyStep",
 
-      {
-        runtime: "python",
-        install: ["requests"],
-        output: {
-          name: "string",
-          company: "string",
-          public_repos: "string",
-          followers: "number",
-        },
-      },
-
       (ctx) => py`
         import requests
 
@@ -48,6 +37,17 @@ export const { runPython } = MyActor()
             result = fetch_github_user(user)
             print(result)
         `,
+
+      {
+        runtime: "python",
+        install: ["requests"],
+        output: {
+          name: "string",
+          company: "string",
+          public_repos: "string",
+          followers: "number",
+        },
+      },
     ),
 
     Step("return", function () {

@@ -16,12 +16,12 @@ export const Shell = {
     ...args:
       | [
           name: CamelCase<Name>,
+          run: ((ctx: TW.Scope<Ctx["scope"]>) => string) | string,
           options: {
             runtime?: "python";
             install?: string[];
             output?: ValidateSchema<Result>;
           },
-          run: ((ctx: TW.Scope<Ctx["scope"]>) => string) | string,
         ]
       | [
           name: CamelCase<Name>,
@@ -46,7 +46,9 @@ export const { getFileSize } = MyActor()
   .input({ fileName: "string" })
 
   .run(
-    Shell.Step("fileSize", { output: "number" }, (s) => `stat -f %z ${s.input.fileName}`),
+    Shell.Step("fileSize", ({ input }) => `stat -f %z ${input.fileName}`, {
+      output: "number",
+    }),
 
     Step("notify", function () {
       return this.actions.slack.sendMessage({
