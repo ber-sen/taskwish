@@ -7,4 +7,7 @@ Taskwish is a edge-first agentic automation system built around Actors
 
 
 Run shell steps:
-<img width="446" height="823" alt="Screenshot 2026-05-07 at 11 10 22 AM" src="https://github.com/user-attachments/assets/3a6a2cb2-2146-4b58-9d3b-ae1780d01d87" />
+<img width="525" height="381" alt="Screenshot 2026-05-08 at 11 12 35 AM" src="https://github.com/user-attachments/assets/f9783d2d-ee6c-4f77-8e3f-4e41dcc7aaea" />
+
+Run Python steps:
+<img width="416" height="854" alt="Screenshot 2026-05-08 at 11 12 15 AM" src="https://github.com/user-attachments/assets/3e7fba14-5529-47b5-8448-47aaacf10efe" />
