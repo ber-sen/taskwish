@@ -2,7 +2,7 @@
 
 import { Actor, Step, Event } from "../../src";
 
-const { UserWelcomed } = Event("UserWelcomed").data({
+export const { UserWelcomed } = Event("UserWelcomed").data({
   name: "string",
 });
 
