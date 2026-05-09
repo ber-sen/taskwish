@@ -100,10 +100,7 @@ export type InferTriggerScope<Schema> =
             }
           : {
               input: type.instantiate<Schema>["infer"];
-              event: TW.Event<
-                "Command",
-                type.instantiate<Schema>["infer"]
-              >;
+              event: TW.Event<"Command", type.instantiate<Schema>["infer"]>;
             };
 
 export type Apply<
@@ -115,24 +112,29 @@ export type Apply<
   })["run"]
 >;
 
-const Fail = Symbol("Fail")
+const Fail = Symbol("Fail");
 
-export type Fail<Message extends string> = Message
+export type Fail<Message extends string> = Message;
 
-export type CamelCase<S extends string> = S extends
-  | `${string}_${string}`
-  | `${string}-${string}`
-  | `${string} ${string}`
-  ? Fail<"Expected camelCase string">
-  : S extends Uncapitalize<S>
-    ? S
-    : Fail<"Expected camelCase string">;
+type Separator = "_" | "-" | " ";
 
-export type PascalCase<S extends string> = S extends
-  | `${string}_${string}`
-  | `${string}-${string}`
-  | `${string} ${string}`
-  ? Fail<"Expected PascalCase string">
-  : S extends Capitalize<S>
-    ? S
-    : Fail<"Expected PascalCase string">;
+type HasSeparator<S extends string> = S extends `${string}${Separator}${string}`
+  ? true
+  : false;
+
+type CamelCaseError<S extends string> =
+  HasSeparator<S> extends true
+    ? ["Expected camelCase string", "Remove separators from:", S]
+    : S extends Uncapitalize<S>
+      ? never
+      : ["Expected camelCase string", "String must start with lowercase:", S];
+
+export type CamelCase<S extends string> =
+  CamelCaseError<S> extends never ? S : CamelCaseError<S>;
+
+export type PascalCase<S extends string> =
+  HasSeparator<S> extends true
+    ? Fail<`Expected PascalCase string, got separator in "${S}"`>
+    : S extends Capitalize<S>
+      ? S
+      : Fail<`Expected PascalCase string, "${S}" must start with uppercase`>;

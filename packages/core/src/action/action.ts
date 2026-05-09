@@ -48,11 +48,7 @@ type SignatureBody<
     [key in Name]: Signature extends (...args: any) => any
       ? TW.Action<Name, Signature>
       : Signature extends TW.Handler
-        ? TW.Action<
-            Name,
-            Apply<Signature, Ctx>,
-            Record<"handler", Signature>
-          >
+        ? TW.Action<Name, Apply<Signature, Ctx>, Record<"handler", Signature>>
         : never;
   };
 };
@@ -65,6 +61,13 @@ export interface ActionFactory<
     name: Name;
     model: "gpt5";
     scope: {
+      emit: (type: string, event: any) => TW.Event<any, any>;
+      thread: {
+        sender: {
+          name: string;
+        };
+        reply(msg: string): boolean;
+      };
       actions: {
         generateText: (params: { model: "gpt5"; prompt: string }) => string;
         slack: {
@@ -76,7 +79,7 @@ export interface ActionFactory<
           };
         } & {
           sendMessage: (params: {
-            '@'?: string;
+            "@"?: string;
             channel: "#general";
             message: string;
           }) => string;
@@ -94,7 +97,10 @@ export interface ActionFactory<
         {
           name: Ctx["name"];
           scope: InferTriggerScope<Schema> & Ctx["scope"];
-          [TW.Step]: { name: "launchApp" | StepName; map: { launchApp: string } };
+          [TW.Step]: {
+            name: "launchApp" | StepName;
+            map: { launchApp: string };
+          };
         }
       >;
   run: Steps<Ctx>;

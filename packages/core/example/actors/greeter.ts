@@ -1,45 +1,36 @@
 "use server";
 
-import { Actor, Step } from "../../src";
+import { Actor, Step, Event } from "../../src";
 
-/* start Service */
-/* start Actor */
-export const { Greeter } = Actor("Greeter");
-/* end Actor */
+const { UserWelcomed } = Event("UserWelcomed").data({
+  name: "string",
+});
 
-// Action
+export const { Greeter } = Actor("Greeter").use(UserWelcomed);
+
 export const { hello } = Greeter()
   .on("Command", "hello")
 
   .input({ name: "string" })
 
-  .run(function () {
-    return this.actions.slack.sendMessage({
-      channel: "#general",
-      message: `Hello ${this.input.name}`,
-    });
-  });
-
-// Action
-export const { bye } = Greeter()
-  .on("Command", "bye")
-
-  .input({ name: "string" })
-
   .run(
-    Step("First", function () {
+    Step("greet", function () {
       return this.actions.slack.sendMessage({
         channel: "#general",
-        message: `Bye ${this.input.name}`,
+        message: `Hello ${this.input.name}`,
       });
     }),
 
-    Step("Final", function () {
-      return this.actions.slack.sendMessage({
-        channel: "#general",
-        message: "Until next time!",
-      });
+    Step("notify", function () {
+      return this.emit("UserWelcomed", { name: this.input.name });
     }),
   );
 
-/* end Service */
+Greeter()
+  .on("NewEmail")
+
+  .run(
+    Step("greet", function () {
+      return this.thread.reply(`Hello ${this.thread.sender.name}!`);
+    }),
+  );

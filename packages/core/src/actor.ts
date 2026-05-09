@@ -12,6 +12,7 @@ interface Behavior {
       | "Schedule"
       | "NewMention"
       | "NewMessage"
+      | "NewEmail"
       | "Reaction"
       | "SubscribedMessage",
   >(
@@ -20,9 +21,13 @@ interface Behavior {
 }
 
 export const Actor = <const Name extends string, const Env>(
-  name: PascalCase<Name> | TW.Named<PascalCase<Name>>,
+  name: PascalCase<Name>,
   env?: ValidateSchema<Env>,
 ): {
+  use: (...args: any) => {
+    [key in Name]: () => Behavior;
+  };
+} & {
   [key in Name]: () => Behavior;
 } => {
   return name as any;

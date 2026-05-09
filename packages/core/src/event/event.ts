@@ -1,4 +1,4 @@
-import { InferSchema, ValidateSchema } from "../helpers";
+import { InferSchema, PascalCase, ValidateSchema } from "../helpers";
 import { TW } from "../core";
 
 interface EventUnion<Name extends string, InitialData> {
@@ -14,9 +14,9 @@ interface EventUnion<Name extends string, InitialData> {
 }
 
 interface EventFactory<Name extends string> {
-  data<const Data>(
-    schema: ValidateSchema<Data>,
-  ): TW.EventKind<Name, InferSchema<Data>>;
+  data<const Data>(schema: ValidateSchema<Data>): {
+    [key in Name]: TW.EventKind<Name, InferSchema<Data>>;
+  };
   data<const Data>(): TW.EventKind<Name, Data>;
   union(): {
     data<const Data>(
@@ -25,20 +25,14 @@ interface EventFactory<Name extends string> {
   };
 }
 
-export function Event<
-  const Action extends TW.Action<any, any>,
->(): Action extends TW.Action<infer Name, infer Handler>
-  ? TW.EventKind<Name, ReturnType<Handler>>
-  : never;
-
-export function Event<
-  const Name extends string,
-  const Data,
->(): TW.EventKind<Name, Data>;
+export function Event<const Name extends string, const Data>(): TW.EventKind<
+  Name,
+  Data
+>;
 
 export function Event<const Name extends string, const Data>(
-  type: Name,
-): TW.EventKind<Name, {}> & EventFactory<Name>;
+  type: PascalCase<Name>,
+): EventFactory<Name>;
 
 export function Event(...args: any) {
   return {};
