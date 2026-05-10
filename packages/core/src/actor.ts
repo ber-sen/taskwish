@@ -20,9 +20,9 @@ interface Behavior {
   ): ActionFactory<`on${Behavior}`>;
 }
 
-export const Actor = <const Name extends string, const Env>(
+export const Actor = <const Name extends string, const Defs extends Array<any>>(
   name: PascalCase<Name>,
-  env?: ValidateSchema<Env>,
+  defs?: Defs,
 ): {
   use: (...args: any) => {
     [key in Name]: () => Behavior;
