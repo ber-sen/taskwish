@@ -61,7 +61,7 @@ export interface ActionFactory<
     name: Name;
     model: "gpt5";
     scope: {
-      emit: (type: string, event: any) => TW.Event<any, any>;
+      signal: (type: string, event: any) => TW.Event<any, any>;
       thread: {
         sender: {
           name: string;

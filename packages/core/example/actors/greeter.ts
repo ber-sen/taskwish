@@ -22,7 +22,7 @@ export const { hello } = Greeter()
     }),
 
     Step("notify", function () {
-      return this.emit("UserWelcomed", { name: this.input.name });
+      return this.signal("UserWelcomed", { name: this.input.name });
     }),
   );
 
