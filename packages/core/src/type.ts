@@ -1,6 +1,6 @@
 import { type } from "arktype";
-import { TW } from "./core";
 import { PascalCase } from "./helpers";
+import { TW } from "./core";
 
 export function Desc(
   strings: TemplateStringsArray,
@@ -9,32 +9,12 @@ export function Desc(
   return strings.join("") as never;
 }
 
-export function Type<
-  const Name extends string,
-  const Schema,
-  const Ctx extends Record<any, any>,
->(
+export function Type<const Name extends string, const Schema>(
   name: PascalCase<Name>,
   t: type.validate<Schema>,
   description?: string,
 ): {
-  [TW.Step]: (ctx: Ctx) => {
-    name: Ctx["name"];
-    steps: Ctx["steps"] &
-      Record<
-        Name,
-        Name extends keyof Ctx["step"]["map"]
-          ? string
-          : type.instantiate<Schema>
-      >;
-    [TW.Step]: Ctx["step"];
-    scope: Record<
-      Name,
-      Name extends keyof Ctx["step"]["map"] ? string : type.instantiate<Schema>
-    > &
-      Ctx["scope"];
-    last: type.instantiate<Schema>;
-  };
+  [key in Name]: TW.Type<Name, type.instantiate<Schema>["infer"]>;
 } {
   return {} as never;
 }

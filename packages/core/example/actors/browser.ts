@@ -1,5 +1,6 @@
 import { Actor, Step, Steps, SubSteps, TW, Type } from "../../src";
 import { PrettyScope, ValidateSchema } from "../../src/helpers";
+import { Use } from "../../src/use";
 
 export const Browser: Steps<typeof SubSteps> & {
   Act: <Ctx>(prompt: string) => {
@@ -45,12 +46,14 @@ export const { browse } = BrowserActor()
 
       Browser.Act("Click the login button"),
 
-      Type("NewsItem", {
-        title: "string",
-        points: "number",
-        by: "string",
-        commentsURL: "string",
-      }),
+      Use(
+        Type("NewsItem", {
+          title: "string",
+          points: "number",
+          by: "string",
+          commentsURL: "string",
+        }),
+      ),
 
       Browser.Extract("news", "NewsItem[] <= 5"),
     ),

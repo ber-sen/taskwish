@@ -5,6 +5,8 @@ import {
   InferTriggerScope,
 } from "./helpers";
 
+import { Type as ArkType } from "arktype";
+
 export namespace TW {
   export const Name = Symbol.for("TW.Name");
 
@@ -67,8 +69,7 @@ export namespace TW {
   }
 
   export interface Execution<Stream, Return, Deps, Params = null>
-    extends AsyncGenerator<Stream, Return, Deps>,
-      Promise<Return> {
+    extends AsyncGenerator<Stream, Return, Deps>, Promise<Return> {
     id: Inject<UUIDv7String>;
     eventId: Inject<UUIDv7String>;
     params: Params;
@@ -95,12 +96,15 @@ export namespace TW {
   }
 
   export interface EventKind<Name extends string, Data, Meta = null>
-    extends Resource<Name>,
-      Attributable<Meta> {
+    extends Resource<Name>, Attributable<Meta> {
     emit(
       data: Data,
     ): AsyncGenerator<Event<Name, Data>, Event<Name, Data>, unknown>;
   }
+
+  export type Type<Name extends string, Type, Scope = {}> = ArkType<Type, Scope> &
+    Resource<Name>
+    
 
   export interface Extendable<Scope> {
     use<const NewScope>(newScope: NewScope): Extendable<Scope & NewScope>;
