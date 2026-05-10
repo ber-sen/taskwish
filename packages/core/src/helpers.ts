@@ -30,10 +30,10 @@ export type ToCapitalCase<T extends string> = UppercaseFirst<
 
 export type PrettyScope<T> = {
   [K in keyof T as 0 extends 1 & T[K]
-    ? ToCamelCase<Extract<K, string>>
+    ? Extract<K, string>
     : T[K] extends Type<any>
-      ? ToCapitalCase<Extract<K, string>>
-      : ToCamelCase<Extract<K, string>>]: T[K];
+      ? Extract<K, string>
+      : Extract<K, string>]: T[K];
 } & {};
 
 export type Pretty<T> = { [K in keyof T]: T[K] } & {};
