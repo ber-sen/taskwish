@@ -9,11 +9,14 @@ export function Desc(
   return strings.join("") as never;
 }
 
-export type Unwrap<T> = T extends TW.Type<any, infer Shape> ? Shape : T;
-
-type UnwrapObject<T> = {
-  [K in keyof T]: Unwrap<T[K]>;
-};
+export type Unwrap<T> =
+  T extends TW.Type<any, infer Shape>
+    ? Shape
+    : T extends readonly (infer U)[]
+      ? Unwrap<U>[]
+      : T extends object
+        ? { [K in keyof T]: Unwrap<T[K]> }
+        : T;
 
 export function Type<
   const Name extends string,
@@ -32,17 +35,17 @@ export function Type<
       steps: Ctx["steps"] &
         Record<
           Name,
-          TW.Type<Name, Pretty<UnwrapObject<type.instantiate<Schema, Ctx["scope"]>["infer"]>>>
+          TW.Type<Name, Pretty<Unwrap<type.instantiate<Schema, Ctx["scope"]>["infer"]>>>
         >;
       [TW.Step]: Ctx["step"];
       scope: Record<
         Name,
-        TW.Type<Name, Pretty<UnwrapObject<type.instantiate<Schema, Ctx["scope"]>["infer"]>>>
+        TW.Type<Name, Pretty<Unwrap<type.instantiate<Schema, Ctx["scope"]>["infer"]>>>
       > &
         Ctx["scope"];
       last: TW.Type<
         Name,
-        Pretty<UnwrapObject<type.instantiate<Schema, Ctx["scope"]>["infer"]>>
+        Pretty<Unwrap<type.instantiate<Schema, Ctx["scope"]>["infer"]>>
       >;
     };
   }

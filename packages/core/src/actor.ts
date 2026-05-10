@@ -1,7 +1,7 @@
 import { type ActionFactory } from "./action";
 import { CamelCase, PascalCase, ValidateSchema } from "./helpers";
 import { TW } from "./core";
-interface Behavior<Ctx extends Record<any, any>> {
+interface Behavior<Ctx> {
   on<Name extends string>(
     behavior: "Command",
     name: CamelCase<Name>,
@@ -9,7 +9,7 @@ interface Behavior<Ctx extends Record<any, any>> {
     Name,
     {
       name: Name;
-      scope: Ctx["scope"];
+      scope: Ctx extends Record<any, any> ? Ctx["scope"] : {};
     }
   >;
 
@@ -27,7 +27,7 @@ interface Behavior<Ctx extends Record<any, any>> {
     `on${Behavior}`,
     {
       name: `on${Behavior}`;
-      scope: Ctx["scope"];
+      scope: Ctx extends Record<any, any> ? Ctx["scope"] : {};
     }
   >;
 }
@@ -67,40 +67,18 @@ export const Actor = <
 >(
   name: PascalCase<Name>,
 ): {
-  use<A extends Record<any, any>>(step: {
-    [TW.Step]: (input: Ctx) => A;
-  }): {
+  def<A>(step: { [TW.Step]: (input: Ctx) => A }): {
     [key in Name]: () => Behavior<A>;
   };
-  use<
-    A,
-    B extends Record<any, any>,
-    A1 extends Record<string, { [TW.Name]: string }> | null = null,
-  >(
-    step1:
-      | {
-          [TW.Step]: (input: Ctx) => A;
-        }
-      | A1,
-    step2: {
-      [TW.Step]: (
-        input: A1 extends undefined
-          ? A
-          : {
-              name: Ctx["name"];
-              steps: Ctx["steps"] & {
-                [K in keyof A1]: A1[K];
-              };
-              scope: {
-                [K in keyof A1]: A1[K];
-              } & Ctx["scope"];
-            },
-      ) => B;
+  def<A, B>(
+    step1: {
+      [TW.Step]: (input: Ctx) => A;
     },
+    step2: { [TW.Step]: (input: A) => B },
   ): {
     [key in Name]: () => Behavior<B>;
   };
-  use<A, B, C extends Record<any, any>>(
+  def<A, B, C>(
     step1: {
       [TW.Step]: (input: Ctx) => A;
     },

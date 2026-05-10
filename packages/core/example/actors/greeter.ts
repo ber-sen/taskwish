@@ -2,12 +2,8 @@
 
 import { Actor, Step, Type, Event } from "../../src";
 
-export const { Greeter } = Actor("Greeter").use(
-  Event("UserWelcomed").data({
-    name: "string",
-  }),
-
-  Type("Lorem", { name: "string" }),
+export const { Greeter } = Actor("Greeter").def(
+  Event("UserWelcomed", { name: "string" }),
 );
 
 export const { hello } = Greeter()

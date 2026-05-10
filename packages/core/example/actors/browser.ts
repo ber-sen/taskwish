@@ -1,7 +1,6 @@
 import { type } from "arktype";
 import { Actor, Step, Steps, SubSteps, TW, Type } from "../../src";
 import { PrettyScope, ValidateSchema } from "../../src/helpers";
-import { Use } from "../../src/use";
 
 export const Browser: Steps<typeof SubSteps> & {
   Act: <Ctx>(prompt: string) => {

@@ -1,39 +1,23 @@
-import { InferSchema, PascalCase, ValidateSchema } from "../helpers";
+import { InferSchema, PascalCase } from "../helpers";
 import { TW } from "../core";
 
-interface EventUnion<Name extends string, InitialData> {
-  or<const Data>(
-    schema: ValidateSchema<Data>,
-  ): TW.EventKind<Name, InferSchema<InitialData | Data>> &
-    EventUnion<Name, InitialData | Data>;
-  or<const Data>(): TW.EventKind<Name, InitialData | Data> &
-    EventUnion<Name, InitialData | Data> & {
-      end(): TW.EventKind<Name, InitialData>;
-    };
-  end(): TW.EventKind<Name, InferSchema<InitialData>>;
-}
-
-interface EventFactory<Name extends string> {
-  data<const Data>(schema: ValidateSchema<Data>): {
-    [key in Name]: TW.EventKind<Name, InferSchema<Data>>;
-  };
-  data<const Data>(): TW.EventKind<Name, Data>;
-  union(): {
-    data<const Data>(
-      schema: ValidateSchema<Data>,
-    ): TW.EventKind<Name, InferSchema<Data>> & EventUnion<Name, Data>;
-  };
-}
-
-export function Event<const Name extends string, const Data>(): TW.EventKind<
-  Name,
-  Data
->;
-
-export function Event<const Name extends string, const Data>(
+export function Event<
+  const Name extends string,
+  const Data,
+  Ctx extends Record<any, any>,
+>(
   type: PascalCase<Name>,
-): EventFactory<Name>;
-
-export function Event(...args: any) {
-  return {};
+  data: Data,
+): {
+  [key in Name]: TW.EventKind<Name, InferSchema<Data>>;
+} & {
+  [TW.Step]: (ctx: Ctx) => {
+    name: Ctx["name"];
+    steps: Ctx["steps"] & Record<Name, TW.EventKind<Name, InferSchema<Data>>>;
+    [TW.Step]: Ctx["step"];
+    scope: Record<Name, TW.EventKind<Name, InferSchema<Data>>> & Ctx["scope"];
+    last: Record<Name, TW.EventKind<Name, InferSchema<Data>>>;
+  };
+} {
+  return {} as never;
 }
