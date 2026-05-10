@@ -1,3 +1,4 @@
+import { type } from "arktype";
 import { Actor, Step, Steps, SubSteps, TW, Type } from "../../src";
 import { PrettyScope, ValidateSchema } from "../../src/helpers";
 import { Use } from "../../src/use";
@@ -46,19 +47,16 @@ export const { browse } = BrowserActor()
 
       Browser.Act("Click the login button"),
 
-      Use(
-        Type("NewsItem", {
-          title: "string",
-          points: "number",
-          by: "string",
-          commentsURL: "string",
-        }),
-      ),
+      Type("NewsItem", {
+        points: "number",
+        by: "string",
+        commentsURL: "string",
+      }),
 
       Browser.Extract("news", "NewsItem[] <= 5"),
     ),
 
     Step("last step", function () {
-      return this;
+      return this.NewsItem;
     }),
   );

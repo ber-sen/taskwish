@@ -1,5 +1,5 @@
 import { type } from "arktype";
-import { PascalCase } from "./helpers";
+import { PascalCase, Pretty, ValidateSchema } from "./helpers";
 import { TW } from "./core";
 
 export function Desc(
@@ -9,12 +9,43 @@ export function Desc(
   return strings.join("") as never;
 }
 
-export function Type<const Name extends string, const Schema>(
+export type Unwrap<T> = T extends TW.Type<any, infer Shape> ? Shape : T;
+
+type UnwrapObject<T> = {
+  [K in keyof T]: Unwrap<T[K]>;
+};
+
+export function Type<
+  const Name extends string,
+  const Schema,
+  Ctx extends Record<any, any>,
+>(
   name: PascalCase<Name>,
-  t: type.validate<Schema>,
+  t: ValidateSchema<Schema, Ctx["scope"]>,
   description?: string,
-): {
-  [key in Name]: TW.Type<Name, type.instantiate<Schema>["infer"]>;
-} {
+): Pretty<
+  {
+    [key in Name]: TW.Type<Name, type.instantiate<Schema>["infer"]>;
+  } & {
+    [TW.Step]: (ctx: Ctx) => {
+      name: Ctx["name"];
+      steps: Ctx["steps"] &
+        Record<
+          Name,
+          TW.Type<Name, Pretty<UnwrapObject<type.instantiate<Schema, Ctx["scope"]>["infer"]>>>
+        >;
+      [TW.Step]: Ctx["step"];
+      scope: Record<
+        Name,
+        TW.Type<Name, Pretty<UnwrapObject<type.instantiate<Schema, Ctx["scope"]>["infer"]>>>
+      > &
+        Ctx["scope"];
+      last: TW.Type<
+        Name,
+        Pretty<UnwrapObject<type.instantiate<Schema, Ctx["scope"]>["infer"]>>
+      >;
+    };
+  }
+> {
   return {} as never;
 }
