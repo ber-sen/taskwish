@@ -1,5 +1,5 @@
 import { Actor, Step } from "../../src";
-import { py, Shell } from "./shell";
+import { py, Exec } from "./exec";
 
 const { MyActor } = Actor("MyActor");
 
@@ -11,14 +11,14 @@ export const { runPython } = MyActor()
       return "https://api.github.com/users/";
     }),
 
-    Shell.Step(
+    Exec.Step(
       "pyStep",
 
-      (ctx) => py`
+      py`
         import requests
 
-        def fetch_github_user(username):
-            url = f"${ctx.baseUrl}/{username}"
+        def step(baseUrl):
+            url = f"{baseUrl}/{username}"
             response = requests.get(url)
 
             if response.status_code == 200:
@@ -31,16 +31,11 @@ export const { runPython } = MyActor()
                 }
             else:
                 return {"error": "User not found"}
-
-        if __name__ == "__main__":
-            user = "octocat"
-            result = fetch_github_user(user)
-            print(result)
-        `,
-
+      `,
       {
         runtime: "python",
         install: ["requests"],
+        arg0: (ctx) => ["string", ctx.baseUrl],
         output: {
           name: "string",
           company: "string",
