@@ -13,3 +13,4 @@ export const Exception = <const Status extends number, const Data>(
     throw new Error(JSON.stringify({ status, data }));
   },
 });
+

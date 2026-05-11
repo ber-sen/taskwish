@@ -5,23 +5,17 @@ export function py(strings: TemplateStringsArray, ...values: any[]) {
   return strings.reduce((acc, str, i) => acc + str + (values[i] ?? ""), "");
 }
 
-export const Exec = {
+export const Shell = {
   Step: <
     const Ctx extends Record<any, any>,
     const Name extends string,
     const Result,
-    const T,
   >(
     ...args:
       | [
           name: CamelCase<Name>,
           run: ((ctx: TW.Scope<Ctx["scope"]>) => string) | string,
           options: {
-            runtime?: "python";
-            install?: string[];
-            arg0?: (
-              ctx: TW.Scope<Ctx["scope"]>,
-            ) => [schema: ValidateSchema<T>, value: InferSchema<T>];
             output?: ValidateSchema<Result>;
           },
         ]
@@ -50,7 +44,7 @@ export const { getFileSize } = MyActor()
   .input({ fileName: "string" })
 
   .run(
-    Exec.Step("fileSize", ({ input }) => `stat -f %z ${input.fileName}`, {
+    Shell.Step("fileSize", ({ input }) => `stat -f %z ${input.fileName}`, {
       output: "number",
     }),
 
