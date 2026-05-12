@@ -41,11 +41,29 @@ export namespace TW {
 
   export type Inject<Type> = Type | null;
 
+  export type StepEvent<Result = unknown> =
+    | { $: "step"; name: string; result: Result }
+    | { $: "step"; name: string; error: unknown };
+
+  export type ActionEvent<Name extends string, Result = unknown> =
+    | { $: "action"; name: Name; input: unknown }
+    | { $: "action"; name: Name; result: Result }
+    | { $: "action"; name: Name; error: unknown };
+
+  export type GetEvent<T = unknown> = { $: "get"; type: abstract new (...args: any[]) => T };
+
+  type StreamReturn<Name extends string, Handler extends (...args: any) => any> =
+    Awaited<ReturnType<Handler>> extends AsyncGenerator<infer Y, infer R>
+      ? AsyncGenerator<Y | StepEvent | ActionEvent<Name, Awaited<R>>, Awaited<R>>
+      : AsyncGenerator<StepEvent | ActionEvent<Name, Awaited<ReturnType<Handler>>>, Awaited<ReturnType<Handler>>>;
+
   export type Action<
     Name extends string,
     Handler extends (...args: any) => any,
     Meta = null,
-  > = NoInfer<Handler> & Resource<Name> & Attributable<Meta>;
+  > = NoInfer<Handler> & {
+    stream: (...args: Parameters<NoInfer<Handler>>) => StreamReturn<Name, Handler>;
+  } & Resource<Name> & Attributable<Meta>;
 
   export class IO {
     // threadId!: Message.ThreadId;

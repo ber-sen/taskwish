@@ -1,163 +1,266 @@
-import { expect, test } from "bun:test";
+import { expect, test, describe } from "bun:test";
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { TW } from "../core";
 import { Step } from "../steps";
 
-test("works with async arrow functions", async () => {
-  const { healthz } = Action("healthz").run(function () {
-    return { status: "ok" };
+describe("Action", () => {
+  test("no input — plain handler", async () => {
+    const { healthz } = Action("healthz").run(function () {
+      return { status: "ok" };
+    });
+
+    type T = typeof healthz;
+
+    type check = Expect<
+      Equal<TW.Action<"healthz", () => Promise<{ status: string }>, null>, T>
+    >;
+
+    expect(await healthz()).toEqual({ status: "ok" });
   });
 
-  type T = typeof healthz;
+  test("object schema input", async () => {
+    const { hello } = Action("hello")
+      .input({ name: "string" })
 
-  type healthz = Expect<
-    Equal<
-      TW.Action<
-        "healthz",
-        () => Promise<{
-          status: string;
-        }>,
-        null
-      >,
-      T
-    >
-  >;
+      .run(function () {
+        return `Hello ${this.input.name}`;
+      });
 
-  const result = await healthz();
+    type T = typeof hello;
 
-  expect(result).toEqual({ status: "ok" });
-});
+    type check = Expect<
+      Equal<
+        TW.Action<"hello", (input: { name: string }) => Promise<string>, null>,
+        T
+      >
+    >;
 
-test("works with with input", async () => {
-  const { hello } = Action("hello")
-    .input({ name: "string" })
+    expect(await hello({ name: "World" })).toEqual("Hello World");
+  });
 
-    .run(function () {
-      return `Hello ${this.input.name}`;
-    });
+  test("step chain — yields each step, resolves to last", async () => {
+    const { hello } = Action("hello")
+      .input({ name: "string" })
 
-  type T = typeof hello;
+      .run(
+        Step("fistStep", function () {
+          return this.input.name.length;
+        }),
 
-  type hello = Expect<
-    Equal<
-      TW.Action<"hello", (input: { name: string }) => Promise<string>, null>,
-      T
-    >
-  >;
+        Step("secondStep", function () {
+          return this.fistStep > 0;
+        }),
+      );
 
-  const result = await hello({ name: "World" });
+    type T = typeof hello;
 
-  expect(result).toEqual("World");
-});
+    type check = Expect<
+      Equal<
+        TW.Action<"hello", (input: { name: string }) => Promise<boolean>, null>,
+        T
+      >
+    >;
 
-test("works with with steps", async () => {
-  const { hello } = Action("hello")
-    .input({ name: "string" })
+    expect(await hello({ name: "World" })).toEqual(true);
 
-    .run(
-      Step("First step", function () {
-        return this.input.name.length;
-      }),
-      Step("Second step", function () {
-        return this.firstStep > 0;
-      }),
-    );
+    const yields: unknown[] = [];
 
-  type T = typeof hello;
+    for await (const v of hello.stream({ name: "World" })) {
+      yields.push(v);
+    }
 
-  type hello = Expect<
-    Equal<
-      TW.Action<"hello", (input: { name: string }) => Promise<boolean>, null>,
-      T
-    >
-  >;
+    expect(yields).toEqual([
+      { $: "action", name: "hello", input: { name: "World" } },
+      { $: "step", name: "hello.fistStep", result: 5 },
+      { $: "step", name: "hello.secondStep", result: true },
+      { $: "action", name: "hello", result: true },
+    ]);
+  });
 
-  const result = await hello({ name: "World" });
+  test("TypeScript type input", async () => {
+    const { tsAction } = Action("tsAction")
+      .input<{ name: string }>()
 
-  expect(result).toEqual({ success: true });
-});
+      .run(async function () {
+        return `Hello ${this.input.name}`;
+      });
 
-test("works with ts type", async () => {
-  const { tsAction } = Action("tsAction")
-    .input<{ name: string }>()
+    type T = typeof tsAction;
 
-    .run(async function () {
-      return `Hello ${this.input.name}`;
-    });
+    type check = Expect<
+      Equal<
+        TW.Action<
+          "tsAction",
+          (input: { name: string }) => Promise<Promise<string>>,
+          null
+        >,
+        T
+      >
+    >;
 
-  type T = typeof tsAction;
+    expect(await tsAction({ name: "Test" })).toEqual("Hello Test");
+  });
 
-  type result = Expect<
-    Equal<
-      TW.Action<
-        "tsAction",
-        (input: { name: string }) => Promise<Promise<string>>,
-        null
-      >,
-      T
-    >
-  >;
+  test("generic function signature — this.input is args tuple", async () => {
+    const { genericAction } = Action("genericAction")
+      .fn<<const T>(lorem: T) => Promise<T>>()
 
-  const result = await tsAction({ name: "Test" });
+      .run(async function () {
+        const [lorem] = this.input;
+        const a = this.get(AbortSignal);
 
-  expect(result).toEqual(`Hello Test`);
-});
+        return lorem;
+      });
 
-test("works with generics", async () => {
-  const { genericAction } = Action("genericAction")
-    .input<<const T>(lorem: T) => Promise<T>>()
+    type T = typeof genericAction;
 
-    .run(async function () {
-      const [lorem] = this.input;
+    type check = Expect<
+      Equal<
+        TW.Action<"genericAction", <const T>(lorem: T) => Promise<T>, null>,
+        T
+      >
+    >;
 
-      const a = this.get(AbortSignal);
+    expect(await genericAction("gpt")).toEqual("gpt");
+  });
 
-      return lorem;
-    });
+  test("HKT handler", async () => {
+    interface MyHandler extends TW.Handler {
+      run<const T extends this["ctx"]["model"]>(lorem: T): Promise<number>;
+    }
 
-  type T = typeof genericAction;
+    const { myHandler } = Action("myHandler")
+      .fn<MyHandler>()
 
-  type result = Expect<
-    Equal<
-      TW.Action<"genericAction", <const T>(lorem: T) => Promise<T>, null>,
-      T
-    >
-  >;
+      .run(async function () {
+        const [lorem] = this.input;
+        return lorem.length;
+      });
 
-  const result = await genericAction("gpt");
+    type T = typeof myHandler;
 
-  expect(result).toEqual({ success: true });
-});
+    type check = Expect<
+      Equal<
+        TW.Action<
+          "myHandler",
+          <const T extends "gpt5">(lorem: T) => Promise<number>,
+          Record<"handler", MyHandler>
+        >,
+        T
+      >
+    >;
 
-test("works with hkt", async () => {
-  interface MyHandler extends TW.Handler {
-    run<const T extends this["ctx"]["model"]>(lorem: T): Promise<number>;
-  }
+    expect(await myHandler("gpt5")).toEqual(4);
+  });
 
-  const { myHandler } = Action("myHandler")
-    .input<MyHandler>()
+  test("mixed handlers — steps and async generator yield in order", async () => {
+    const { mixed } = Action("mixed")
+      .input({ name: "string" })
 
-    .run(async function () {
-      const [lorem] = this.input;
+      .run(
+        Step("first", function () {
+          return 42;
+        }),
 
-      return lorem.length;
-    });
+        Step("stream", async function* () {
+          yield "x";
+          yield "y";
 
-  type T = typeof myHandler;
+          return "Y";
+        }),
 
-  type result = Expect<
-    Equal<
-      TW.Action<
-        "myHandler",
-        <const T extends "gpt5">(lorem: T) => Promise<number>,
-        Record<"handler", MyHandler>
-      >,
-      T
-    >
-  >;
+        Step("third", function () {
+          return true;
+        }),
+      );
 
-  const result = await myHandler("gpt5");
+    const yields: unknown[] = [];
+    for await (const v of mixed.stream({ name: "World" })) {
+      yields.push(v);
+    }
+    expect(yields).toEqual([
+      { $: "action", name: "mixed", input: { name: "World" } },
+      { $: "step", name: "mixed.first", result: 42 },
+      "x",
+      "y",
+      { $: "step", name: "mixed.stream", result: "Y" },
+      { $: "step", name: "mixed.third", result: true },
+      { $: "action", name: "mixed", result: true },
+    ]);
+    expect(await mixed({ name: "World" })).toEqual(true);
+  });
 
-  expect(result).toEqual({ success: true });
+  test("step error — yields step error, action error, then rethrows", async () => {
+    const boom = new Error("boom");
+
+    const { failing } = Action("failing")
+      .input({ name: "string" })
+
+      .run(
+        Step("first", function () {
+          return 1;
+        }),
+
+        Step("bad", function () {
+          throw boom;
+        }),
+
+        Step("never", function () {
+          return 3;
+        }),
+      );
+
+    const yields: unknown[] = [];
+    let thrown: unknown;
+
+    try {
+      for await (const v of failing.stream({ name: "World" })) {
+        yields.push(v);
+      }
+    } catch (e) {
+      thrown = e;
+    }
+
+    expect(yields).toEqual([
+      { $: "action", name: "failing", input: { name: "World" } },
+      { $: "step", name: "failing.first", result: 1 },
+      { $: "step", name: "failing.bad", error: boom },
+      { $: "action", name: "failing", error: boom },
+    ]);
+    expect(thrown).toBe(boom);
+  });
+
+  test("async generator — stream yields each value", async () => {
+    const { greet } = Action("greet")
+      .input({ name: "string" })
+
+      .run(async function* () {
+        yield this.input.name;
+        yield this.input.name.toUpperCase();
+      });
+
+    type StreamYield =
+      ReturnType<typeof greet.stream> extends AsyncGenerator<infer Y, any>
+        ? Y
+        : never;
+
+    type check = Expect<
+      Equal<
+        StreamYield,
+        string | TW.StepEvent<unknown> | TW.ActionEvent<"greet", void>
+      >
+    >;
+
+    const values: StreamYield[] = [];
+    for await (const v of greet.stream({ name: "hello" })) {
+      values.push(v);
+    }
+    expect(values).toEqual([
+      { $: "action", name: "greet", input: { name: "hello" } },
+      "hello",
+      "HELLO",
+      { $: "action", name: "greet", result: undefined },
+    ]);
+  });
 });
