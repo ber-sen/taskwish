@@ -89,7 +89,7 @@ export interface ActionFactory<
     };
   },
 > {
-  fn<const Schema extends ((...args: any) => any) | TW.Handler>(): SignatureBody<
+  sig<const Schema extends ((...args: any) => any) | TW.Handler>(): SignatureBody<
     Name,
     Ctx,
     Schema
@@ -218,7 +218,7 @@ export function Action<const Name extends string>(
   });
 
   return {
-    fn() { return makeBody("args"); },
+    sig() { return makeBody("args"); },
     input(_schema?: unknown) { return makeBody("first"); },
     use() { return this; },
     run(...handlers: unknown[]) {

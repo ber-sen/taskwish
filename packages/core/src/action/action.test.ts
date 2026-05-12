@@ -104,7 +104,7 @@ describe("Action", () => {
 
   test("generic function signature — this.input is args tuple", async () => {
     const { genericAction } = Action("genericAction")
-      .fn<<const T>(lorem: T) => Promise<T>>()
+      .sig<<const T>(lorem: T) => Promise<T>>()
 
       .run(async function () {
         const [lorem] = this.input;
@@ -131,7 +131,7 @@ describe("Action", () => {
     }
 
     const { myHandler } = Action("myHandler")
-      .fn<MyHandler>()
+      .sig<MyHandler>()
 
       .run(async function () {
         const [lorem] = this.input;
