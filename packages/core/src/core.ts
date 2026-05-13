@@ -77,7 +77,7 @@ export namespace TW {
   > = NoInfer<Handler> & {
     stream: (...args: Parameters<NoInfer<Handler>>) => StreamReturn<Name, Handler>;
   } & (Meta extends { route: [any, any, any] }
-    ? { fetch: { stream(input: Request): StreamReturn<Name, Handler> } }
+    ? { fetch: ((input: Request) => Promise<Response>) & { stream(input: Request): StreamReturn<Name, Handler> } }
     : {}
   ) & Resource<Name> & Attributable<Meta>;
 

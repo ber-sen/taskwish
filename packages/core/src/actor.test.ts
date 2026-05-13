@@ -334,7 +334,7 @@ describe("Actor", () => {
     );
   });
 
-  test("GET — with schema and command, named action takes flat input and fetch wraps Request", async () => {
+  test("GET — with schema and command, named action takes flat input and fetch returns Response", async () => {
     const { Webhooker } = Actor("Webhooker").def(
       Event("InvoiceFetched", { id: "string", page: "string" }),
     );
@@ -395,20 +395,36 @@ describe("Actor", () => {
     )) {
       fetchYields.push(v);
     }
-    expect(fetchYields).toEqual([
-      {
-        $: "Action",
-        name: "Webhooker.GET",
-        input: {
-          path: "/invoices/inv-42",
-          params: { id: "inv-42" },
-          query: { page: "2" },
-        },
-      },
+    const fetchStreamJson = await (fetchYields[3] as any).result.text();
+    
+    expect(fetchYields).toMatchObject([
+      { $: "Action", name: "Webhooker.GET", input: { path: "/invoices/inv-42", params: { id: "inv-42" }, query: { page: "2" } } },
       { $: "Action", name: "Webhooker.getInvoices", input: { id: "inv-42", page: "2" } },
       { $: "Action", name: "Webhooker.getInvoices", result: "id=inv-42 page=2" },
-      { $: "Action", name: "Webhooker.GET", result: "id=inv-42 page=2" },
+      { $: "Action", name: "Webhooker.GET", result: expect.any(Response) },
     ]);
+    expect(fetchStreamJson).toEqual("id=inv-42 page=2");
+
+    const response = await getInvoices.fetch(new Request("http://localhost/invoices/inv-42?page=2"));
+    expect(response).toBeInstanceOf(Response);
+    expect(await response.text()).toEqual("id=inv-42 page=2");
+  });
+
+  test("fetch — object result serialized as application/json", async () => {
+    const { Webhooker } = Actor("Webhooker");
+
+    const { getInvoice } = Webhooker()
+      .on("GET", "/invoices/:id", { params: { id: "string" } })
+
+      .command("getInvoice")
+
+      .run(function () {
+        return { id: this.input.id, status: "paid" };
+      });
+
+    const response = await getInvoice.fetch(new Request("http://localhost/invoices/inv-42"));
+    expect(response.headers.get("Content-Type")).toEqual("application/json");
+    expect(await response.json()).toEqual({ id: "inv-42", status: "paid" });
   });
 
   test("NewEmail — input carries email fields", async () => {

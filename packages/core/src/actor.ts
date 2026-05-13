@@ -1,4 +1,4 @@
-import { buildScope, runCore, type ActionFactory } from "./action";
+import { buildScope, runAction, type ActionFactory } from "./action";
 import { Event } from "./event";
 import {
   CamelCase,
@@ -250,6 +250,12 @@ function makeBehaviorMod(
   return (args) => ({ args, scope: {} });
 }
 
+function toResponse(result: unknown): Response {
+  if (result instanceof Response) return result;
+  if (typeof result === "string") return new Response(result, { headers: { "Content-Type": "text/plain" } });
+  return new Response(JSON.stringify(result), { headers: { "Content-Type": "application/json" } });
+}
+
 function flattenHttpInput(
   raw: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -296,7 +302,7 @@ function createBehavior(
         async function consume(...args: unknown[]) {
           const { args: modArgs, scope: behaviorScope } = mod(args);
           const extra = { ...initialScope, ...behaviorScope };
-          const gen = runCore(
+          const gen = runAction(
             eventName,
             buildScope(inputMode, modArgs, extra),
             handlers,
@@ -309,7 +315,7 @@ function createBehavior(
         function stream(...args: unknown[]) {
           const { args: modArgs, scope: behaviorScope } = mod(args);
           const extra = { ...initialScope, ...behaviorScope };
-          return runCore(
+          return runAction(
             eventName,
             buildScope(inputMode, modArgs, extra),
             handlers,
@@ -355,7 +361,7 @@ function createBehavior(
                 const qualifiedCmdName = `${actorName}.${cmdName}`;
 
                 function cmdStream(flatInput: unknown) {
-                  return runCore(
+                  return runAction(
                     qualifiedCmdName,
                     buildScope("first", [flatInput], { ...initialScope }),
                     handlers,
@@ -369,8 +375,9 @@ function createBehavior(
                   return item.value;
                 }
 
-                async function* fetchStream(requestInput: unknown) {
-                  const { args: modArgs } = mod([requestInput]);
+                async function* fetchStream(input: Request) {
+                  const request = input;
+                  const { args: modArgs } = mod([request]);
                   const rawInput = modArgs[0] as Record<string, unknown>;
                   yield { $: "Action", name: eventName, input: rawInput };
                   const flatInput = flattenHttpInput(rawInput);
@@ -387,13 +394,20 @@ function createBehavior(
                     yield { $: "Action", name: eventName, error };
                     throw error;
                   }
-                  yield { $: "Action", name: eventName, result };
+                  yield { $: "Action", name: eventName, result: toResponse(result) };
+                }
+
+                async function fetchFn(input: Request) {
+                  const gen = fetchStream(input);
+                  let last: any;
+                  for await (const event of gen) last = event;
+                  return last.result as Response;
                 }
 
                 return {
                   [cmdName]: Object.assign(cmdConsume, {
                     stream: cmdStream,
-                    fetch: { stream: fetchStream },
+                    fetch: Object.assign(fetchFn, { stream: fetchStream }),
                   }),
                 };
               },

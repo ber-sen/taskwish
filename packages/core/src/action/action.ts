@@ -144,7 +144,7 @@ async function* runStep(
   }
 }
 
-export async function* runCore(name: string, scope: Scope, handlers: unknown[]): AsyncGenerator<unknown, unknown> {
+export async function* runAction(name: string, scope: Scope, handlers: unknown[]): AsyncGenerator<unknown, unknown> {
   let ctx: Record<string | symbol, unknown> = { ...scope };
   let last: unknown;
 
@@ -213,14 +213,14 @@ export function Action<const Name extends string>(
 
   function createAction(inputMode: "first" | "args", handlers: unknown[]) {
     async function consume(...args: unknown[]) {
-      const gen = runCore(actionName, buildScope(inputMode, args), handlers);
+      const gen = runAction(actionName, buildScope(inputMode, args), handlers);
       let item = await gen.next();
       while (!item.done) item = await gen.next();
       return item.value;
     }
 
     function stream(...args: unknown[]) {
-      return runCore(actionName, buildScope(inputMode, args), handlers);
+      return runAction(actionName, buildScope(inputMode, args), handlers);
     }
 
     return { [actionName]: Object.assign(consume, { stream }) };
