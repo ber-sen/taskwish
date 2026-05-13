@@ -378,7 +378,7 @@ function createBehavior(
                   const request = input;
                   const { args: modArgs } = mod([request]);
                   const rawInput = modArgs[0] as Record<string, unknown>;
-                  yield { $: "Action", name: eventName, input: rawInput };
+                  yield { $: eventName, input: rawInput };
                   const flatInput = flattenHttpInput(rawInput);
                   let result: unknown;
                   try {
@@ -390,10 +390,10 @@ function createBehavior(
                     }
                     result = item.value;
                   } catch (error) {
-                    yield { $: "Action", name: eventName, error };
+                    yield { $: eventName, error };
                     throw error;
                   }
-                  yield { $: "Action", name: eventName, result: toResponse(result) };
+                  yield { $: eventName, result: toResponse(result) };
                 }
 
                 function fetchStream(input: Request) {

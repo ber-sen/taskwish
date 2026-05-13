@@ -132,6 +132,11 @@ type StepEntry = Record<typeof StepRuntime, { name: string; handler: (...a: unkn
 export type Scope = { input: unknown; get<T>(Cls: abstract new (...a: unknown[]) => T): T };
 
 const SignalTag = Symbol.for("TW.Signal");
+export const ActionEventTag = Symbol.for("TW.ActionEvent");
+
+function actionEvent(obj: Record<string, unknown>) {
+  return Object.defineProperty(obj, ActionEventTag, { value: true, enumerable: false });
+}
 
 
 async function* runStep(
@@ -149,11 +154,11 @@ async function* runStep(
     if (result !== null && typeof result === "object" && SignalTag in (result as object)) {
       yield result;
     }
-    yield { $: "Step", name, result };
+    yield { $: name, result };
 
     return result;
   } catch (error) {
-    yield { $: "Step", name, error };
+    yield { $: name, error };
 
     throw error;
   }
@@ -163,7 +168,7 @@ export async function* runAction(name: string, scope: Scope, handlers: unknown[]
   let ctx: Record<string | symbol, unknown> = { ...scope };
   let last: unknown;
 
-  yield { $: "Action", name, input: scope.input };
+  yield { $: name, input: scope.input };
 
   try {
     for (const handler of handlers) {
@@ -181,11 +186,11 @@ export async function* runAction(name: string, scope: Scope, handlers: unknown[]
       }
     }
   } catch (error) {
-    yield { $: "Action", name, error };
+    yield { $: name, error };
     throw error;
   }
 
-  yield { $: "Action", name, result: last };
+  yield { $: name, result: last };
   return last;
 }
 

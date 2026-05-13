@@ -4,7 +4,7 @@ import { Actor, HttpEvent } from "./actor";
 import { TW } from "./core";
 import { Step } from "./steps";
 import { Event } from "./event";
-import { Logger } from "./use";
+import { Logger, formatEvent } from "./use";
 
 describe("Actor", () => {
   test("Command — plain handler with input", async () => {
@@ -100,10 +100,10 @@ describe("Actor", () => {
     }
 
     expect(yields).toEqual([
-      { $: "Action", name: "Pipeline.run", input: { name: "hello" } },
-      { $: "Step", name: "Pipeline.run.first", result: 5 },
-      { $: "Step", name: "Pipeline.run.second", result: true },
-      { $: "Action", name: "Pipeline.run", result: true },
+      { $: "Pipeline.run", input: { name: "hello" } },
+      { $: "Pipeline.run.first", result: 5 },
+      { $: "Pipeline.run.second", result: true },
+      { $: "Pipeline.run", result: true },
     ]);
   });
 
@@ -144,11 +144,10 @@ describe("Actor", () => {
 
     expect(yields).toEqual([
       {
-        $: "Action",
-        name: "Broadcaster.onNewMessage",
+        $: "Broadcaster.onNewMessage",
         input: { sender: { name: "Alice" }, content: "hi", channel: "general" },
       },
-      { $: "Action", name: "Broadcaster.onNewMessage", result: "HI" },
+      { $: "Broadcaster.onNewMessage", result: "HI" },
     ]);
   });
 
@@ -188,10 +187,10 @@ describe("Actor", () => {
     }
 
     expect(yields).toEqual([
-      { $: "Action", name: "Crasher.failing", input: { name: "World" } },
-      { $: "Step", name: "Crasher.failing.first", result: 1 },
-      { $: "Step", name: "Crasher.failing.bad", error: boom },
-      { $: "Action", name: "Crasher.failing", error: boom },
+      { $: "Crasher.failing", input: { name: "World" } },
+      { $: "Crasher.failing.first", result: 1 },
+      { $: "Crasher.failing.bad", error: boom },
+      { $: "Crasher.failing", error: boom },
     ]);
     expect(thrown).toBe(boom);
   });
@@ -386,8 +385,8 @@ describe("Actor", () => {
       directYields.push(v);
     }
     expect(directYields).toEqual([
-      { $: "Action", name: "InvoiceProvider.getInvoices", input: { id: "inv-42", page: "2" } },
-      { $: "Action", name: "InvoiceProvider.getInvoices", result: "id=inv-42 page=2" },
+      { $: "InvoiceProvider.getInvoices", input: { id: "inv-42", page: "2" } },
+      { $: "InvoiceProvider.getInvoices", result: "id=inv-42 page=2" },
     ]);
 
     const fetchYields: unknown[] = [];
@@ -397,12 +396,12 @@ describe("Actor", () => {
       fetchYields.push(v);
     }
     const fetchStreamJson = await (fetchYields[3] as any).result.text();
-    
+
     expect(fetchYields).toMatchObject([
-      { $: "Action", name: "InvoiceProvider.GET", input: { path: "/invoices/inv-42", params: { id: "inv-42" }, query: { page: "2" } } },
-      { $: "Action", name: "InvoiceProvider.getInvoices", input: { id: "inv-42", page: "2" } },
-      { $: "Action", name: "InvoiceProvider.getInvoices", result: "id=inv-42 page=2" },
-      { $: "Action", name: "InvoiceProvider.GET", result: expect.any(Response) },
+      { $: "InvoiceProvider.GET", input: { path: "/invoices/inv-42", params: { id: "inv-42" }, query: { page: "2" } } },
+      { $: "InvoiceProvider.getInvoices", input: { id: "inv-42", page: "2" } },
+      { $: "InvoiceProvider.getInvoices", result: "id=inv-42 page=2" },
+      { $: "InvoiceProvider.GET", result: expect.any(Response) },
     ]);
     expect(fetchStreamJson).toEqual("id=inv-42 page=2");
 
@@ -489,8 +488,7 @@ describe("Actor", () => {
 
     expect(yields).toEqual([
       {
-        $: "Action",
-        name: "MailAgent.onNewEmail",
+        $: "MailAgent.onNewEmail",
         input: {
           from: "bob@example.com",
           to: "me@co.com",
@@ -499,13 +497,11 @@ describe("Actor", () => {
         },
       },
       {
-        $: "Step",
-        name: "MailAgent.onNewEmail.log",
+        $: "MailAgent.onNewEmail.log",
         result: "bob@example.com: Invoice",
       },
       {
-        $: "Action",
-        name: "MailAgent.onNewEmail",
+        $: "MailAgent.onNewEmail",
         result: "bob@example.com: Invoice",
       },
     ]);
@@ -541,18 +537,16 @@ describe("Actor", () => {
 
     expect(yields).toEqual([
       {
-        $: "Action",
-        name: "Emitter.emit",
+        $: "Emitter.emit",
         input: { orderId: "ord-1", amount: 100 },
       },
       { $: "OrderPlaced", orderId: "ord-1", amount: 100 },
       {
-        $: "Step",
-        name: "Emitter.emit.order",
+        $: "Emitter.emit.order",
         result: { $: "OrderPlaced", orderId: "ord-1", amount: 100 },
       },
-      { $: "Step", name: "Emitter.emit.confirm", result: "placed: ord-1" },
-      { $: "Action", name: "Emitter.emit", result: "placed: ord-1" },
+      { $: "Emitter.emit.confirm", result: "placed: ord-1" },
+      { $: "Emitter.emit", result: "placed: ord-1" },
     ]);
   });
 
@@ -582,10 +576,10 @@ describe("Actor", () => {
     await run({ value: 5 });
 
     expect(logged).toEqual([
-      "\n" + JSON.stringify({ $: "Action", name: "Worker.run", input: { value: 5 } }),
-      JSON.stringify({ $: "Step", name: "Worker.run.doubled", result: 10 }),
-      JSON.stringify({ $: "Step", name: "Worker.run.positive", result: true }),
-      JSON.stringify({ $: "Action", name: "Worker.run", result: true }) + "\n",
+      formatEvent({ $: "Worker.run", input: { value: 5 } }),
+      formatEvent({ $: "Worker.run.doubled", result: 10 }),
+      formatEvent({ $: "Worker.run.positive", result: true }),
+      formatEvent({ $: "Worker.run", result: true }),
     ]);
   });
 
@@ -614,11 +608,7 @@ describe("Actor", () => {
     }
 
     expect(logged).toEqual(
-      yields.map((v) => {
-        const s = JSON.stringify(v);
-        if (typeof v !== "object" || v === null || (v as any).$ !== "Action") return s;
-        return "input" in (v as object) ? "\n" + s : s + "\n";
-      }),
+      yields.map((v) => typeof v === "object" && v !== null && "$" in (v as object) ? formatEvent(v as object) : v),
     );
   });
 
@@ -650,12 +640,12 @@ describe("Actor", () => {
     await onNewMessage({ sender: { name: "Alice" }, content: "hello", channel: "general" });
 
     expect(logged).toEqual([
-      "\n" + JSON.stringify({ $: "Action", name: "Hub.ping", input: { id: "abc" } }),
-      JSON.stringify({ $: "Step", name: "Hub.ping.upper", result: "ABC" }),
-      JSON.stringify({ $: "Action", name: "Hub.ping", result: "ABC" }) + "\n",
-      "\n" + JSON.stringify({ $: "Action", name: "Hub.onNewMessage", input: { sender: { name: "Alice" }, content: "hello", channel: "general" } }),
-      JSON.stringify({ $: "Step", name: "Hub.onNewMessage.excerpt", result: "hel" }),
-      JSON.stringify({ $: "Action", name: "Hub.onNewMessage", result: "hel" }) + "\n",
+      formatEvent({ $: "Hub.ping", input: { id: "abc" } }),
+      formatEvent({ $: "Hub.ping.upper", result: "ABC" }),
+      formatEvent({ $: "Hub.ping", result: "ABC" }),
+      formatEvent({ $: "Hub.onNewMessage", input: { sender: { name: "Alice" }, content: "hello", channel: "general" } }),
+      formatEvent({ $: "Hub.onNewMessage.excerpt", result: "hel" }),
+      formatEvent({ $: "Hub.onNewMessage", result: "hel" }),
     ]);
   });
 
