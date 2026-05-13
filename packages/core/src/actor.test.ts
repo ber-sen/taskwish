@@ -315,9 +315,9 @@ describe("Actor", () => {
   });
 
   test("GET — no schema, input and request are the Request object", async () => {
-    const { Webhooker } = Actor("Webhooker");
+    const { InvoiceProvider } = Actor("InvoiceProvider");
 
-    const { GET } = Webhooker()
+    const { GET } = InvoiceProvider()
       .on("GET", "/invoices/:id")
 
       .run(function () {
@@ -335,11 +335,11 @@ describe("Actor", () => {
   });
 
   test("GET — with schema and command, named action takes flat input and fetch returns Response", async () => {
-    const { Webhooker } = Actor("Webhooker").def(
+    const { InvoiceProvider } = Actor("InvoiceProvider").def(
       Event("InvoiceFetched", { id: "string", page: "string" }),
     );
 
-    const { getInvoices } = Webhooker()
+    const { getInvoices } = InvoiceProvider()
       .on("GET", "/invoices/:id", {
         params: { id: "string" },
         query: { page: "string" },
@@ -385,8 +385,8 @@ describe("Actor", () => {
       directYields.push(v);
     }
     expect(directYields).toEqual([
-      { $: "Action", name: "Webhooker.getInvoices", input: { id: "inv-42", page: "2" } },
-      { $: "Action", name: "Webhooker.getInvoices", result: "id=inv-42 page=2" },
+      { $: "Action", name: "InvoiceProvider.getInvoices", input: { id: "inv-42", page: "2" } },
+      { $: "Action", name: "InvoiceProvider.getInvoices", result: "id=inv-42 page=2" },
     ]);
 
     const fetchYields: unknown[] = [];
@@ -398,10 +398,10 @@ describe("Actor", () => {
     const fetchStreamJson = await (fetchYields[3] as any).result.text();
     
     expect(fetchYields).toMatchObject([
-      { $: "Action", name: "Webhooker.GET", input: { path: "/invoices/inv-42", params: { id: "inv-42" }, query: { page: "2" } } },
-      { $: "Action", name: "Webhooker.getInvoices", input: { id: "inv-42", page: "2" } },
-      { $: "Action", name: "Webhooker.getInvoices", result: "id=inv-42 page=2" },
-      { $: "Action", name: "Webhooker.GET", result: expect.any(Response) },
+      { $: "Action", name: "InvoiceProvider.GET", input: { path: "/invoices/inv-42", params: { id: "inv-42" }, query: { page: "2" } } },
+      { $: "Action", name: "InvoiceProvider.getInvoices", input: { id: "inv-42", page: "2" } },
+      { $: "Action", name: "InvoiceProvider.getInvoices", result: "id=inv-42 page=2" },
+      { $: "Action", name: "InvoiceProvider.GET", result: expect.any(Response) },
     ]);
     expect(fetchStreamJson).toEqual("id=inv-42 page=2");
 
@@ -411,9 +411,9 @@ describe("Actor", () => {
   });
 
   test("fetch — object result serialized as application/json", async () => {
-    const { Webhooker } = Actor("Webhooker");
+    const { InvoiceProvider } = Actor("InvoiceProvider");
 
-    const { getInvoice } = Webhooker()
+    const { getInvoice } = InvoiceProvider()
       .on("GET", "/invoices/:id", { params: { id: "string" } })
 
       .command("getInvoice")
