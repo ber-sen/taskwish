@@ -35,20 +35,33 @@ export namespace TW {
     run?: (...x: never[]) => Promise<any>;
   }
 
-  export type Scope<Scope> = Scope & {
+  type EventKindNames<S> = {
+    [K in keyof S]: S[K] extends EventKind<K & string, any> ? K & string : never;
+  }[keyof S];
+
+  type EventKindData<S, K extends string> =
+    K extends keyof S
+      ? S[K] extends EventKind<K, infer D extends Record<string, unknown>> ? D : Record<string, unknown>
+      : Record<string, unknown>;
+
+  export type Scope<S> = S & {
+    signal<T extends ([EventKindNames<S>] extends [never] ? string : EventKindNames<S>)>(
+      type: T,
+      data: EventKindData<S, T & string>,
+    ): { $: T } & EventKindData<S, T & string>;
     get<T>(Cls: new (...args: any[]) => T): T;
   };
 
   export type Inject<Type> = Type | null;
 
   export type StepEvent<Result = unknown> =
-    | { $: "step"; name: string; result: Result }
-    | { $: "step"; name: string; error: unknown };
+    | { $: "Step"; name: string; result: Result }
+    | { $: "Step"; name: string; error: unknown };
 
   export type ActionEvent<Name extends string, Result = unknown> =
-    | { $: "action"; name: Name; input: unknown }
-    | { $: "action"; name: Name; result: Result }
-    | { $: "action"; name: Name; error: unknown };
+    | { $: "Action"; name: Name; input: unknown }
+    | { $: "Action"; name: Name; result: Result }
+    | { $: "Action"; name: Name; error: unknown };
 
   export type GetEvent<T = unknown> = { $: "get"; type: abstract new (...args: any[]) => T };
 
@@ -63,7 +76,10 @@ export namespace TW {
     Meta = null,
   > = NoInfer<Handler> & {
     stream: (...args: Parameters<NoInfer<Handler>>) => StreamReturn<Name, Handler>;
-  } & Resource<Name> & Attributable<Meta>;
+  } & (Meta extends { route: [any, any, any] }
+    ? { fetch: { stream(input: Request): StreamReturn<Name, Handler> } }
+    : {}
+  ) & Resource<Name> & Attributable<Meta>;
 
   export class IO {
     // threadId!: Message.ThreadId;
@@ -113,11 +129,9 @@ export namespace TW {
     toString: () => string;
   }
 
-  export interface EventKind<Name extends string, Data, Meta = null>
-    extends Resource<Name>, Attributable<Meta> {
-    emit(
-      data: Data,
-    ): AsyncGenerator<Event<Name, Data>, Event<Name, Data>, unknown>;
+  export interface EventKind<Name extends string, Data, Scope = {}> extends Resource<Name>, Attributable<null> {
+    emit(data: Data): AsyncGenerator<Event<Name, Data>, Event<Name, Data>, unknown>;
+    scopeOf?: (input: Data) => Scope;
   }
 
   export type Type<Name extends string, Type, Scope = {}> = ArkType<Type, Scope> &

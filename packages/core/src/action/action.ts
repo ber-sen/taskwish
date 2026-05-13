@@ -62,7 +62,6 @@ export interface ActionFactory<
     name: Name;
     model: "gpt5";
     scope: {
-      signal: (type: string, event: any) => TW.Event<any, any>;
       thread: {
         sender: {
           name: string;
@@ -115,7 +114,9 @@ export interface ActionFactory<
 const AsyncGeneratorFunction = (async function* () {}).constructor as Function;
 
 type StepEntry = Record<typeof StepRuntime, { name: string; handler: (...a: unknown[]) => unknown }>;
-type Scope = { input: unknown; get<T>(Cls: abstract new (...a: unknown[]) => T): T };
+export type Scope = { input: unknown; get<T>(Cls: abstract new (...a: unknown[]) => T): T };
+
+const SignalTag = Symbol.for("TW.Signal");
 
 
 async function* runStep(
@@ -130,21 +131,24 @@ async function* runStep(
     } else {
       result = await handler.call(ctx);
     }
-    yield { $: "step", name, result };
+    if (result !== null && typeof result === "object" && SignalTag in (result as object)) {
+      yield result;
+    }
+    yield { $: "Step", name, result };
 
     return result;
   } catch (error) {
-    yield { $: "step", name, error };
-    
+    yield { $: "Step", name, error };
+
     throw error;
   }
 }
 
-async function* runCore(name: string, scope: Scope, handlers: unknown[]): AsyncGenerator<unknown, unknown> {
+export async function* runCore(name: string, scope: Scope, handlers: unknown[]): AsyncGenerator<unknown, unknown> {
   let ctx: Record<string | symbol, unknown> = { ...scope };
   let last: unknown;
 
-  yield { $: "action", name, input: scope.input };
+  yield { $: "Action", name, input: scope.input };
 
   try {
     for (const handler of handlers) {
@@ -156,44 +160,56 @@ async function* runCore(name: string, scope: Scope, handlers: unknown[]): AsyncG
         last = yield* (handler as (this: typeof ctx) => AsyncGenerator<unknown, unknown>).call(ctx);
       } else if (typeof handler === "function") {
         last = await (handler as (this: typeof ctx) => unknown).call(ctx);
-        yield last;
+        if (last !== null && typeof last === "object" && SignalTag in (last as object)) {
+          yield last;
+        }
       }
     }
   } catch (error) {
-    yield { $: "action", name, error };
+    yield { $: "Action", name, error };
     throw error;
   }
 
-  yield { $: "action", name, result: last };
+  yield { $: "Action", name, result: last };
   return last;
+}
+
+export function buildScope(
+  inputMode: "first" | "args",
+  args: unknown[],
+  extra: Record<string | symbol, unknown> = {},
+): Scope {
+  const registry = new Map<unknown, unknown>();
+  return {
+    ...extra,
+    input: inputMode === "args" ? args : args[0],
+    signal(type: string, data: Record<string, unknown>) {
+      const event = { $: type, ...data };
+      Object.defineProperty(event, SignalTag, { value: true, enumerable: false });
+      return event;
+    },
+    get<T>(Cls: abstract new (...a: unknown[]) => T): T {
+      if (registry.has(Cls)) return registry.get(Cls) as T;
+      const Bound = Function.prototype.bind.call(
+        Cls as unknown as Function,
+        null,
+      ) as new () => T;
+      let instance: T;
+      try {
+        instance = new Bound();
+      } catch {
+        instance = new AbortController().signal as unknown as T;
+      }
+      registry.set(Cls, instance);
+      return instance;
+    },
+  };
 }
 
 export function Action<const Name extends string>(
   name: CamelCase<Name>,
 ): ActionFactory<Name> {
   const actionName = name as string;
-
-  function buildScope(inputMode: "first" | "args", args: unknown[]): Scope {
-    const registry = new Map<unknown, unknown>();
-    return {
-      input: inputMode === "args" ? args : args[0],
-      get<T>(Cls: abstract new (...a: unknown[]) => T): T {
-        if (registry.has(Cls)) return registry.get(Cls) as T;
-        const Bound = Function.prototype.bind.call(
-          Cls as unknown as Function,
-          null,
-        ) as new () => T;
-        let instance: T;
-        try {
-          instance = new Bound();
-        } catch {
-          instance = new AbortController().signal as unknown as T;
-        }
-        registry.set(Cls, instance);
-        return instance;
-      },
-    };
-  }
 
   function createAction(inputMode: "first" | "args", handlers: unknown[]) {
     async function consume(...args: unknown[]) {

@@ -71,10 +71,10 @@ describe("Action", () => {
     }
 
     expect(yields).toEqual([
-      { $: "action", name: "hello", input: { name: "World" } },
-      { $: "step", name: "hello.fistStep", result: 5 },
-      { $: "step", name: "hello.secondStep", result: true },
-      { $: "action", name: "hello", result: true },
+      { $: "Action", name: "hello", input: { name: "World" } },
+      { $: "Step", name: "hello.fistStep", result: 5 },
+      { $: "Step", name: "hello.secondStep", result: true },
+      { $: "Action", name: "hello", result: true },
     ]);
   });
 
@@ -180,13 +180,13 @@ describe("Action", () => {
       yields.push(v);
     }
     expect(yields).toEqual([
-      { $: "action", name: "mixed", input: { name: "World" } },
-      { $: "step", name: "mixed.first", result: 42 },
+      { $: "Action", name: "mixed", input: { name: "World" } },
+      { $: "Step", name: "mixed.first", result: 42 },
       "x",
       "y",
-      { $: "step", name: "mixed.stream", result: "Y" },
-      { $: "step", name: "mixed.third", result: true },
-      { $: "action", name: "mixed", result: true },
+      { $: "Step", name: "mixed.stream", result: "Y" },
+      { $: "Step", name: "mixed.third", result: true },
+      { $: "Action", name: "mixed", result: true },
     ]);
     expect(await mixed({ name: "World" })).toEqual(true);
   });
@@ -223,10 +223,10 @@ describe("Action", () => {
     }
 
     expect(yields).toEqual([
-      { $: "action", name: "failing", input: { name: "World" } },
-      { $: "step", name: "failing.first", result: 1 },
-      { $: "step", name: "failing.bad", error: boom },
-      { $: "action", name: "failing", error: boom },
+      { $: "Action", name: "failing", input: { name: "World" } },
+      { $: "Step", name: "failing.first", result: 1 },
+      { $: "Step", name: "failing.bad", error: boom },
+      { $: "Action", name: "failing", error: boom },
     ]);
     expect(thrown).toBe(boom);
   });
@@ -257,10 +257,10 @@ describe("Action", () => {
       values.push(v);
     }
     expect(values).toEqual([
-      { $: "action", name: "greet", input: { name: "hello" } },
+      { $: "Action", name: "greet", input: { name: "hello" } },
       "hello",
       "HELLO",
-      { $: "action", name: "greet", result: undefined },
+      { $: "Action", name: "greet", result: undefined },
     ]);
   });
 });

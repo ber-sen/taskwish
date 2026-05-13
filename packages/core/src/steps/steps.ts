@@ -10,15 +10,17 @@ export type StepsReturn<Ctx, SubCtx, Last> = Ctx extends typeof SubSteps
   : "name" extends keyof Ctx
     ? Ctx["name"] extends string
       ? {
-          [name in ToCamelCase<Ctx["name"]>]: TW.Action<
+          [name in Ctx["name"]]: TW.Action<
             Ctx["name"],
             "scope" extends keyof Ctx
               ? "input" extends keyof Ctx["scope"]
                 ? (
                     input: "scope" extends keyof Ctx
-                      ? "input" extends keyof Ctx["scope"]
-                        ? Ctx["scope"]["input"]
-                        : never
+                      ? "$call" extends keyof Ctx["scope"]
+                        ? Ctx["scope"]["$call"]
+                        : "input" extends keyof Ctx["scope"]
+                          ? Ctx["scope"]["input"]
+                          : never
                       : never,
                   ) => Promise<
                      "last" extends keyof Last
