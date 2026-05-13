@@ -15,3 +15,4 @@ export * from "./steps";
 export * from "./agent";
 export * from "./actor";
 export * from "./package";
+export { Logger, dispatch, type LogFn, type ConsoleLike, type LoggerConfig } from "./use";

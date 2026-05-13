@@ -3,6 +3,7 @@ import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { TW } from "../core";
 import { Step } from "../steps";
+import { Logger } from "../use";
 
 describe("Action", () => {
   test("no input — plain handler", async () => {
@@ -229,6 +230,79 @@ describe("Action", () => {
       { $: "Action", name: "failing", error: boom },
     ]);
     expect(thrown).toBe(boom);
+  });
+
+  test("Logger — logs each event via provided function", async () => {
+    const logged: unknown[] = [];
+    const spy = { log: logged.push.bind(logged), info: logged.push.bind(logged), error: logged.push.bind(logged) };
+
+    const { healthz } = Action("healthz")
+      .use(Logger(spy))
+      .run(function () {
+        return { status: "ok" };
+      });
+
+    await healthz();
+
+    expect(logged).toEqual([
+      "\n" + JSON.stringify({ $: "Action", name: "healthz", input: undefined }),
+      JSON.stringify({ $: "Action", name: "healthz", result: { status: "ok" } }) + "\n",
+    ]);
+  });
+
+  test("Logger — stream also logs", async () => {
+    const logged: unknown[] = [];
+    const spy = { log: logged.push.bind(logged), info: logged.push.bind(logged), error: logged.push.bind(logged) };
+
+    const { hello } = Action("hello")
+      .use(Logger(spy))
+
+      .input({ name: "string" })
+
+      .run(function () {
+        return `Hello ${this.input.name}`;
+      });
+
+    const yields: unknown[] = [];
+
+    for await (const v of hello.stream({ name: "World" })) {
+      yields.push(v);
+    }
+
+    expect(logged).toEqual(
+      yields.map((v) => {
+        const s = JSON.stringify(v);
+        if (typeof v !== "object" || v === null || (v as any).$ !== "Action") return s;
+        return "input" in (v as object) ? "\n" + s : s + "\n";
+      }),
+    );
+  });
+
+  test("Logger — logs Step events", async () => {
+    const logged: unknown[] = [];
+    const spy = { log: logged.push.bind(logged), info: logged.push.bind(logged), error: logged.push.bind(logged) };
+
+    const { compute } = Action("compute")
+      .use(Logger(spy))
+      .input({ value: "number" })
+      .run(
+        Step("double", function () {
+          return this.input.value * 2;
+        }),
+
+        Step("positive", function () {
+          return this.double > 0;
+        }),
+      );
+
+    await compute({ value: 3 });
+
+    expect(logged).toEqual([
+      "\n" + JSON.stringify({ $: "Action", name: "compute", input: { value: 3 } }),
+      JSON.stringify({ $: "Step", name: "compute.double", result: 6 }),
+      JSON.stringify({ $: "Step", name: "compute.positive", result: true }),
+      JSON.stringify({ $: "Action", name: "compute", result: true }) + "\n",
+    ]);
   });
 
   test("async generator — stream yields each value", async () => {

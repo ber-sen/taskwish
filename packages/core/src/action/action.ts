@@ -8,12 +8,13 @@ import {
 import { Steps } from "../steps";
 import { StepRuntime } from "../steps/step";
 import { TW } from "../core";
+import { dispatch, type ConsoleLike, type LoggerConfig } from "../use";
 
 type ActionBody<
   Name extends string,
   Ctx extends Record<any, any>,
 > = TW.Contextual<Ctx> & {
-  use<const NewScope>(newScope: NewScope): ActionBody<Name, Ctx>;
+  use(config: LoggerConfig): ActionBody<Name, Ctx>;
   run: Steps<Ctx>;
 };
 
@@ -22,7 +23,7 @@ type SignatureBody<
   Ctx extends Record<any, any>,
   Signature,
 > = {
-  use<const NewScope>(newScope: NewScope): SignatureBody<Name, Ctx, Signature>;
+  use(config: LoggerConfig): SignatureBody<Name, Ctx, Signature>;
   run<
     const Handler extends (
       this: TW.Scope<
@@ -88,6 +89,7 @@ export interface ActionFactory<
     };
   },
 > {
+  use(config: LoggerConfig): this;
   sig<const Schema extends ((...args: any) => any) | TW.Handler>(): SignatureBody<
     Name,
     Ctx,
@@ -112,6 +114,19 @@ export interface ActionFactory<
 }
 
 const AsyncGeneratorFunction = (async function* () {}).constructor as Function;
+
+export async function* tapWith(
+  gen: AsyncGenerator<unknown, unknown>,
+  log: LogFn,
+): AsyncGenerator<unknown, unknown> {
+  let next = await gen.next();
+  while (!next.done) {
+    log(next.value);
+    yield next.value;
+    next = await gen.next();
+  }
+  return next.value;
+}
 
 type StepEntry = Record<typeof StepRuntime, { name: string; handler: (...a: unknown[]) => unknown }>;
 export type Scope = { input: unknown; get<T>(Cls: abstract new (...a: unknown[]) => T): T };
@@ -210,24 +225,33 @@ export function Action<const Name extends string>(
   name: CamelCase<Name>,
 ): ActionFactory<Name> {
   const actionName = name as string;
+  let logger: ConsoleLike = console;
+
+  function tap<G extends AsyncGenerator<unknown, unknown>>(gen: G): G {
+    return tapWith(gen, dispatch(logger)) as G;
+  }
+
+  function detectLogger(config: LoggerConfig) {
+    logger = config.target;
+  }
 
   function createAction(inputMode: "first" | "args", handlers: unknown[]) {
     async function consume(...args: unknown[]) {
-      const gen = runAction(actionName, buildScope(inputMode, args), handlers);
+      const gen = tap(runAction(actionName, buildScope(inputMode, args), handlers));
       let item = await gen.next();
       while (!item.done) item = await gen.next();
       return item.value;
     }
 
     function stream(...args: unknown[]) {
-      return runAction(actionName, buildScope(inputMode, args), handlers);
+      return tap(runAction(actionName, buildScope(inputMode, args), handlers));
     }
 
     return { [actionName]: Object.assign(consume, { stream }) };
   }
 
   const makeBody = (inputMode: "first" | "args") => ({
-    use() { return this; },
+    use(config: unknown) { detectLogger(config); return this; },
     run(...handlers: unknown[]) {
       return createAction(inputMode, handlers);
     },
@@ -236,7 +260,7 @@ export function Action<const Name extends string>(
   return {
     sig() { return makeBody("args"); },
     input(_schema?: unknown) { return makeBody("first"); },
-    use() { return this; },
+    use(config: unknown) { detectLogger(config); return this; },
     run(...handlers: unknown[]) {
       return createAction("first", handlers);
     },

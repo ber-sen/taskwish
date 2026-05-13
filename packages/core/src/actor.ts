@@ -1,4 +1,4 @@
-import { buildScope, runAction, type ActionFactory } from "./action";
+import { buildScope, runAction, tapWith, type ActionFactory } from "./action";
 import { Event } from "./event";
 import {
   CamelCase,
@@ -8,6 +8,7 @@ import {
   Pretty,
 } from "./helpers";
 import { TW } from "./core";
+import { dispatch, type ConsoleLike, type LoggerConfig } from "./use";
 
 type BaseScope<Ctx> = Ctx extends Record<any, any> ? Ctx["scope"] : {};
 
@@ -121,6 +122,8 @@ const builtInEventScope: Record<string, unknown> = {
 };
 
 interface Behavior<Ctx> {
+  use(config: LoggerConfig): this;
+
   on<Name extends string>(
     behavior: "Command",
     name: CamelCase<Name>,
@@ -284,7 +287,17 @@ function createBehavior(
   actorName: string,
   initialScope: Record<string, unknown>,
 ): Behavior<any> {
-  return {
+  let logger: ConsoleLike = console;
+
+  function tap<G extends AsyncGenerator<unknown, unknown>>(gen: G): G {
+    return tapWith(gen, dispatch(logger)) as G;
+  }
+
+  const self: Behavior<any> = {
+    use(config: LoggerConfig) {
+      logger = config.target;
+      return self;
+    },
     on(behavior: string, config?: string, schema?: unknown) {
       let actionName: string;
       if (behavior === "Command") {
@@ -302,11 +315,7 @@ function createBehavior(
         async function consume(...args: unknown[]) {
           const { args: modArgs, scope: behaviorScope } = mod(args);
           const extra = { ...initialScope, ...behaviorScope };
-          const gen = runAction(
-            eventName,
-            buildScope(inputMode, modArgs, extra),
-            handlers,
-          );
+          const gen = tap(runAction(eventName, buildScope(inputMode, modArgs, extra), handlers));
           let item = await gen.next();
           while (!item.done) item = await gen.next();
           return item.value;
@@ -315,35 +324,23 @@ function createBehavior(
         function stream(...args: unknown[]) {
           const { args: modArgs, scope: behaviorScope } = mod(args);
           const extra = { ...initialScope, ...behaviorScope };
-          return runAction(
-            eventName,
-            buildScope(inputMode, modArgs, extra),
-            handlers,
-          );
+          return tap(runAction(eventName, buildScope(inputMode, modArgs, extra), handlers));
         }
 
         return { [actionName]: Object.assign(consume, { stream }) };
       }
 
       const makeBody = (inputMode: "first" | "args") => ({
-        use() {
-          return this;
-        },
+        use() { return this; },
         run(...handlers: unknown[]) {
           return createAction(inputMode, handlers);
         },
       });
 
       const base = {
-        sig() {
-          return makeBody("args");
-        },
-        input(_schema?: unknown) {
-          return makeBody("first");
-        },
-        use() {
-          return this;
-        },
+        sig() { return makeBody("args"); },
+        input(_schema?: unknown) { return makeBody("first"); },
+        use() { return this; },
         run(...handlers: unknown[]) {
           return createAction("first", handlers);
         },
@@ -354,13 +351,11 @@ function createBehavior(
           ...base,
           command(cmdName: string) {
             return {
-              use() {
-                return this;
-              },
+              use() { return this; },
               run(...handlers: unknown[]) {
                 const qualifiedCmdName = `${actorName}.${cmdName}`;
 
-                function cmdStream(flatInput: unknown) {
+                function rawCmdStream(flatInput: unknown) {
                   return runAction(
                     qualifiedCmdName,
                     buildScope("first", [flatInput], { ...initialScope }),
@@ -368,14 +363,18 @@ function createBehavior(
                   );
                 }
 
+                function cmdStream(flatInput: unknown) {
+                  return tap(rawCmdStream(flatInput));
+                }
+
                 async function cmdConsume(flatInput: unknown) {
-                  const gen = cmdStream(flatInput);
+                  const gen = tap(rawCmdStream(flatInput));
                   let item = await gen.next();
                   while (!item.done) item = await gen.next();
                   return item.value;
                 }
 
-                async function* fetchStream(input: Request) {
+                async function* rawFetchStream(input: Request) {
                   const request = input;
                   const { args: modArgs } = mod([request]);
                   const rawInput = modArgs[0] as Record<string, unknown>;
@@ -383,7 +382,7 @@ function createBehavior(
                   const flatInput = flattenHttpInput(rawInput);
                   let result: unknown;
                   try {
-                    const inner = cmdStream(flatInput);
+                    const inner = rawCmdStream(flatInput);
                     let item = await inner.next();
                     while (!item.done) {
                       yield item.value;
@@ -397,8 +396,12 @@ function createBehavior(
                   yield { $: "Action", name: eventName, result: toResponse(result) };
                 }
 
+                function fetchStream(input: Request) {
+                  return tap(rawFetchStream(input));
+                }
+
                 async function fetchFn(input: Request) {
-                  const gen = fetchStream(input);
+                  const gen = tap(rawFetchStream(input));
                   let last: any;
                   for await (const event of gen) last = event;
                   return last.result as Response;
@@ -419,6 +422,8 @@ function createBehavior(
       return base as any;
     },
   };
+
+  return self;
 }
 
 export const Actor = <

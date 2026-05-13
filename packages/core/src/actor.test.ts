@@ -4,6 +4,7 @@ import { Actor, HttpEvent } from "./actor";
 import { TW } from "./core";
 import { Step } from "./steps";
 import { Event } from "./event";
+import { Logger } from "./use";
 
 describe("Actor", () => {
   test("Command — plain handler with input", async () => {
@@ -552,6 +553,109 @@ describe("Actor", () => {
       },
       { $: "Step", name: "Emitter.emit.confirm", result: "placed: ord-1" },
       { $: "Action", name: "Emitter.emit", result: "placed: ord-1" },
+    ]);
+  });
+
+  test("use(Logger) — logs Action and Step events in order", async () => {
+    const logged: unknown[] = [];
+    const spy = { log: logged.push.bind(logged), info: logged.push.bind(logged), error: logged.push.bind(logged) };
+
+    const { Worker } = Actor("Worker");
+
+    const { run } = Worker()
+      .use(Logger(spy))
+
+      .on("Command", "run")
+
+      .input({ value: "number" })
+
+      .run(
+        Step("doubled", function () {
+          return this.input.value * 2;
+        }),
+
+        Step("positive", function () {
+          return this.doubled > 0;
+        }),
+      );
+
+    await run({ value: 5 });
+
+    expect(logged).toEqual([
+      "\n" + JSON.stringify({ $: "Action", name: "Worker.run", input: { value: 5 } }),
+      JSON.stringify({ $: "Step", name: "Worker.run.doubled", result: 10 }),
+      JSON.stringify({ $: "Step", name: "Worker.run.positive", result: true }),
+      JSON.stringify({ $: "Action", name: "Worker.run", result: true }) + "\n",
+    ]);
+  });
+
+  test("use(Logger) — stream also logs", async () => {
+    const logged: unknown[] = [];
+    const spy = { log: logged.push.bind(logged), info: logged.push.bind(logged), error: logged.push.bind(logged) };
+
+    const { Counter } = Actor("Counter");
+    const { tick } = Counter()
+      .use(Logger(spy))
+      .on("Command", "tick")
+      .input({ n: "number" })
+      .run(
+        Step("doubled", function () {
+          return this.input.n * 2;
+        }),
+
+        Step("positive", function () {
+          return this.doubled > 0;
+        }),
+      );
+
+    const yields: unknown[] = [];
+    for await (const v of tick.stream({ n: 3 })) {
+      yields.push(v);
+    }
+
+    expect(logged).toEqual(
+      yields.map((v) => {
+        const s = JSON.stringify(v);
+        if (typeof v !== "object" || v === null || (v as any).$ !== "Action") return s;
+        return "input" in (v as object) ? "\n" + s : s + "\n";
+      }),
+    );
+  });
+
+  test("use(Logger) — applies to all behaviors on the same instance", async () => {
+    const logged: unknown[] = [];
+    const spy = { log: logged.push.bind(logged), info: logged.push.bind(logged), error: logged.push.bind(logged) };
+
+    const { Hub } = Actor("Hub");
+    const hub = Hub().use(Logger(spy));
+
+    const { ping } = hub
+      .on("Command", "ping")
+      .input({ id: "string" })
+      .run(
+        Step("upper", function () {
+          return this.input.id.toUpperCase();
+        }),
+      );
+
+    const { onNewMessage } = hub
+      .on("NewMessage")
+      .run(
+        Step("excerpt", function () {
+          return this.input.content.slice(0, 3);
+        }),
+      );
+
+    await ping({ id: "abc" });
+    await onNewMessage({ sender: { name: "Alice" }, content: "hello", channel: "general" });
+
+    expect(logged).toEqual([
+      "\n" + JSON.stringify({ $: "Action", name: "Hub.ping", input: { id: "abc" } }),
+      JSON.stringify({ $: "Step", name: "Hub.ping.upper", result: "ABC" }),
+      JSON.stringify({ $: "Action", name: "Hub.ping", result: "ABC" }) + "\n",
+      "\n" + JSON.stringify({ $: "Action", name: "Hub.onNewMessage", input: { sender: { name: "Alice" }, content: "hello", channel: "general" } }),
+      JSON.stringify({ $: "Step", name: "Hub.onNewMessage.excerpt", result: "hel" }),
+      JSON.stringify({ $: "Action", name: "Hub.onNewMessage", result: "hel" }) + "\n",
     ]);
   });
 

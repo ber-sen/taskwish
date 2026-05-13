@@ -16,6 +16,8 @@ export namespace TW {
 
   export const Scope = Symbol.for("TW.Ctx");
 
+  export const Type = Symbol.for("TW.Type");
+
   export interface Contextual<Ctx extends Record<any, any>> {
     [Scope]: Ctx["scope"];
   }
