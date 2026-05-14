@@ -385,7 +385,10 @@ describe("Actor", () => {
       directYields.push(v);
     }
     expect(directYields).toEqual([
-      { ">": "InvoiceProvider.getInvoices", input: { id: "inv-42", page: "2" } },
+      {
+        ">": "InvoiceProvider.getInvoices",
+        input: { id: "inv-42", page: "2" },
+      },
       { ">": "InvoiceProvider.getInvoices", result: "id=inv-42 page=2" },
     ]);
 
@@ -398,14 +401,26 @@ describe("Actor", () => {
     const fetchStreamJson = await (fetchYields[3] as any).result.text();
 
     expect(fetchYields).toMatchObject([
-      { ">": "InvoiceProvider.GET", input: { path: "/invoices/inv-42", params: { id: "inv-42" }, query: { page: "2" } } },
-      { ">": "InvoiceProvider.getInvoices", input: { id: "inv-42", page: "2" } },
+      {
+        ">": "InvoiceProvider.GET",
+        input: {
+          path: "/invoices/inv-42",
+          params: { id: "inv-42" },
+          query: { page: "2" },
+        },
+      },
+      {
+        ">": "InvoiceProvider.getInvoices",
+        input: { id: "inv-42", page: "2" },
+      },
       { ">": "InvoiceProvider.getInvoices", result: "id=inv-42 page=2" },
       { ">": "InvoiceProvider.GET", result: expect.any(Response) },
     ]);
     expect(fetchStreamJson).toEqual("id=inv-42 page=2");
 
-    const response = await getInvoices.fetch(new Request("http://localhost/invoices/inv-42?page=2"));
+    const response = await getInvoices.fetch(
+      new Request("http://localhost/invoices/inv-42?page=2"),
+    );
     expect(response).toBeInstanceOf(Response);
     expect(await response.text()).toEqual("id=inv-42 page=2");
   });
@@ -422,7 +437,9 @@ describe("Actor", () => {
         return { id: this.input.id, status: "paid" };
       });
 
-    const response = await getInvoice.fetch(new Request("http://localhost/invoices/inv-42"));
+    const response = await getInvoice.fetch(
+      new Request("http://localhost/invoices/inv-42"),
+    );
     expect(response.headers.get("Content-Type")).toEqual("application/json");
     expect(await response.json()).toEqual({ id: "inv-42", status: "paid" });
   });
@@ -552,7 +569,11 @@ describe("Actor", () => {
 
   test("use(Logger) — logs Action and Step events in order", async () => {
     const logged: unknown[] = [];
-    const spy = { log: logged.push.bind(logged), info: logged.push.bind(logged), error: logged.push.bind(logged) };
+    const spy = {
+      log: logged.push.bind(logged),
+      info: logged.push.bind(logged),
+      error: logged.push.bind(logged),
+    };
 
     const { Worker } = Actor("Worker");
 
@@ -587,7 +608,11 @@ describe("Actor", () => {
 
   test("use(Logger) — stream also logs", async () => {
     const logged: unknown[] = [];
-    const spy = { log: logged.push.bind(logged), info: logged.push.bind(logged), error: logged.push.bind(logged) };
+    const spy = {
+      log: logged.push.bind(logged),
+      info: logged.push.bind(logged),
+      error: logged.push.bind(logged),
+    };
 
     const { Counter } = Actor("Counter");
     const { tick } = Counter()
@@ -611,7 +636,8 @@ describe("Actor", () => {
 
     expect(logged).toEqual(
       yields.flatMap((v) => {
-        if (typeof v !== "object" || v === null || !(">" in (v as object))) return [v];
+        if (typeof v !== "object" || v === null || !(">" in (v as object)))
+          return [v];
         const e = v as Record<string, unknown>;
         const action = isActionEvent(e[">"] as string);
         const out = formatEvent(e);
@@ -626,7 +652,11 @@ describe("Actor", () => {
 
   test("use(Logger) — applies to all behaviors on the same instance", async () => {
     const logged: unknown[] = [];
-    const spy = { log: logged.push.bind(logged), info: logged.push.bind(logged), error: logged.push.bind(logged) };
+    const spy = {
+      log: logged.push.bind(logged),
+      info: logged.push.bind(logged),
+      error: logged.push.bind(logged),
+    };
 
     const { Hub } = Actor("Hub");
     const hub = Hub().use(Logger(spy));
@@ -640,16 +670,18 @@ describe("Actor", () => {
         }),
       );
 
-    const { onNewMessage } = hub
-      .on("NewMessage")
-      .run(
-        Step("excerpt", function () {
-          return this.input.content.slice(0, 3);
-        }),
-      );
+    const { onNewMessage } = hub.on("NewMessage").run(
+      Step("excerpt", function () {
+        return this.input.content.slice(0, 3);
+      }),
+    );
 
     await ping({ id: "abc" });
-    await onNewMessage({ sender: { name: "Alice" }, content: "hello", channel: "general" });
+    await onNewMessage({
+      sender: { name: "Alice" },
+      content: "hello",
+      channel: "general",
+    });
 
     expect(logged).toEqual([
       "",
@@ -658,7 +690,14 @@ describe("Actor", () => {
       formatEvent({ ">": "Hub.ping", result: "ABC" }),
       "",
       "",
-      formatEvent({ ">": "Hub.onNewMessage", input: { sender: { name: "Alice" }, content: "hello", channel: "general" } }),
+      formatEvent({
+        ">": "Hub.onNewMessage",
+        input: {
+          sender: { name: "Alice" },
+          content: "hello",
+          channel: "general",
+        },
+      }),
       formatEvent({ ">": "Hub.onNewMessage.excerpt", result: "hel" }),
       formatEvent({ ">": "Hub.onNewMessage", result: "hel" }),
       "",

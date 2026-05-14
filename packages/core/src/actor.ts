@@ -9,6 +9,7 @@ import {
 } from "./helpers";
 import { TW } from "./core";
 import { dispatch, type ConsoleLike, type LoggerConfig } from "./use";
+import { type Steps } from "./steps/steps";
 
 type BaseScope<Ctx> = Ctx extends Record<any, any> ? Ctx["scope"] : {};
 
@@ -121,7 +122,7 @@ const builtInEventScope: Record<string, unknown> = {
   }),
 };
 
-interface Behavior<Ctx> {
+export interface Behavior<Ctx> {
   use(config: LoggerConfig): this;
 
   on<Name extends string>(
@@ -460,22 +461,7 @@ export const Actor = <
 >(
   name: PascalCase<Name>,
 ): {
-  def<A>(step: { [TW.Step]: (input: Ctx) => A }): {
-    [key in Name]: () => Behavior<A>;
-  };
-  def<A, B>(
-    step1: { [TW.Step]: (input: Ctx) => A },
-    step2: { [TW.Step]: (input: A) => B },
-  ): {
-    [key in Name]: () => Behavior<B>;
-  };
-  def<A, B, C>(
-    step1: { [TW.Step]: (input: Ctx) => A },
-    step2: { [TW.Step]: (input: A) => B },
-    step3: { [TW.Step]: (input: B) => C },
-  ): {
-    [key in Name]: () => Behavior<C>;
-  };
+  def: Steps<Ctx, "def">;
 } & {
   [key in Name]: () => Behavior<Ctx>;
 } => {

@@ -28,7 +28,7 @@ export function formatEvent(event: object): string {
       .filter(([, v]) => v !== undefined)
       .map(([k, v]) => `${BOLD_KEYS.has(k) ? `\x1b[2m"${k}": \x1b[22m` : `"${k}": `}${fmt(v)}`),
   ];
-  return `{ ${entries.join(", ")} }`;
+  return `\x1b[2m{\x1b[22m ${entries.join(", ")} \x1b[2m}\x1b[22m`;
 }
 
 export function isActionEvent(name: string): boolean {
