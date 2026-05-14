@@ -4,7 +4,7 @@ import { Actor, HttpEvent } from "./actor";
 import { TW } from "./core";
 import { Step } from "./steps";
 import { Event } from "./event";
-import { Logger, formatEvent } from "./use";
+import { Logger, formatEvent, isActionEvent } from "./use";
 
 describe("Actor", () => {
   test("Command — plain handler with input", async () => {
@@ -100,10 +100,10 @@ describe("Actor", () => {
     }
 
     expect(yields).toEqual([
-      { $: "Pipeline.run", input: { name: "hello" } },
-      { $: "Pipeline.run.first", result: 5 },
-      { $: "Pipeline.run.second", result: true },
-      { $: "Pipeline.run", result: true },
+      { ">": "Pipeline.run", input: { name: "hello" } },
+      { ">": "Pipeline.run.first", result: 5 },
+      { ">": "Pipeline.run.second", result: true },
+      { ">": "Pipeline.run", result: true },
     ]);
   });
 
@@ -144,10 +144,10 @@ describe("Actor", () => {
 
     expect(yields).toEqual([
       {
-        $: "Broadcaster.onNewMessage",
+        ">": "Broadcaster.onNewMessage",
         input: { sender: { name: "Alice" }, content: "hi", channel: "general" },
       },
-      { $: "Broadcaster.onNewMessage", result: "HI" },
+      { ">": "Broadcaster.onNewMessage", result: "HI" },
     ]);
   });
 
@@ -187,10 +187,10 @@ describe("Actor", () => {
     }
 
     expect(yields).toEqual([
-      { $: "Crasher.failing", input: { name: "World" } },
-      { $: "Crasher.failing.first", result: 1 },
-      { $: "Crasher.failing.bad", error: boom },
-      { $: "Crasher.failing", error: boom },
+      { ">": "Crasher.failing", input: { name: "World" } },
+      { ">": "Crasher.failing.first", result: 1 },
+      { ">": "Crasher.failing.bad", error: boom },
+      { ">": "Crasher.failing", error: boom },
     ]);
     expect(thrown).toBe(boom);
   });
@@ -280,7 +280,7 @@ describe("Actor", () => {
     }
 
     expect(yields).toContainEqual({
-      $: "InvoicePaid",
+      ">": "InvoicePaid",
       id: null,
       data: { invoiceId: "inv-1", amount: 100, customer: "alice" },
     });
@@ -385,8 +385,8 @@ describe("Actor", () => {
       directYields.push(v);
     }
     expect(directYields).toEqual([
-      { $: "InvoiceProvider.getInvoices", input: { id: "inv-42", page: "2" } },
-      { $: "InvoiceProvider.getInvoices", result: "id=inv-42 page=2" },
+      { ">": "InvoiceProvider.getInvoices", input: { id: "inv-42", page: "2" } },
+      { ">": "InvoiceProvider.getInvoices", result: "id=inv-42 page=2" },
     ]);
 
     const fetchYields: unknown[] = [];
@@ -398,10 +398,10 @@ describe("Actor", () => {
     const fetchStreamJson = await (fetchYields[3] as any).result.text();
 
     expect(fetchYields).toMatchObject([
-      { $: "InvoiceProvider.GET", input: { path: "/invoices/inv-42", params: { id: "inv-42" }, query: { page: "2" } } },
-      { $: "InvoiceProvider.getInvoices", input: { id: "inv-42", page: "2" } },
-      { $: "InvoiceProvider.getInvoices", result: "id=inv-42 page=2" },
-      { $: "InvoiceProvider.GET", result: expect.any(Response) },
+      { ">": "InvoiceProvider.GET", input: { path: "/invoices/inv-42", params: { id: "inv-42" }, query: { page: "2" } } },
+      { ">": "InvoiceProvider.getInvoices", input: { id: "inv-42", page: "2" } },
+      { ">": "InvoiceProvider.getInvoices", result: "id=inv-42 page=2" },
+      { ">": "InvoiceProvider.GET", result: expect.any(Response) },
     ]);
     expect(fetchStreamJson).toEqual("id=inv-42 page=2");
 
@@ -488,7 +488,7 @@ describe("Actor", () => {
 
     expect(yields).toEqual([
       {
-        $: "MailAgent.onNewEmail",
+        ">": "MailAgent.onNewEmail",
         input: {
           from: "bob@example.com",
           to: "me@co.com",
@@ -497,11 +497,11 @@ describe("Actor", () => {
         },
       },
       {
-        $: "MailAgent.onNewEmail.log",
+        ">": "MailAgent.onNewEmail.log",
         result: "bob@example.com: Invoice",
       },
       {
-        $: "MailAgent.onNewEmail",
+        ">": "MailAgent.onNewEmail",
         result: "bob@example.com: Invoice",
       },
     ]);
@@ -537,16 +537,16 @@ describe("Actor", () => {
 
     expect(yields).toEqual([
       {
-        $: "Emitter.emit",
+        ">": "Emitter.emit",
         input: { orderId: "ord-1", amount: 100 },
       },
-      { $: "OrderPlaced", orderId: "ord-1", amount: 100 },
+      { ">": "OrderPlaced", orderId: "ord-1", amount: 100 },
       {
-        $: "Emitter.emit.order",
-        result: { $: "OrderPlaced", orderId: "ord-1", amount: 100 },
+        ">": "Emitter.emit.order",
+        result: { ">": "OrderPlaced", orderId: "ord-1", amount: 100 },
       },
-      { $: "Emitter.emit.confirm", result: "placed: ord-1" },
-      { $: "Emitter.emit", result: "placed: ord-1" },
+      { ">": "Emitter.emit.confirm", result: "placed: ord-1" },
+      { ">": "Emitter.emit", result: "placed: ord-1" },
     ]);
   });
 
@@ -576,10 +576,12 @@ describe("Actor", () => {
     await run({ value: 5 });
 
     expect(logged).toEqual([
-      formatEvent({ $: "Worker.run", input: { value: 5 } }),
-      formatEvent({ $: "Worker.run.doubled", result: 10 }),
-      formatEvent({ $: "Worker.run.positive", result: true }),
-      formatEvent({ $: "Worker.run", result: true }),
+      "",
+      formatEvent({ ">": "Worker.run", input: { value: 5 } }),
+      formatEvent({ ">": "Worker.run.doubled", result: 10 }),
+      formatEvent({ ">": "Worker.run.positive", result: true }),
+      formatEvent({ ">": "Worker.run", result: true }),
+      "",
     ]);
   });
 
@@ -608,7 +610,17 @@ describe("Actor", () => {
     }
 
     expect(logged).toEqual(
-      yields.map((v) => typeof v === "object" && v !== null && "$" in (v as object) ? formatEvent(v as object) : v),
+      yields.flatMap((v) => {
+        if (typeof v !== "object" || v === null || !(">" in (v as object))) return [v];
+        const e = v as Record<string, unknown>;
+        const action = isActionEvent(e[">"] as string);
+        const out = formatEvent(e);
+        const items: unknown[] = [];
+        if (action && "input" in e) items.push("");
+        items.push(out);
+        if (action && ("result" in e || "error" in e)) items.push("");
+        return items;
+      }),
     );
   });
 
@@ -640,12 +652,16 @@ describe("Actor", () => {
     await onNewMessage({ sender: { name: "Alice" }, content: "hello", channel: "general" });
 
     expect(logged).toEqual([
-      formatEvent({ $: "Hub.ping", input: { id: "abc" } }),
-      formatEvent({ $: "Hub.ping.upper", result: "ABC" }),
-      formatEvent({ $: "Hub.ping", result: "ABC" }),
-      formatEvent({ $: "Hub.onNewMessage", input: { sender: { name: "Alice" }, content: "hello", channel: "general" } }),
-      formatEvent({ $: "Hub.onNewMessage.excerpt", result: "hel" }),
-      formatEvent({ $: "Hub.onNewMessage", result: "hel" }),
+      "",
+      formatEvent({ ">": "Hub.ping", input: { id: "abc" } }),
+      formatEvent({ ">": "Hub.ping.upper", result: "ABC" }),
+      formatEvent({ ">": "Hub.ping", result: "ABC" }),
+      "",
+      "",
+      formatEvent({ ">": "Hub.onNewMessage", input: { sender: { name: "Alice" }, content: "hello", channel: "general" } }),
+      formatEvent({ ">": "Hub.onNewMessage.excerpt", result: "hel" }),
+      formatEvent({ ">": "Hub.onNewMessage", result: "hel" }),
+      "",
     ]);
   });
 

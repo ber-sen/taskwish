@@ -18,26 +18,37 @@ function fmt(val: unknown): string {
   return entries.length ? `{ ${entries.join(", ")} }` : "{}";
 }
 
+const BOLD_KEYS = new Set(["result", "error", "input"]);
+
 export function formatEvent(event: object): string {
-  const { $: name, ...rest } = event as any;
+  const { ">": name, ...rest } = event as any;
   const entries = [
-    `"$": "\x1b[1m${name}\x1b[0m"`,
+    `\x1b[2m">": \x1b[22m"\x1b[1m${name}\x1b[22m"`,
     ...Object.entries(rest)
       .filter(([, v]) => v !== undefined)
-      .map(([k, v]) => `"${k}": ${fmt(v)}`),
+      .map(([k, v]) => `${BOLD_KEYS.has(k) ? `\x1b[2m"${k}": \x1b[22m` : `"${k}": `}${fmt(v)}`),
   ];
   return `{ ${entries.join(", ")} }`;
 }
 
+export function isActionEvent(name: string): boolean {
+  const parts = name.split(".");
+  return parts.length === 1 || (parts.length === 2 && /^[A-Z]/.test(parts[0]));
+}
+
 export function dispatch(target: ConsoleLike): LogFn {
   return (event) => {
-    if (event !== null && typeof event === "object" && "$" in (event as object)) {
+    if (event !== null && typeof event === "object" && ">" in (event as object)) {
+      const e = event as Record<string, unknown>;
+      const action = isActionEvent(e[">"] as string);
+      if (action && "input" in e) target.log("");
       const out = formatEvent(event as object);
-      if ("error" in (event as object)) {
+      if ("error" in e) {
         target.error(out);
       } else {
         target.info(out);
       }
+      if (action && ("result" in e || "error" in e)) target.log("");
     } else {
       target.log(event);
     }

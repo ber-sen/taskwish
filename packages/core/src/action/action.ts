@@ -154,11 +154,11 @@ async function* runStep(
     if (result !== null && typeof result === "object" && SignalTag in (result as object)) {
       yield result;
     }
-    yield { $: name, result };
+    yield { ">": name, result };
 
     return result;
   } catch (error) {
-    yield { $: name, error };
+    yield { ">": name, error };
 
     throw error;
   }
@@ -168,7 +168,7 @@ export async function* runAction(name: string, scope: Scope, handlers: unknown[]
   let ctx: Record<string | symbol, unknown> = { ...scope };
   let last: unknown;
 
-  yield { $: name, input: scope.input };
+  yield { ">": name, input: scope.input };
 
   try {
     for (const handler of handlers) {
@@ -186,11 +186,11 @@ export async function* runAction(name: string, scope: Scope, handlers: unknown[]
       }
     }
   } catch (error) {
-    yield { $: name, error };
+    yield { ">": name, error };
     throw error;
   }
 
-  yield { $: name, result: last };
+  yield { ">": name, result: last };
   return last;
 }
 
@@ -204,7 +204,7 @@ export function buildScope(
     ...extra,
     input: inputMode === "args" ? args : args[0],
     signal(type: string, data: Record<string, unknown>) {
-      const event = { $: type, ...data };
+      const event = { ">": type, ...data };
       Object.defineProperty(event, SignalTag, { value: true, enumerable: false });
       return event;
     },

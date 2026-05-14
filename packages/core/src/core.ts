@@ -50,22 +50,22 @@ export namespace TW {
     signal<T extends ([EventKindNames<S>] extends [never] ? string : EventKindNames<S>)>(
       type: T,
       data: EventKindData<S, T & string>,
-    ): { $: T } & EventKindData<S, T & string>;
+    ): { ">": T } & EventKindData<S, T & string>;
     get<T>(Cls: new (...args: any[]) => T): T;
   };
 
   export type Inject<Type> = Type | null;
 
   export type StepEvent<Result = unknown> =
-    | { $: string; result: Result }
-    | { $: string; error: unknown };
+    | { ">": string; result: Result }
+    | { ">": string; error: unknown };
 
   export type ActionEvent<Name extends string, Result = unknown> =
-    | { $: Name; input: unknown }
-    | { $: Name; result: Result }
-    | { $: Name; error: unknown };
+    | { ">": Name; input: unknown }
+    | { ">": Name; result: Result }
+    | { ">": Name; error: unknown };
 
-  export type GetEvent<T = unknown> = { $: "get"; type: abstract new (...args: any[]) => T };
+  export type GetEvent<T = unknown> = { ">": "get"; type: abstract new (...args: any[]) => T };
 
   type StreamReturn<Name extends string, Handler extends (...args: any) => any> =
     Awaited<ReturnType<Handler>> extends AsyncGenerator<infer Y, infer R>

@@ -3,7 +3,7 @@ import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { TW } from "../core";
 import { Step } from "../steps";
-import { Logger, formatEvent } from "../use";
+import { Logger, formatEvent, isActionEvent } from "../use";
 
 describe("Action", () => {
   test("no input — plain handler", async () => {
@@ -72,10 +72,10 @@ describe("Action", () => {
     }
 
     expect(yields).toEqual([
-      { $: "hello", input: { name: "World" } },
-      { $: "hello.fistStep", result: 5 },
-      { $: "hello.secondStep", result: true },
-      { $: "hello", result: true },
+      { ">": "hello", input: { name: "World" } },
+      { ">": "hello.fistStep", result: 5 },
+      { ">": "hello.secondStep", result: true },
+      { ">": "hello", result: true },
     ]);
   });
 
@@ -181,13 +181,13 @@ describe("Action", () => {
       yields.push(v);
     }
     expect(yields).toEqual([
-      { $: "mixed", input: { name: "World" } },
-      { $: "mixed.first", result: 42 },
+      { ">": "mixed", input: { name: "World" } },
+      { ">": "mixed.first", result: 42 },
       "x",
       "y",
-      { $: "mixed.stream", result: "Y" },
-      { $: "mixed.third", result: true },
-      { $: "mixed", result: true },
+      { ">": "mixed.stream", result: "Y" },
+      { ">": "mixed.third", result: true },
+      { ">": "mixed", result: true },
     ]);
     expect(await mixed({ name: "World" })).toEqual(true);
   });
@@ -224,10 +224,10 @@ describe("Action", () => {
     }
 
     expect(yields).toEqual([
-      { $: "failing", input: { name: "World" } },
-      { $: "failing.first", result: 1 },
-      { $: "failing.bad", error: boom },
-      { $: "failing", error: boom },
+      { ">": "failing", input: { name: "World" } },
+      { ">": "failing.first", result: 1 },
+      { ">": "failing.bad", error: boom },
+      { ">": "failing", error: boom },
     ]);
     expect(thrown).toBe(boom);
   });
@@ -245,8 +245,10 @@ describe("Action", () => {
     await healthz();
 
     expect(logged).toEqual([
-      formatEvent({ $: "healthz", input: undefined }),
-      formatEvent({ $: "healthz", result: { status: "ok" } }),
+      "",
+      formatEvent({ ">": "healthz", input: undefined }),
+      formatEvent({ ">": "healthz", result: { status: "ok" } }),
+      "",
     ]);
   });
 
@@ -270,7 +272,17 @@ describe("Action", () => {
     }
 
     expect(logged).toEqual(
-      yields.map((v) => typeof v === "object" && v !== null && "$" in (v as object) ? formatEvent(v as object) : v),
+      yields.flatMap((v) => {
+        if (typeof v !== "object" || v === null || !(">" in (v as object))) return [v];
+        const e = v as Record<string, unknown>;
+        const action = isActionEvent(e[">"] as string);
+        const out = formatEvent(e);
+        const items: unknown[] = [];
+        if (action && "input" in e) items.push("");
+        items.push(out);
+        if (action && ("result" in e || "error" in e)) items.push("");
+        return items;
+      }),
     );
   });
 
@@ -294,10 +306,12 @@ describe("Action", () => {
     await compute({ value: 3 });
 
     expect(logged).toEqual([
-      formatEvent({ $: "compute", input: { value: 3 } }),
-      formatEvent({ $: "compute.double", result: 6 }),
-      formatEvent({ $: "compute.positive", result: true }),
-      formatEvent({ $: "compute", result: true }),
+      "",
+      formatEvent({ ">": "compute", input: { value: 3 } }),
+      formatEvent({ ">": "compute.double", result: 6 }),
+      formatEvent({ ">": "compute.positive", result: true }),
+      formatEvent({ ">": "compute", result: true }),
+      "",
     ]);
   });
 
@@ -327,10 +341,10 @@ describe("Action", () => {
       values.push(v);
     }
     expect(values).toEqual([
-      { $: "greet", input: { name: "hello" } },
+      { ">": "greet", input: { name: "hello" } },
       "hello",
       "HELLO",
-      { $: "greet", result: undefined },
+      { ">": "greet", result: undefined },
     ]);
   });
 });
