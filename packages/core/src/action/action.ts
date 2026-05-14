@@ -8,7 +8,7 @@ import {
 import { Steps } from "../steps";
 import { StepRuntime } from "../steps/step";
 import { TW } from "../core";
-import { dispatch, type ConsoleLike, type LoggerConfig } from "../use";
+import { dispatch, LogFn, type ConsoleLike, type LoggerConfig } from "../use";
 
 type ActionBody<
   Name extends string,
@@ -164,21 +164,72 @@ async function* runStep(
   }
 }
 
+type IfEntry = { condition: unknown; steps: unknown[] };
+type ElseEntry = { steps: unknown[] };
+
 export async function* runAction(name: string, scope: Scope, handlers: unknown[]): AsyncGenerator<unknown, unknown> {
   let ctx: Record<string | symbol, unknown> = { ...scope };
   let last: unknown;
+  let lastConditionTrue: boolean | null = null;
 
   yield { ">": name, input: scope.input };
 
   try {
     for (const handler of handlers) {
-      if (handler !== null && typeof handler === "object" && StepRuntime in (handler as object)) {
+      if (handler !== null && typeof handler === "object" && (handler as any)[TW.Type] === "If") {
+        const { condition, steps } = handler as IfEntry;
+        const cond = typeof condition === "function"
+          ? await (condition as (scope: unknown) => unknown).call(ctx, ctx)
+          : condition;
+        lastConditionTrue = Boolean(cond);
+        if (lastConditionTrue) {
+          for (const inner of steps) {
+            if (inner !== null && typeof inner === "object" && StepRuntime in (inner as object)) {
+              const { name: stepName, handler: fn } = (inner as StepEntry)[StepRuntime];
+              last = yield* runStep(`${name}.${stepName}`, fn, ctx);
+              ctx[stepName] = last;
+            }
+          }
+        }
+      } else if (handler !== null && typeof handler === "object" && (handler as any)[TW.Type] === "ElseIf") {
+        if (lastConditionTrue === false) {
+          const { condition, steps } = handler as IfEntry;
+          const cond = typeof condition === "function"
+            ? await (condition as (scope: unknown) => unknown).call(ctx, ctx)
+            : condition;
+          lastConditionTrue = Boolean(cond);
+          if (lastConditionTrue) {
+            for (const inner of steps) {
+              if (inner !== null && typeof inner === "object" && StepRuntime in (inner as object)) {
+                const { name: stepName, handler: fn } = (inner as StepEntry)[StepRuntime];
+                last = yield* runStep(`${name}.${stepName}`, fn, ctx);
+                ctx[stepName] = last;
+              }
+            }
+          }
+        }
+      } else if (handler !== null && typeof handler === "object" && (handler as any)[TW.Type] === "Else") {
+        if (lastConditionTrue === false) {
+          const { steps } = handler as ElseEntry;
+          for (const inner of steps) {
+            if (inner !== null && typeof inner === "object" && StepRuntime in (inner as object)) {
+              const { name: stepName, handler: fn } = (inner as StepEntry)[StepRuntime];
+              last = yield* runStep(`${name}.${stepName}`, fn, ctx);
+              ctx[stepName] = last;
+            }
+          }
+        }
+        lastConditionTrue = null;
+      } else if (handler !== null && typeof handler === "object" && StepRuntime in (handler as object)) {
+        lastConditionTrue = null;
         const { name: stepName, handler: fn } = (handler as StepEntry)[StepRuntime];
         last = yield* runStep(`${name}.${stepName}`, fn, ctx);
-        ctx = { ...ctx, [stepName]: last };
+        ctx[stepName] = last;
       } else if (handler instanceof AsyncGeneratorFunction) {
+        lastConditionTrue = null;
         last = yield* (handler as (this: typeof ctx) => AsyncGenerator<unknown, unknown>).call(ctx);
       } else if (typeof handler === "function") {
+        lastConditionTrue = null;
         last = await (handler as (this: typeof ctx) => unknown).call(ctx);
         if (last !== null && typeof last === "object" && SignalTag in (last as object)) {
           yield last;
