@@ -5,7 +5,7 @@ import {
   Pretty,
   CamelCase,
 } from "../helpers";
-import { Steps } from "../steps";
+import { Steps, SubSteps } from "../steps";
 import { StepRuntime } from "../steps/step";
 import { TW } from "../core";
 import { dispatch, LogFn, type ConsoleLike, type LoggerConfig } from "../use";
@@ -166,6 +166,7 @@ async function* runStep(
 
 type IfEntry = { condition: unknown; steps: unknown[] };
 type ElseEntry = { steps: unknown[] };
+type LoopEntry = { name: string; items: unknown; steps: unknown[] };
 
 export async function* runAction(name: string, scope: Scope, handlers: unknown[]): AsyncGenerator<unknown, unknown> {
   let ctx: Record<string | symbol, unknown> = { ...scope };
@@ -220,6 +221,39 @@ export async function* runAction(name: string, scope: Scope, handlers: unknown[]
           }
         }
         lastConditionTrue = null;
+      } else if (handler !== null && typeof handler === "object" && (handler as any)[TW.Type] === "Loop") {
+        lastConditionTrue = null;
+        const { name: loopName, items: itemsGetter, steps } = handler as LoopEntry;
+        const items = typeof itemsGetter === "function"
+          ? await (itemsGetter as (scope: unknown) => unknown).call(ctx, ctx)
+          : itemsGetter;
+        const stepResults: Record<string, unknown[]> = {};
+        let lastStepName: string | null = null;
+        let index = 0;
+        for (const item of (items as unknown[])) {
+          ctx[loopName] = { item, index };
+          const flatSteps = (steps as unknown[]).flatMap((s) =>
+            s !== null && typeof s === "object" && SubSteps in (s as object)
+              ? (s as any)[SubSteps] as unknown[]
+              : [s],
+          );
+          for (const inner of flatSteps) {
+            if (inner !== null && typeof inner === "object" && StepRuntime in (inner as object)) {
+              const { name: stepName, handler: fn } = (inner as StepEntry)[StepRuntime];
+              lastStepName = stepName;
+              last = yield* runStep(`${name}.${stepName}`, fn, ctx);
+              ctx[stepName] = last;
+              if (!stepResults[stepName]) stepResults[stepName] = [];
+              stepResults[stepName].push(last);
+            }
+          }
+          index++;
+        }
+        delete ctx[loopName];
+        for (const [stepName, results] of Object.entries(stepResults)) {
+          ctx[stepName] = results;
+        }
+        last = lastStepName ? stepResults[lastStepName] ?? [] : [];
       } else if (handler !== null && typeof handler === "object" && StepRuntime in (handler as object)) {
         lastConditionTrue = null;
         const { name: stepName, handler: fn } = (handler as StepEntry)[StepRuntime];
