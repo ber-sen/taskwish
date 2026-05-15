@@ -6,7 +6,6 @@ import {
   CamelCase,
 } from "../helpers";
 import { Steps } from "../steps";
-import { StepRuntime } from "../steps/step";
 import { TW } from "../core";
 import { dispatch, type ConsoleLike, type LoggerConfig } from "../use";
 
@@ -128,7 +127,7 @@ export async function* tapWith(
   return next.value;
 }
 
-type StepEntry = Record<typeof StepRuntime, { name: string; handler: (...a: unknown[]) => unknown }>;
+type StepEntry = ((...a: unknown[]) => unknown) & Record<typeof TW.Name, string>;
 export type Scope = { input: unknown; get<T>(Cls: abstract new (...a: unknown[]) => T): T };
 
 const SignalTag = Symbol.for("TW.Signal");
@@ -172,10 +171,13 @@ export async function* runAction(name: string, scope: Scope, handlers: unknown[]
 
   try {
     for (const handler of handlers) {
-      if (handler !== null && typeof handler === "object" && StepRuntime in (handler as object)) {
-        const { name: stepName, handler: fn } = (handler as StepEntry)[StepRuntime];
-        last = yield* runStep(`${name}.${stepName}`, fn, ctx);
-        ctx = { ...ctx, [stepName]: last };
+      if ((typeof handler === "function" || Array.isArray(handler)) && TW.Name in Object(handler)) {
+        const stepName = (handler as any)[TW.Name] as string;
+        const fn = Array.isArray(handler) ? (handler as unknown[])[0] : handler;
+        last = yield* runStep(`${name}.${stepName}`, fn as (...a: unknown[]) => unknown, ctx);
+        const transforms: Array<(x: unknown) => unknown> = Array.isArray(handler) ? (handler as unknown[]).slice(1) as any : [];
+        const stored = transforms.reduce((v, t) => t(v), last);
+        ctx = { ...ctx, [stepName]: stored };
       } else if (handler instanceof AsyncGeneratorFunction) {
         last = yield* (handler as (this: typeof ctx) => AsyncGenerator<unknown, unknown>).call(ctx);
       } else if (typeof handler === "function") {

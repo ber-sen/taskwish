@@ -95,18 +95,11 @@ export function Step<
   };
 };
 
-export const StepRuntime = Symbol.for("TW.StepRuntime");
-
 export function Step(name?: unknown, handler?: unknown) {
   if (name === undefined || handler === undefined) return {} as never;
   const fn = Array.isArray(handler) ? handler[0] : handler;
-  return { [StepRuntime]: { name, handler: fn } } as never;
-}
 
-type ActionPaths<T, Prefix extends string = ""> = {
-  [K in keyof T]: T[K] extends Record<string, any>
-    ? keyof T[K] extends never
-      ? `${Prefix}${Extract<K, string>}`
-      : ActionPaths<T[K], `${Prefix}${Extract<K, string>}.`>
-    : never;
-}[keyof T];
+  return Object.assign(handler as any, {
+    [TW.Name]: name,
+  }) as never;
+}
