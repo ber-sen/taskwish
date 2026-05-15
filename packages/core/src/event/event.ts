@@ -23,7 +23,7 @@ export function Event<
 } {
   const eventKind: any = {
     emit: async function* (eventData: unknown) {
-      const event = { $: type, id: null, data: eventData };
+      const event = { ">": type, id: null, data: eventData };
       yield event;
       return event;
     },

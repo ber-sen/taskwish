@@ -9,6 +9,7 @@ import {
 } from "./helpers";
 import { TW } from "./core";
 import { dispatch, type ConsoleLike, type LoggerConfig } from "./use";
+import { type Steps } from "./steps/steps";
 
 type BaseScope<Ctx> = Ctx extends Record<any, any> ? Ctx["scope"] : {};
 
@@ -121,7 +122,7 @@ const builtInEventScope: Record<string, unknown> = {
   }),
 };
 
-interface Behavior<Ctx> {
+export interface Behavior<Ctx> {
   use(config: LoggerConfig): this;
 
   on<Name extends string>(
@@ -378,7 +379,7 @@ function createBehavior(
                   const request = input;
                   const { args: modArgs } = mod([request]);
                   const rawInput = modArgs[0] as Record<string, unknown>;
-                  yield { $: eventName, input: rawInput };
+                  yield { ">": eventName, input: rawInput };
                   const flatInput = flattenHttpInput(rawInput);
                   let result: unknown;
                   try {
@@ -390,10 +391,10 @@ function createBehavior(
                     }
                     result = item.value;
                   } catch (error) {
-                    yield { $: eventName, error };
+                    yield { ">": eventName, error };
                     throw error;
                   }
-                  yield { $: eventName, result: toResponse(result) };
+                  yield { ">": eventName, result: toResponse(result) };
                 }
 
                 function fetchStream(input: Request) {
@@ -460,22 +461,7 @@ export const Actor = <
 >(
   name: PascalCase<Name>,
 ): {
-  def<A>(step: { [TW.Step]: (input: Ctx) => A }): {
-    [key in Name]: () => Behavior<A>;
-  };
-  def<A, B>(
-    step1: { [TW.Step]: (input: Ctx) => A },
-    step2: { [TW.Step]: (input: A) => B },
-  ): {
-    [key in Name]: () => Behavior<B>;
-  };
-  def<A, B, C>(
-    step1: { [TW.Step]: (input: Ctx) => A },
-    step2: { [TW.Step]: (input: A) => B },
-    step3: { [TW.Step]: (input: B) => C },
-  ): {
-    [key in Name]: () => Behavior<C>;
-  };
+  def: Steps<Ctx, "def">;
 } & {
   [key in Name]: () => Behavior<Ctx>;
 } => {
