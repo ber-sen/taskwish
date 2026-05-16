@@ -136,7 +136,7 @@ export namespace TW {
     scopeOf?: (input: Data) => Scope;
   }
 
-  export type Type<Name extends string, Type, Scope = {}> = ArkType<Type, Scope> &
+  export type Struct<Name extends string, Type, Scope = {}> = ArkType<Type, Scope> &
     Resource<Name>
     
 

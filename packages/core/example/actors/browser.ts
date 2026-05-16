@@ -1,5 +1,4 @@
-import { type } from "arktype";
-import { Actor, Step, Steps, SubSteps, TW, Type } from "../../src";
+import { Actor, Step, Steps, SubSteps, Struct, TW } from "../../src";
 import { PrettyScope, ValidateSchema } from "../../src/helpers";
 
 export const Browser: Steps<typeof SubSteps> & {
@@ -46,7 +45,7 @@ export const { browse } = BrowserActor()
 
       Browser.Act("Click the login button"),
 
-      Type("NewsItem", {
+      Struct("NewsItem", {
         points: "number",
         by: "string",
         commentsURL: "string",

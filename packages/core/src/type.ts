@@ -10,7 +10,7 @@ export function Desc(
 }
 
 export type Unwrap<T> =
-  T extends TW.Type<any, infer Shape>
+  T extends TW.Struct<any, infer Shape>
     ? Shape
     : T extends readonly (infer U)[]
       ? Unwrap<U>[]
@@ -18,7 +18,7 @@ export type Unwrap<T> =
         ? { [K in keyof T]: Unwrap<T[K]> }
         : T;
 
-export function Type<
+export function Struct<
   const Name extends string,
   const Schema,
   Ctx extends Record<any, any>,
@@ -28,22 +28,22 @@ export function Type<
   description?: string,
 ): Pretty<
   {
-    [key in Name]: TW.Type<Name, type.instantiate<Schema>["infer"]>;
+    [key in Name]: TW.Struct<Name, type.instantiate<Schema>["infer"]>;
   } & {
     [TW.Step]: (ctx: Ctx) => {
       name: Ctx["name"];
       steps: Ctx["steps"] &
         Record<
           Name,
-          TW.Type<Name, Pretty<Unwrap<type.instantiate<Schema, Ctx["scope"]>["infer"]>>>
+          TW.Struct<Name, Pretty<Unwrap<type.instantiate<Schema, Ctx["scope"]>["infer"]>>>
         >;
       [TW.Step]: Ctx["step"];
       scope: Record<
         Name,
-        TW.Type<Name, Pretty<Unwrap<type.instantiate<Schema, Ctx["scope"]>["infer"]>>>
+        TW.Struct<Name, Pretty<Unwrap<type.instantiate<Schema, Ctx["scope"]>["infer"]>>>
       > &
         Ctx["scope"];
-      last: TW.Type<
+      last: TW.Struct<
         Name,
         Pretty<Unwrap<type.instantiate<Schema, Ctx["scope"]>["infer"]>>
       >;
