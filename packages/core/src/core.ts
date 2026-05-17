@@ -38,16 +38,23 @@ export namespace TW {
   }
 
   type EventKindNames<S> = {
-    [K in keyof S]: S[K] extends EventKind<K & string, any> ? K & string : never;
+    [K in keyof S]: S[K] extends EventKind<K & string, any>
+      ? K & string
+      : never;
   }[keyof S];
 
-  type EventKindData<S, K extends string> =
-    K extends keyof S
-      ? S[K] extends EventKind<K, infer D extends Record<string, unknown>> ? D : Record<string, unknown>
-      : Record<string, unknown>;
+  type EventKindData<S, K extends string> = K extends keyof S
+    ? S[K] extends EventKind<K, infer D extends Record<string, unknown>>
+      ? D
+      : Record<string, unknown>
+    : Record<string, unknown>;
 
   export type Scope<S> = S & {
-    signal<T extends ([EventKindNames<S>] extends [never] ? string : EventKindNames<S>)>(
+    signal<
+      T extends [EventKindNames<S>] extends [never]
+        ? string
+        : EventKindNames<S>,
+    >(
       type: T,
       data: EventKindData<S, T & string>,
     ): { ">": T } & EventKindData<S, T & string>;
@@ -65,23 +72,42 @@ export namespace TW {
     | { ">": Name; result: Result }
     | { ">": Name; error: unknown };
 
-  export type GetEvent<T = unknown> = { ">": "get"; type: abstract new (...args: any[]) => T };
+  export type GetEvent<T = unknown> = {
+    ">": "get";
+    type: abstract new (...args: any[]) => T;
+  };
 
-  type StreamReturn<Name extends string, Handler extends (...args: any) => any> =
+  type StreamReturn<
+    Name extends string,
+    Handler extends (...args: any) => any,
+  > =
     Awaited<ReturnType<Handler>> extends AsyncGenerator<infer Y, infer R>
-      ? AsyncGenerator<Y | StepEvent | ActionEvent<Name, Awaited<R>>, Awaited<R>>
-      : AsyncGenerator<StepEvent | ActionEvent<Name, Awaited<ReturnType<Handler>>>, Awaited<ReturnType<Handler>>>;
+      ? AsyncGenerator<
+          Y | StepEvent | ActionEvent<Name, Awaited<R>>,
+          Awaited<R>
+        >
+      : AsyncGenerator<
+          StepEvent | ActionEvent<Name, Awaited<ReturnType<Handler>>>,
+          Awaited<ReturnType<Handler>>
+        >;
 
   export type Action<
     Name extends string,
     Handler extends (...args: any) => any,
     Meta = null,
   > = NoInfer<Handler> & {
-    stream: (...args: Parameters<NoInfer<Handler>>) => StreamReturn<Name, Handler>;
+    stream: (
+      ...args: Parameters<NoInfer<Handler>>
+    ) => StreamReturn<Name, Handler>;
   } & (Meta extends { route: [any, any, any] }
-    ? { fetch: ((input: Request) => Promise<Response>) & { stream(input: Request): StreamReturn<Name, Handler> } }
-    : {}
-  ) & Resource<Name> & Attributable<Meta>;
+      ? {
+          fetch: ((input: Request) => Promise<Response>) & {
+            stream(input: Request): StreamReturn<Name, Handler>;
+          };
+        }
+      : {}) &
+    Resource<Name> &
+    Attributable<Meta>;
 
   export class IO {
     // threadId!: Message.ThreadId;
@@ -131,14 +157,16 @@ export namespace TW {
     toString: () => string;
   }
 
-  export interface EventKind<Name extends string, Data, Scope = {}> extends Resource<Name>, Attributable<null> {
-    emit(data: Data): AsyncGenerator<Event<Name, Data>, Event<Name, Data>, unknown>;
+  export interface EventKind<Name extends string, Data, Scope = {}>
+    extends Resource<Name>, Attributable<null> {
+    emit(
+      data: Data,
+    ): AsyncGenerator<Event<Name, Data>, Event<Name, Data>, unknown>;
     scopeOf?: (input: Data) => Scope;
   }
 
-  export type Struct<Name extends string, Type, Scope = {}> = ArkType<Type, Scope> &
-    Resource<Name>
-    
+  export type Struct<Name extends string, Type> = ArkType<Type> &
+    Resource<Name>;
 
   export interface Extendable<Scope> {
     use<const NewScope>(newScope: NewScope): Extendable<Scope & NewScope>;
