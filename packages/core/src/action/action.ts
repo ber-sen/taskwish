@@ -228,7 +228,9 @@ async function* runHandlerList(
       const { name: loopName, items: itemsGetter, steps } = handler as LoopEntry;
       const items = typeof itemsGetter === "function"
         ? await (itemsGetter as (scope: unknown) => unknown).call(ctx, ctx)
-        : itemsGetter;
+        : typeof itemsGetter === "string"
+          ? (itemsGetter as string).split(".").reduce((o: any, k) => o?.[k], ctx)
+          : itemsGetter;
       const innerAcc: Record<string, unknown[]> = {};
       let loopLastStepName: string | null = null;
       const flatSteps = steps as unknown[];

@@ -174,11 +174,13 @@ describe("If / Else", () => {
       .run(
         If(
           (ctx) => ctx.input.x > 10,
+
           Step("result", function () { return "big"; }),
         ),
 
         ElseIf(
           (ctx) => ctx.input.x > 5,
+
           Step("result", function () { return "medium"; }),
         ),
 
@@ -240,11 +242,13 @@ describe("If / Else", () => {
     const { branch } = Action("branch").run(
       If(
         () => true as boolean,
+
         Step("result", function () { return "a" as const; }),
       ),
 
       ElseIf(
         () => true as boolean,
+        
         Step("result", function () { return "b" as const; }),
       ),
 
