@@ -332,4 +332,80 @@ describe("Loop", () => {
 
     expect(await branch()).toEqual(["other", "buzz", "fizz", "buzz", "other", "fizz"]);
   });
+
+  // ─── Loop inside Loop ────────────────────────────────────────────────────
+
+  test("Loop inside Loop — result is array of inner arrays", async () => {
+    const { branch } = Action("branch").run(
+      Loop(
+        { name: "outer", items: [1, 2] },
+        Loop(
+          { name: "inner", items: [10, 20] },
+          Step("product", function () {
+            return this.outer.item * this.inner.item;
+          }),
+        ),
+      ),
+    );
+
+    expect(await branch()).toEqual([[10, 20], [20, 40]]);
+  });
+
+  test("Loop inside Loop — inner accumulated key available after outer", async () => {
+    const { branch } = Action("branch").run(
+      Loop(
+        { name: "outer", items: ["a", "b"] },
+        Loop(
+          { name: "inner", items: [1, 2, 3] },
+          Step("tagged", function () {
+            return `${this.outer.item}${this.inner.item}`;
+          }),
+        ),
+      ),
+
+      Step("flat", function () {
+        return (this.tagged as string[][]).flat();
+      }),
+    );
+
+    expect(await branch()).toEqual(["a1", "a2", "a3", "b1", "b2", "b3"]);
+  });
+
+  test("Loop inside Loop — If inside inner loop still filters", async () => {
+    const { branch } = Action("branch").run(
+      Loop(
+        { name: "outer", items: [2, 3] },
+        Loop(
+          { name: "inner", items: [1, 2, 3, 4] },
+          If(
+            ctx => ctx.inner.item % 2 === 0,
+            Step("even", function () {
+              return this.outer.item * this.inner.item;
+            }),
+          ),
+        ),
+      ),
+    );
+
+    expect(await branch()).toEqual([[4, 8], [6, 12]]);
+  });
+
+  test("Loop > If > Loop — inner loop runs only for matching outer items", async () => {
+    const { branch } = Action("branch").run(
+      Loop(
+        { name: "outer", items: [1, 2, 3, 4] },
+        If(
+          ctx => ctx.outer.item % 2 === 0,
+          Loop(
+            { name: "inner", items: [10, 20] },
+            Step("product", function () {
+              return this.outer.item * this.inner.item;
+            }),
+          ),
+        ),
+      ),
+    );
+
+    expect(await branch()).toEqual([[20, 40], [40, 80]]);
+  });
 });

@@ -3,6 +3,7 @@ import { Expect, Equal } from "../helpers";
 import { Action } from "../action";
 import { Step } from "./step";
 import { If, Else, ElseIf } from "./if-else";
+import { Loop } from "./loop";
 
 // ─── Runtime ────────────────────────────────────────────────────────────────
 
@@ -275,5 +276,154 @@ describe("If / Else", () => {
     type RetVal = Awaited<ReturnType<T>>;
 
     type check = Expect<Equal<RetVal, "a" | "b" | undefined>>;
+  });
+
+  // ─── Loop inside If ──────────────────────────────────────────────────────
+
+  test("Loop inside If runs when condition is true", async () => {
+    const { branch } = Action("branch").run(
+      If(
+        () => true,
+        Loop(
+          [1, 2, 3],
+          Step("val", function () { return this.loop.item * 2; }),
+        ),
+      ),
+    );
+
+    expect(await branch()).toEqual([2, 4, 6]);
+  });
+
+  test("Loop inside If skipped when condition is false", async () => {
+    const { branch } = Action("branch").run(
+      Step("before", function () { return 99; }),
+
+      If(
+        () => false,
+        Loop(
+          [1, 2, 3],
+          Step("val", function () { return this.loop.item; }),
+        ),
+      ),
+
+      Step("after", function () { return this.before; }),
+    );
+
+    expect(await branch()).toEqual(99);
+  });
+
+  test("Loop inside Else runs when condition is false", async () => {
+    const { branch } = Action("branch").run(
+      If(
+        () => false,
+        Step("result", function () { return "if-branch"; }),
+      ),
+
+      Else(
+        Loop(
+          [10, 20],
+          Step("result", function () { return this.loop.item; }),
+        ),
+      ),
+    );
+
+    expect(await branch()).toEqual([10, 20]);
+  });
+
+  test("Loop accumulated result available after If", async () => {
+    const { branch } = Action("branch").run(
+      If(
+        () => true,
+        Loop(
+          [1, 2, 3],
+          Step("doubled", function () { return this.loop.item * 2; }),
+        ),
+      ),
+
+      Step("sum", function () {
+        return (this.doubled as number[]).reduce((a, b) => a + b, 0);
+      }),
+    );
+
+    expect(await branch()).toEqual(12);
+  });
+
+  // ─── If inside If ────────────────────────────────────────────────────────
+
+  test("If inside If — both true runs inner step", async () => {
+    const { branch } = Action("branch").run(
+      If(
+        () => true,
+        If(
+          () => true,
+          Step("result", function () { return "both"; }),
+        ),
+      ),
+    );
+
+    expect(await branch()).toEqual("both");
+  });
+
+  test("If inside If — inner false skips inner step", async () => {
+    const { branch } = Action("branch").run(
+      Step("before", function () { return 1; }),
+
+      If(
+        () => true,
+        If(
+          () => false,
+          Step("result", function () { return "inner"; }),
+        ),
+      ),
+
+      Step("after", function () { return this.before; }),
+    );
+
+    expect(await branch()).toEqual(1);
+  });
+
+  test("If inside If — outer false skips both", async () => {
+    const { branch } = Action("branch").run(
+      Step("before", function () { return 42; }),
+
+      If(
+        () => false,
+        If(
+          () => true,
+          Step("result", function () { return "inner"; }),
+        ),
+      ),
+
+      Step("after", function () { return this.before; }),
+    );
+
+    expect(await branch()).toEqual(42);
+  });
+
+  test("If inside If — condition receives scope at both levels", async () => {
+    const { branch } = Action("branch")
+      .input({ x: "number" })
+
+      .run(
+        If(
+          ctx => ctx.input.x > 0,
+          If(
+            ctx => ctx.input.x > 10,
+            Step("result", function () { return "big"; }),
+          ),
+        ),
+
+        Else(
+          Step("result", function () { return "negative"; }),
+        ),
+
+        Step("out", function () {
+          return (this as any).result ?? "small";
+        }),
+      );
+
+    expect(await branch({ x: -1 })).toEqual("negative");
+    expect(await branch({ x: 5 })).toEqual("small");
+    expect(await branch({ x: 20 })).toEqual("big");
   });
 });
