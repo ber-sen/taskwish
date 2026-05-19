@@ -447,10 +447,11 @@ describe("Loop", () => {
           { name: "outer", items: [2, 3] },
 
           Loop(
-            { name: "inner", items: [1, 3] },
+            { name: "inner", items: "input.inner" },
 
             If(
               (ctx) => ctx.inner.item % 2 === 0,
+              
               Step("even", function () {
                 return this.outer.item * this.inner.item;
               }),
