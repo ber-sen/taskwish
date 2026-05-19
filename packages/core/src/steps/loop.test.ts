@@ -20,6 +20,16 @@ describe("Loop", () => {
     );
 
     expect(await branch()).toEqual([2, 4, 6]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream()) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch" },
+      { ">": "branch.doubled", result: 2 },
+      { ">": "branch.doubled", result: 4 },
+      { ">": "branch.doubled", result: 6 },
+      { ">": "branch", result: [2, 4, 6] },
+    ]);
   });
 
   test("maps over input array", async () => {
@@ -37,6 +47,16 @@ describe("Loop", () => {
       );
 
     expect(await branch({ nums: [1, 2, 3] })).toEqual([2, 4, 6]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ nums: [1, 2, 3] })) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch", input: { nums: [1, 2, 3] } },
+      { ">": "branch.doubled", result: 2 },
+      { ">": "branch.doubled", result: 4 },
+      { ">": "branch.doubled", result: 6 },
+      { ">": "branch", result: [2, 4, 6] },
+    ]);
   });
 
   test("exposes index alongside item — named loop variable", async () => {
@@ -51,6 +71,16 @@ describe("Loop", () => {
     );
 
     expect(await branch()).toEqual(["0:10", "1:20", "2:30"]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream()) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch" },
+      { ">": "branch.tagged", result: "0:10" },
+      { ">": "branch.tagged", result: "1:20" },
+      { ">": "branch.tagged", result: "2:30" },
+      { ">": "branch", result: ["0:10", "1:20", "2:30"] },
+    ]);
   });
 
   test("empty array produces empty result", async () => {
@@ -65,6 +95,13 @@ describe("Loop", () => {
     );
 
     expect(await branch()).toEqual([]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream()) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch" },
+      { ">": "branch", result: [] },
+    ]);
   });
 
   test("inner step accesses outer scope", async () => {
@@ -82,6 +119,16 @@ describe("Loop", () => {
       );
 
     expect(await branch({ factor: 3 })).toEqual([30, 60, 90]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ factor: 3 })) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch", input: { factor: 3 } },
+      { ">": "branch.scaled", result: 30 },
+      { ">": "branch.scaled", result: 60 },
+      { ">": "branch.scaled", result: 90 },
+      { ">": "branch", result: [30, 60, 90] },
+    ]);
   });
 
   test("items getter receives outer scope", async () => {
@@ -100,6 +147,16 @@ describe("Loop", () => {
     );
 
     expect(await branch()).toEqual(["HELLO", "WORLD"]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream()) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch" },
+      { ">": "branch.words", result: ["hello", "world"] },
+      { ">": "branch.upper", result: "HELLO" },
+      { ">": "branch.upper", result: "WORLD" },
+      { ">": "branch", result: ["HELLO", "WORLD"] },
+    ]);
   });
 
   test("loop variable is not in scope after loop", async () => {
@@ -121,6 +178,16 @@ describe("Loop", () => {
       );
 
     expect(await branch({ items: [1, 2] })).toEqual(false);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ items: [1, 2] })) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch", input: { items: [1, 2] } },
+      { ">": "branch.doubled", result: 2 },
+      { ">": "branch.doubled", result: 4 },
+      { ">": "branch.check", result: false },
+      { ">": "branch", result: false },
+    ]);
   });
 
   test("accumulated array is available to subsequent steps", async () => {
@@ -142,6 +209,17 @@ describe("Loop", () => {
       );
 
     expect(await branch({ items: [1, 2, 3] })).toEqual(12);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ items: [1, 2, 3] })) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch", input: { items: [1, 2, 3] } },
+      { ">": "branch.doubled", result: 2 },
+      { ">": "branch.doubled", result: 4 },
+      { ">": "branch.doubled", result: 6 },
+      { ">": "branch.sum", result: 12 },
+      { ">": "branch", result: 12 },
+    ]);
   });
 
   test("multiple inner steps — all accumulated as arrays in outer scope", async () => {
@@ -173,6 +251,20 @@ describe("Loop", () => {
       "2x2=4",
       "3x2=6",
     ]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ items: [1, 2, 3] })) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch", input: { items: [1, 2, 3] } },
+      { ">": "branch.doubled", result: 2 },
+      { ">": "branch.label", result: "1x2=2" },
+      { ">": "branch.doubled", result: 4 },
+      { ">": "branch.label", result: "2x2=4" },
+      { ">": "branch.doubled", result: 6 },
+      { ">": "branch.label", result: "3x2=6" },
+      { ">": "branch.summary", result: ["1x2=2", "2x2=4", "3x2=6"] },
+      { ">": "branch", result: ["1x2=2", "2x2=4", "3x2=6"] },
+    ]);
   });
 
   test("Loop.Range generates a numeric sequence", async () => {
@@ -187,6 +279,17 @@ describe("Loop", () => {
     );
 
     expect(await branch()).toEqual([0, 1, 4, 9]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream()) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch" },
+      { ">": "branch.squared", result: 0 },
+      { ">": "branch.squared", result: 1 },
+      { ">": "branch.squared", result: 4 },
+      { ">": "branch.squared", result: 9 },
+      { ">": "branch", result: [0, 1, 4, 9] },
+    ]);
   });
 
   test("stream yields one event per iteration", async () => {
@@ -295,6 +398,15 @@ describe("Loop", () => {
       );
 
     expect(await branch({ items: [1, 2, 3, 4] })).toEqual([2, 4]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ items: [1, 2, 3, 4] })) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch", input: { items: [1, 2, 3, 4] } },
+      { ">": "branch.even", result: 2 },
+      { ">": "branch.even", result: 4 },
+      { ">": "branch", result: [2, 4] },
+    ]);
   });
 
   test("If/Else inside loop tags every item", async () => {
@@ -326,6 +438,16 @@ describe("Loop", () => {
       "even:2",
       "odd:3",
     ]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ items: [1, 2, 3] })) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch", input: { items: [1, 2, 3] } },
+      { ">": "branch.tag", result: "odd:1" },
+      { ">": "branch.tag", result: "even:2" },
+      { ">": "branch.tag", result: "odd:3" },
+      { ">": "branch", result: ["odd:1", "even:2", "odd:3"] },
+    ]);
   });
 
   test("If condition inside loop accesses outer scope", async () => {
@@ -348,6 +470,15 @@ describe("Loop", () => {
 
     expect(await branch({ items: [1, 2, 3, 4, 5], threshold: 3 })).toEqual([
       4, 5,
+    ]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ items: [1, 2, 3, 4, 5], threshold: 3 })) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch", input: { items: [1, 2, 3, 4, 5], threshold: 3 } },
+      { ">": "branch.big", result: 4 },
+      { ">": "branch.big", result: 5 },
+      { ">": "branch", result: [4, 5] },
     ]);
   });
 
@@ -391,6 +522,19 @@ describe("Loop", () => {
       "other",
       "fizz",
     ]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ items: [1, 2, 3, 4, 5, 6] })) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch", input: { items: [1, 2, 3, 4, 5, 6] } },
+      { ">": "branch.tag", result: "other" },
+      { ">": "branch.tag", result: "buzz" },
+      { ">": "branch.tag", result: "fizz" },
+      { ">": "branch.tag", result: "buzz" },
+      { ">": "branch.tag", result: "other" },
+      { ">": "branch.tag", result: "fizz" },
+      { ">": "branch", result: ["other", "buzz", "fizz", "buzz", "other", "fizz"] },
+    ]);
   });
 
   // ─── Loop inside Loop ────────────────────────────────────────────────────
@@ -414,6 +558,17 @@ describe("Loop", () => {
       [10, 20],
       [20, 40],
     ]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream()) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch" },
+      { ">": "branch.product", result: 10 },
+      { ">": "branch.product", result: 20 },
+      { ">": "branch.product", result: 20 },
+      { ">": "branch.product", result: 40 },
+      { ">": "branch", result: [[10, 20], [20, 40]] },
+    ]);
   });
 
   test("Loop inside Loop — inner accumulated key available after outer", async () => {
@@ -436,6 +591,20 @@ describe("Loop", () => {
     );
 
     expect(await branch()).toEqual(["a1", "a2", "a3", "b1", "b2", "b3"]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream()) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch" },
+      { ">": "branch.tagged", result: "a1" },
+      { ">": "branch.tagged", result: "a2" },
+      { ">": "branch.tagged", result: "a3" },
+      { ">": "branch.tagged", result: "b1" },
+      { ">": "branch.tagged", result: "b2" },
+      { ">": "branch.tagged", result: "b3" },
+      { ">": "branch.flat", result: ["a1", "a2", "a3", "b1", "b2", "b3"] },
+      { ">": "branch", result: ["a1", "a2", "a3", "b1", "b2", "b3"] },
+    ]);
   });
 
   test("Loop inside Loop — If inside inner loop still filters", async () => {
@@ -451,7 +620,7 @@ describe("Loop", () => {
 
             If(
               (ctx) => ctx.inner.item % 2 === 0,
-              
+
               Step("even", function () {
                 return this.outer.item * this.inner.item;
               }),
@@ -463,6 +632,17 @@ describe("Loop", () => {
     expect(await branch({ inner: [1, 2, 3, 4] })).toEqual([
       [4, 8],
       [6, 12],
+    ]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ inner: [1, 2, 3, 4] })) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch", input: { inner: [1, 2, 3, 4] } },
+      { ">": "branch.even", result: 4 },
+      { ">": "branch.even", result: 8 },
+      { ">": "branch.even", result: 6 },
+      { ">": "branch.even", result: 12 },
+      { ">": "branch", result: [[4, 8], [6, 12]] },
     ]);
   });
 
@@ -491,6 +671,17 @@ describe("Loop", () => {
     expect(await branch({ inner: [10, 20] })).toEqual([
       [20, 40],
       [40, 80],
+    ]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ inner: [10, 20] })) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch", input: { inner: [10, 20] } },
+      { ">": "branch.product", result: 20 },
+      { ">": "branch.product", result: 40 },
+      { ">": "branch.product", result: 40 },
+      { ">": "branch.product", result: 80 },
+      { ">": "branch", result: [[20, 40], [40, 80]] },
     ]);
   });
 });
