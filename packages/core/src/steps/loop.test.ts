@@ -3,7 +3,6 @@ import { Expect, Equal } from "../helpers";
 import { Action } from "../action";
 import { Step } from "./step";
 import { Loop } from "./loop";
-import { Steps } from "./steps";
 import { If, Else, ElseIf } from "./if-else";
 
 // ─── Runtime ────────────────────────────────────────────────────────────────
@@ -139,22 +138,6 @@ describe("Loop", () => {
     expect(await branch()).toEqual(["1x2=2", "2x2=4", "3x2=6"]);
   });
 
-  test("inner steps composed with Steps(...)", async () => {
-    const { branch } = Action("branch").run(
-      Loop([1, 2, 3],
-        Steps(
-          Step("doubled", function () { return this.loop.item * 2; }),
-          Step("label", function () { return `${this.loop.item}x2=${this.doubled}`; }),
-        ),
-      ),
-
-      Step("summary", function () {
-        return this.label;
-      }),
-    );
-
-    expect(await branch()).toEqual(["1x2=2", "2x2=4", "3x2=6"]);
-  });
 
   test("Loop.Range generates a numeric sequence", async () => {
     const { branch } = Action("branch").run(

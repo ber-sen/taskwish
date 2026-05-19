@@ -5,7 +5,7 @@ import {
   Pretty,
   CamelCase,
 } from "../helpers";
-import { Steps, SubSteps } from "../steps";
+import { Steps } from "../steps";
 import { StepRuntime } from "../steps/step";
 import { TW } from "../core";
 import { dispatch, LogFn, type ConsoleLike, type LoggerConfig } from "../use";
@@ -181,13 +181,6 @@ async function evalCond(condition: unknown, ctx: Record<string | symbol, unknown
   return Boolean(val);
 }
 
-function flattenSubSteps(steps: unknown[]): unknown[] {
-  return steps.flatMap((s) =>
-    s !== null && typeof s === "object" && SubSteps in (s as object)
-      ? (s as any)[SubSteps] as unknown[]
-      : [s],
-  );
-}
 
 async function* runHandlerList(
   name: string,
@@ -238,7 +231,7 @@ async function* runHandlerList(
         : itemsGetter;
       const innerAcc: Record<string, unknown[]> = {};
       let loopLastStepName: string | null = null;
-      const flatSteps = flattenSubSteps(steps as unknown[]);
+      const flatSteps = steps as unknown[];
       for (let index = 0; index < (items as unknown[]).length; index++) {
         ctx[loopName] = { item: (items as unknown[])[index], index };
         const r = yield* runHandlerList(name, flatSteps, ctx, innerAcc);
