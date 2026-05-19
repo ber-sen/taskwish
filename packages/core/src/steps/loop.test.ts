@@ -4,6 +4,7 @@ import { Action } from "../action";
 import { Step } from "./step";
 import { Loop } from "./loop";
 import { Steps } from "./steps";
+import { If, Else, ElseIf } from "./if-else";
 
 // ─── Runtime ────────────────────────────────────────────────────────────────
 
@@ -243,5 +244,92 @@ describe("Loop", () => {
         }),
       ),
     );
+  });
+
+  // ─── If inside Loop ──────────────────────────────────────────────────────
+
+  test("If inside loop filters items", async () => {
+    const { branch } = Action("branch").run(
+      Loop(
+        [1, 2, 3, 4],
+
+        If(
+          ctx => ctx.loop.item % 2 === 0,
+          
+          Step("even", function () {
+            return this.loop.item;
+          }),
+        ),
+      ),
+    );
+
+    expect(await branch()).toEqual([2, 4]);
+  });
+
+  test("If/Else inside loop tags every item", async () => {
+    const { branch } = Action("branch").run(
+      Loop(
+        [1, 2, 3],
+
+        If(
+          ctx => ctx.loop.item % 2 !== 0,
+          Step("tag", function () {
+            return `odd:${this.loop.item}`;
+          }),
+        ),
+
+        Else(
+          Step("tag", function () {
+            return `even:${this.loop.item}`;
+          }),
+        ),
+      ),
+    );
+
+    expect(await branch()).toEqual(["odd:1", "even:2", "odd:3"]);
+  });
+
+  test("If condition inside loop accesses outer scope", async () => {
+    const { branch } = Action("branch")
+      .input({ threshold: "number" })
+
+      .run(
+        Loop(
+          [1, 2, 3, 4, 5],
+
+          If(
+            ctx => ctx.loop.item > ctx.input.threshold,
+            Step("big", function () {
+              return this.loop.item;
+            }),
+          ),
+        ),
+      );
+
+    expect(await branch({ threshold: 3 })).toEqual([4, 5]);
+  });
+
+  test("ElseIf inside loop — three-way branch per item", async () => {
+    const { branch } = Action("branch").run(
+      Loop(
+        [1, 2, 3, 4, 5, 6],
+
+        If(
+          ctx => ctx.loop.item % 3 === 0,
+          Step("tag", function () { return "fizz"; }),
+        ),
+
+        ElseIf(
+          ctx => ctx.loop.item % 2 === 0,
+          Step("tag", function () { return "buzz"; }),
+        ),
+
+        Else(
+          Step("tag", function () { return "other"; }),
+        ),
+      ),
+    );
+
+    expect(await branch()).toEqual(["other", "buzz", "fizz", "buzz", "other", "fizz"]);
   });
 });
