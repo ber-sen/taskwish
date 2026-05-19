@@ -108,8 +108,9 @@ describe("If / Else", () => {
     }
 
     expect(yields).toEqual([
-      { ">": "branch", input: undefined },
-      { ">": "branch.check", result: 42 },
+      { ">": "branch" },
+      { ">": "branch.if", condition: true },
+      { ">": "branch.if.check", result: 42 },
       { ">": "branch", result: 42 },
     ]);
   });
@@ -137,8 +138,10 @@ describe("If / Else", () => {
     }
 
     expect(yields).toEqual([
-      { ">": "branch", input: undefined },
-      { ">": "branch.check", result: "else" },
+      { ">": "branch" },
+      { ">": "branch.if", condition: false },
+      { ">": "branch.else" },
+      { ">": "branch.else.check", result: "else" },
       { ">": "branch", result: "else" },
     ]);
   });

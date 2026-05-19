@@ -213,15 +213,20 @@ async function* runHandlerList(
     if (type === "If") {
       const { condition, steps } = handler as IfEntry;
       lastCond = await evalCond(condition, ctx);
-      if (lastCond) adopt(yield* runHandlerList(name, steps as unknown[], ctx, loopAcc));
+      yield { ">": `${name}.if`, condition: lastCond };
+      if (lastCond) adopt(yield* runHandlerList(`${name}.if`, steps as unknown[], ctx, loopAcc));
     } else if (type === "ElseIf") {
       if (lastCond === false) {
         const { condition, steps } = handler as IfEntry;
         lastCond = await evalCond(condition, ctx);
-        if (lastCond) adopt(yield* runHandlerList(name, steps as unknown[], ctx, loopAcc));
+        yield { ">": `${name}.elseIf`, condition: lastCond };
+        if (lastCond) adopt(yield* runHandlerList(`${name}.elseIf`, steps as unknown[], ctx, loopAcc));
       }
     } else if (type === "Else") {
-      if (lastCond === false) adopt(yield* runHandlerList(name, (handler as ElseEntry).steps as unknown[], ctx, loopAcc));
+      if (lastCond === false) {
+        yield { ">": `${name}.else` };
+        adopt(yield* runHandlerList(`${name}.else`, (handler as ElseEntry).steps as unknown[], ctx, loopAcc));
+      }
       lastCond = null;
     } else if (type === "Loop") {
       lastCond = null;
