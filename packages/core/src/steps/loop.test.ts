@@ -25,9 +25,10 @@ describe("Loop", () => {
     for await (const v of branch.stream()) yields.push(v);
     expect(yields).toEqual([
       { ">": "branch" },
-      { ">": "branch.doubled", result: 2 },
-      { ">": "branch.doubled", result: 4 },
-      { ">": "branch.doubled", result: 6 },
+      { ">": "branch.loop", items: [1, 2, 3] },
+      { ">": "branch.loop[0].doubled", result: 2 },
+      { ">": "branch.loop[1].doubled", result: 4 },
+      { ">": "branch.loop[2].doubled", result: 6 },
       { ">": "branch", result: [2, 4, 6] },
     ]);
   });
@@ -52,9 +53,10 @@ describe("Loop", () => {
     for await (const v of branch.stream({ nums: [1, 2, 3] })) yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { nums: [1, 2, 3] } },
-      { ">": "branch.doubled", result: 2 },
-      { ">": "branch.doubled", result: 4 },
-      { ">": "branch.doubled", result: 6 },
+      { ">": "branch.loop", items: [1, 2, 3] },
+      { ">": "branch.loop[0].doubled", result: 2 },
+      { ">": "branch.loop[1].doubled", result: 4 },
+      { ">": "branch.loop[2].doubled", result: 6 },
       { ">": "branch", result: [2, 4, 6] },
     ]);
   });
@@ -76,9 +78,10 @@ describe("Loop", () => {
     for await (const v of branch.stream()) yields.push(v);
     expect(yields).toEqual([
       { ">": "branch" },
-      { ">": "branch.tagged", result: "0:10" },
-      { ">": "branch.tagged", result: "1:20" },
-      { ">": "branch.tagged", result: "2:30" },
+      { ">": "branch.n", items: [10, 20, 30] },
+      { ">": "branch.n[0].tagged", result: "0:10" },
+      { ">": "branch.n[1].tagged", result: "1:20" },
+      { ">": "branch.n[2].tagged", result: "2:30" },
       { ">": "branch", result: ["0:10", "1:20", "2:30"] },
     ]);
   });
@@ -100,6 +103,7 @@ describe("Loop", () => {
     for await (const v of branch.stream()) yields.push(v);
     expect(yields).toEqual([
       { ">": "branch" },
+      { ">": "branch.loop", items: [] },
       { ">": "branch", result: [] },
     ]);
   });
@@ -124,9 +128,10 @@ describe("Loop", () => {
     for await (const v of branch.stream({ factor: 3 })) yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { factor: 3 } },
-      { ">": "branch.scaled", result: 30 },
-      { ">": "branch.scaled", result: 60 },
-      { ">": "branch.scaled", result: 90 },
+      { ">": "branch.loop", items: [10, 20, 30] },
+      { ">": "branch.loop[0].scaled", result: 30 },
+      { ">": "branch.loop[1].scaled", result: 60 },
+      { ">": "branch.loop[2].scaled", result: 90 },
       { ">": "branch", result: [30, 60, 90] },
     ]);
   });
@@ -153,8 +158,9 @@ describe("Loop", () => {
     expect(yields).toEqual([
       { ">": "branch" },
       { ">": "branch.words", result: ["hello", "world"] },
-      { ">": "branch.upper", result: "HELLO" },
-      { ">": "branch.upper", result: "WORLD" },
+      { ">": "branch.loop", items: ["hello", "world"] },
+      { ">": "branch.loop[0].upper", result: "HELLO" },
+      { ">": "branch.loop[1].upper", result: "WORLD" },
       { ">": "branch", result: ["HELLO", "WORLD"] },
     ]);
   });
@@ -183,8 +189,9 @@ describe("Loop", () => {
     for await (const v of branch.stream({ items: [1, 2] })) yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { items: [1, 2] } },
-      { ">": "branch.doubled", result: 2 },
-      { ">": "branch.doubled", result: 4 },
+      { ">": "branch.loop", items: [1, 2] },
+      { ">": "branch.loop[0].doubled", result: 2 },
+      { ">": "branch.loop[1].doubled", result: 4 },
       { ">": "branch.check", result: false },
       { ">": "branch", result: false },
     ]);
@@ -214,9 +221,10 @@ describe("Loop", () => {
     for await (const v of branch.stream({ items: [1, 2, 3] })) yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { items: [1, 2, 3] } },
-      { ">": "branch.doubled", result: 2 },
-      { ">": "branch.doubled", result: 4 },
-      { ">": "branch.doubled", result: 6 },
+      { ">": "branch.loop", items: [1, 2, 3] },
+      { ">": "branch.loop[0].doubled", result: 2 },
+      { ">": "branch.loop[1].doubled", result: 4 },
+      { ">": "branch.loop[2].doubled", result: 6 },
       { ">": "branch.sum", result: 12 },
       { ">": "branch", result: 12 },
     ]);
@@ -256,12 +264,13 @@ describe("Loop", () => {
     for await (const v of branch.stream({ items: [1, 2, 3] })) yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { items: [1, 2, 3] } },
-      { ">": "branch.doubled", result: 2 },
-      { ">": "branch.label", result: "1x2=2" },
-      { ">": "branch.doubled", result: 4 },
-      { ">": "branch.label", result: "2x2=4" },
-      { ">": "branch.doubled", result: 6 },
-      { ">": "branch.label", result: "3x2=6" },
+      { ">": "branch.loop", items: [1, 2, 3] },
+      { ">": "branch.loop[0].doubled", result: 2 },
+      { ">": "branch.loop[0].label", result: "1x2=2" },
+      { ">": "branch.loop[1].doubled", result: 4 },
+      { ">": "branch.loop[1].label", result: "2x2=4" },
+      { ">": "branch.loop[2].doubled", result: 6 },
+      { ">": "branch.loop[2].label", result: "3x2=6" },
       { ">": "branch.summary", result: ["1x2=2", "2x2=4", "3x2=6"] },
       { ">": "branch", result: ["1x2=2", "2x2=4", "3x2=6"] },
     ]);
@@ -284,10 +293,11 @@ describe("Loop", () => {
     for await (const v of branch.stream()) yields.push(v);
     expect(yields).toEqual([
       { ">": "branch" },
-      { ">": "branch.squared", result: 0 },
-      { ">": "branch.squared", result: 1 },
-      { ">": "branch.squared", result: 4 },
-      { ">": "branch.squared", result: 9 },
+      { ">": "branch.loop", items: [0, 1, 2, 3] },
+      { ">": "branch.loop[0].squared", result: 0 },
+      { ">": "branch.loop[1].squared", result: 1 },
+      { ">": "branch.loop[2].squared", result: 4 },
+      { ">": "branch.loop[3].squared", result: 9 },
       { ">": "branch", result: [0, 1, 4, 9] },
     ]);
   });
@@ -313,8 +323,9 @@ describe("Loop", () => {
 
     expect(yields).toEqual([
       { ">": "branch", input: { items: [1, 2] } },
-      { ">": "branch.val", result: 1 },
-      { ">": "branch.val", result: 2 },
+      { ">": "branch.loop", items: [1, 2] },
+      { ">": "branch.loop[0].val", result: 1 },
+      { ">": "branch.loop[1].val", result: 2 },
       { ">": "branch", result: [1, 2] },
     ]);
   });
@@ -403,8 +414,9 @@ describe("Loop", () => {
     for await (const v of branch.stream({ items: [1, 2, 3, 4] })) yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { items: [1, 2, 3, 4] } },
-      { ">": "branch.even", result: 2 },
-      { ">": "branch.even", result: 4 },
+      { ">": "branch.loop", items: [1, 2, 3, 4] },
+      { ">": "branch.loop[1].even", result: 2 },
+      { ">": "branch.loop[3].even", result: 4 },
       { ">": "branch", result: [2, 4] },
     ]);
   });
@@ -443,9 +455,10 @@ describe("Loop", () => {
     for await (const v of branch.stream({ items: [1, 2, 3] })) yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { items: [1, 2, 3] } },
-      { ">": "branch.tag", result: "odd:1" },
-      { ">": "branch.tag", result: "even:2" },
-      { ">": "branch.tag", result: "odd:3" },
+      { ">": "branch.loop", items: [1, 2, 3] },
+      { ">": "branch.loop[0].tag", result: "odd:1" },
+      { ">": "branch.loop[1].tag", result: "even:2" },
+      { ">": "branch.loop[2].tag", result: "odd:3" },
       { ">": "branch", result: ["odd:1", "even:2", "odd:3"] },
     ]);
   });
@@ -476,8 +489,9 @@ describe("Loop", () => {
     for await (const v of branch.stream({ items: [1, 2, 3, 4, 5], threshold: 3 })) yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { items: [1, 2, 3, 4, 5], threshold: 3 } },
-      { ">": "branch.big", result: 4 },
-      { ">": "branch.big", result: 5 },
+      { ">": "branch.loop", items: [1, 2, 3, 4, 5] },
+      { ">": "branch.loop[3].big", result: 4 },
+      { ">": "branch.loop[4].big", result: 5 },
       { ">": "branch", result: [4, 5] },
     ]);
   });
@@ -527,12 +541,13 @@ describe("Loop", () => {
     for await (const v of branch.stream({ items: [1, 2, 3, 4, 5, 6] })) yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { items: [1, 2, 3, 4, 5, 6] } },
-      { ">": "branch.tag", result: "other" },
-      { ">": "branch.tag", result: "buzz" },
-      { ">": "branch.tag", result: "fizz" },
-      { ">": "branch.tag", result: "buzz" },
-      { ">": "branch.tag", result: "other" },
-      { ">": "branch.tag", result: "fizz" },
+      { ">": "branch.loop", items: [1, 2, 3, 4, 5, 6] },
+      { ">": "branch.loop[0].tag", result: "other" },
+      { ">": "branch.loop[1].tag", result: "buzz" },
+      { ">": "branch.loop[2].tag", result: "fizz" },
+      { ">": "branch.loop[3].tag", result: "buzz" },
+      { ">": "branch.loop[4].tag", result: "other" },
+      { ">": "branch.loop[5].tag", result: "fizz" },
       { ">": "branch", result: ["other", "buzz", "fizz", "buzz", "other", "fizz"] },
     ]);
   });
@@ -563,10 +578,13 @@ describe("Loop", () => {
     for await (const v of branch.stream()) yields.push(v);
     expect(yields).toEqual([
       { ">": "branch" },
-      { ">": "branch.product", result: 10 },
-      { ">": "branch.product", result: 20 },
-      { ">": "branch.product", result: 20 },
-      { ">": "branch.product", result: 40 },
+      { ">": "branch.outer", items: [1, 2] },
+      { ">": "branch.outer[0].inner", items: [10, 20] },
+      { ">": "branch.outer[0].inner[0].product", result: 10 },
+      { ">": "branch.outer[0].inner[1].product", result: 20 },
+      { ">": "branch.outer[1].inner", items: [10, 20] },
+      { ">": "branch.outer[1].inner[0].product", result: 20 },
+      { ">": "branch.outer[1].inner[1].product", result: 40 },
       { ">": "branch", result: [[10, 20], [20, 40]] },
     ]);
   });
@@ -596,12 +614,15 @@ describe("Loop", () => {
     for await (const v of branch.stream()) yields.push(v);
     expect(yields).toEqual([
       { ">": "branch" },
-      { ">": "branch.tagged", result: "a1" },
-      { ">": "branch.tagged", result: "a2" },
-      { ">": "branch.tagged", result: "a3" },
-      { ">": "branch.tagged", result: "b1" },
-      { ">": "branch.tagged", result: "b2" },
-      { ">": "branch.tagged", result: "b3" },
+      { ">": "branch.outer", items: ["a", "b"] },
+      { ">": "branch.outer[0].inner", items: [1, 2, 3] },
+      { ">": "branch.outer[0].inner[0].tagged", result: "a1" },
+      { ">": "branch.outer[0].inner[1].tagged", result: "a2" },
+      { ">": "branch.outer[0].inner[2].tagged", result: "a3" },
+      { ">": "branch.outer[1].inner", items: [1, 2, 3] },
+      { ">": "branch.outer[1].inner[0].tagged", result: "b1" },
+      { ">": "branch.outer[1].inner[1].tagged", result: "b2" },
+      { ">": "branch.outer[1].inner[2].tagged", result: "b3" },
       { ">": "branch.flat", result: ["a1", "a2", "a3", "b1", "b2", "b3"] },
       { ">": "branch", result: ["a1", "a2", "a3", "b1", "b2", "b3"] },
     ]);
@@ -638,10 +659,13 @@ describe("Loop", () => {
     for await (const v of branch.stream({ inner: [1, 2, 3, 4] })) yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { inner: [1, 2, 3, 4] } },
-      { ">": "branch.even", result: 4 },
-      { ">": "branch.even", result: 8 },
-      { ">": "branch.even", result: 6 },
-      { ">": "branch.even", result: 12 },
+      { ">": "branch.outer", items: [2, 3] },
+      { ">": "branch.outer[0].inner", items: [1, 2, 3, 4] },
+      { ">": "branch.outer[0].inner[1].even", result: 4 },
+      { ">": "branch.outer[0].inner[3].even", result: 8 },
+      { ">": "branch.outer[1].inner", items: [1, 2, 3, 4] },
+      { ">": "branch.outer[1].inner[1].even", result: 6 },
+      { ">": "branch.outer[1].inner[3].even", result: 12 },
       { ">": "branch", result: [[4, 8], [6, 12]] },
     ]);
   });
@@ -677,10 +701,13 @@ describe("Loop", () => {
     for await (const v of branch.stream({ inner: [10, 20] })) yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { inner: [10, 20] } },
-      { ">": "branch.product", result: 20 },
-      { ">": "branch.product", result: 40 },
-      { ">": "branch.product", result: 40 },
-      { ">": "branch.product", result: 80 },
+      { ">": "branch.outer", items: [1, 2, 3, 4] },
+      { ">": "branch.outer[1].inner", items: [10, 20] },
+      { ">": "branch.outer[1].inner[0].product", result: 20 },
+      { ">": "branch.outer[1].inner[1].product", result: 40 },
+      { ">": "branch.outer[3].inner", items: [10, 20] },
+      { ">": "branch.outer[3].inner[0].product", result: 40 },
+      { ">": "branch.outer[3].inner[1].product", result: 80 },
       { ">": "branch", result: [[20, 40], [40, 80]] },
     ]);
   });

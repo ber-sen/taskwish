@@ -231,12 +231,13 @@ async function* runHandlerList(
         : typeof itemsGetter === "string"
           ? (itemsGetter as string).split(".").reduce((o: any, k) => o?.[k], ctx)
           : itemsGetter;
+      yield { ">": `${name}.${loopName}`, items };
       const innerAcc: Record<string, unknown[]> = {};
       let loopLastStepName: string | null = null;
       const flatSteps = steps as unknown[];
       for (let index = 0; index < (items as unknown[]).length; index++) {
         ctx[loopName] = { item: (items as unknown[])[index], index };
-        const r = yield* runHandlerList(name, flatSteps, ctx, innerAcc);
+        const r = yield* runHandlerList(`${name}.${loopName}[${index}]`, flatSteps, ctx, innerAcc);
         if (r.lastStepName) loopLastStepName = r.lastStepName;
       }
       delete ctx[loopName];
