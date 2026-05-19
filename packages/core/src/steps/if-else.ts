@@ -1,23 +1,47 @@
 import { TW } from "../core";
-import { PrettyScope } from "../helpers";
+import { PrettyScope, RawEntry, ResolveScope } from "../helpers";
 
-type Truthy<T> = T extends false | "" | 0 | null | undefined ? never : T;
+// ── Scope helpers ─────────────────────────────────────────────────────────────
 
-// Scope after If: new keys from the branch become optional
-type IfScope<Base extends Record<any, any>, Added extends Record<any, any>> =
-  Base & Partial<Omit<Added, keyof Base>>;
+// IfScope: new keys get ":if" prepended to their operator stack.
+// Existing keys that were already conditional (":if" at front) get their result
+// unioned — this correctly handles ElseIf setting the same key as a prior If.
+type IfScope<Base extends Record<any, any>, Added extends Record<any, any>> = {
+  [K in keyof Base | keyof Added]:
+    K extends keyof Base
+      ? K extends keyof Added
+        ? Base[K] extends RawEntry<infer BR, [":if", ...infer RestOps extends string[]]>
+          ? Added[K] extends RawEntry<infer AR, any>
+            ? RawEntry<BR | AR, [":if", ...RestOps]>
+            : Base[K]
+          : Base[K]
+        : Base[K]
+      : K extends keyof Added
+        ? Added[K] extends RawEntry<infer R, infer Ops extends string[]>
+          ? RawEntry<R, [":if", ...Ops]>
+          : RawEntry<Added[K], [":if"]>
+        : never;
+};
 
-// Scope after Else: keys that were optional from If + present in Else become required (union of both values)
+// ElseScope: for keys present in both branches, resolves the ":if" by unioning.
+// If the Else-side value is itself conditional (e.g., Else contains an inner If),
+// the ":if" is kept so the combined result remains optional.
 type ElseScope<IfCtxScope extends Record<any, any>, ElseAdded extends Record<any, any>> = {
   [K in keyof IfCtxScope | keyof ElseAdded]:
     K extends keyof IfCtxScope
       ? K extends keyof ElseAdded
-        ? undefined extends IfCtxScope[K]
-          ? Exclude<IfCtxScope[K], undefined> | ElseAdded[K]
+        ? IfCtxScope[K] extends RawEntry<infer IfR, [":if", ...infer RestOps extends string[]]>
+          ? ElseAdded[K] extends RawEntry<infer ElseR, infer ElseOps extends string[]>
+            ? ElseOps extends [":if", ...string[]]
+              ? RawEntry<IfR | ElseR, [":if", ...RestOps]>
+              : RawEntry<IfR | ElseR, RestOps>
+            : IfCtxScope[K]
           : IfCtxScope[K]
         : IfCtxScope[K]
       : K extends keyof ElseAdded
-        ? ElseAdded[K] | undefined
+        ? ElseAdded[K] extends RawEntry<infer R, infer Ops extends string[]>
+          ? RawEntry<R, [":if", ...Ops]>
+          : RawEntry<ElseAdded[K], [":if"]>
         : never;
 };
 
@@ -31,12 +55,14 @@ type ElseLast<Ctx, A> =
   ("last" extends keyof Ctx ? Exclude<Ctx["last"], undefined> : never) |
   ("last" extends keyof A ? A["last"] : never);
 
+// ── Overloads ─────────────────────────────────────────────────────────────────
+
 export function If<
   Ctx extends Record<any, any>,
   const Condition,
   A extends Record<any, any>,
 >(
-  condition: ((scope: TW.Scope<PrettyScope<Ctx["scope"]>>) => Condition) | Condition,
+  condition: ((scope: TW.Scope<PrettyScope<ResolveScope<Ctx["scope"]>>>) => Condition) | Condition,
   step: { [TW.Step]: (input: Ctx) => A },
 ): {
   [TW.Type]: "If";
@@ -76,7 +102,7 @@ export function ElseIf<
   const Condition,
   A extends Record<any, any>,
 >(
-  condition: ((scope: TW.Scope<PrettyScope<Ctx["scope"]>>) => Condition) | Condition,
+  condition: ((scope: TW.Scope<PrettyScope<ResolveScope<Ctx["scope"]>>>) => Condition) | Condition,
   step: { [TW.Step]: (input: Ctx) => A },
 ): {
   [TW.Type]: "ElseIf";

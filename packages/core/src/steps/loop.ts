@@ -1,13 +1,22 @@
 import { TW } from "../core";
-import { PrettyScope } from "../helpers";
+import { PrettyScope, RawEntry, ResolveScope } from "../helpers";
+
+// ── Scope helpers ─────────────────────────────────────────────────────────────
 
 // During the loop the named key holds { item: T; index: number }
 type LoopInnerCtx<Ctx extends Record<any, any>, Name extends string, Item> =
-  Omit<Ctx, "scope"> & { scope: { [K in Name]: { item: Item; index: number } } & Ctx["scope"] };
+  Omit<Ctx, "scope"> & {
+    scope: { [K in Name]: RawEntry<{ item: Item; index: number }, []> } & Ctx["scope"];
+  };
 
-// After the loop the inner steps' new keys become arrays; the loop variable is excluded
+// After the loop: new keys (not in base, not the loop variable) get ":loop" prepended.
 type LoopScope<Base extends Record<any, any>, Added extends Record<any, any>, Name extends string> =
-  Base & { [K in keyof Added as K extends keyof Base | Name ? never : K]: Added[K][] };
+  Base & {
+    [K in keyof Added as K extends keyof Base | Name ? never : K]:
+      Added[K] extends RawEntry<infer R, infer Ops extends string[]>
+        ? RawEntry<R, [":loop", ...Ops]>
+        : RawEntry<Added[K], [":loop"]>;
+  };
 
 type LoopResult<Ctx extends Record<any, any>, A extends Record<any, any>, Name extends string> = {
   [TW.Type]: "Loop";
@@ -19,7 +28,10 @@ type LoopResult<Ctx extends Record<any, any>, A extends Record<any, any>, Name e
   };
 };
 
-type Items<Ctx extends Record<any, any>> = (ctx: TW.Scope<PrettyScope<Ctx["scope"]>>) => readonly any[];
+type Items<Ctx extends Record<any, any>> =
+  (ctx: TW.Scope<PrettyScope<ResolveScope<Ctx["scope"]>>>) => readonly any[];
+
+// ── Overloads ─────────────────────────────────────────────────────────────────
 
 export interface LoopFn {
   // Unnamed — 1 step

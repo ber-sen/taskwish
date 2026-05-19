@@ -1,5 +1,7 @@
-import { PrettyScope } from "../helpers";
+import { PrettyScope, RawEntry, ResolveScope } from "../helpers";
 import { TW } from "../core";
+
+type UserScope<Ctx extends Record<any, any>> = TW.Scope<PrettyScope<ResolveScope<Ctx["scope"]>>>;
 
 export function Step<
   Ctx extends Record<any, any>,
@@ -8,7 +10,7 @@ export function Step<
     : string,
   const Handler extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
-    : (this: TW.Scope<PrettyScope<Ctx["scope"]>>) => any,
+    : (this: UserScope<Ctx>) => any,
   const Params extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
     : never,
@@ -26,7 +28,7 @@ export function Step<
     [TW.Step]: Ctx["step"];
     scope: Record<
       Name,
-      Name extends keyof Ctx["step"]["map"] ? string : ReturnType<Handler>
+      RawEntry<Name extends keyof Ctx["step"]["map"] ? string : ReturnType<Handler>, []>
     > &
       Ctx["scope"];
     last: ReturnType<Handler>;
@@ -40,7 +42,7 @@ export function Step<
     : string,
   const Handler extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
-    : (this: TW.Scope<PrettyScope<Ctx["scope"]>>) => any,
+    : (this: UserScope<Ctx>) => any,
   const Params extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
     : never,
@@ -58,7 +60,7 @@ export function Step<
     name: Ctx["name"];
     steps: Ctx["steps"] & Record<Name, A>;
     [TW.Step]: Ctx["step"];
-    scope: Record<Name, A> & Ctx["scope"];
+    scope: Record<Name, RawEntry<A, []>> & Ctx["scope"];
     last: ReturnType<Handler>;
   };
 };
@@ -70,7 +72,7 @@ export function Step<
     : string,
   const Handler extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
-    : (this: TW.Scope<PrettyScope<Ctx["scope"]>>) => any,
+    : (this: UserScope<Ctx>) => any,
   const Params extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
     : never,
@@ -90,7 +92,7 @@ export function Step<
     name: Ctx["name"];
     steps: Ctx["steps"] & Record<Name, B>;
     [TW.Step]: Ctx["step"];
-    scope: Record<Name, B> & Ctx["scope"];
+    scope: Record<Name, RawEntry<B, []>> & Ctx["scope"];
     last: ReturnType<Handler>;
   };
 };

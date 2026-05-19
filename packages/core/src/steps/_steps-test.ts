@@ -246,7 +246,7 @@ type Scope = OperatorCalculator<
         4,
         Append<
           "step4",
-          ":loop",
+          ":if",
           Append<
             "step5",
             3,
@@ -258,13 +258,6 @@ type Scope = OperatorCalculator<
   >
 >;
 
-type Scope2 = OperatorCalculator<
-  Append<
-    typeof If(1 > 2)
-    Append<
-      { name: string; run: (scope: PrettyScope<Scope>) => any }, {}>
-  >
->
 
 type B = Pretty<FormatScope<Scope>>;
 
