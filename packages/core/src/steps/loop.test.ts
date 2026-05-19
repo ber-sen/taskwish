@@ -25,8 +25,7 @@ describe("Loop", () => {
   test("exposes index alongside item — named loop variable", async () => {
     const { branch } = Action("branch").run(
       Loop(
-        "n",
-        [10, 20, 30],
+        { name: "n", items: [10, 20, 30] },
 
         Step("tagged", function () {
           return `${this.n.index}:${this.n.item}`;
