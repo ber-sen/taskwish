@@ -3,24 +3,24 @@ import { PrettyScope, RawEntry, ResolveScope } from "../helpers";
 
 // ── Scope helpers ─────────────────────────────────────────────────────────────
 
-// `loop` is always in scope. When a custom name is given it is also added.
-type LoopInnerCtx<Ctx extends Record<any, any>, Name extends string | null, Item> =
-  Omit<Ctx, "scope"> & {
-    scope: { loop: RawEntry<{ item: Item; index: number }, []> }
-      & { [K in Name & string]: RawEntry<{ item: Item; index: number }, []> }
-      & Ctx["scope"];
-  };
+// After the loop: keys added inside (except the loop variable Name) get ":loop" prepended.
+type LoopScope<
+  Base extends Record<any, any>,
+  Added extends Record<any, any>,
+  Name extends string,
+> = Base & {
+  [K in keyof Added as K extends keyof Base | Name
+    ? never
+    : K]: Added[K] extends RawEntry<infer R, infer Ops extends string[]>
+    ? RawEntry<R, [":loop", ...Ops]>
+    : RawEntry<Added[K], [":loop"]>;
+};
 
-// After the loop: keys added inside (except `loop` and the custom name) get ":loop" prepended.
-type LoopScope<Base extends Record<any, any>, Added extends Record<any, any>, Name extends string | null> =
-  Base & {
-    [K in keyof Added as K extends keyof Base | "loop" | (Name extends null ? never : Name & string) ? never : K]:
-      Added[K] extends RawEntry<infer R, infer Ops extends string[]>
-        ? RawEntry<R, [":loop", ...Ops]>
-        : RawEntry<Added[K], [":loop"]>;
-  };
-
-type LoopResult<Ctx extends Record<any, any>, A extends Record<any, any>, Name extends string | null> = {
+type LoopResult<
+  Ctx extends Record<any, any>,
+  A extends Record<any, any>,
+  Name extends string,
+> = {
   [TW.Type]: "Loop";
   [TW.Step]: (input: Ctx) => {
     name: A["name"];
@@ -30,104 +30,120 @@ type LoopResult<Ctx extends Record<any, any>, A extends Record<any, any>, Name e
   };
 };
 
-type Items<Ctx extends Record<any, any>> =
-  (ctx: TW.Scope<PrettyScope<ResolveScope<Ctx["scope"]>>>) => readonly any[];
+// ── ForEach ───────────────────────────────────────────────────────────────────
 
-// ── String "this.KEY" path helpers ────────────────────────────────────────────
+export type ForEachNode<Ctx extends Record<any,any>, Item = any, Name extends string = "loop"> = {
+  [TW.Type]: "ForEach";
+  [TW.Step]: (ctx: Ctx) => {
+    name: Ctx["name"];
+    steps: Ctx["steps"];
+    [TW.Step]: Ctx["step"];
+    scope: Record<Name, RawEntry<{ item: Item; index: number }, []>> & Ctx["scope"];
+    last: Ctx["last"];
+  };
+  loopName: Name;
+  fn: (...args: any[]) => any;
+};
 
-type ResolvedScopeOf<Ctx extends Record<any, any>> = ResolveScope<Ctx["scope"]>;
+export function ForEach<Ctx extends Record<any, any>, Item, Name extends string>(
+  name: Name,
+  fn: (scope: TW.Scope<PrettyScope<ResolveScope<Ctx["scope"]>>>) => readonly Item[],
+): ForEachNode<Ctx, Item, Name>;
 
-// All dot-separated paths to array-typed leaves, up to 10 levels deep.
-type ArrayPaths<T, Prefix extends string = "", D extends 1[] = []> =
-  D["length"] extends 10 ? never :
-  {
-    [K in keyof T & string]:
-      T[K] extends readonly any[]
-        ? `${Prefix}${K}`
-        : T[K] extends Record<string, any>
-          ? ArrayPaths<T[K], `${Prefix}${K}.`, [...D, 1]>
-          : never;
-  }[keyof T & string];
+export function ForEach<Ctx extends Record<any, any>, Name extends string>(
+  name: Name,
+  options: { range: readonly [number, number] },
+): ForEachNode<Ctx, number, Name>;
 
-// Element type at a dot path (e.g. "words" → string, "foo.bar" → number).
-type ElementAtPath<T, Path extends string> =
-  Path extends `${infer K}.${infer Rest}`
-    ? K extends keyof T ? ElementAtPath<T[K], Rest> : never
-    : Path extends keyof T
-      ? T[Path] extends readonly (infer Item)[] ? Item : never
-      : never;
+export function ForEach<Ctx extends Record<any, any>, const Item, Name extends string>(
+  name: Name,
+  items: readonly Item[],
+): ForEachNode<Ctx, Item, Name>;
 
-type ScopeArrayPaths<Ctx extends Record<any, any>> = ArrayPaths<Omit<ResolvedScopeOf<Ctx>, "event">>;
-type ScopeElementAt<Ctx extends Record<any, any>, Path extends string> =
-  ElementAtPath<ResolvedScopeOf<Ctx>, Path>;
+export function ForEach<Ctx extends Record<any, any>, Item>(
+  fn: (scope: TW.Scope<PrettyScope<ResolveScope<Ctx["scope"]>>>) => readonly Item[],
+): ForEachNode<Ctx, Item, "loop">;
 
-// Infers item type from whichever form was used.
-// Path wins when provided; Is falls back to `any` when neither could be inferred.
-type LoopItem<Ctx extends Record<any, any>, Is extends readonly any[], Path extends string> =
-  [Path] extends [never]
-    ? [Is] extends [never[]] ? any : NoInfer<Is>[number]
-    : ScopeElementAt<Ctx, Path>;
+export function ForEach<Ctx extends Record<any, any>>(
+  options: { range: readonly [number, number] },
+): ForEachNode<Ctx, number, "loop">;
+
+export function ForEach<Ctx extends Record<any, any>, const Item>(
+  items: readonly Item[],
+): ForEachNode<Ctx, Item, "loop">;
+
+export function ForEach(...args: unknown[]): never {
+  const [first, second] = args;
+  if (typeof first === "string") {
+    const fn = toFn(second);
+    return { [TW.Type]: "ForEach", loopName: first, fn } as never;
+  }
+  const fn = toFn(first);
+  return { [TW.Type]: "ForEach", loopName: "loop", fn } as never;
+}
+
+function toFn(v: unknown): () => unknown[] {
+  if (Array.isArray(v)) return () => v;
+  if (v !== null && typeof v === "object" && "range" in (v as object)) {
+    const [from, to] = (v as { range: [number, number] }).range;
+    return () => Array.from({ length: to - from }, (_, i) => from + i);
+  }
+  return v as () => unknown[];
+}
 
 // ── Overloads ─────────────────────────────────────────────────────────────────
 
 export interface LoopFn {
-  // 1 step
-  <
-    Ctx extends Record<any, any>,
-    A extends Record<any, any>,
-    Is extends readonly any[] = never[],
-    const Path extends ScopeArrayPaths<Ctx> = never,
-    Name extends string | null = null,
-  >(
-    input: Is | { name: Name & string; items: Is | Path } | Path,
-    step: { [TW.Step]: (input: LoopInnerCtx<Ctx, Name, LoopItem<Ctx, Is, Path>>) => A },
-  ): LoopResult<Ctx, A, Name>;
-
-  // 2 steps
+  // ForEach + 1 step
   <
     Ctx extends Record<any, any>,
     A extends Record<any, any>,
     B extends Record<any, any>,
-    Is extends readonly any[] = never[],
-    const Path extends ScopeArrayPaths<Ctx> = never,
-    Name extends string | null = null,
+    Name extends string,
   >(
-    input: Is | { name: Name & string; items: Is | Path } | Path,
-    step1: { [TW.Step]: (input: LoopInnerCtx<Ctx, Name, LoopItem<Ctx, Is, Path>>) => A },
-    step2: { [TW.Step]: (input: A) => B },
+    input: { [TW.Type]: "ForEach"; [TW.Step]: (input: Ctx) => A; loopName: Name },
+    step: { [TW.Step]: (input: A) => B },
   ): LoopResult<Ctx, B, Name>;
 
-  // 3 steps
+  // ForEach + 2 steps
   <
     Ctx extends Record<any, any>,
     A extends Record<any, any>,
     B extends Record<any, any>,
     C extends Record<any, any>,
-    Is extends readonly any[] = never[],
-    const Path extends ScopeArrayPaths<Ctx> = never,
-    Name extends string | null = null,
+    Name extends string,
   >(
-    input: Is | { name: Name & string; items: Is | Path } | Path,
-    step1: { [TW.Step]: (input: LoopInnerCtx<Ctx, Name, LoopItem<Ctx, Is, Path>>) => A },
-    step2: { [TW.Step]: (input: A) => B },
-    step3: { [TW.Step]: (input: B) => C },
+    input: { [TW.Type]: "ForEach"; [TW.Step]: (input: Ctx) => A; loopName: Name },
+    step1: { [TW.Step]: (input: A) => B },
+    step2: { [TW.Step]: (input: B) => C },
   ): LoopResult<Ctx, C, Name>;
 
-  Range(start: number, end: number): number[];
+  // ForEach + 3 steps
+  <
+    Ctx extends Record<any, any>,
+    A extends Record<any, any>,
+    B extends Record<any, any>,
+    C extends Record<any, any>,
+    D extends Record<any, any>,
+    Name extends string,
+  >(
+    input: { [TW.Type]: "ForEach"; [TW.Step]: (input: Ctx) => A; loopName: Name },
+    step1: { [TW.Step]: (input: A) => B },
+    step2: { [TW.Step]: (input: B) => C },
+    step3: { [TW.Step]: (input: C) => D },
+  ): LoopResult<Ctx, D, Name>;
+
 }
 
-export const Loop: LoopFn = Object.assign(
-  function Loop(...args: unknown[]): never {
-    const first = args[0];
-    const isNamed = first !== null && typeof first === "object" && !Array.isArray(first) && "name" in (first as object);
-    const name = isNamed ? (first as { name: string }).name : "loop";
-    const items = isNamed ? (first as { name: string; items: unknown }).items : first;
-    const steps = args.slice(1);
-    return { [TW.Type]: "Loop", name, items, steps } as never;
-  },
-  {
-    Range(start: number, end: number): number[] {
-      return Array.from({ length: end - start }, (_, i) => start + i);
-    },
-  },
-) as LoopFn;
+export const Loop: LoopFn = function Loop(...args: unknown[]): never {
+  const first = args[0];
+  const loopName =
+    first !== null &&
+    typeof first === "object" &&
+    (first as any)[TW.Type] === "ForEach"
+      ? (first as any).loopName ?? "loop"
+      : "loop";
+  const items = first;
+  const steps = args.slice(1);
+  return { [TW.Type]: "Loop", name: loopName, items, steps } as never;
+} as LoopFn;

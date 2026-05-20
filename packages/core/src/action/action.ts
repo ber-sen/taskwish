@@ -177,7 +177,9 @@ function twType(handler: unknown): string | null {
 async function evalCond(condition: unknown, ctx: Record<string | symbol, unknown>): Promise<boolean> {
   const val = typeof condition === "function"
     ? await (condition as (scope: unknown) => unknown).call(ctx, ctx)
-    : condition;
+    : twType(condition) === "Condition"
+      ? await ((condition as any).fn as (scope: unknown) => unknown).call(ctx, ctx)
+      : condition;
   return Boolean(val);
 }
 
@@ -212,15 +214,35 @@ async function* runHandlerList(
 
     if (type === "If") {
       const { condition, steps } = handler as IfEntry;
-      lastCond = await evalCond(condition, ctx);
+      const isCondNode = twType(condition) === "Condition";
+      let condRaw: unknown;
+      if (isCondNode) {
+        condRaw = await ((condition as any).fn as Function).call(ctx, ctx);
+        lastCond = Boolean(condRaw);
+      } else {
+        lastCond = await evalCond(condition, ctx);
+      }
       yield { ">": `${name}.if`, condition: lastCond };
-      if (lastCond) adopt(yield* runHandlerList(`${name}.if`, steps as unknown[], ctx, loopAcc));
+      if (lastCond) {
+        if (isCondNode) ctx["condition"] = condRaw;
+        adopt(yield* runHandlerList(`${name}.if`, steps as unknown[], ctx, loopAcc));
+      }
     } else if (type === "ElseIf") {
       if (lastCond === false) {
         const { condition, steps } = handler as IfEntry;
-        lastCond = await evalCond(condition, ctx);
+        const isCondNode = twType(condition) === "Condition";
+        let condRaw: unknown;
+        if (isCondNode) {
+          condRaw = await ((condition as any).fn as Function).call(ctx, ctx);
+          lastCond = Boolean(condRaw);
+        } else {
+          lastCond = await evalCond(condition, ctx);
+        }
         yield { ">": `${name}.elseIf`, condition: lastCond };
-        if (lastCond) adopt(yield* runHandlerList(`${name}.elseIf`, steps as unknown[], ctx, loopAcc));
+        if (lastCond) {
+          if (isCondNode) ctx["condition"] = condRaw;
+          adopt(yield* runHandlerList(`${name}.elseIf`, steps as unknown[], ctx, loopAcc));
+        }
       }
     } else if (type === "Else") {
       if (lastCond === false) {
@@ -233,9 +255,11 @@ async function* runHandlerList(
       const { name: loopName, items: itemsGetter, steps } = handler as LoopEntry;
       const items = typeof itemsGetter === "function"
         ? await (itemsGetter as (scope: unknown) => unknown).call(ctx, ctx)
-        : typeof itemsGetter === "string"
-          ? (itemsGetter as string).split(".").reduce((o: any, k) => o?.[k], ctx)
-          : itemsGetter;
+        : twType(itemsGetter) === "ForEach"
+          ? await ((itemsGetter as any).fn as (scope: unknown) => unknown).call(ctx, ctx)
+          : typeof itemsGetter === "string"
+            ? (itemsGetter as string).split(".").reduce((o: any, k) => o?.[k], ctx)
+            : itemsGetter;
       yield { ">": `${name}.${loopName}`, items };
       const innerAcc: Record<string, unknown[]> = {};
       let loopLastStepName: string | null = null;

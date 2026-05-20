@@ -2,16 +2,16 @@ import { expect, test, describe } from "bun:test";
 import { Expect, Equal } from "../helpers";
 import { Action } from "../action";
 import { Step } from "./step";
-import { If, Else, ElseIf } from "./if-else";
-import { Loop } from "./loop";
+import { If, Else, ElseIf, Condition } from "./if-else";
+import { Loop, ForEach } from "./loop";
 
 // ─── Runtime ────────────────────────────────────────────────────────────────
 
 describe("If / Else", () => {
-  test("runs if-step when condition is true", async () => {
+  test("runs if-branch when condition is true", async () => {
     const { branch } = Action("branch").run(
       If(
-        () => true,
+        Condition(() => true),
 
         Step("result", function () {
           return "truthy";
@@ -26,12 +26,21 @@ describe("If / Else", () => {
     );
 
     expect(await branch()).toEqual("truthy");
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream()) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch" },
+      { ">": "branch.if", condition: true },
+      { ">": "branch.if.result", result: "truthy" },
+      { ">": "branch", result: "truthy" },
+    ]);
   });
 
-  test("runs else-step when condition is false", async () => {
+  test("runs else-branch when condition is false", async () => {
     const { branch } = Action("branch").run(
       If(
-        () => false,
+        Condition(() => false),
 
         Step("result", function () {
           return "truthy";
@@ -46,16 +55,26 @@ describe("If / Else", () => {
     );
 
     expect(await branch()).toEqual("falsy");
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream()) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch" },
+      { ">": "branch.if", condition: false },
+      { ">": "branch.else" },
+      { ">": "branch.else.result", result: "falsy" },
+      { ">": "branch", result: "falsy" },
+    ]);
   });
 
-  test("skips if-step silently when condition is false and no Else", async () => {
+  test("skips branch when condition is false and no Else", async () => {
     const { branch } = Action("branch").run(
       Step("before", function () {
         return 1;
       }),
 
       If(
-        () => false,
+        Condition(() => false),
 
         Step("skipped", function () {
           return 99;
@@ -68,6 +87,16 @@ describe("If / Else", () => {
     );
 
     expect(await branch()).toEqual(1);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream()) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch" },
+      { ">": "branch.before", result: 1 },
+      { ">": "branch.if", condition: false },
+      { ">": "branch.after", result: 1 },
+      { ">": "branch", result: 1 },
+    ]);
   });
 
   test("inner step accesses outer scope", async () => {
@@ -80,7 +109,7 @@ describe("If / Else", () => {
         }),
 
         If(
-          () => true,
+          Condition(() => true),
 
           Step("result", function () {
             return this.doubled > 0;
@@ -89,60 +118,15 @@ describe("If / Else", () => {
       );
 
     expect(await branch({ value: 3 })).toEqual(true);
-  });
-
-  test("stream yields inner step events", async () => {
-    const { branch } = Action("branch").run(
-      If(
-        () => true,
-
-        Step("check", function () {
-          return 42;
-        }),
-      ),
-    );
 
     const yields: unknown[] = [];
-    for await (const v of branch.stream()) {
-      yields.push(v);
-    }
-
+    for await (const v of branch.stream({ value: 3 })) yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch" },
+      { ">": "branch", input: { value: 3 } },
+      { ">": "branch.doubled", result: 6 },
       { ">": "branch.if", condition: true },
-      { ">": "branch.if.check", result: 42 },
-      { ">": "branch", result: 42 },
-    ]);
-  });
-
-  test("stream — else-step emitted when condition is false", async () => {
-    const { branch } = Action("branch").run(
-      If(
-        () => false,
-
-        Step("check", function () {
-          return "if";
-        }),
-      ),
-
-      Else(
-        Step("check", function () {
-          return "else";
-        }),
-      ),
-    );
-
-    const yields: unknown[] = [];
-    for await (const v of branch.stream()) {
-      yields.push(v);
-    }
-
-    expect(yields).toEqual([
-      { ">": "branch" },
-      { ">": "branch.if", condition: false },
-      { ">": "branch.else" },
-      { ">": "branch.else.check", result: "else" },
-      { ">": "branch", result: "else" },
+      { ">": "branch.if.result", result: true },
+      { ">": "branch", result: true },
     ]);
   });
 
@@ -152,10 +136,10 @@ describe("If / Else", () => {
 
       .run(
         If(
-          (ctx) => ctx.input.x > 10,
+          Condition(({ input }) => input.x > 10),
 
           Step("result", function () {
-            return "big";
+            return this.condition ? "big" : "not big";
           }),
         ),
 
@@ -168,6 +152,15 @@ describe("If / Else", () => {
 
     expect(await branch({ x: 5 })).toEqual("small");
     expect(await branch({ x: 20 })).toEqual("big");
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ x: 20 })) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch", input: { x: 20 } },
+      { ">": "branch.if", condition: true },
+      { ">": "branch.if.result", result: "big" },
+      { ">": "branch", result: "big" },
+    ]);
   });
 
   test("runs else-if step when if is false and else-if is true", async () => {
@@ -176,25 +169,158 @@ describe("If / Else", () => {
 
       .run(
         If(
-          (ctx) => ctx.input.x > 10,
+          Condition(({ input }) => input.x > 10),
 
-          Step("result", function () { return "big"; }),
+          Step("result", function () {
+            return "big";
+          }),
         ),
 
         ElseIf(
-          (ctx) => ctx.input.x > 5,
+          Condition(({ input }) => input.x > 5),
 
-          Step("result", function () { return "medium"; }),
+          Step("result", function () {
+            return "medium";
+          }),
         ),
 
         Else(
-          Step("result", function () { return "small"; }),
+          Step("result", function () {
+            return "small";
+          }),
         ),
       );
 
     expect(await branch({ x: 20 })).toEqual("big");
     expect(await branch({ x: 7 })).toEqual("medium");
     expect(await branch({ x: 2 })).toEqual("small");
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ x: 7 })) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch", input: { x: 7 } },
+      { ">": "branch.if", condition: false },
+      { ">": "branch.elseIf", condition: true },
+      { ">": "branch.elseIf.result", result: "medium" },
+      { ">": "branch", result: "medium" },
+    ]);
+  });
+
+  test("multi-step If — inner steps thread context", async () => {
+    const { branch } = Action("branch")
+      .input({ x: "number" })
+
+      .run(
+        If(
+          Condition(({ input }) => input.x > 0),
+
+          Step("doubled", function () {
+            return this.input.x * 2;
+          }),
+
+          Step("label", function () {
+            return `val:${this.doubled}`;
+          }),
+        ),
+      );
+
+    expect(await branch({ x: 5 })).toEqual("val:10");
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ x: 5 })) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch", input: { x: 5 } },
+      { ">": "branch.if", condition: true },
+      { ">": "branch.if.doubled", result: 10 },
+      { ">": "branch.if.label", result: "val:10" },
+      { ">": "branch", result: "val:10" },
+    ]);
+  });
+
+  test("multi-step Else — inner steps thread context", async () => {
+    const { branch } = Action("branch")
+      .input({ x: "number" })
+
+      .run(
+        If(
+          Condition(() => false),
+
+          Step("result", function () {
+            return "if-branch";
+          }),
+        ),
+
+        Else(
+          Step("doubled", function () {
+            return this.input.x * 2;
+          }),
+
+          Step("label", function () {
+            return `val:${this.doubled}`;
+          }),
+        ),
+      );
+
+    expect(await branch({ x: 4 })).toEqual("val:8");
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ x: 4 })) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch", input: { x: 4 } },
+      { ">": "branch.if", condition: false },
+      { ">": "branch.else" },
+      { ">": "branch.else.doubled", result: 8 },
+      { ">": "branch.else.label", result: "val:8" },
+      { ">": "branch", result: "val:8" },
+    ]);
+  });
+
+  test("multi-step ElseIf — inner steps thread context", async () => {
+    const { branch } = Action("branch")
+      .input({ x: "number" })
+
+      .run(
+        If(
+          Condition(({ input }) => input.x > 10),
+
+          Step("result", function () {
+            return "big";
+          }),
+        ),
+
+        ElseIf(
+          Condition(({ input }) => input.x > 0),
+
+          Step("doubled", function () {
+            return this.input.x * 2;
+          }),
+
+          Step("label", function () {
+            return `medium:${this.doubled}`;
+          }),
+        ),
+
+        Else(
+          Step("result", function () {
+            return "negative";
+          }),
+        ),
+      );
+
+    expect(await branch({ x: 5 })).toEqual("medium:10");
+    expect(await branch({ x: 20 })).toEqual("big");
+    expect(await branch({ x: -1 })).toEqual("negative");
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ x: 5 })) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch", input: { x: 5 } },
+      { ">": "branch.if", condition: false },
+      { ">": "branch.elseIf", condition: true },
+      { ">": "branch.elseIf.doubled", result: 10 },
+      { ">": "branch.elseIf.label", result: "medium:10" },
+      { ">": "branch", result: "medium:10" },
+    ]);
   });
 
   // ─── Type tests ─────────────────────────────────────────────────────────
@@ -202,7 +328,7 @@ describe("If / Else", () => {
   test("type — after If, added scope key is optional", () => {
     const { branch } = Action("branch").run(
       If(
-        () => true as boolean,
+        Condition(() => true),
 
         Step("check", function () {
           return 42 as number;
@@ -213,14 +339,13 @@ describe("If / Else", () => {
     type T = typeof branch;
     type RetVal = Awaited<ReturnType<T>>;
 
-    // branch returns the last value: number | undefined (If might not run)
     type check = Expect<Equal<RetVal, number | undefined>>;
   });
 
   test("type — after If + Else same key, return is required union", () => {
     const { branch } = Action("branch").run(
       If(
-        () => true,
+        Condition(() => true),
 
         Step("check", function () {
           return "yes" as const;
@@ -237,26 +362,31 @@ describe("If / Else", () => {
     type T = typeof branch;
     type RetVal = Awaited<ReturnType<T>>;
 
-    // Both branches always produce a value — result is "yes" | "no"
     type check = Expect<Equal<RetVal, "yes" | "no">>;
   });
 
   test("type — If + ElseIf + Else produces required three-way union", () => {
     const { branch } = Action("branch").run(
       If(
-        () => true as boolean,
+        Condition(() => true),
 
-        Step("result", function () { return "a" as const; }),
+        Step("result", function () {
+          return "a" as const;
+        }),
       ),
 
       ElseIf(
-        () => true as boolean,
-        
-        Step("result", function () { return "b" as const; }),
+        Condition(() => true),
+
+        Step("result", function () {
+          return "b" as const;
+        }),
       ),
 
       Else(
-        Step("result", function () { return "c" as const; }),
+        Step("result", function () {
+          return "c" as const;
+        }),
       ),
     );
 
@@ -269,13 +399,17 @@ describe("If / Else", () => {
   test("type — If + ElseIf without Else is optional union", () => {
     const { branch } = Action("branch").run(
       If(
-        () => true as boolean,
-        Step("result", function () { return "a" as const; }),
+        Condition(() => true as boolean),
+        Step("result", function () {
+          return "a" as const;
+        }),
       ),
 
       ElseIf(
-        () => true as boolean,
-        Step("result", function () { return "b" as const; }),
+        Condition(() => true as boolean),
+        Step("result", function () {
+          return "b" as const;
+        }),
       ),
     );
 
@@ -285,65 +419,195 @@ describe("If / Else", () => {
     type check = Expect<Equal<RetVal, "a" | "b" | undefined>>;
   });
 
+  test("type — multi-step If threads context to last step", () => {
+    Action("branch")
+      .input({ x: "number" })
+
+      .run(
+        If(
+          Condition(({ input }) => input.x > 0),
+
+          Step("doubled", function () {
+            return this.input.x * 2;
+          }),
+
+          Step("label", function () {
+            type check = Expect<Equal<typeof this.doubled, number>>;
+            return `${this.doubled}`;
+          }),
+        ),
+      );
+  });
+
+  test("type — multi-step ElseIf threads context to last step", () => {
+    Action("branch")
+      .input({ x: "number" })
+
+      .run(
+        If(
+          Condition(() => true as boolean),
+
+          Step("result", function () {
+            return 0 as number;
+          }),
+        ),
+
+        ElseIf(
+          Condition(({ input }) => input.x > 0),
+
+          Step("doubled", function () {
+            return this.input.x * 2;
+          }),
+
+          Step("label", function () {
+            type check = Expect<Equal<typeof this.doubled, number>>;
+            return `${this.doubled}`;
+          }),
+        ),
+      );
+  });
+
+  test("type — multi-step Else threads context to last step", () => {
+    Action("branch")
+      .input({ x: "number" })
+
+      .run(
+        If(
+          Condition(() => true as boolean),
+
+          Step("result", function () {
+            return 0 as number;
+          }),
+        ),
+
+        Else(
+          Step("doubled", function () {
+            return this.input.x * 2;
+          }),
+
+          Step("label", function () {
+            type check = Expect<Equal<typeof this.doubled, number>>;
+            return `${this.doubled}`;
+          }),
+        ),
+      );
+  });
+
   // ─── Loop inside If ──────────────────────────────────────────────────────
 
   test("Loop inside If runs when condition is true", async () => {
     const { branch } = Action("branch").run(
       If(
-        () => true,
+        Condition(() => true),
+
         Loop(
-          [1, 2, 3],
-          Step("val", function () { return this.loop.item * 2; }),
+          ForEach(() => [1, 2, 3]),
+
+          Step("val", function () {
+            return this.loop.item * 2;
+          }),
         ),
       ),
     );
 
     expect(await branch()).toEqual([2, 4, 6]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream()) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch" },
+      { ">": "branch.if", condition: true },
+      { ">": "branch.if.loop", items: [1, 2, 3] },
+      { ">": "branch.if.loop[0].val", result: 2 },
+      { ">": "branch.if.loop[1].val", result: 4 },
+      { ">": "branch.if.loop[2].val", result: 6 },
+      { ">": "branch", result: [2, 4, 6] },
+    ]);
   });
 
   test("Loop inside If skipped when condition is false", async () => {
     const { branch } = Action("branch").run(
-      Step("before", function () { return 99; }),
+      Step("before", function () {
+        return 99;
+      }),
 
       If(
-        () => false,
+        Condition(() => false),
+
         Loop(
-          [1, 2, 3],
-          Step("val", function () { return this.loop.item; }),
+          ForEach(() => [1, 2, 3]),
+
+          Step("val", function () {
+            return this.loop.item;
+          }),
         ),
       ),
 
-      Step("after", function () { return this.before; }),
+      Step("after", function () {
+        return this.before;
+      }),
     );
 
     expect(await branch()).toEqual(99);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream()) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch" },
+      { ">": "branch.before", result: 99 },
+      { ">": "branch.if", condition: false },
+      { ">": "branch.after", result: 99 },
+      { ">": "branch", result: 99 },
+    ]);
   });
 
   test("Loop inside Else runs when condition is false", async () => {
     const { branch } = Action("branch").run(
       If(
-        () => false,
-        Step("result", function () { return "if-branch"; }),
+        Condition(() => false),
+
+        Step("result", function () {
+          return "if-branch";
+        }),
       ),
 
       Else(
         Loop(
-          [10, 20],
-          Step("result", function () { return this.loop.item; }),
+          ForEach(() => [10, 20]),
+
+          Step("result", function () {
+            return this.loop.item;
+          }),
         ),
       ),
     );
 
     expect(await branch()).toEqual([10, 20]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream()) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch" },
+      { ">": "branch.if", condition: false },
+      { ">": "branch.else" },
+      { ">": "branch.else.loop", items: [10, 20] },
+      { ">": "branch.else.loop[0].result", result: 10 },
+      { ">": "branch.else.loop[1].result", result: 20 },
+      { ">": "branch", result: [10, 20] },
+    ]);
   });
 
   test("Loop accumulated result available after If", async () => {
     const { branch } = Action("branch").run(
       If(
-        () => true,
+        Condition(() => true),
+
         Loop(
-          [1, 2, 3],
-          Step("doubled", function () { return this.loop.item * 2; }),
+          ForEach(() => [1, 2, 3]),
+
+          Step("doubled", function () {
+            return this.loop.item * 2;
+          }),
         ),
       ),
 
@@ -353,6 +617,19 @@ describe("If / Else", () => {
     );
 
     expect(await branch()).toEqual(12);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream()) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch" },
+      { ">": "branch.if", condition: true },
+      { ">": "branch.if.loop", items: [1, 2, 3] },
+      { ">": "branch.if.loop[0].doubled", result: 2 },
+      { ">": "branch.if.loop[1].doubled", result: 4 },
+      { ">": "branch.if.loop[2].doubled", result: 6 },
+      { ">": "branch.sum", result: 12 },
+      { ">": "branch", result: 12 },
+    ]);
   });
 
   // ─── If inside If ────────────────────────────────────────────────────────
@@ -360,51 +637,102 @@ describe("If / Else", () => {
   test("If inside If — both true runs inner step", async () => {
     const { branch } = Action("branch").run(
       If(
-        () => true,
+        Condition(() => true),
+
         If(
-          () => true,
-          Step("result", function () { return "both"; }),
+          Condition(() => true),
+
+          Step("result", function () {
+            return "both";
+          }),
         ),
       ),
     );
 
     expect(await branch()).toEqual("both");
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream()) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch" },
+      { ">": "branch.if", condition: true },
+      { ">": "branch.if.if", condition: true },
+      { ">": "branch.if.if.result", result: "both" },
+      { ">": "branch", result: "both" },
+    ]);
   });
 
   test("If inside If — inner false skips inner step", async () => {
     const { branch } = Action("branch").run(
-      Step("before", function () { return 1; }),
+      Step("before", function () {
+        return 1;
+      }),
 
       If(
-        () => true,
+        Condition(() => true),
+
         If(
-          () => false,
-          Step("result", function () { return "inner"; }),
+          Condition(() => false),
+
+          Step("result", function () {
+            return "inner";
+          }),
         ),
       ),
 
-      Step("after", function () { return this.before; }),
+      Step("after", function () {
+        return this.before;
+      }),
     );
 
     expect(await branch()).toEqual(1);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream()) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch" },
+      { ">": "branch.before", result: 1 },
+      { ">": "branch.if", condition: true },
+      { ">": "branch.if.if", condition: false },
+      { ">": "branch.after", result: 1 },
+      { ">": "branch", result: 1 },
+    ]);
   });
 
   test("If inside If — outer false skips both", async () => {
     const { branch } = Action("branch").run(
-      Step("before", function () { return 42; }),
+      Step("before", function () {
+        return 42;
+      }),
 
       If(
-        () => false,
+        Condition(() => false),
+
         If(
-          () => true,
-          Step("result", function () { return "inner"; }),
+          Condition(() => true),
+
+          Step("result", function () {
+            return "inner";
+          }),
         ),
       ),
 
-      Step("after", function () { return this.before; }),
+      Step("after", function () {
+        return this.before;
+      }),
     );
 
     expect(await branch()).toEqual(42);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream()) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch" },
+      { ">": "branch.before", result: 42 },
+      { ">": "branch.if", condition: false },
+      { ">": "branch.after", result: 42 },
+      { ">": "branch", result: 42 },
+    ]);
   });
 
   test("If inside If — condition receives scope at both levels", async () => {
@@ -413,24 +741,41 @@ describe("If / Else", () => {
 
       .run(
         If(
-          ctx => ctx.input.x > 0,
+          Condition(({ input }) => input.x > 0),
+
           If(
-            ctx => ctx.input.x > 10,
-            Step("result", function () { return "big"; }),
+            Condition(({ input }) => input.x > 10),
+
+            Step("result", function () {
+              return "big";
+            }),
+          ),
+          Else(
+            Step("result", function () {
+              return "small";
+            }),
           ),
         ),
 
         Else(
-          Step("result", function () { return "negative"; }),
+          Step("result", function () {
+            return "negative";
+          }),
         ),
-
-        Step("out", function () {
-          return (this as any).result ?? "small";
-        }),
       );
 
     expect(await branch({ x: -1 })).toEqual("negative");
     expect(await branch({ x: 5 })).toEqual("small");
     expect(await branch({ x: 20 })).toEqual("big");
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ x: 20 })) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch", input: { x: 20 } },
+      { ">": "branch.if", condition: true },
+      { ">": "branch.if.if", condition: true },
+      { ">": "branch.if.if.result", result: "big" },
+      { ">": "branch", result: "big" },
+    ]);
   });
 });

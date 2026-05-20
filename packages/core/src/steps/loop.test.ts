@@ -2,8 +2,8 @@ import { expect, test, describe } from "bun:test";
 import { Expect, Equal } from "../helpers";
 import { Action } from "../action";
 import { Step } from "./step";
-import { Loop } from "./loop";
-import { If, Else, ElseIf } from "./if-else";
+import { Loop, ForEach } from "./loop";
+import { If, Else, ElseIf, Condition } from "./if-else";
 
 // ─── Runtime ────────────────────────────────────────────────────────────────
 
@@ -11,7 +11,7 @@ describe("Loop", () => {
   test("array literal as items", async () => {
     const { branch } = Action("branch").run(
       Loop(
-        [1, 2, 3],
+        ForEach([1, 2, 3]),
 
         Step("doubled", function () {
           return this.loop.item * 2;
@@ -39,7 +39,7 @@ describe("Loop", () => {
 
       .run(
         Loop(
-          "input.nums",
+          ForEach(({ input }) => input.nums),
 
           Step("doubled", function () {
             return this.loop.item * 2;
@@ -64,7 +64,7 @@ describe("Loop", () => {
   test("exposes index alongside item — named loop variable", async () => {
     const { branch } = Action("branch").run(
       Loop(
-        { name: "n", items: [10, 20, 30] },
+        ForEach("n", [10, 20, 30]),
 
         Step("tagged", function () {
           return `${this.n.index}:${this.n.item}`;
@@ -89,7 +89,7 @@ describe("Loop", () => {
   test("empty array produces empty result", async () => {
     const { branch } = Action("branch").run(
       Loop(
-        [],
+        ForEach(() => []),
 
         Step("result", function () {
           return this.loop.item;
@@ -114,7 +114,7 @@ describe("Loop", () => {
 
       .run(
         Loop(
-          [10, 20, 30],
+          ForEach(() => [10, 20, 30]),
 
           Step("scaled", function () {
             return this.loop.item * this.input.factor;
@@ -143,7 +143,7 @@ describe("Loop", () => {
       }),
 
       Loop(
-        "words",
+        ForEach(({ words }) => words),
 
         Step("upper", function () {
           return this.loop.item.toUpperCase();
@@ -171,7 +171,7 @@ describe("Loop", () => {
 
       .run(
         Loop(
-          "input.items",
+          ForEach(({ input }) => input.items),
 
           Step("doubled", function () {
             return this.loop.item * 2;
@@ -203,7 +203,7 @@ describe("Loop", () => {
 
       .run(
         Loop(
-          "input.items",
+          ForEach(({ input }) => input.items),
 
           Step("doubled", function () {
             return this.loop.item * 2;
@@ -211,7 +211,7 @@ describe("Loop", () => {
         ),
 
         Step("sum", function () {
-          return (this.doubled as number[]).reduce((a, b) => a + b, 0);
+          return this.doubled.reduce((a, b) => a + b, 0);
         }),
       );
 
@@ -236,7 +236,7 @@ describe("Loop", () => {
 
       .run(
         Loop(
-          "input.items",
+          ForEach(({ input }) => input.items),
 
           Step("doubled", function () {
             return this.loop.item * 2;
@@ -276,10 +276,10 @@ describe("Loop", () => {
     ]);
   });
 
-  test("Loop.Range generates a numeric sequence", async () => {
+  test("ForEach range generates a numeric sequence", async () => {
     const { branch } = Action("branch").run(
       Loop(
-        Loop.Range(0, 4),
+        ForEach({ range: [0, 4] }),
 
         Step("squared", function () {
           return this.loop.item ** 2;
@@ -308,7 +308,7 @@ describe("Loop", () => {
 
       .run(
         Loop(
-          "input.items",
+          ForEach(({ input }) => input.items),
 
           Step("val", function () {
             return this.loop.item;
@@ -316,11 +316,10 @@ describe("Loop", () => {
         ),
       );
 
-    const yields: unknown[] = [];
-    for await (const v of branch.stream({ items: [1, 2] })) {
-      yields.push(v);
-    }
+    expect(await branch({ items: [1, 2] })).toEqual([1, 2]);
 
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ items: [1, 2] })) yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { items: [1, 2] } },
       { ">": "branch.loop", items: [1, 2] },
@@ -338,7 +337,7 @@ describe("Loop", () => {
 
       .run(
         Loop(
-          "input.nums",
+          ForEach(({ input }) => input.nums),
 
           Step("doubled", function () {
             return this.loop.item * 2;
@@ -358,7 +357,7 @@ describe("Loop", () => {
 
       .run(
         Loop(
-          "input.nums",
+          ForEach(({ input }) => input.nums),
 
           Step("doubled", function () {
             return this.loop.item * 2;
@@ -373,10 +372,28 @@ describe("Loop", () => {
       );
   });
 
-  test("type — Loop.Range produces number items", () => {
+  test("type — ForEach infers item type from scope", () => {
+    Action("branch")
+      .input({ items: "number[]" })
+
+      .run(
+        Loop(
+          ForEach(({ input }) => input.items),
+
+          Step("doubled", function () {
+            type check = Expect<
+              Equal<typeof this.loop, { item: number; index: number }>
+            >;
+            return this.loop.item * 2;
+          }),
+        ),
+      );
+  });
+
+  test("type — ForEach range produces number items", () => {
     Action("branch").run(
       Loop(
-        Loop.Range(0, 5),
+        ForEach({ range: [0, 5] }),
 
         Step("squared", function () {
           type check = Expect<
@@ -396,10 +413,10 @@ describe("Loop", () => {
 
       .run(
         Loop(
-          "input.items",
+          ForEach(({ input }) => input.items),
 
           If(
-            (ctx) => ctx.loop.item % 2 === 0,
+            Condition(({ loop }) => loop.item % 2 === 0),
 
             Step("even", function () {
               return this.loop.item;
@@ -411,7 +428,8 @@ describe("Loop", () => {
     expect(await branch({ items: [1, 2, 3, 4] })).toEqual([2, 4]);
 
     const yields: unknown[] = [];
-    for await (const v of branch.stream({ items: [1, 2, 3, 4] })) yields.push(v);
+    for await (const v of branch.stream({ items: [1, 2, 3, 4] }))
+      yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { items: [1, 2, 3, 4] } },
       { ">": "branch.loop", items: [1, 2, 3, 4] },
@@ -431,10 +449,10 @@ describe("Loop", () => {
 
       .run(
         Loop(
-          "input.items",
+          ForEach(({ input }) => input.items),
 
           If(
-            (ctx) => ctx.loop.item % 2 !== 0,
+            Condition(({ loop }) => loop.item % 2 !== 0),
 
             Step("tag", function () {
               return `odd:${this.loop.item}`;
@@ -477,10 +495,10 @@ describe("Loop", () => {
 
       .run(
         Loop(
-          "input.items",
+          ForEach(({ input }) => input.items),
 
           If(
-            (ctx) => ctx.loop.item > ctx.input.threshold,
+            Condition(({ loop, input }) => loop.item > input.threshold),
 
             Step("big", function () {
               return this.loop.item;
@@ -494,7 +512,11 @@ describe("Loop", () => {
     ]);
 
     const yields: unknown[] = [];
-    for await (const v of branch.stream({ items: [1, 2, 3, 4, 5], threshold: 3 })) yields.push(v);
+    for await (const v of branch.stream({
+      items: [1, 2, 3, 4, 5],
+      threshold: 3,
+    }))
+      yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { items: [1, 2, 3, 4, 5], threshold: 3 } },
       { ">": "branch.loop", items: [1, 2, 3, 4, 5] },
@@ -515,10 +537,10 @@ describe("Loop", () => {
 
       .run(
         Loop(
-          "input.items",
+          ForEach(({ input }) => input.items),
 
           If(
-            (ctx) => ctx.loop.item % 3 === 0,
+            Condition(({ loop }) => loop.item % 3 === 0),
 
             Step("tag", function () {
               return "fizz";
@@ -526,7 +548,7 @@ describe("Loop", () => {
           ),
 
           ElseIf(
-            (ctx) => ctx.loop.item % 2 === 0,
+            Condition(({ loop }) => loop.item % 2 === 0),
 
             Step("tag", function () {
               return "buzz";
@@ -551,7 +573,8 @@ describe("Loop", () => {
     ]);
 
     const yields: unknown[] = [];
-    for await (const v of branch.stream({ items: [1, 2, 3, 4, 5, 6] })) yields.push(v);
+    for await (const v of branch.stream({ items: [1, 2, 3, 4, 5, 6] }))
+      yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { items: [1, 2, 3, 4, 5, 6] } },
       { ">": "branch.loop", items: [1, 2, 3, 4, 5, 6] },
@@ -573,7 +596,49 @@ describe("Loop", () => {
       { ">": "branch.loop[4].else.tag", result: "other" },
       { ">": "branch.loop[5].if", condition: true },
       { ">": "branch.loop[5].if.tag", result: "fizz" },
-      { ">": "branch", result: ["other", "buzz", "fizz", "buzz", "other", "fizz"] },
+      {
+        ">": "branch",
+        result: ["other", "buzz", "fizz", "buzz", "other", "fizz"],
+      },
+    ]);
+  });
+
+  test("multi-step If inside loop — inner steps see each other per iteration", async () => {
+    const { branch } = Action("branch")
+      .input({ items: "number[]" })
+
+      .run(
+        Loop(
+          ForEach(({ input }) => input.items),
+
+          If(
+            Condition(({ loop }) => loop.item % 2 === 0),
+
+            Step("doubled", function () {
+              return this.loop.item * 2;
+            }),
+
+            Step("label", function () {
+              return `${this.loop.item}*2=${this.doubled}`;
+            }),
+          ),
+        ),
+      );
+
+    expect(await branch({ items: [2, 4] })).toEqual(["2*2=4", "4*2=8"]);
+
+    const yields: unknown[] = [];
+    for await (const v of branch.stream({ items: [2, 4] })) yields.push(v);
+    expect(yields).toEqual([
+      { ">": "branch", input: { items: [2, 4] } },
+      { ">": "branch.loop", items: [2, 4] },
+      { ">": "branch.loop[0].if", condition: true },
+      { ">": "branch.loop[0].if.doubled", result: 4 },
+      { ">": "branch.loop[0].if.label", result: "2*2=4" },
+      { ">": "branch.loop[1].if", condition: true },
+      { ">": "branch.loop[1].if.doubled", result: 8 },
+      { ">": "branch.loop[1].if.label", result: "4*2=8" },
+      { ">": "branch", result: ["2*2=4", "4*2=8"] },
     ]);
   });
 
@@ -582,10 +647,10 @@ describe("Loop", () => {
   test("Loop inside Loop — result is array of inner arrays", async () => {
     const { branch } = Action("branch").run(
       Loop(
-        { name: "outer", items: [1, 2] },
+        ForEach("outer", [1, 2]),
 
         Loop(
-          { name: "inner", items: [10, 20] },
+          ForEach("inner", [10, 20]),
 
           Step("product", function () {
             return this.outer.item * this.inner.item;
@@ -610,17 +675,23 @@ describe("Loop", () => {
       { ">": "branch.outer[1].inner", items: [10, 20] },
       { ">": "branch.outer[1].inner[0].product", result: 20 },
       { ">": "branch.outer[1].inner[1].product", result: 40 },
-      { ">": "branch", result: [[10, 20], [20, 40]] },
+      {
+        ">": "branch",
+        result: [
+          [10, 20],
+          [20, 40],
+        ],
+      },
     ]);
   });
 
   test("Loop inside Loop — inner accumulated key available after outer", async () => {
     const { branch } = Action("branch").run(
       Loop(
-        { name: "outer", items: ["a", "b"] },
+        ForEach("outer", ["a", "b"]),
 
         Loop(
-          { name: "inner", items: [1, 2, 3] },
+          ForEach("inner", [1, 2, 3]),
 
           Step("tagged", function () {
             return `${this.outer.item}${this.inner.item}`;
@@ -659,13 +730,13 @@ describe("Loop", () => {
 
       .run(
         Loop(
-          { name: "outer", items: [2, 3] },
+          ForEach("outer", () => [2, 3]),
 
           Loop(
-            { name: "inner", items: "input.inner" },
+            ForEach("inner", ({ input }) => input.inner),
 
             If(
-              (ctx) => ctx.inner.item % 2 === 0,
+              Condition(({ inner }) => inner.item % 2 === 0),
 
               Step("even", function () {
                 return this.outer.item * this.inner.item;
@@ -681,7 +752,8 @@ describe("Loop", () => {
     ]);
 
     const yields: unknown[] = [];
-    for await (const v of branch.stream({ inner: [1, 2, 3, 4] })) yields.push(v);
+    for await (const v of branch.stream({ inner: [1, 2, 3, 4] }))
+      yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { inner: [1, 2, 3, 4] } },
       { ">": "branch.outer", items: [2, 3] },
@@ -699,7 +771,13 @@ describe("Loop", () => {
       { ">": "branch.outer[1].inner[2].if", condition: false },
       { ">": "branch.outer[1].inner[3].if", condition: true },
       { ">": "branch.outer[1].inner[3].if.even", result: 12 },
-      { ">": "branch", result: [[4, 8], [6, 12]] },
+      {
+        ">": "branch",
+        result: [
+          [4, 8],
+          [6, 12],
+        ],
+      },
     ]);
   });
 
@@ -709,13 +787,13 @@ describe("Loop", () => {
 
       .run(
         Loop(
-          { name: "outer", items: [1, 2, 3, 4] },
+          ForEach("outer", () => [1, 2, 3, 4]),
 
           If(
-            (ctx) => ctx.outer.item % 2 === 0,
+            Condition(({ outer }) => outer.item % 2 === 0),
 
             Loop(
-              { name: "inner", items: "input.inner" },
+              ForEach("inner", ({ input }) => input.inner),
 
               Step("product", function () {
                 return this.outer.item * this.inner.item;
@@ -745,7 +823,13 @@ describe("Loop", () => {
       { ">": "branch.outer[3].if.inner", items: [10, 20] },
       { ">": "branch.outer[3].if.inner[0].product", result: 40 },
       { ">": "branch.outer[3].if.inner[1].product", result: 80 },
-      { ">": "branch", result: [[20, 40], [40, 80]] },
+      {
+        ">": "branch",
+        result: [
+          [20, 40],
+          [40, 80],
+        ],
+      },
     ]);
   });
 });
