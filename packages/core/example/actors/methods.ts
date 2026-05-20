@@ -44,7 +44,7 @@ export default Actor("SubSteps")
 
   .run(
     Loop(
-      () => Loop.Range(0, 10),
+      ForEach({ range: [0, 10] }),
 
       {
         name: "send message",

@@ -602,11 +602,5 @@ export interface Steps<
 }
 
 export const Steps: Steps<typeof SubSteps> = (...steps: any[]) => {
-  const merged: Record<string, unknown> = {};
-  for (const step of steps) {
-    if (step !== null && typeof step === "object") {
-      Object.assign(merged, step);
-    }
-  }
-  return merged as never;
+  return { [SubSteps]: steps } as never;
 };

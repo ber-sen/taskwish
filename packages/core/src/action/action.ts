@@ -7,7 +7,7 @@ import {
 } from "../helpers";
 import { Steps } from "../steps";
 import { TW } from "../core";
-import { dispatch, type ConsoleLike, type LoggerConfig } from "../use";
+import { dispatch, LogFn, type ConsoleLike, type LoggerConfig } from "../use";
 
 type ActionBody<
   Name extends string,
@@ -127,7 +127,6 @@ export async function* tapWith(
   return next.value;
 }
 
-type StepEntry = ((...a: unknown[]) => unknown) & Record<typeof TW.Name, string>;
 export type Scope = { input: unknown; get<T>(Cls: abstract new (...a: unknown[]) => T): T };
 
 const SignalTag = Symbol.for("TW.Signal");
@@ -163,37 +162,153 @@ async function* runStep(
   }
 }
 
-export async function* runAction(name: string, scope: Scope, handlers: unknown[]): AsyncGenerator<unknown, unknown> {
-  let ctx: Record<string | symbol, unknown> = { ...scope };
+type IfEntry = { condition: unknown; steps: unknown[] };
+type ElseEntry = { steps: unknown[] };
+type LoopEntry = { name: string; items: unknown; steps: unknown[] };
+
+function twType(handler: unknown): string | null {
+  return handler !== null && typeof handler === "object"
+    ? ((handler as any)[TW.Type] as string | undefined) ?? null
+    : null;
+}
+
+async function evalCond(condition: unknown, ctx: Record<string | symbol, unknown>): Promise<boolean> {
+  const val = typeof condition === "function"
+    ? await (condition as (scope: unknown) => unknown).call(ctx, ctx)
+    : twType(condition) === "Condition"
+      ? await ((condition as any).fn as (scope: unknown) => unknown).call(ctx, ctx)
+      : condition;
+  return Boolean(val);
+}
+
+
+async function* runHandlerList(
+  name: string,
+  handlers: unknown[],
+  ctx: Record<string | symbol, unknown>,
+  loopAcc: Record<string, unknown[]> | null,
+): AsyncGenerator<unknown, { last: unknown; lastStepName: string | null; lastCond: boolean | null }> {
   let last: unknown;
+  let lastStepName: string | null = null;
+  let lastCond: boolean | null = null;
+
+  const recordStep = (stepName: string, value: unknown) => {
+    ctx[stepName] = value;
+    if (loopAcc) {
+      if (!loopAcc[stepName]) loopAcc[stepName] = [];
+      loopAcc[stepName].push(value);
+    }
+    lastStepName = stepName;
+    last = value;
+  };
+
+  const adopt = (r: { last: unknown; lastStepName: string | null }) => {
+    last = r.last;
+    if (r.lastStepName) lastStepName = r.lastStepName;
+  };
+
+  for (const handler of handlers) {
+    const type = twType(handler);
+
+    if (type === "If") {
+      const { condition, steps } = handler as IfEntry;
+      const isCondNode = twType(condition) === "Condition";
+      let condRaw: unknown;
+      if (isCondNode) {
+        condRaw = await ((condition as any).fn as Function).call(ctx, ctx);
+        lastCond = Boolean(condRaw);
+      } else {
+        lastCond = await evalCond(condition, ctx);
+      }
+      
+      if (lastCond) {
+        if (isCondNode) ctx["condition"] = condRaw;
+        adopt(yield* runHandlerList(`${name}.if`, steps as unknown[], ctx, loopAcc));
+      }
+    } else if (type === "ElseIf") {
+      if (lastCond === false) {
+        const { condition, steps } = handler as IfEntry;
+        const isCondNode = twType(condition) === "Condition";
+        let condRaw: unknown;
+        if (isCondNode) {
+          condRaw = await ((condition as any).fn as Function).call(ctx, ctx);
+          lastCond = Boolean(condRaw);
+        } else {
+          lastCond = await evalCond(condition, ctx);
+        }
+        
+        if (lastCond) {
+          if (isCondNode) ctx["condition"] = condRaw;
+          adopt(yield* runHandlerList(`${name}.elseIf`, steps as unknown[], ctx, loopAcc));
+        }
+      }
+    } else if (type === "Else") {
+      if (lastCond === false) {
+        adopt(yield* runHandlerList(`${name}.else`, (handler as ElseEntry).steps as unknown[], ctx, loopAcc));
+      }
+      lastCond = null;
+    } else if (type === "Loop") {
+      lastCond = null;
+      const { name: loopName, items: itemsGetter, steps } = handler as LoopEntry;
+      const items = typeof itemsGetter === "function"
+        ? await (itemsGetter as (scope: unknown) => unknown).call(ctx, ctx)
+        : twType(itemsGetter) === "ForEach"
+          ? await ((itemsGetter as any).fn as (scope: unknown) => unknown).call(ctx, ctx)
+          : typeof itemsGetter === "string"
+            ? (itemsGetter as string).split(".").reduce((o: any, k) => o?.[k], ctx)
+            : itemsGetter;
+      yield { ">": `${name}.${loopName}`, items };
+      const innerAcc: Record<string, unknown[]> = {};
+      let loopLastStepName: string | null = null;
+      const flatSteps = steps as unknown[];
+      for (let index = 0; index < (items as unknown[]).length; index++) {
+        ctx[loopName] = { item: (items as unknown[])[index], index };
+        const r = yield* runHandlerList(`${name}.${loopName}[${index}]`, flatSteps, ctx, innerAcc);
+        if (r.lastStepName) loopLastStepName = r.lastStepName;
+      }
+      delete ctx[loopName];
+      for (const [k, v] of Object.entries(innerAcc)) {
+        ctx[k] = v;
+        if (loopAcc) {
+          if (!loopAcc[k]) loopAcc[k] = [];
+          loopAcc[k].push(v);
+        }
+      }
+      last = loopLastStepName ? innerAcc[loopLastStepName] ?? [] : [];
+      if (loopLastStepName) lastStepName = loopLastStepName;
+    } else if ((typeof handler === "function" || Array.isArray(handler)) && TW.Name in Object(handler)) {
+      lastCond = null;
+      const stepName = (handler as any)[TW.Name] as string;
+      const fn = Array.isArray(handler)
+        ? (handler as unknown[])[0] as (...a: unknown[]) => unknown
+        : handler as (...a: unknown[]) => unknown;
+      recordStep(stepName, yield* runStep(`${name}.${stepName}`, fn, ctx));
+    } else if (handler instanceof AsyncGeneratorFunction) {
+      lastCond = null;
+      last = yield* (handler as (this: typeof ctx) => AsyncGenerator<unknown, unknown>).call(ctx);
+    } else if (typeof handler === "function") {
+      lastCond = null;
+      last = await (handler as (this: typeof ctx) => unknown).call(ctx);
+      if (last !== null && typeof last === "object" && SignalTag in (last as object)) yield last;
+    }
+  }
+
+  return { last, lastStepName, lastCond };
+}
+
+export async function* runAction(name: string, scope: Scope, handlers: unknown[]): AsyncGenerator<unknown, unknown> {
+  const ctx: Record<string | symbol, unknown> = { ...scope };
 
   yield { ">": name, input: scope.input };
 
   try {
-    for (const handler of handlers) {
-      if ((typeof handler === "function" || Array.isArray(handler)) && TW.Name in Object(handler)) {
-        const stepName = (handler as any)[TW.Name] as string;
-        const fn = Array.isArray(handler) ? (handler as unknown[])[0] : handler;
-        last = yield* runStep(`${name}.${stepName}`, fn as (...a: unknown[]) => unknown, ctx);
-        const transforms: Array<(x: unknown) => unknown> = Array.isArray(handler) ? (handler as unknown[]).slice(1) as any : [];
-        const stored = transforms.reduce((v, t) => t(v), last);
-        ctx = { ...ctx, [stepName]: stored };
-      } else if (handler instanceof AsyncGeneratorFunction) {
-        last = yield* (handler as (this: typeof ctx) => AsyncGenerator<unknown, unknown>).call(ctx);
-      } else if (typeof handler === "function") {
-        last = await (handler as (this: typeof ctx) => unknown).call(ctx);
-        if (last !== null && typeof last === "object" && SignalTag in (last as object)) {
-          yield last;
-        }
-      }
-    }
+    const r = yield* runHandlerList(name, handlers, ctx, null);
+    yield { ">": name, result: r.last };
+    return r.last;
   } catch (error) {
     yield { ">": name, error };
     throw error;
   }
-
-  yield { ">": name, result: last };
-  return last;
 }
 
 export function buildScope(

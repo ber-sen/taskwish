@@ -477,10 +477,3 @@ export const Actor = <
   } as any;
 };
 
-export class TWActor<Name extends string> implements TW.Actor<Name> {
-  public [TW.Name]: Name;
-
-  constructor(name: Name) {
-    this[TW.Name] = name;
-  }
-}

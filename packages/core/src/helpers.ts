@@ -38,6 +38,41 @@ export type PrettyScope<T> = {
 
 export type Pretty<T> = { [K in keyof T]: T[K] } & {};
 
+// ── Scope operator machinery ──────────────────────────────────────────────────
+
+export type RawEntry<R, Ops extends string[] = []> = { result: R; operator: Ops };
+
+type AddOp<Op extends string, T> =
+  T extends string[]
+    ? [Op, ...T]
+    : T extends object
+      ? { [K in keyof T]: AddOp<Op, T[K]> }
+      : T;
+
+type RemoveEndOps<
+  T extends readonly string[],
+  A extends string[] = [],
+> = T extends [infer H extends string, ...infer Rest extends string[]]
+  ? H extends ":end"
+    ? RemoveEndOps<Rest, A extends [...infer X extends string[], any] ? X : []>
+    : RemoveEndOps<Rest, [...A, H]>
+  : A;
+
+type ApplyOps<O extends readonly string[], R> =
+  O extends [...infer Rest extends string[], infer Last extends string]
+    ? Last extends ":loop"
+      ? ApplyOps<Rest, R[]>
+      : Last extends ":if"
+        ? ApplyOps<Rest, R | undefined>
+        : ApplyOps<Rest, R>
+    : R;
+
+export type ResolveScope<T> = Pretty<{
+  [K in keyof T]: T[K] extends { result: infer R; operator: infer O extends string[] }
+    ? ApplyOps<RemoveEndOps<O>, R>
+    : T[K];
+}>;
+
 export type DeepOptionalString<T> = {
   [K in keyof T]?: T[K] extends object ? DeepOptionalString<T[K]> : string;
 };

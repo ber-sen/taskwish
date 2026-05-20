@@ -120,4 +120,4 @@ interface Struct {
     : never;
 }
 
-export const Struct: Struct = {} as never;
+export const Struct: Struct = ((name: string) => ({ [name]: undefined })) as never;

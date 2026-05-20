@@ -1,4 +1,4 @@
-import { Loop, Actor, Step } from "../../src";
+import { Loop, ForEach, Actor, Step } from "../../src";
 
 const { MyActor } = Actor("MyActor");
 
@@ -16,7 +16,7 @@ export const { loop } = MyActor()
     }),
 
     Loop(
-      () => Loop.Range(0, 10),
+      ForEach({ range: [0, 10] }),
 
       Step("gt", function () {
         return this.actions.slack.sendMessage({
