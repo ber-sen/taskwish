@@ -6,7 +6,6 @@ import {
   CamelCase,
 } from "../helpers";
 import { Steps } from "../steps";
-import { StepRuntime } from "../steps/step";
 import { TW } from "../core";
 import { dispatch, LogFn, type ConsoleLike, type LoggerConfig } from "../use";
 
@@ -128,7 +127,6 @@ export async function* tapWith(
   return next.value;
 }
 
-type StepEntry = Record<typeof StepRuntime, { name: string; handler: (...a: unknown[]) => unknown }>;
 export type Scope = { input: unknown; get<T>(Cls: abstract new (...a: unknown[]) => T): T };
 
 const SignalTag = Symbol.for("TW.Signal");
@@ -278,9 +276,12 @@ async function* runHandlerList(
       }
       last = loopLastStepName ? innerAcc[loopLastStepName] ?? [] : [];
       if (loopLastStepName) lastStepName = loopLastStepName;
-    } else if (handler !== null && typeof handler === "object" && StepRuntime in (handler as object)) {
+    } else if ((typeof handler === "function" || Array.isArray(handler)) && TW.Name in Object(handler)) {
       lastCond = null;
-      const { name: stepName, handler: fn } = (handler as StepEntry)[StepRuntime];
+      const stepName = (handler as any)[TW.Name] as string;
+      const fn = Array.isArray(handler)
+        ? (handler as unknown[])[0] as (...a: unknown[]) => unknown
+        : handler as (...a: unknown[]) => unknown;
       recordStep(stepName, yield* runStep(`${name}.${stepName}`, fn, ctx));
     } else if (handler instanceof AsyncGeneratorFunction) {
       lastCond = null;

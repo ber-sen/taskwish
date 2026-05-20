@@ -1,4 +1,4 @@
-import { Actor, Step, Type } from "../../src";
+import { Actor, Step, Struct } from "../../src";
 import { Browser } from "./browser";
 
 const { MyActor } = Actor("MyActor");
@@ -25,7 +25,7 @@ export const { runSteps } = MyActor()
 
       Browser.Act("Click the login button"),
 
-      Type("NewsItem", {
+      Struct("NewsItem", {
         title: "string",
         points: "number",
         by: "string",

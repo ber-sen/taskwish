@@ -26,7 +26,10 @@ export function formatEvent(event: object): string {
     `\x1b[2m">": \x1b[22m"\x1b[1m${name}\x1b[22m"`,
     ...Object.entries(rest)
       .filter(([, v]) => v !== undefined)
-      .map(([k, v]) => `${BOLD_KEYS.has(k) ? `\x1b[2m"${k}": \x1b[22m` : `"${k}": `}${fmt(v)}`),
+      .map(
+        ([k, v]) =>
+          `${BOLD_KEYS.has(k) ? `\x1b[2m"${k}": \x1b[22m` : `"${k}": `}${fmt(v)}`,
+      ),
   ];
   return `\x1b[2m{\x1b[22m ${entries.join(", ")} \x1b[2m}\x1b[22m`;
 }
@@ -38,7 +41,11 @@ export function isActionEvent(name: string): boolean {
 
 export function dispatch(target: ConsoleLike): LogFn {
   return (event) => {
-    if (event !== null && typeof event === "object" && ">" in (event as object)) {
+    if (
+      event !== null &&
+      typeof event === "object" &&
+      ">" in (event as object)
+    ) {
       const e = event as Record<string, unknown>;
       const action = isActionEvent(e[">"] as string);
       if (action && "input" in e) target.log("");
@@ -59,13 +66,6 @@ export type LoggerConfig = { [TW.Type]: "Logger"; target: ConsoleLike };
 
 export function Logger(target: ConsoleLike = console): LoggerConfig {
   return { [TW.Type]: "Logger", target };
-}
-
-export function Desc(
-  strings: TemplateStringsArray,
-  ...values: any[]
-): "string" {
-  return strings.join("") as never;
 }
 
 export function Use<
