@@ -222,7 +222,7 @@ async function* runHandlerList(
       } else {
         lastCond = await evalCond(condition, ctx);
       }
-      yield { ">": `${name}.if`, condition: lastCond };
+      
       if (lastCond) {
         if (isCondNode) ctx["condition"] = condRaw;
         adopt(yield* runHandlerList(`${name}.if`, steps as unknown[], ctx, loopAcc));
@@ -238,7 +238,7 @@ async function* runHandlerList(
         } else {
           lastCond = await evalCond(condition, ctx);
         }
-        yield { ">": `${name}.elseIf`, condition: lastCond };
+        
         if (lastCond) {
           if (isCondNode) ctx["condition"] = condRaw;
           adopt(yield* runHandlerList(`${name}.elseIf`, steps as unknown[], ctx, loopAcc));
@@ -246,7 +246,6 @@ async function* runHandlerList(
       }
     } else if (type === "Else") {
       if (lastCond === false) {
-        yield { ">": `${name}.else` };
         adopt(yield* runHandlerList(`${name}.else`, (handler as ElseEntry).steps as unknown[], ctx, loopAcc));
       }
       lastCond = null;
