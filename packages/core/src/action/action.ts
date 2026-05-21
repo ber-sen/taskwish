@@ -177,6 +177,7 @@ async function* runStep(
 type IfEntry = { condition: unknown; steps: unknown[] };
 type ElseEntry = { steps: unknown[] };
 type LoopEntry = { name: string; items: unknown; steps: unknown[] };
+type ParallelEntry = { steps: unknown[] };
 
 function twType(handler: unknown): string | null {
   return handler !== null && typeof handler === "object"
@@ -285,11 +286,13 @@ async function* runHandlerList(
       yield { ">": `${currentName}.${loopName}`, items };
       const innerAcc: Record<string, unknown[]> = {};
       let loopLastStepName: string | null = null;
+      const loopIterLasts: unknown[] = [];
       const flatSteps = steps as unknown[];
       for (let index = 0; index < (items as unknown[]).length; index++) {
         ctx[loopName] = { item: (items as unknown[])[index], index };
         const r = yield* runHandlerList(`${currentName}.${loopName}[${index}]`, flatSteps, ctx, innerAcc, transparent, actionName, actionHandlers);
         if (r.lastStepName) loopLastStepName = r.lastStepName;
+        loopIterLasts.push(r.last);
       }
       delete ctx[loopName];
       for (const [k, v] of Object.entries(innerAcc)) {
@@ -299,8 +302,63 @@ async function* runHandlerList(
           loopAcc[k].push(v);
         }
       }
-      last = loopLastStepName ? innerAcc[loopLastStepName] ?? [] : [];
-      if (loopLastStepName) lastStepName = loopLastStepName;
+      if (loopLastStepName !== null) {
+        last = innerAcc[loopLastStepName] ?? [];
+        lastStepName = loopLastStepName;
+      } else {
+        // Non-step last per iteration (e.g. Parallel as final handler in loop body)
+        const hasDirectLast = loopIterLasts.some(v => v !== undefined);
+        last = hasDirectLast ? loopIterLasts : [];
+      }
+    } else if (type === "Parallel") {
+      lastCond = null;
+      const { steps: parallelSteps } = handler as ParallelEntry;
+
+      // Run each step concurrently in an independent snapshot of ctx.
+      // Using runHandlerList (single-step) so that `self` injection and other
+      // machinery work identically to sequential steps.
+      const stepResults = await Promise.all(
+        parallelSteps.map(async (step) => {
+          const stepCtx = { ...ctx };
+          const events: unknown[] = [];
+
+          const gen = runHandlerList(currentName, [step], stepCtx, null, transparent, actionName, actionHandlers);
+
+          let iterResult: { last: unknown; lastStepName: string | null; lastCond: boolean | null } =
+            { last: undefined, lastStepName: null, lastCond: null };
+
+          let item = await gen.next();
+          while (!item.done) {
+            events.push(item.value);
+            item = await gen.next();
+          }
+          iterResult = item.value as typeof iterResult;
+
+          return { events, last: iterResult.last, stepName: iterResult.lastStepName };
+        }),
+      );
+
+      // Yield all step events in declaration order (deterministic)
+      for (const { events } of stepResults) {
+        for (const event of events) yield event;
+      }
+
+      // Merge results into outer ctx and build parallel-last object
+      const parallelLast: Record<string, unknown> = {};
+      for (const { stepName, last: stepLast } of stepResults) {
+        if (stepName === null) continue;
+        ctx[stepName] = stepLast;
+        parallelLast[stepName] = stepLast;
+        if (loopAcc) {
+          if (!loopAcc[stepName]) loopAcc[stepName] = [];
+          loopAcc[stepName].push(stepLast);
+        }
+      }
+
+      last = parallelLast;
+      // Explicitly null so the loop handler falls through to loopIterLasts tracking
+      lastStepName = null;
+
     } else if ((typeof handler === "function" || Array.isArray(handler)) && TW.Name in Object(handler)) {
       lastCond = null;
       const stepName = (handler as any)[TW.Name] as string;

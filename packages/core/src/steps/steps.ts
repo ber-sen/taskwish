@@ -1,7 +1,6 @@
 import { TW } from "../core";
 import { ResultKind, ApplyResult } from "./hkt";
 
-export { ResultKind, ApplyResult };
 export const SubSteps = Symbol.for("SubSteps");
 
 // ── Built-in result kinds ─────────────────────────────────────────────────────

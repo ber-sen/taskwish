@@ -1,6 +1,5 @@
 import {
   UUIDv7String,
-  UUIDv5String,
   ValidateTrigger,
   InferTriggerScope,
 } from "./helpers";
