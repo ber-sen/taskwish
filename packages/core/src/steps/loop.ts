@@ -3,13 +3,12 @@ import { PrettyScope, RawEntry, ResolveScope } from "../helpers";
 
 // ── Scope helpers ─────────────────────────────────────────────────────────────
 
-// After the loop: keys added inside (except the loop variable Name) get ":loop" prepended.
+// After the loop: keys added inside (not already in Base) get ":loop" prepended.
 type LoopScope<
   Base extends Record<any, any>,
   Added extends Record<any, any>,
-  Name extends string,
 > = Base & {
-  [K in keyof Added as K extends keyof Base | Name
+  [K in keyof Added as K extends keyof Base
     ? never
     : K]: Added[K] extends RawEntry<infer R, infer Ops extends string[]>
     ? RawEntry<R, [":loop", ...Ops]>
@@ -19,20 +18,19 @@ type LoopScope<
 type LoopResult<
   Ctx extends Record<any, any>,
   A extends Record<any, any>,
-  Name extends string,
 > = {
   [TW.Type]: "Loop";
   [TW.Step]: (input: Ctx) => {
     name: A["name"];
     steps: A["steps"];
-    scope: LoopScope<Ctx["scope"], A["scope"], Name>;
+    scope: LoopScope<Ctx["scope"], A["scope"]>;
     last: A["last"][];
   };
 };
 
 // ── ForEach ───────────────────────────────────────────────────────────────────
 
-export type ForEachNode<Ctx extends Record<any,any>, Item = any, Name extends string = "loop"> = {
+export type ForEachNode<Ctx extends Record<any, any>, Item = any, Name extends string = "loop"> = {
   [TW.Type]: "ForEach";
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
@@ -62,15 +60,15 @@ export function ForEach<Ctx extends Record<any, any>, const Item, Name extends s
 
 export function ForEach<Ctx extends Record<any, any>, Item>(
   fn: (scope: TW.Scope<PrettyScope<ResolveScope<Ctx["scope"]>>>) => readonly Item[],
-): ForEachNode<Ctx, Item, "loop">;
+): ForEachNode<Ctx, Item>;
 
 export function ForEach<Ctx extends Record<any, any>>(
   options: { range: readonly [number, number] },
-): ForEachNode<Ctx, number, "loop">;
+): ForEachNode<Ctx, number>;
 
 export function ForEach<Ctx extends Record<any, any>, const Item>(
   items: readonly Item[],
-): ForEachNode<Ctx, Item, "loop">;
+): ForEachNode<Ctx, Item>;
 
 export function ForEach(...args: unknown[]): never {
   const [first, second] = args;
@@ -99,11 +97,10 @@ export interface LoopFn {
     Ctx extends Record<any, any>,
     A extends Record<any, any>,
     B extends Record<any, any>,
-    Name extends string,
   >(
-    input: { [TW.Type]: "ForEach"; [TW.Step]: (input: Ctx) => A; loopName: Name },
+    input: { [TW.Type]: "ForEach"; [TW.Step]: (input: Ctx) => A },
     step: { [TW.Step]: (input: A) => B },
-  ): LoopResult<Ctx, B, Name>;
+  ): LoopResult<Ctx, B>;
 
   // ForEach + 2 steps
   <
@@ -111,12 +108,11 @@ export interface LoopFn {
     A extends Record<any, any>,
     B extends Record<any, any>,
     C extends Record<any, any>,
-    Name extends string,
   >(
-    input: { [TW.Type]: "ForEach"; [TW.Step]: (input: Ctx) => A; loopName: Name },
+    input: { [TW.Type]: "ForEach"; [TW.Step]: (input: Ctx) => A },
     step1: { [TW.Step]: (input: A) => B },
     step2: { [TW.Step]: (input: B) => C },
-  ): LoopResult<Ctx, C, Name>;
+  ): LoopResult<Ctx, C>;
 
   // ForEach + 3 steps
   <
@@ -125,14 +121,12 @@ export interface LoopFn {
     B extends Record<any, any>,
     C extends Record<any, any>,
     D extends Record<any, any>,
-    Name extends string,
   >(
-    input: { [TW.Type]: "ForEach"; [TW.Step]: (input: Ctx) => A; loopName: Name },
+    input: { [TW.Type]: "ForEach"; [TW.Step]: (input: Ctx) => A },
     step1: { [TW.Step]: (input: A) => B },
     step2: { [TW.Step]: (input: B) => C },
     step3: { [TW.Step]: (input: C) => D },
-  ): LoopResult<Ctx, D, Name>;
-
+  ): LoopResult<Ctx, D>;
 }
 
 export const Loop: LoopFn = function Loop(...args: unknown[]): never {
