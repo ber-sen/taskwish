@@ -5,7 +5,7 @@ import {
   Pretty,
   CamelCase,
 } from "../helpers";
-import { Steps } from "../steps";
+import type { Steps, ActionResultKind } from "../steps";
 import { TW } from "../core";
 import { dispatch, LogFn, type ConsoleLike, type LoggerConfig } from "../use";
 
@@ -14,7 +14,7 @@ type ActionBody<
   Ctx extends Record<any, any>,
 > = TW.Contextual<Ctx> & {
   use(config: LoggerConfig): ActionBody<Name, Ctx>;
-  run: Steps<Ctx>;
+  run: Steps<Ctx, ActionResultKind>;
 };
 
 type SignatureBody<
@@ -109,7 +109,7 @@ export interface ActionFactory<
           };
         }
       >;
-  run: Steps<Ctx>;
+  run: Steps<Ctx, ActionResultKind>;
 }
 
 const AsyncGeneratorFunction = (async function* () {}).constructor as Function;

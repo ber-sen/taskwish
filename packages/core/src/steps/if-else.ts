@@ -1,6 +1,7 @@
 import { TW } from "../core";
 import { PrettyScope, RawEntry, ResolveScope } from "../helpers";
-import { ResultKind, ChainFn } from "./hkt";
+import { ResultKind } from "./hkt";
+import { Steps, SubSteps } from "./steps";
 
 // ── Scope helpers ─────────────────────────────────────────────────────────────
 
@@ -149,7 +150,7 @@ interface ElseResultKind extends ResultKind {
 
 // ── If ────────────────────────────────────────────────────────────────────────
 
-export type IfFn = ChainFn<IfResultKind, "Condition">;
+export type IfFn = Steps<typeof SubSteps, IfResultKind, "Condition">;
 
 export const If: IfFn = function If(condition: unknown, ...steps: unknown[]): never {
   return { [TW.Type]: "If", condition, steps } as never;
@@ -157,7 +158,7 @@ export const If: IfFn = function If(condition: unknown, ...steps: unknown[]): ne
 
 // ── ElseIf ────────────────────────────────────────────────────────────────────
 
-export type ElseIfFn = ChainFn<ElseIfResultKind, "Condition">;
+export type ElseIfFn = Steps<typeof SubSteps, ElseIfResultKind, "Condition">;
 
 export const ElseIf: ElseIfFn = function ElseIf(condition: unknown, ...steps: unknown[]): never {
   return { [TW.Type]: "ElseIf", condition, steps } as never;
@@ -165,7 +166,7 @@ export const ElseIf: ElseIfFn = function ElseIf(condition: unknown, ...steps: un
 
 // ── Else ──────────────────────────────────────────────────────────────────────
 
-export type ElseFn = ChainFn<ElseResultKind>;
+export type ElseFn = Steps<typeof SubSteps, ElseResultKind>;
 
 export const Else: ElseFn = function Else(...steps: unknown[]): never {
   return { [TW.Type]: "Else", steps } as never;

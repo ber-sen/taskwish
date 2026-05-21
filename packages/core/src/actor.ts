@@ -9,7 +9,7 @@ import {
 } from "./helpers";
 import { TW } from "./core";
 import { dispatch, type ConsoleLike, type LoggerConfig } from "./use";
-import { type Steps } from "./steps/steps";
+import { type Steps, type ResultKind } from "./steps/steps";
 
 type BaseScope<Ctx> = Ctx extends Record<any, any> ? Ctx["scope"] : {};
 
@@ -183,6 +183,20 @@ export interface Behavior<Ctx> {
         BaseScope<Ctx>;
     }
   >;
+}
+
+/**
+ * Used by `Steps<Ctx, DefResultKind>` — produces a named behavior definition
+ * `{ [name]: () => Behavior<Last> }`.
+ */
+export interface DefResultKind extends ResultKind {
+  type: this["ctx"] extends Record<any, any>
+    ? "name" extends keyof this["ctx"]
+      ? this["ctx"]["name"] extends string
+        ? { [name in this["ctx"]["name"]]: () => Behavior<this["last"]> }
+        : never
+      : never
+    : never;
 }
 
 const HTTP_METHODS = new Set(["GET", "POST", "PUT", "DELETE", "PATCH"]);
@@ -461,7 +475,7 @@ export const Actor = <
 >(
   name: PascalCase<Name>,
 ): {
-  def: Steps<Ctx, "def">;
+  def: Steps<Ctx, DefResultKind>;
 } & {
   [key in Name]: () => Behavior<Ctx>;
 } => {

@@ -1,6 +1,7 @@
 import { TW } from "../core";
 import { PrettyScope, RawEntry, ResolveScope } from "../helpers";
-import { ResultKind, ChainFn } from "./hkt";
+import { ResultKind } from "./hkt";
+import { Steps, SubSteps } from "./steps";
 
 // ── Scope helpers ─────────────────────────────────────────────────────────────
 
@@ -102,7 +103,7 @@ interface LoopResultKind extends ResultKind {
 
 // ── LoopFn ────────────────────────────────────────────────────────────────────
 
-export type LoopFn = ChainFn<LoopResultKind, "ForEach">;
+export type LoopFn = Steps<typeof SubSteps, LoopResultKind, "ForEach">;
 
 export const Loop: LoopFn = function Loop(...args: unknown[]): never {
   const first = args[0];
