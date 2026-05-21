@@ -127,7 +127,7 @@ export async function* tapWith(
   return next.value;
 }
 
-export type Scope = { input: unknown; get<T>(Cls: abstract new (...a: unknown[]) => T): T };
+export type Scope = { input: unknown; get<T>(Cls: abstract new (...a: unknown[]) => T): T; signal(type: string, data: Record<string, unknown>): object };
 
 const SignalTag = Symbol.for("TW.Signal");
 export const ActionEventTag = Symbol.for("TW.ActionEvent");
@@ -373,7 +373,7 @@ export function Action<const Name extends string>(
   }
 
   const makeBody = (inputMode: "first" | "args") => ({
-    use(config: unknown) { detectLogger(config); return this; },
+    use(config: unknown) { detectLogger(config as LoggerConfig); return this; },
     run(...handlers: unknown[]) {
       return createAction(inputMode, handlers);
     },
@@ -382,7 +382,7 @@ export function Action<const Name extends string>(
   return {
     sig() { return makeBody("args"); },
     input(_schema?: unknown) { return makeBody("first"); },
-    use(config: unknown) { detectLogger(config); return this; },
+    use(config: unknown) { detectLogger(config as LoggerConfig); return this; },
     run(...handlers: unknown[]) {
       return createAction("first", handlers);
     },

@@ -1,5 +1,6 @@
 import { TW } from "../core";
 import { PrettyScope, RawEntry, ResolveScope } from "../helpers";
+import { ResultKind, ChainFn } from "./hkt";
 
 // ── Scope helpers ─────────────────────────────────────────────────────────────
 
@@ -120,46 +121,35 @@ export function Condition(fn: unknown): never {
   return { [TW.Type]: "Condition", fn } as never;
 }
 
+// ── HKT kinds ─────────────────────────────────────────────────────────────────
+
+interface IfResultKind extends ResultKind {
+  type: this["ctx"] extends Record<any, any>
+    ? this["last"] extends Record<any, any>
+      ? IfResult<this["ctx"], this["last"]>
+      : never
+    : never;
+}
+
+interface ElseIfResultKind extends ResultKind {
+  type: this["ctx"] extends Record<any, any>
+    ? this["last"] extends Record<any, any>
+      ? ElseIfResult<this["ctx"], this["last"]>
+      : never
+    : never;
+}
+
+interface ElseResultKind extends ResultKind {
+  type: this["ctx"] extends Record<any, any>
+    ? this["last"] extends Record<any, any>
+      ? ElseResult<this["ctx"], this["last"]>
+      : never
+    : never;
+}
+
 // ── If ────────────────────────────────────────────────────────────────────────
 
-export interface IfFn {
-  // Condition + 1 step
-  <
-    Ctx extends Record<any, any>,
-    A extends Record<any, any>,
-    B extends Record<any, any>,
-  >(
-    condition: { [TW.Type]: "Condition"; [TW.Step]: (ctx: Ctx) => A },
-    step: { [TW.Step]: (input: A) => B },
-  ): IfResult<Ctx, B>;
-
-  // Condition + 2 steps
-  <
-    Ctx extends Record<any, any>,
-    A extends Record<any, any>,
-    B extends Record<any, any>,
-    C extends Record<any, any>,
-  >(
-    condition: { [TW.Type]: "Condition"; [TW.Step]: (ctx: Ctx) => A },
-    step1: { [TW.Step]: (input: A) => B },
-    step2: { [TW.Step]: (input: B) => C },
-  ): IfResult<Ctx, C>;
-
-  // Condition + 3 steps
-  <
-    Ctx extends Record<any, any>,
-    A extends Record<any, any>,
-    B extends Record<any, any>,
-    C extends Record<any, any>,
-    D extends Record<any, any>,
-  >(
-    condition: { [TW.Type]: "Condition"; [TW.Step]: (ctx: Ctx) => A },
-    step1: { [TW.Step]: (input: A) => B },
-    step2: { [TW.Step]: (input: B) => C },
-    step3: { [TW.Step]: (input: C) => D },
-  ): IfResult<Ctx, D>;
-
-}
+export type IfFn = ChainFn<IfResultKind, "Condition">;
 
 export const If: IfFn = function If(condition: unknown, ...steps: unknown[]): never {
   return { [TW.Type]: "If", condition, steps } as never;
@@ -167,44 +157,7 @@ export const If: IfFn = function If(condition: unknown, ...steps: unknown[]): ne
 
 // ── ElseIf ────────────────────────────────────────────────────────────────────
 
-export interface ElseIfFn {
-  // Condition + 1 step
-  <
-    Ctx extends Record<any, any>,
-    A extends Record<any, any>,
-    B extends Record<any, any>,
-  >(
-    condition: { [TW.Type]: "Condition"; [TW.Step]: (ctx: Ctx) => A },
-    step: { [TW.Step]: (input: A) => B },
-  ): ElseIfResult<Ctx, B>;
-
-  // Condition + 2 steps
-  <
-    Ctx extends Record<any, any>,
-    A extends Record<any, any>,
-    B extends Record<any, any>,
-    C extends Record<any, any>,
-  >(
-    condition: { [TW.Type]: "Condition"; [TW.Step]: (ctx: Ctx) => A },
-    step1: { [TW.Step]: (input: A) => B },
-    step2: { [TW.Step]: (input: B) => C },
-  ): ElseIfResult<Ctx, C>;
-
-  // Condition + 3 steps
-  <
-    Ctx extends Record<any, any>,
-    A extends Record<any, any>,
-    B extends Record<any, any>,
-    C extends Record<any, any>,
-    D extends Record<any, any>,
-  >(
-    condition: { [TW.Type]: "Condition"; [TW.Step]: (ctx: Ctx) => A },
-    step1: { [TW.Step]: (input: A) => B },
-    step2: { [TW.Step]: (input: B) => C },
-    step3: { [TW.Step]: (input: C) => D },
-  ): ElseIfResult<Ctx, D>;
-
-}
+export type ElseIfFn = ChainFn<ElseIfResultKind, "Condition">;
 
 export const ElseIf: ElseIfFn = function ElseIf(condition: unknown, ...steps: unknown[]): never {
   return { [TW.Type]: "ElseIf", condition, steps } as never;
@@ -212,37 +165,7 @@ export const ElseIf: ElseIfFn = function ElseIf(condition: unknown, ...steps: un
 
 // ── Else ──────────────────────────────────────────────────────────────────────
 
-export interface ElseFn {
-  // 1 step
-  <
-    Ctx extends Record<any, any>,
-    A extends Record<any, any>,
-  >(
-    step: { [TW.Step]: (input: Ctx) => A },
-  ): ElseResult<Ctx, A>;
-
-  // 2 steps
-  <
-    Ctx extends Record<any, any>,
-    A extends Record<any, any>,
-    B extends Record<any, any>,
-  >(
-    step1: { [TW.Step]: (input: Ctx) => A },
-    step2: { [TW.Step]: (input: A) => B },
-  ): ElseResult<Ctx, B>;
-
-  // 3 steps
-  <
-    Ctx extends Record<any, any>,
-    A extends Record<any, any>,
-    B extends Record<any, any>,
-    C extends Record<any, any>,
-  >(
-    step1: { [TW.Step]: (input: Ctx) => A },
-    step2: { [TW.Step]: (input: A) => B },
-    step3: { [TW.Step]: (input: B) => C },
-  ): ElseResult<Ctx, C>;
-}
+export type ElseFn = ChainFn<ElseResultKind>;
 
 export const Else: ElseFn = function Else(...steps: unknown[]): never {
   return { [TW.Type]: "Else", steps } as never;

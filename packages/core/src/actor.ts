@@ -294,7 +294,7 @@ function createBehavior(
     return tapWith(gen, dispatch(logger)) as G;
   }
 
-  const self: Behavior<any> = {
+  const self = {
     use(config: LoggerConfig) {
       logger = config.target;
       return self;
@@ -424,7 +424,7 @@ function createBehavior(
     },
   };
 
-  return self;
+  return self as unknown as Behavior<any>;
 }
 
 export const Actor = <

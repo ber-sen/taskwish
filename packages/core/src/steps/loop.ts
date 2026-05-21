@@ -1,5 +1,6 @@
 import { TW } from "../core";
 import { PrettyScope, RawEntry, ResolveScope } from "../helpers";
+import { ResultKind, ChainFn } from "./hkt";
 
 // ── Scope helpers ─────────────────────────────────────────────────────────────
 
@@ -89,45 +90,19 @@ function toFn(v: unknown): () => unknown[] {
   return v as () => unknown[];
 }
 
-// ── Overloads ─────────────────────────────────────────────────────────────────
+// ── HKT kinds ─────────────────────────────────────────────────────────────────
 
-export interface LoopFn {
-  // ForEach + 1 step
-  <
-    Ctx extends Record<any, any>,
-    A extends Record<any, any>,
-    B extends Record<any, any>,
-  >(
-    input: { [TW.Type]: "ForEach"; [TW.Step]: (input: Ctx) => A },
-    step: { [TW.Step]: (input: A) => B },
-  ): LoopResult<Ctx, B>;
-
-  // ForEach + 2 steps
-  <
-    Ctx extends Record<any, any>,
-    A extends Record<any, any>,
-    B extends Record<any, any>,
-    C extends Record<any, any>,
-  >(
-    input: { [TW.Type]: "ForEach"; [TW.Step]: (input: Ctx) => A },
-    step1: { [TW.Step]: (input: A) => B },
-    step2: { [TW.Step]: (input: B) => C },
-  ): LoopResult<Ctx, C>;
-
-  // ForEach + 3 steps
-  <
-    Ctx extends Record<any, any>,
-    A extends Record<any, any>,
-    B extends Record<any, any>,
-    C extends Record<any, any>,
-    D extends Record<any, any>,
-  >(
-    input: { [TW.Type]: "ForEach"; [TW.Step]: (input: Ctx) => A },
-    step1: { [TW.Step]: (input: A) => B },
-    step2: { [TW.Step]: (input: B) => C },
-    step3: { [TW.Step]: (input: C) => D },
-  ): LoopResult<Ctx, D>;
+interface LoopResultKind extends ResultKind {
+  type: this["ctx"] extends Record<any, any>
+    ? this["last"] extends Record<any, any>
+      ? LoopResult<this["ctx"], this["last"]>
+      : never
+    : never;
 }
+
+// ── LoopFn ────────────────────────────────────────────────────────────────────
+
+export type LoopFn = ChainFn<LoopResultKind, "ForEach">;
 
 export const Loop: LoopFn = function Loop(...args: unknown[]): never {
   const first = args[0];
