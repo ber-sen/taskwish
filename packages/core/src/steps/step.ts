@@ -1,7 +1,7 @@
 import { PrettyScope, RawEntry, ResolveScope } from "../helpers";
 import { TW } from "../core";
 
-type UserScope<Ctx extends Record<any, any>> = TW.Scope<PrettyScope<ResolveScope<Ctx["scope"]>>>;
+type UserScope<Ctx extends Record<any, any>> = PrettyScope<TW.Scope<ResolveScope<Ctx["scope"]>>>;
 
 export function Step<
   Ctx extends Record<any, any>,

@@ -50,6 +50,13 @@ export namespace TW {
     : Record<string, unknown>;
 
   export type Scope<S> = S & {
+    self: <Return = any>(
+      input: S extends Record<any, any>
+        ? S["input"] extends Record<any, any>
+          ? S["input"]
+          : never
+        : never,
+    ) => Return;
     signal<
       T extends [EventKindNames<S>] extends [never]
         ? string

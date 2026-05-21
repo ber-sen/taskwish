@@ -8,6 +8,55 @@ import { Loop, ForEach } from "./loop";
 // ─── Runtime ────────────────────────────────────────────────────────────────
 
 describe("If / Else", () => {
+  test("recursive factorial using If branches", async () => {
+    const { factorial } = Action("factorial")
+      .input({ n: "number" })
+
+      .run(
+        If(
+          Condition(({ input }) => input.n <= 1),
+
+          Step("done", function () {
+            return 1;
+          }),
+        ),
+        Else(
+          Step("next", function () {
+            return this.self({ n: this.input.n - 1 });
+          }),
+
+          Step("multiply", function () {
+            return this.input.n * this.next;
+          }),
+        ),
+      );
+
+    type T = typeof factorial;
+    type RetVal = Awaited<ReturnType<T>>;
+
+    type check = Expect<Equal<RetVal, number>>;
+
+    expect(await factorial({ n: 5 })).toEqual(120);
+
+    const yields: unknown[] = [];
+
+    for await (const v of factorial.stream({ n: 3 })) {
+      yields.push(v);
+    }
+
+    expect(yields).toEqual([
+      { ">": "factorial", input: { n: 3 } },
+      { ">": "factorial.next", input: { n: 2 } },
+      { ">": "factorial.next.next", input: { n: 1 } },
+      { ">": "factorial.next.next.done", result: 1 },
+      { ">": "factorial.next.next", result: 1 },
+      { ">": "factorial.next.multiply", result: 2 },
+      { ">": "factorial.next", result: 2 },
+      { ">": "factorial.multiply", result: 6 },
+      { ">": "factorial", result: 6 },
+    ]);
+  });
+
   test("runs if-branch when condition is true", async () => {
     const { branch } = Action("branch")
       .input({ flag: "boolean" })
@@ -670,7 +719,8 @@ describe("If / Else", () => {
     expect(await branch({ outer: true, inner: true })).toEqual("both");
 
     const yields: unknown[] = [];
-    for await (const v of branch.stream({ outer: true, inner: true })) yields.push(v);
+    for await (const v of branch.stream({ outer: true, inner: true }))
+      yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { outer: true, inner: true } },
       { ">": "branch.if.if.result", result: "both" },
@@ -707,7 +757,8 @@ describe("If / Else", () => {
     expect(await branch({ outer: true, inner: false })).toEqual(1);
 
     const yields: unknown[] = [];
-    for await (const v of branch.stream({ outer: true, inner: false })) yields.push(v);
+    for await (const v of branch.stream({ outer: true, inner: false }))
+      yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { outer: true, inner: false } },
       { ">": "branch.before", result: 1 },
@@ -745,7 +796,8 @@ describe("If / Else", () => {
     expect(await branch({ outer: false, inner: true })).toEqual(42);
 
     const yields: unknown[] = [];
-    for await (const v of branch.stream({ outer: false, inner: true })) yields.push(v);
+    for await (const v of branch.stream({ outer: false, inner: true }))
+      yields.push(v);
     expect(yields).toEqual([
       { ">": "branch", input: { outer: false, inner: true } },
       { ">": "branch.before", result: 42 },
