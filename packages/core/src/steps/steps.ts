@@ -1,4 +1,5 @@
 import { TW } from "../core";
+import { ResolveLast } from "../helpers";
 import { ResultKind, ApplyResult } from "./hkt";
 
 export const SubSteps = Symbol.for("SubSteps");
@@ -28,21 +29,21 @@ export interface ActionResultKind extends ResultKind {
                         : never,
                     ) => Promise<
                       "last" extends keyof this["last"]
-                        ? this["last"]["last"]
+                        ? ResolveLast<this["last"]["last"]>
                         : "steps" extends keyof this["last"]
                           ? this["last"]["steps"]
                           : this["last"]
                     >
                   : () => Promise<
                       "last" extends keyof this["last"]
-                        ? this["last"]["last"]
+                        ? ResolveLast<this["last"]["last"]>
                         : "steps" extends keyof this["last"]
                           ? this["last"]["steps"]
                           : this["last"]
                     >
                 : () => Promise<
                     "last" extends keyof this["last"]
-                      ? this["last"]["last"]
+                      ? ResolveLast<this["last"]["last"]>
                       : "steps" extends keyof this["last"]
                         ? this["last"]["steps"]
                         : this["last"]

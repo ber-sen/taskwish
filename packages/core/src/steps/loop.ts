@@ -1,5 +1,5 @@
 import { TW } from "../core";
-import { PrettyScope, RawEntry, ResolveScope } from "../helpers";
+import { PrettyScope, RawEntry, ResolveLast, ResolveScope } from "../helpers";
 import { ResultKind } from "./hkt";
 import { Steps, SubSteps } from "./steps";
 
@@ -26,7 +26,7 @@ type LoopResult<
     name: A["name"];
     steps: A["steps"];
     scope: LoopScope<Ctx["scope"], A["scope"]>;
-    last: A["last"][];
+    last: RawEntry<ResolveLast<A["last"]>[], []>;
   };
 };
 

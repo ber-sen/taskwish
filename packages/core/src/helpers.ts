@@ -73,6 +73,11 @@ export type ResolveScope<T> = Pretty<{
     : T[K];
 }>;
 
+export type ResolveLast<T> =
+  T extends { result: infer R; operator: infer O extends string[] }
+    ? ApplyOps<RemoveEndOps<O>, R>
+    : T;
+
 export type DeepOptionalString<T> = {
   [K in keyof T]?: T[K] extends object ? DeepOptionalString<T[K]> : string;
 };

@@ -47,15 +47,44 @@ type ElseScope<IfCtxScope extends Record<any, any>, ElseAdded extends Record<any
         : never;
 };
 
-// If didn't run → previous last preserved; if ran → branch last
+// If didn't run → previous last preserved; if ran → branch last.
+// When there is a prior last, we union CR|AR and preserve its ops (no extra ":if" — the
+// value is guaranteed to exist).  When there is no prior last, we add ":if" so the
+// result is marked as potentially undefined — mirrors IfScope for new keys.
 type IfLast<Ctx, A> =
-  ("last" extends keyof Ctx ? Ctx["last"] : undefined) |
-  ("last" extends keyof A ? A["last"] : never);
+  "last" extends keyof A
+    ? A["last"] extends RawEntry<infer AR, infer AOps extends string[]>
+      ? "last" extends keyof Ctx
+        ? Ctx["last"] extends RawEntry<infer CR, infer COps extends string[]>
+          ? RawEntry<CR | AR, COps>               // prior last exists: union, keep its ops
+          : RawEntry<AR, [":if", ...AOps]>
+        : RawEntry<AR, [":if", ...AOps]>          // no prior last: mark conditional
+      : never
+    : "last" extends keyof Ctx ? Ctx["last"] : RawEntry<never, []>;
 
-// Else always runs one branch → union of all If-branch lasts (minus undefined) with Else last
+// Else always runs one branch → resolves the ":if" — mirrors ElseScope.
+// When Ctx["last"] carries ":if" (no prior step before the If), strip it on merge.
+// When Ctx["last"] has no ":if" (prior step exists), fall back to a plain union.
 type ElseLast<Ctx, A> =
-  ("last" extends keyof Ctx ? Exclude<Ctx["last"], undefined> : never) |
-  ("last" extends keyof A ? A["last"] : never);
+  "last" extends keyof Ctx
+    ? Ctx["last"] extends RawEntry<infer CR, [":if", ...infer RestOps extends string[]]>
+      ? "last" extends keyof A
+        ? A["last"] extends RawEntry<infer AR, infer AOps extends string[]>
+          ? AOps extends [":if", ...string[]]
+            ? RawEntry<CR | AR, [":if", ...RestOps]>
+            : RawEntry<CR | AR, RestOps>
+          : RawEntry<CR, [":if", ...RestOps]>
+        : RawEntry<CR, [":if", ...RestOps]>
+      : Ctx["last"] extends RawEntry<infer CR, infer COps extends string[]>
+        ? "last" extends keyof A
+          ? A["last"] extends RawEntry<infer AR, any>
+            ? RawEntry<CR | AR, COps>
+            : Ctx["last"]
+          : Ctx["last"]
+        : Ctx["last"]
+    : "last" extends keyof A
+      ? A["last"]
+      : RawEntry<never, []>;
 
 // ── Result types ──────────────────────────────────────────────────────────────
 

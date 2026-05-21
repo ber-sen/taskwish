@@ -31,7 +31,7 @@ export function Step<
       RawEntry<Name extends keyof Ctx["step"]["map"] ? string : ReturnType<Handler>, []>
     > &
       Ctx["scope"];
-    last: ReturnType<Handler>;
+    last: RawEntry<ReturnType<Handler>, []>;
   };
 };
 
@@ -61,7 +61,7 @@ export function Step<
     steps: Ctx["steps"] & Record<Name, A>;
     [TW.Step]: Ctx["step"];
     scope: Record<Name, RawEntry<A, []>> & Ctx["scope"];
-    last: ReturnType<Handler>;
+    last: RawEntry<ReturnType<Handler>, []>;
   };
 };
 
@@ -93,7 +93,7 @@ export function Step<
     steps: Ctx["steps"] & Record<Name, B>;
     [TW.Step]: Ctx["step"];
     scope: Record<Name, RawEntry<B, []>> & Ctx["scope"];
-    last: ReturnType<Handler>;
+    last: RawEntry<ReturnType<Handler>, []>;
   };
 };
 

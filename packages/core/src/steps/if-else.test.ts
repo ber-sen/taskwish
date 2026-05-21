@@ -66,16 +66,20 @@ describe("If / Else", () => {
           Condition(({ input }) => input.flag),
 
           Step("result", function () {
-            return "truthy";
+            return "truthy" as const
           }),
         ),
 
         Else(
           Step("result", function () {
-            return "falsy";
+            return "falsy" as const
           }),
         ),
       );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, "truthy" | "falsy">>;
 
     expect(await branch({ flag: true })).toEqual("truthy");
 
@@ -97,16 +101,20 @@ describe("If / Else", () => {
           Condition(({ input }) => input.flag),
 
           Step("result", function () {
-            return "truthy";
+            return "truthy" as const
           }),
         ),
 
         Else(
           Step("result", function () {
-            return "falsy";
+            return "falsy" as const
           }),
         ),
       );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, "truthy" | "falsy">>;
 
     expect(await branch({ flag: false })).toEqual("falsy");
 
@@ -141,6 +149,10 @@ describe("If / Else", () => {
         }),
       );
 
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, number>>;
+
     expect(await branch({ run: false })).toEqual(1);
 
     const yields: unknown[] = [];
@@ -171,6 +183,10 @@ describe("If / Else", () => {
         ),
       );
 
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, number | boolean>>;
+
     expect(await branch({ value: 3 })).toEqual(true);
 
     const yields: unknown[] = [];
@@ -198,10 +214,14 @@ describe("If / Else", () => {
 
         Else(
           Step("result", function () {
-            return "small";
+            return "small" as const
           }),
         ),
       );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, "big" | "not big" | "small">>;
 
     expect(await branch({ x: 5 })).toEqual("small");
     expect(await branch({ x: 20 })).toEqual("big");
@@ -224,7 +244,7 @@ describe("If / Else", () => {
           Condition(({ input }) => input.x > 10),
 
           Step("result", function () {
-            return "big";
+            return "big" as const
           }),
         ),
 
@@ -232,16 +252,20 @@ describe("If / Else", () => {
           Condition(({ input }) => input.x > 5),
 
           Step("result", function () {
-            return "medium";
+            return "medium" as const
           }),
         ),
 
         Else(
           Step("result", function () {
-            return "small";
+            return "small" as const
           }),
         ),
       );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, "big" | "medium" | "small">>;
 
     expect(await branch({ x: 20 })).toEqual("big");
     expect(await branch({ x: 7 })).toEqual("medium");
@@ -273,6 +297,10 @@ describe("If / Else", () => {
           }),
         ),
       );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, string | undefined>>;
 
     expect(await branch({ x: 5 })).toEqual("val:10");
 
@@ -309,6 +337,10 @@ describe("If / Else", () => {
           }),
         ),
       );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, string>>;
 
     expect(await branch({ x: 4 })).toEqual("val:8");
 
@@ -353,6 +385,10 @@ describe("If / Else", () => {
           }),
         ),
       );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, string>>;
 
     expect(await branch({ x: 5 })).toEqual("medium:10");
     expect(await branch({ x: 20 })).toEqual("big");
@@ -457,6 +493,7 @@ describe("If / Else", () => {
       .run(
         If(
           Condition(({ input }) => input.x > 10),
+
           Step("result", function () {
             return "a" as const;
           }),
@@ -464,6 +501,7 @@ describe("If / Else", () => {
 
         ElseIf(
           Condition(({ input }) => input.x > 5),
+
           Step("result", function () {
             return "b" as const;
           }),
@@ -570,6 +608,10 @@ describe("If / Else", () => {
         ),
       );
 
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, number[] | undefined>>;
+
     expect(await branch({ run: true })).toEqual([2, 4, 6]);
 
     const yields: unknown[] = [];
@@ -610,6 +652,10 @@ describe("If / Else", () => {
         }),
       );
 
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, number>>;
+
     expect(await branch({ run: false })).toEqual(99);
 
     const yields: unknown[] = [];
@@ -646,6 +692,10 @@ describe("If / Else", () => {
         ),
       );
 
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, string | number[]>>;
+
     expect(await branch({ run: false })).toEqual([10, 20]);
 
     const yields: unknown[] = [];
@@ -681,6 +731,10 @@ describe("If / Else", () => {
         }),
       );
 
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, number>>;
+
     expect(await branch({ run: true })).toEqual(12);
 
     const yields: unknown[] = [];
@@ -715,6 +769,10 @@ describe("If / Else", () => {
           ),
         ),
       );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, string | undefined>>;
 
     expect(await branch({ outer: true, inner: true })).toEqual("both");
 
@@ -753,6 +811,10 @@ describe("If / Else", () => {
           return this.before;
         }),
       );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, number>>;
 
     expect(await branch({ outer: true, inner: false })).toEqual(1);
 
@@ -793,6 +855,10 @@ describe("If / Else", () => {
         }),
       );
 
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, number>>;
+
     expect(await branch({ outer: false, inner: true })).toEqual(42);
 
     const yields: unknown[] = [];
@@ -818,22 +884,26 @@ describe("If / Else", () => {
             Condition(({ input }) => input.x > 10),
 
             Step("result", function () {
-              return "big";
+              return "big" as const
             }),
           ),
           Else(
             Step("result", function () {
-              return "small";
+              return "small" as const
             }),
           ),
         ),
 
         Else(
           Step("result", function () {
-            return "negative";
+            return "negative" as const
           }),
         ),
       );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, "big" | "small" | "negative">>;
 
     expect(await branch({ x: -1 })).toEqual("negative");
     expect(await branch({ x: 5 })).toEqual("small");
