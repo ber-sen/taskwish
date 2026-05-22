@@ -16,7 +16,8 @@ export interface ActionResultKind extends ResultKind {
       ? this["ctx"]["name"] extends string
         ? "typeLogger" extends keyof this["ctx"]["scope"]
           ? this["ctx"]["scope"]["typeLogger"] extends true
-            ? this["last"] extends { steps: infer S extends any[] } ? S : never
+            ? "steps" extends keyof this["last"] ? this["last"]["steps"]
+              : never
             : {
                 [name in this["ctx"]["name"]]: TW.Action<
                   this["ctx"]["name"],

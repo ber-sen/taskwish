@@ -1,3 +1,4 @@
+import dedent from "dedent";
 import {
   Apply,
   ValidateTrigger,
@@ -7,14 +8,22 @@ import {
 } from "../helpers";
 import type { Steps, ActionResultKind } from "../steps";
 import { TW } from "../core";
-import { dispatch, LogFn, type ConsoleLike, type LoggerConfig, type TypeLoggerConfig } from "../use";
+import {
+  dispatch,
+  LogFn,
+  type ConsoleLike,
+  type LoggerConfig,
+  type TypeLoggerConfig,
+} from "../use";
 
 type ActionBody<
   Name extends string,
   Ctx extends Record<any, any>,
 > = TW.Contextual<Ctx> & {
   use(config: LoggerConfig): ActionBody<Name, Ctx>;
-  use(config: TypeLoggerConfig): ActionBody<Name, Ctx & { scope: { typeLogger: true } }>;
+  use(
+    config: TypeLoggerConfig,
+  ): ActionBody<Name, Ctx & { scope: { typeLogger: true } }>;
   run: Steps<Ctx, ActionResultKind>;
 };
 
@@ -24,7 +33,9 @@ type SignatureBody<
   Signature,
 > = {
   use(config: LoggerConfig): SignatureBody<Name, Ctx, Signature>;
-  use(config: TypeLoggerConfig): SignatureBody<Name, Ctx & { scope: { typeLogger: true } }, Signature>;
+  use(
+    config: TypeLoggerConfig,
+  ): SignatureBody<Name, Ctx & { scope: { typeLogger: true } }, Signature>;
   run<
     const Handler extends (
       this: TW.Scope<
@@ -71,7 +82,23 @@ export interface ActionFactory<
         reply(msg: string): boolean;
       };
       actions: {
-        generateText: (params: { model: "gpt5"; prompt: string }) => string;
+        generateText: (params: {
+          model: "gpt5";
+          prompt: string;
+        }) => AsyncGenerator<
+          TW.ActionInputEvent<
+            TW.Action<
+              "generateText",
+              (params: { model: "gpt5"; prompt: string }) => string
+            >,
+            {
+              model: "gpt5";
+              prompt: string;
+            }
+          >,
+          Promise<string>,
+          unknown
+        >;
         slack: {
           [key: `@${string}`]: {
             sendMessage: (params: {
@@ -92,12 +119,12 @@ export interface ActionFactory<
   },
 > {
   use(config: LoggerConfig): this;
-  use(config: TypeLoggerConfig): ActionFactory<Name, Ctx & { scope: { typeLogger: true } }>;
-  sig<const Schema extends ((...args: any) => any) | TW.Handler>(): SignatureBody<
-    Name,
-    Ctx,
-    Schema
-  >;
+  use(
+    config: TypeLoggerConfig,
+  ): ActionFactory<Name, Ctx & { scope: { typeLogger: true } }>;
+  sig<
+    const Schema extends ((...args: any) => any) | TW.Handler,
+  >(): SignatureBody<Name, Ctx, Schema>;
   input<const Schema>(trigger?: ValidateTrigger<Schema>): Schema extends
     | ((...args: any) => any)
     | TW.Handler
@@ -117,7 +144,7 @@ export interface ActionFactory<
   run: Steps<Ctx, ActionResultKind>;
 }
 
-const AsyncGeneratorFunction = (async function* () {}).constructor as Function;
+const AsyncGeneratorFunction = async function* () {}.constructor as Function;
 
 export async function* tapWith(
   gen: AsyncGenerator<unknown, unknown>,
@@ -132,10 +159,95 @@ export async function* tapWith(
   return next.value;
 }
 
-export type Scope = { input: unknown; get<T>(Cls: abstract new (...a: unknown[]) => T): T; signal(type: string, data: Record<string, unknown>): object };
+export type Scope = {
+  input: unknown;
+  get<T>(Cls: abstract new (...a: unknown[]) => T): T;
+  signal(type: string, data: Record<string, unknown>): object;
+};
 
 const SignalTag = Symbol.for("TW.Signal");
 export const ActionEventTag = Symbol.for("TW.ActionEvent");
+
+
+// ── TypeLogger action-step probe ──────────────────────────────────────────────
+
+/** Sentinel property set on the fake return value inside `probeForActionCall`. */
+const TypeLoggerActionCallTag = Symbol.for("TW.TypeLoggerActionCall");
+
+type ActionCallCapture = { name: string; params: Record<string, unknown> };
+
+/** Infinite-depth proxy that returns safe values for any property access or call. */
+function makeRecursiveProxy(): unknown {
+  return new Proxy(function () {}, {
+    get(_, prop) {
+      if (prop === Symbol.toPrimitive || prop === "valueOf") return () => 0;
+      if (prop === "toString") return () => "";
+      if (prop === "length") return 0;
+      return makeRecursiveProxy();
+    },
+    apply() {
+      return makeRecursiveProxy();
+    },
+  });
+}
+
+/**
+ * Calls `fn` in a probe context where `this.actions.<name>(params)` is
+ * intercepted.  Returns the captured action name + params, or `null` if the
+ * handler isn't a direct action call.
+ */
+function probeForActionCall(fn: Function): ActionCallCapture | null {
+  let captured: ActionCallCapture | null = null;
+
+  const actionsProxy = new Proxy(
+    {},
+    {
+      get(_, prop) {
+        return (params: unknown) => {
+          captured = {
+            name: String(prop),
+            params:
+              params !== null && typeof params === "object"
+                ? (params as Record<string, unknown>)
+                : {},
+          };
+          const sentinel = Object.create(null);
+          Object.defineProperty(sentinel, TypeLoggerActionCallTag, {
+            value: true,
+            enumerable: false,
+          });
+          return sentinel;
+        };
+      },
+    },
+  );
+
+  const ctx = new Proxy(
+    {},
+    {
+      get(_, prop) {
+        if (prop === "actions") return actionsProxy;
+        return makeRecursiveProxy();
+      },
+    },
+  );
+
+  try {
+    const ret = fn.call(ctx);
+    if (
+      captured !== null &&
+      ret !== null &&
+      typeof ret === "object" &&
+      TypeLoggerActionCallTag in (ret as object)
+    ) {
+      return captured;
+    }
+  } catch {
+    // handler threw before/after the action call — treat as ScriptStep
+  }
+
+  return null;
+}
 
 /** Marks an AsyncGenerator returned by `self(input)` so runStep can yield* it directly. */
 const SelfTag = Symbol.for("TW.SelfCall");
@@ -144,9 +256,11 @@ const SelfTag = Symbol.for("TW.SelfCall");
 const SelfCalledTag = Symbol.for("TW.SelfCalled");
 
 function actionEvent(obj: Record<string, unknown>) {
-  return Object.defineProperty(obj, ActionEventTag, { value: true, enumerable: false });
+  return Object.defineProperty(obj, ActionEventTag, {
+    value: true,
+    enumerable: false,
+  });
 }
-
 
 async function* runStep(
   name: string,
@@ -161,12 +275,20 @@ async function* runStep(
       const ret = handler.call(ctx);
       // If the step returned a self-recursive generator, propagate its events
       // and return its result without emitting a step result event for this step.
-      if (ret !== null && typeof ret === "object" && SelfTag in (ret as object)) {
+      if (
+        ret !== null &&
+        typeof ret === "object" &&
+        SelfTag in (ret as object)
+      ) {
         return yield* ret as AsyncGenerator<unknown, unknown>;
       }
       result = await ret;
     }
-    if (result !== null && typeof result === "object" && SignalTag in (result as object)) {
+    if (
+      result !== null &&
+      typeof result === "object" &&
+      SignalTag in (result as object)
+    ) {
       yield result;
     }
     yield { ">": name, result };
@@ -186,19 +308,25 @@ type ParallelEntry = { steps: unknown[] };
 
 function twType(handler: unknown): string | null {
   return handler !== null && typeof handler === "object"
-    ? ((handler as any)[TW.Type] as string | undefined) ?? null
+    ? (((handler as any)[TW.Type] as string | undefined) ?? null)
     : null;
 }
 
-async function evalCond(condition: unknown, ctx: Record<string | symbol, unknown>): Promise<boolean> {
-  const val = typeof condition === "function"
-    ? await (condition as (scope: unknown) => unknown).call(ctx, ctx)
-    : twType(condition) === "Condition"
-      ? await ((condition as any).fn as (scope: unknown) => unknown).call(ctx, ctx)
-      : condition;
+async function evalCond(
+  condition: unknown,
+  ctx: Record<string | symbol, unknown>,
+): Promise<boolean> {
+  const val =
+    typeof condition === "function"
+      ? await (condition as (scope: unknown) => unknown).call(ctx, ctx)
+      : twType(condition) === "Condition"
+        ? await ((condition as any).fn as (scope: unknown) => unknown).call(
+            ctx,
+            ctx,
+          )
+        : condition;
   return Boolean(val);
 }
-
 
 async function* runHandlerList(
   name: string,
@@ -211,7 +339,10 @@ async function* runHandlerList(
   actionName: string = name,
   /** The top-level handlers for this invocation; passed to self-recursive runAction calls. */
   actionHandlers: unknown[] = handlers,
-): AsyncGenerator<unknown, { last: unknown; lastStepName: string | null; lastCond: boolean | null }> {
+): AsyncGenerator<
+  unknown,
+  { last: unknown; lastStepName: string | null; lastCond: boolean | null }
+> {
   // `currentName` can be promoted from a branch name (e.g. "factorial.else") back to the
   // action name ("factorial") after a step calls `self`, so that subsequent steps in the
   // same branch are named relative to the action rather than the branch.
@@ -252,7 +383,17 @@ async function* runHandlerList(
       if (lastCond) {
         if (isCondNode) ctx["condition"] = condRaw;
         const branchName = transparent ? currentName : `${currentName}.if`;
-        adopt(yield* runHandlerList(branchName, steps as unknown[], ctx, loopAcc, transparent, actionName, actionHandlers));
+        adopt(
+          yield* runHandlerList(
+            branchName,
+            steps as unknown[],
+            ctx,
+            loopAcc,
+            transparent,
+            actionName,
+            actionHandlers,
+          ),
+        );
       }
     } else if (type === "ElseIf") {
       if (lastCond === false) {
@@ -268,26 +409,57 @@ async function* runHandlerList(
 
         if (lastCond) {
           if (isCondNode) ctx["condition"] = condRaw;
-          const branchName = transparent ? currentName : `${currentName}.elseIf`;
-          adopt(yield* runHandlerList(branchName, steps as unknown[], ctx, loopAcc, transparent, actionName, actionHandlers));
+          const branchName = transparent
+            ? currentName
+            : `${currentName}.elseIf`;
+          adopt(
+            yield* runHandlerList(
+              branchName,
+              steps as unknown[],
+              ctx,
+              loopAcc,
+              transparent,
+              actionName,
+              actionHandlers,
+            ),
+          );
         }
       }
     } else if (type === "Else") {
       if (lastCond === false) {
         const branchName = transparent ? currentName : `${currentName}.else`;
-        adopt(yield* runHandlerList(branchName, (handler as ElseEntry).steps as unknown[], ctx, loopAcc, transparent, actionName, actionHandlers));
+        adopt(
+          yield* runHandlerList(
+            branchName,
+            (handler as ElseEntry).steps as unknown[],
+            ctx,
+            loopAcc,
+            transparent,
+            actionName,
+            actionHandlers,
+          ),
+        );
       }
       lastCond = null;
     } else if (type === "Loop") {
       lastCond = null;
-      const { name: loopName, items: itemsGetter, steps } = handler as LoopEntry;
-      const items = typeof itemsGetter === "function"
-        ? await (itemsGetter as (scope: unknown) => unknown).call(ctx, ctx)
-        : twType(itemsGetter) === "ForEach"
-          ? await ((itemsGetter as any).fn as (scope: unknown) => unknown).call(ctx, ctx)
-          : typeof itemsGetter === "string"
-            ? (itemsGetter as string).split(".").reduce((o: any, k) => o?.[k], ctx)
-            : itemsGetter;
+      const {
+        name: loopName,
+        items: itemsGetter,
+        steps,
+      } = handler as LoopEntry;
+      const items =
+        typeof itemsGetter === "function"
+          ? await (itemsGetter as (scope: unknown) => unknown).call(ctx, ctx)
+          : twType(itemsGetter) === "ForEach"
+            ? await (
+                (itemsGetter as any).fn as (scope: unknown) => unknown
+              ).call(ctx, ctx)
+            : typeof itemsGetter === "string"
+              ? (itemsGetter as string)
+                  .split(".")
+                  .reduce((o: any, k) => o?.[k], ctx)
+              : itemsGetter;
       yield { ">": `${currentName}.${loopName}`, items };
       const innerAcc: Record<string, unknown[]> = {};
       let loopLastStepName: string | null = null;
@@ -295,7 +467,15 @@ async function* runHandlerList(
       const flatSteps = steps as unknown[];
       for (let index = 0; index < (items as unknown[]).length; index++) {
         ctx[loopName] = { item: (items as unknown[])[index], index };
-        const r = yield* runHandlerList(`${currentName}.${loopName}[${index}]`, flatSteps, ctx, innerAcc, transparent, actionName, actionHandlers);
+        const r = yield* runHandlerList(
+          `${currentName}.${loopName}[${index}]`,
+          flatSteps,
+          ctx,
+          innerAcc,
+          transparent,
+          actionName,
+          actionHandlers,
+        );
         if (r.lastStepName) loopLastStepName = r.lastStepName;
         loopIterLasts.push(r.last);
       }
@@ -312,7 +492,7 @@ async function* runHandlerList(
         lastStepName = loopLastStepName;
       } else {
         // Non-step last per iteration (e.g. Parallel as final handler in loop body)
-        const hasDirectLast = loopIterLasts.some(v => v !== undefined);
+        const hasDirectLast = loopIterLasts.some((v) => v !== undefined);
         last = hasDirectLast ? loopIterLasts : [];
       }
     } else if (type === "Parallel") {
@@ -327,10 +507,21 @@ async function* runHandlerList(
           const stepCtx = { ...ctx };
           const events: unknown[] = [];
 
-          const gen = runHandlerList(currentName, [step], stepCtx, null, transparent, actionName, actionHandlers);
+          const gen = runHandlerList(
+            currentName,
+            [step],
+            stepCtx,
+            null,
+            transparent,
+            actionName,
+            actionHandlers,
+          );
 
-          let iterResult: { last: unknown; lastStepName: string | null; lastCond: boolean | null } =
-            { last: undefined, lastStepName: null, lastCond: null };
+          let iterResult: {
+            last: unknown;
+            lastStepName: string | null;
+            lastCond: boolean | null;
+          } = { last: undefined, lastStepName: null, lastCond: null };
 
           let item = await gen.next();
           while (!item.done) {
@@ -339,7 +530,11 @@ async function* runHandlerList(
           }
           iterResult = item.value as typeof iterResult;
 
-          return { events, last: iterResult.last, stepName: iterResult.lastStepName };
+          return {
+            events,
+            last: iterResult.last,
+            stepName: iterResult.lastStepName,
+          };
         }),
       );
 
@@ -363,13 +558,15 @@ async function* runHandlerList(
       last = parallelLast;
       // Explicitly null so the loop handler falls through to loopIterLasts tracking
       lastStepName = null;
-
-    } else if ((typeof handler === "function" || Array.isArray(handler)) && TW.Name in Object(handler)) {
+    } else if (
+      (typeof handler === "function" || Array.isArray(handler)) &&
+      TW.Name in Object(handler)
+    ) {
       lastCond = null;
       const stepName = (handler as any)[TW.Name] as string;
       const fn = Array.isArray(handler)
-        ? (handler as unknown[])[0] as (...a: unknown[]) => unknown
-        : handler as (...a: unknown[]) => unknown;
+        ? ((handler as unknown[])[0] as (...a: unknown[]) => unknown)
+        : (handler as (...a: unknown[]) => unknown);
 
       // Inject `this.self` so the step can recursively re-invoke the action.
       // The self-call name is `actionName.stepName` (e.g. "factorial.next"),
@@ -379,12 +576,20 @@ async function* runHandlerList(
       const _actionHandlers = actionHandlers;
       ctx["self"] = (input: unknown) => {
         ctx[SelfCalledTag] = true;
-        const gen = runAction(`${_actionName}.${_stepName}`, buildScope("first", [input]), _actionHandlers, true);
+        const gen = runAction(
+          `${_actionName}.${_stepName}`,
+          buildScope("first", [input]),
+          _actionHandlers,
+          true,
+        );
         Object.defineProperty(gen, SelfTag, { value: true, enumerable: false });
         return gen;
       };
 
-      recordStep(stepName, yield* runStep(`${currentName}.${stepName}`, fn, ctx));
+      recordStep(
+        stepName,
+        yield* runStep(`${currentName}.${stepName}`, fn, ctx),
+      );
 
       // If this step called self, promote currentName back to actionName so that
       // subsequent steps in the same branch use the action name as their prefix
@@ -395,11 +600,18 @@ async function* runHandlerList(
       }
     } else if (handler instanceof AsyncGeneratorFunction) {
       lastCond = null;
-      last = yield* (handler as (this: typeof ctx) => AsyncGenerator<unknown, unknown>).call(ctx);
+      last = yield* (
+        handler as (this: typeof ctx) => AsyncGenerator<unknown, unknown>
+      ).call(ctx);
     } else if (typeof handler === "function") {
       lastCond = null;
       last = await (handler as (this: typeof ctx) => unknown).call(ctx);
-      if (last !== null && typeof last === "object" && SignalTag in (last as object)) yield last;
+      if (
+        last !== null &&
+        typeof last === "object" &&
+        SignalTag in (last as object)
+      )
+        yield last;
     }
   }
 
@@ -418,7 +630,15 @@ export async function* runAction(
   yield { ">": name, input: scope.input };
 
   try {
-    const r = yield* runHandlerList(name, handlers, ctx, null, transparent, name, handlers);
+    const r = yield* runHandlerList(
+      name,
+      handlers,
+      ctx,
+      null,
+      transparent,
+      name,
+      handlers,
+    );
     yield { ">": name, result: r.last };
     return r.last;
   } catch (error) {
@@ -438,7 +658,10 @@ export function buildScope(
     input: inputMode === "args" ? args : args[0],
     signal(type: string, data: Record<string, unknown>) {
       const event = { ">": type, ...data };
-      Object.defineProperty(event, SignalTag, { value: true, enumerable: false });
+      Object.defineProperty(event, SignalTag, {
+        value: true,
+        enumerable: false,
+      });
       return event;
     },
     get<T>(Cls: abstract new (...a: unknown[]) => T): T {
@@ -480,19 +703,30 @@ export function Action<const Name extends string>(
 
   function createAction(inputMode: "first" | "args", handlers: unknown[]) {
     if (typeLogger) {
-      const steps: Array<{ $: "step"; "=": string; run: unknown }> = [];
+      const steps: Array<Record<string, unknown>> = [];
       for (const handler of handlers) {
-        if (handler !== null && handler !== undefined && TW.Name in Object(handler)) {
+        if (
+          handler !== null &&
+          handler !== undefined &&
+          TW.Name in Object(handler)
+        ) {
           const stepName = (handler as any)[TW.Name] as string;
           const fn = Array.isArray(handler) ? (handler as any[])[0] : handler;
-          steps.push({ $: "step" as const, "=": stepName, run: fn });
+          const actionCall = probeForActionCall(fn as Function);
+          if (actionCall) {
+            steps.push({ $: actionCall.name, "=": stepName, ...actionCall.params });
+          } else {
+            steps.push({ $: "step", "=": stepName, run: dedent((fn as Function).toString()) });
+          }
         }
       }
       return steps;
     }
 
     async function consume(...args: unknown[]) {
-      const gen = tap(runAction(actionName, buildScope(inputMode, args), handlers));
+      const gen = tap(
+        runAction(actionName, buildScope(inputMode, args), handlers),
+      );
       let item = await gen.next();
       while (!item.done) item = await gen.next();
       return item.value;
@@ -506,18 +740,28 @@ export function Action<const Name extends string>(
   }
 
   const makeBody = (inputMode: "first" | "args") => ({
-    use(config: unknown) { detectPlugin(config as LoggerConfig | TypeLoggerConfig); return this; },
+    use(config: unknown) {
+      detectPlugin(config as LoggerConfig | TypeLoggerConfig);
+      return this;
+    },
     run(...handlers: unknown[]) {
       return createAction(inputMode, handlers);
     },
   });
 
   return {
-    sig() { return makeBody("args"); },
-    input(_schema?: unknown) { return makeBody("first"); },
-    use(config: unknown) { detectPlugin(config as LoggerConfig | TypeLoggerConfig); return this; },
+    sig() {
+      return makeBody("args");
+    },
+    input(_schema?: unknown) {
+      return makeBody("first");
+    },
+    use(config: unknown) {
+      detectPlugin(config as LoggerConfig | TypeLoggerConfig);
+      return this;
+    },
     run(...handlers: unknown[]) {
       return createAction("first", handlers);
     },
-  } as any
+  } as any;
 }

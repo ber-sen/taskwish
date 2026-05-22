@@ -1,6 +1,20 @@
 import { PrettyScope, RawEntry, ResolveScope } from "../helpers";
 import { TW } from "../core";
 
+/**
+ * Resolve the "value" type of a step handler:
+ * - async generator  → TReturn (the generator's return value, not the iterator)
+ * - sync generator   → TReturn
+ * - async function   → Awaited<ReturnType>
+ * - sync function    → ReturnType
+ */
+type ResolveReturn<H extends (...args: any) => any> =
+  ReturnType<H> extends AsyncGenerator<any, infer R, any>
+    ? Awaited<R>
+    : ReturnType<H> extends Generator<any, infer R, any>
+      ? R
+      : Awaited<ReturnType<H>>;
+
 type UserScope<Ctx extends Record<any, any>> = PrettyScope<TW.Scope<ResolveScope<Ctx["scope"]>>>;
 
 export function Step<
@@ -23,17 +37,17 @@ export function Step<
     steps: Ctx extends { steps: infer L extends any[] }
       ? Name extends keyof Ctx["step"]["map"]
         ? L
-        : [...L, TW.ScriptStep<Name, () => ReturnType<Handler>>]
+        : [...L, TW.Step<Name, () => ReturnType<Handler>>]
       : Name extends keyof Ctx["step"]["map"]
         ? []
-        : [TW.ScriptStep<Name, () => ReturnType<Handler>>];
+        : [TW.Step<Name, () => ReturnType<Handler>>];
     [TW.Step]: Ctx["step"];
     scope: Record<
       Name,
-      RawEntry<Name extends keyof Ctx["step"]["map"] ? string : ReturnType<Handler>, []>
+      RawEntry<Name extends keyof Ctx["step"]["map"] ? string : ResolveReturn<Handler>, []>
     > &
       Ctx["scope"];
-    last: RawEntry<ReturnType<Handler>, []>;
+    last: RawEntry<ResolveReturn<Handler>, []>;
   };
 };
 
@@ -54,18 +68,18 @@ export function Step<
   handler: [
     Name extends keyof Ctx["step"]["map"] ? Params : Handler,
     (
-      res: Name extends keyof Ctx["step"]["map"] ? string : ReturnType<Handler>,
+      res: Name extends keyof Ctx["step"]["map"] ? string : ResolveReturn<Handler>,
     ) => A,
   ],
 ): {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx extends { steps: infer L extends any[] }
-      ? [...L, TW.ScriptStep<Name, () => ReturnType<Handler>>]
-      : [TW.ScriptStep<Name, () => ReturnType<Handler>>];
+      ? [...L, TW.Step<Name, () => ReturnType<Handler>>]
+      : [TW.Step<Name, () => ReturnType<Handler>>];
     [TW.Step]: Ctx["step"];
     scope: Record<Name, RawEntry<A, []>> & Ctx["scope"];
-    last: RawEntry<ReturnType<Handler>, []>;
+    last: RawEntry<ResolveReturn<Handler>, []>;
   };
 };
 
@@ -87,7 +101,7 @@ export function Step<
   handler: [
     Name extends keyof Ctx["step"]["map"] ? Params : Handler,
     (
-      res: Name extends keyof Ctx["step"]["map"] ? string : ReturnType<Handler>,
+      res: Name extends keyof Ctx["step"]["map"] ? string : ResolveReturn<Handler>,
     ) => A,
     (input: A) => B,
   ],
@@ -99,7 +113,7 @@ export function Step<
       : [TW.ScriptStep<Name, () => ReturnType<Handler>>];
     [TW.Step]: Ctx["step"];
     scope: Record<Name, RawEntry<B, []>> & Ctx["scope"];
-    last: RawEntry<ReturnType<Handler>, []>;
+    last: RawEntry<ResolveReturn<Handler>, []>;
   };
 };
 

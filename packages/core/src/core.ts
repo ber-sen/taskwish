@@ -126,17 +126,6 @@ export namespace TW {
     // ) => Event<"Message", Message.Message<Content>>;
   }
 
-  export interface Event<
-    Type extends string,
-    Data,
-    Meta extends Record<any, any> = {},
-  > extends Attributable<Meta> {
-    id: Inject<UUIDv7String>;
-    data: Data;
-    type: Type;
-    io: "io" extends keyof Meta ? IO : never;
-  }
-
   export interface Execution<Stream, Return, Deps, Params = null>
     extends AsyncGenerator<Stream, Return, Deps>, Promise<Return> {
     id: Inject<UUIDv7String>;
@@ -187,10 +176,22 @@ export namespace TW {
 
   export interface ResourceKind<Name extends string> extends Named<Name> {}
 
+  export type Event<Type extends string, Data> = {
+    ">": Type;
+  } & Data;
+
+  export type ActionInputEvent<Action extends TW.Action<any, any>, Params> = {
+    ">": string;
+    "&": Action;
+    input: Params;
+  };
+
   export type Step<Name extends string, Handler extends (...args: any) => any> =
     ReturnType<Handler> extends AsyncGenerator<infer Caller, any, any>
-      ? Caller extends ScriptStep<any, any> | ActionStep<any, any, any>
-        ? Caller
+      ? Caller extends ActionInputEvent<infer A, infer P>
+        ? A extends TW.Action<infer ActionName, infer Handler>
+          ? ActionStep<Name, ActionName, P>
+          : ScriptStep<Name, Handler>
         : ScriptStep<Name, Handler>
       : ScriptStep<Name, Handler>;
 
@@ -200,32 +201,15 @@ export namespace TW {
   > {
     $: "step";
     "=": Name;
-    run: Handler;
+    run: string;
   }
 
   export type ActionStep<
     Name extends string,
-    A extends Resource<any> & Attributable<any>,
+    ActionName extends string,
     Params,
   > = {
-    $: A extends Named<infer N> ? N : never;
+    $: ActionName;
     "=": Name;
   } & Params;
 }
-
-function makeStep<N extends string, H extends (...args: any) => any>(
-  name: N,
-  handler: H,
-): TW.Step<"lorem", H> {
-  return {} as never;
-}
-
-async function* aa() {
-  yield {} as TW.ActionStep<"trip", TW.Action<"lorem", () => 3>, { lorem: 3 }>;
-
-  return 3
-}
-
-const b: TW.Action<"lorem", () => 3> = {} as never;
-
-const a = makeStep("Lorem", () => aa());

@@ -1,6 +1,7 @@
 import { expect, test, describe } from "bun:test";
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
+import dedent from "dedent";
 import { TW } from "../core";
 import { Step } from "../steps";
 import { Logger, TypeLogger, formatEvent, isActionEvent } from "../use";
@@ -333,14 +334,17 @@ describe("Action", () => {
       .use(TypeLogger())
 
       .input({ value: "number" })
-      
-      .run(
-        Step("double", function () {
-          return this.input.value * 2;
-        }),
 
+      .run(
+        Step("gent", function () {
+          return this.actions.generateText({
+            model: "gpt5",
+            prompt: "hello",
+          });
+        }),
+        
         Step("positive", function () {
-          return this.double > 0;
+          return this.gent.length > 2;
         }),
       );
 
@@ -350,17 +354,29 @@ describe("Action", () => {
       Equal<
         T,
         [
-          TW.ScriptStep<"double", () => number>,
+          TW.ActionStep<
+            "gent",
+            "generateText",
+            {
+              model: "gpt5";
+              prompt: string;
+            }
+          >,
           TW.ScriptStep<"positive", () => boolean>,
         ]
       >
     >;
 
-    expect(steps).toHaveLength(2);
-    expect(steps[0]).toMatchObject({ $: "step", "=": "double" });
-    expect(steps[1]).toMatchObject({ $: "step", "=": "positive" });
-    expect(typeof steps[0].run).toBe("function");
-    expect(typeof steps[1].run).toBe("function");
+    expect(steps).toEqual([
+      { $: "generateText", "=": "gent", model: "gpt5", prompt: "hello" },
+      {
+        $: "step",
+        "=": "positive",
+        run: dedent`function() {
+          return this.gent.length > 2;
+        }`,
+      },
+    ]);
   });
 
   test("async generator — stream yields each value", async () => {
