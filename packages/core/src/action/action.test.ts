@@ -1,7 +1,6 @@
 import { expect, test, describe } from "bun:test";
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
-import dedent from "dedent";
 import { TW } from "../core";
 import { Step } from "../steps";
 import { Logger, TypeLogger, formatEvent, isActionEvent } from "../use";
@@ -333,13 +332,13 @@ describe("Action", () => {
     const steps = Action("compute")
       .use(TypeLogger())
 
-      .input({ value: "number" })
+      .input({ name: "string" })
 
       .run(
         Step("gent", function () {
           return this.actions.generateText({
             model: "gpt5",
-            prompt: "hello",
+            prompt: `hello ${this.input.name}`,
           });
         }),
         
@@ -368,13 +367,11 @@ describe("Action", () => {
     >;
 
     expect(steps).toEqual([
-      { $: "generateText", "=": "gent", model: "gpt5", prompt: "hello" },
+      { $: "generateText", "=": "gent", model: "gpt5", prompt: "hello @{input.name}" },
       {
         $: "step",
         "=": "positive",
-        run: dedent`function() {
-          return this.gent.length > 2;
-        }`,
+        run: "@js{function() {\nreturn this.gent.length > 2;\n}}",
       },
     ]);
   });

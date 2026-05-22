@@ -1,4 +1,3 @@
-import dedent from "dedent";
 import {
   Apply,
   ValidateTrigger,
@@ -176,17 +175,27 @@ const TypeLoggerActionCallTag = Symbol.for("TW.TypeLoggerActionCall");
 
 type ActionCallCapture = { name: string; params: Record<string, unknown> };
 
-/** Infinite-depth proxy that returns safe values for any property access or call. */
-function makeRecursiveProxy(): unknown {
+/**
+ * Infinite-depth proxy that tracks the property-access path.
+ * In a string context (template literal) it yields `"@{path}"` so that
+ * dynamic params like `` `hello ${this.input.name}` `` are captured as
+ * `"hello @{input.name}"`.  In a numeric context it yields `0` so that
+ * comparisons like `this.gent.length > 2` don't throw.
+ */
+function makeRecursiveProxy(path: string = ""): unknown {
   return new Proxy(function () {}, {
     get(_, prop) {
-      if (prop === Symbol.toPrimitive || prop === "valueOf") return () => 0;
-      if (prop === "toString") return () => "";
-      if (prop === "length") return 0;
-      return makeRecursiveProxy();
+      if (prop === Symbol.toPrimitive) {
+        return (hint: string) =>
+          hint === "string" && path ? `@{${path}}` : 0;
+      }
+      if (prop === "valueOf") return () => 0;
+      if (prop === "toString") return () => (path ? `@{${path}}` : "");
+      const next = path ? `${path}.${String(prop)}` : String(prop);
+      return makeRecursiveProxy(next);
     },
     apply() {
-      return makeRecursiveProxy();
+      return makeRecursiveProxy(path);
     },
   });
 }
@@ -227,7 +236,7 @@ function probeForActionCall(fn: Function): ActionCallCapture | null {
     {
       get(_, prop) {
         if (prop === "actions") return actionsProxy;
-        return makeRecursiveProxy();
+        return makeRecursiveProxy(String(prop));
       },
     },
   );
@@ -716,7 +725,7 @@ export function Action<const Name extends string>(
           if (actionCall) {
             steps.push({ $: actionCall.name, "=": stepName, ...actionCall.params });
           } else {
-            steps.push({ $: "step", "=": stepName, run: dedent((fn as Function).toString()) });
+            steps.push({ $: "step", "=": stepName, run: `@js{${(fn as Function).toString().replace(/^\s+/gm, "")}}` });
           }
         }
       }
