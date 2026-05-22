@@ -1,4 +1,9 @@
-import { UUIDv7String, ValidateTrigger, InferTriggerScope } from "./helpers";
+import {
+  UUIDv7String,
+  ValidateTrigger,
+  InferTriggerScope,
+  Pretty,
+} from "./helpers";
 
 import { Type as ArkType } from "arktype";
 
@@ -27,11 +32,15 @@ export namespace TW {
 
   export interface Resource<Name extends string> extends Named<Name> {}
 
-  export type Step<
+  export interface Step<
     Name extends string,
     Handler extends (...args: any) => any,
     Meta = null,
-  > = Record<Name, Handler & Attributable<Meta>>;
+  > {
+    $: ReturnType<Handler> extends Named<infer N> ? N : "step";
+    "=": Name;
+    run: Handler;
+  }
   export abstract class Handler {
     readonly ctx!: Record<"model", unknown>;
     run?: (...x: never[]) => Promise<any>;
