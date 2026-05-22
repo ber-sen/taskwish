@@ -332,18 +332,29 @@ describe("Action", () => {
     const steps = Action("compute")
       .use(TypeLogger())
 
-      .input({ name: "string" })
+      .input({ name: "string", thread: { sender: { name: "string" } } })
 
       .run(
         Step("gent", function () {
           return this.actions.generateText({
             model: "gpt5",
-            prompt: `hello ${this.input.name}`,
+            prompt: `hello ${this.input.thread.sender.name}`,
           });
         }),
-        
+
+        Step("reply", function () {
+          return this.actions.generateText({
+            model: "gpt5",
+            prompt: `reply to ${this.gent} from ${this.input.name}`,
+          });
+        }),
+
         Step("positive", function () {
           return this.gent.length > 2;
+        }),
+
+        Step("done", function () {
+          return this.reply === this.input.name;
         }),
       );
 
@@ -356,22 +367,41 @@ describe("Action", () => {
           TW.ActionStep<
             "gent",
             "generateText",
-            {
-              model: "gpt5";
-              prompt: string;
-            }
+            { model: "gpt5"; prompt: string }
+          >,
+          TW.ActionStep<
+            "reply",
+            "generateText",
+            { model: "gpt5"; prompt: string }
           >,
           TW.ScriptStep<"positive", () => boolean>,
+          TW.ScriptStep<"done", () => boolean>,
         ]
       >
     >;
 
     expect(steps).toEqual([
-      { $: "generateText", "=": "gent", model: "gpt5", prompt: "hello @{input.name}" },
+      {
+        $: "generateText",
+        "=": "gent",
+        model: "gpt5",
+        prompt: "hello @{input.thread.sender.name}",
+      },
+      {
+        $: "generateText",
+        "=": "reply",
+        model: "gpt5",
+        prompt: "reply to @{gent} from @{input.name}",
+      },
       {
         $: "step",
         "=": "positive",
         run: "@js{function() {\nreturn this.gent.length > 2;\n}}",
+      },
+      {
+        $: "step",
+        "=": "done",
+        run: "@js{function() {\nreturn this.reply === this.input.name;\n}}",
       },
     ]);
   });
