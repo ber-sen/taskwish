@@ -187,7 +187,7 @@ export namespace TW {
   export interface ResourceKind<Name extends string> extends Named<Name> {}
 
   export type Step<Name extends string, Handler extends (...args: any) => any> =
-    ReturnType<Handler> extends Generator<infer Caller, any, any>
+    ReturnType<Handler> extends AsyncGenerator<infer Caller, any, any>
       ? Caller extends ScriptStep<any, any> | ActionStep<any, any, any>
         ? Caller
         : ScriptStep<Name, Handler>
@@ -219,12 +219,12 @@ function makeStep<N extends string, H extends (...args: any) => any>(
   return {} as never;
 }
 
-function* aa() {
+async function* aa() {
   yield {} as TW.ActionStep<"trip", TW.Action<"lorem", () => 3>, { lorem: 3 }>;
+
+  return 3
 }
 
 const b: TW.Action<"lorem", () => 3> = {} as never;
 
 const a = makeStep("Lorem", () => aa());
-
-type A = Pretty<typeof a>
