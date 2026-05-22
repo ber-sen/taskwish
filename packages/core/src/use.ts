@@ -68,6 +68,12 @@ export function Logger(target: ConsoleLike = console): LoggerConfig {
   return { [TW.Type]: "Logger", target };
 }
 
+export type TypeLoggerConfig = { [TW.Type]: "TypeLogger" };
+
+export function TypeLogger(): TypeLoggerConfig {
+  return { [TW.Type]: "TypeLogger" };
+}
+
 export function Use<
   const Ctx extends Record<any, any>,
   const Def extends Record<string, { [TW.Name]: string }>,

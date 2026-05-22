@@ -14,26 +14,72 @@ export interface ActionResultKind extends ResultKind {
   type: this["ctx"] extends Record<any, any>
     ? "name" extends keyof this["ctx"]
       ? this["ctx"]["name"] extends string
-        ? {
-            [name in this["ctx"]["name"]]: TW.Action<
-              this["ctx"]["name"],
-              "scope" extends keyof this["ctx"]
-                ? "input" extends keyof this["ctx"]["scope"]
-                  ? (
-                      input: "scope" extends keyof this["ctx"]
-                        ? "$call" extends keyof this["ctx"]["scope"]
-                          ? this["ctx"]["scope"]["$call"]
-                          : "input" extends keyof this["ctx"]["scope"]
-                            ? this["ctx"]["scope"]["input"]
-                            : never
-                        : never,
-                    ) => Promise<
-                      "last" extends keyof this["last"]
-                        ? ResolveLast<this["last"]["last"]>
-                        : "steps" extends keyof this["last"]
-                          ? this["last"]["steps"]
-                          : this["last"]
-                    >
+        ? "typeLogger" extends keyof this["ctx"]["scope"]
+          ? this["ctx"]["scope"]["typeLogger"] extends true
+            ? this["last"] extends { steps: infer S extends any[] } ? S : never
+            : {
+                [name in this["ctx"]["name"]]: TW.Action<
+                  this["ctx"]["name"],
+                  "scope" extends keyof this["ctx"]
+                    ? "input" extends keyof this["ctx"]["scope"]
+                      ? (
+                          input: "scope" extends keyof this["ctx"]
+                            ? "$call" extends keyof this["ctx"]["scope"]
+                              ? this["ctx"]["scope"]["$call"]
+                              : "input" extends keyof this["ctx"]["scope"]
+                                ? this["ctx"]["scope"]["input"]
+                                : never
+                            : never,
+                        ) => Promise<
+                          "last" extends keyof this["last"]
+                            ? ResolveLast<this["last"]["last"]>
+                            : "steps" extends keyof this["last"]
+                              ? this["last"]["steps"]
+                              : this["last"]
+                        >
+                      : () => Promise<
+                          "last" extends keyof this["last"]
+                            ? ResolveLast<this["last"]["last"]>
+                            : "steps" extends keyof this["last"]
+                              ? this["last"]["steps"]
+                              : this["last"]
+                        >
+                    : () => Promise<
+                        "last" extends keyof this["last"]
+                          ? ResolveLast<this["last"]["last"]>
+                          : "steps" extends keyof this["last"]
+                            ? this["last"]["steps"]
+                            : this["last"]
+                      >
+                >;
+              }
+          : {
+              [name in this["ctx"]["name"]]: TW.Action<
+                this["ctx"]["name"],
+                "scope" extends keyof this["ctx"]
+                  ? "input" extends keyof this["ctx"]["scope"]
+                    ? (
+                        input: "scope" extends keyof this["ctx"]
+                          ? "$call" extends keyof this["ctx"]["scope"]
+                            ? this["ctx"]["scope"]["$call"]
+                            : "input" extends keyof this["ctx"]["scope"]
+                              ? this["ctx"]["scope"]["input"]
+                              : never
+                          : never,
+                      ) => Promise<
+                        "last" extends keyof this["last"]
+                          ? ResolveLast<this["last"]["last"]>
+                          : "steps" extends keyof this["last"]
+                            ? this["last"]["steps"]
+                            : this["last"]
+                      >
+                    : () => Promise<
+                        "last" extends keyof this["last"]
+                          ? ResolveLast<this["last"]["last"]>
+                          : "steps" extends keyof this["last"]
+                            ? this["last"]["steps"]
+                            : this["last"]
+                      >
                   : () => Promise<
                       "last" extends keyof this["last"]
                         ? ResolveLast<this["last"]["last"]>
@@ -41,15 +87,8 @@ export interface ActionResultKind extends ResultKind {
                           ? this["last"]["steps"]
                           : this["last"]
                     >
-                : () => Promise<
-                    "last" extends keyof this["last"]
-                      ? ResolveLast<this["last"]["last"]>
-                      : "steps" extends keyof this["last"]
-                        ? this["last"]["steps"]
-                        : this["last"]
-                  >
-            >;
-          }
+              >;
+            }
         : never
       : never
     : never;

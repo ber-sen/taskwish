@@ -20,11 +20,13 @@ export function Step<
 ): {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
-    steps: Ctx["steps"] &
-      Record<
-        Name,
-        Name extends keyof Ctx["step"]["map"] ? string : ReturnType<Handler>
-      >;
+    steps: Ctx extends { steps: infer L extends any[] }
+      ? Name extends keyof Ctx["step"]["map"]
+        ? L
+        : [...L, TW.ScriptStep<Name, () => ReturnType<Handler>>]
+      : Name extends keyof Ctx["step"]["map"]
+        ? []
+        : [TW.ScriptStep<Name, () => ReturnType<Handler>>];
     [TW.Step]: Ctx["step"];
     scope: Record<
       Name,
@@ -58,7 +60,9 @@ export function Step<
 ): {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
-    steps: Ctx["steps"] & Record<Name, A>;
+    steps: Ctx extends { steps: infer L extends any[] }
+      ? [...L, TW.ScriptStep<Name, () => ReturnType<Handler>>]
+      : [TW.ScriptStep<Name, () => ReturnType<Handler>>];
     [TW.Step]: Ctx["step"];
     scope: Record<Name, RawEntry<A, []>> & Ctx["scope"];
     last: RawEntry<ReturnType<Handler>, []>;
@@ -90,7 +94,9 @@ export function Step<
 ): {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
-    steps: Ctx["steps"] & Record<Name, B>;
+    steps: Ctx extends { steps: infer L extends any[] }
+      ? [...L, TW.ScriptStep<Name, () => ReturnType<Handler>>]
+      : [TW.ScriptStep<Name, () => ReturnType<Handler>>];
     [TW.Step]: Ctx["step"];
     scope: Record<Name, RawEntry<B, []>> & Ctx["scope"];
     last: RawEntry<ReturnType<Handler>, []>;

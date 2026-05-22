@@ -3,7 +3,7 @@ import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { TW } from "../core";
 import { Step } from "../steps";
-import { Logger, formatEvent, isActionEvent } from "../use";
+import { Logger, TypeLogger, formatEvent, isActionEvent } from "../use";
 
 describe("Action", () => {
   test("no input — plain handler", async () => {
@@ -234,7 +234,11 @@ describe("Action", () => {
 
   test("Logger — logs each event via provided function", async () => {
     const logged: unknown[] = [];
-    const spy = { log: logged.push.bind(logged), info: logged.push.bind(logged), error: logged.push.bind(logged) };
+    const spy = {
+      log: logged.push.bind(logged),
+      info: logged.push.bind(logged),
+      error: logged.push.bind(logged),
+    };
 
     const { healthz } = Action("healthz")
       .use(Logger(spy))
@@ -254,7 +258,11 @@ describe("Action", () => {
 
   test("Logger — stream also logs", async () => {
     const logged: unknown[] = [];
-    const spy = { log: logged.push.bind(logged), info: logged.push.bind(logged), error: logged.push.bind(logged) };
+    const spy = {
+      log: logged.push.bind(logged),
+      info: logged.push.bind(logged),
+      error: logged.push.bind(logged),
+    };
 
     const { hello } = Action("hello")
       .use(Logger(spy))
@@ -273,7 +281,8 @@ describe("Action", () => {
 
     expect(logged).toEqual(
       yields.flatMap((v) => {
-        if (typeof v !== "object" || v === null || !(">" in (v as object))) return [v];
+        if (typeof v !== "object" || v === null || !(">" in (v as object)))
+          return [v];
         const e = v as Record<string, unknown>;
         const action = isActionEvent(e[">"] as string);
         const out = formatEvent(e);
@@ -288,7 +297,11 @@ describe("Action", () => {
 
   test("Logger — logs Step events", async () => {
     const logged: unknown[] = [];
-    const spy = { log: logged.push.bind(logged), info: logged.push.bind(logged), error: logged.push.bind(logged) };
+    const spy = {
+      log: logged.push.bind(logged),
+      info: logged.push.bind(logged),
+      error: logged.push.bind(logged),
+    };
 
     const { compute } = Action("compute")
       .use(Logger(spy))
@@ -313,6 +326,41 @@ describe("Action", () => {
       formatEvent({ ">": "compute", result: true }),
       "",
     ]);
+  });
+
+  test("TypeLogger — .run() returns steps as typed tuple", () => {
+    const steps = Action("compute")
+      .use(TypeLogger())
+
+      .input({ value: "number" })
+      
+      .run(
+        Step("double", function () {
+          return this.input.value * 2;
+        }),
+
+        Step("positive", function () {
+          return this.double > 0;
+        }),
+      );
+
+    type T = typeof steps;
+
+    type check = Expect<
+      Equal<
+        T,
+        [
+          TW.ScriptStep<"double", () => number>,
+          TW.ScriptStep<"positive", () => boolean>,
+        ]
+      >
+    >;
+
+    expect(steps).toHaveLength(2);
+    expect(steps[0]).toMatchObject({ $: "step", "=": "double" });
+    expect(steps[1]).toMatchObject({ $: "step", "=": "positive" });
+    expect(typeof steps[0].run).toBe("function");
+    expect(typeof steps[1].run).toBe("function");
   });
 
   test("async generator — stream yields each value", async () => {

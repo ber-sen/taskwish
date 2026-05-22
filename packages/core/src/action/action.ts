@@ -7,13 +7,14 @@ import {
 } from "../helpers";
 import type { Steps, ActionResultKind } from "../steps";
 import { TW } from "../core";
-import { dispatch, LogFn, type ConsoleLike, type LoggerConfig } from "../use";
+import { dispatch, LogFn, type ConsoleLike, type LoggerConfig, type TypeLoggerConfig } from "../use";
 
 type ActionBody<
   Name extends string,
   Ctx extends Record<any, any>,
 > = TW.Contextual<Ctx> & {
   use(config: LoggerConfig): ActionBody<Name, Ctx>;
+  use(config: TypeLoggerConfig): ActionBody<Name, Ctx & { scope: { typeLogger: true } }>;
   run: Steps<Ctx, ActionResultKind>;
 };
 
@@ -23,6 +24,7 @@ type SignatureBody<
   Signature,
 > = {
   use(config: LoggerConfig): SignatureBody<Name, Ctx, Signature>;
+  use(config: TypeLoggerConfig): SignatureBody<Name, Ctx & { scope: { typeLogger: true } }, Signature>;
   run<
     const Handler extends (
       this: TW.Scope<
@@ -86,9 +88,11 @@ export interface ActionFactory<
         };
       };
     };
+    steps: [];
   },
 > {
   use(config: LoggerConfig): this;
+  use(config: TypeLoggerConfig): ActionFactory<Name, Ctx & { scope: { typeLogger: true } }>;
   sig<const Schema extends ((...args: any) => any) | TW.Handler>(): SignatureBody<
     Name,
     Ctx,
@@ -107,6 +111,7 @@ export interface ActionFactory<
             name: "launchApp" | StepName;
             map: { launchApp: string };
           };
+          steps: [];
         }
       >;
   run: Steps<Ctx, ActionResultKind>;
@@ -459,16 +464,33 @@ export function Action<const Name extends string>(
 ): ActionFactory<Name> {
   const actionName = name as string;
   let logger: ConsoleLike = console;
+  let typeLogger = false;
 
   function tap<G extends AsyncGenerator<unknown, unknown>>(gen: G): G {
     return tapWith(gen, dispatch(logger)) as G;
   }
 
-  function detectLogger(config: LoggerConfig) {
-    logger = config.target;
+  function detectPlugin(config: LoggerConfig | TypeLoggerConfig) {
+    if ((config as any)[TW.Type] === "TypeLogger") {
+      typeLogger = true;
+    } else {
+      logger = (config as LoggerConfig).target;
+    }
   }
 
   function createAction(inputMode: "first" | "args", handlers: unknown[]) {
+    if (typeLogger) {
+      const steps: Array<{ $: "step"; "=": string; run: unknown }> = [];
+      for (const handler of handlers) {
+        if (handler !== null && handler !== undefined && TW.Name in Object(handler)) {
+          const stepName = (handler as any)[TW.Name] as string;
+          const fn = Array.isArray(handler) ? (handler as any[])[0] : handler;
+          steps.push({ $: "step" as const, "=": stepName, run: fn });
+        }
+      }
+      return steps;
+    }
+
     async function consume(...args: unknown[]) {
       const gen = tap(runAction(actionName, buildScope(inputMode, args), handlers));
       let item = await gen.next();
@@ -484,7 +506,7 @@ export function Action<const Name extends string>(
   }
 
   const makeBody = (inputMode: "first" | "args") => ({
-    use(config: unknown) { detectLogger(config as LoggerConfig); return this; },
+    use(config: unknown) { detectPlugin(config as LoggerConfig | TypeLoggerConfig); return this; },
     run(...handlers: unknown[]) {
       return createAction(inputMode, handlers);
     },
@@ -493,7 +515,7 @@ export function Action<const Name extends string>(
   return {
     sig() { return makeBody("args"); },
     input(_schema?: unknown) { return makeBody("first"); },
-    use(config: unknown) { detectLogger(config as LoggerConfig); return this; },
+    use(config: unknown) { detectPlugin(config as LoggerConfig | TypeLoggerConfig); return this; },
     run(...handlers: unknown[]) {
       return createAction("first", handlers);
     },
