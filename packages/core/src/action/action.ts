@@ -12,7 +12,7 @@ import {
   LogFn,
   type ConsoleLike,
   type LoggerConfig,
-  type TypeLoggerConfig,
+  type InferTypeConfig,
 } from "../use";
 
 type ActionBody<
@@ -21,8 +21,8 @@ type ActionBody<
 > = TW.Contextual<Ctx> & {
   use(config: LoggerConfig): ActionBody<Name, Ctx>;
   use(
-    config: TypeLoggerConfig,
-  ): ActionBody<Name, Ctx & { scope: { typeLogger: true } }>;
+    config: InferTypeConfig,
+  ): ActionBody<Name, Ctx & { scope: { inferType: true } }>;
   run: Steps<Ctx, ActionResultKind>;
 };
 
@@ -33,8 +33,8 @@ type SignatureBody<
 > = {
   use(config: LoggerConfig): SignatureBody<Name, Ctx, Signature>;
   use(
-    config: TypeLoggerConfig,
-  ): SignatureBody<Name, Ctx & { scope: { typeLogger: true } }, Signature>;
+    config: InferTypeConfig,
+  ): SignatureBody<Name, Ctx & { scope: { inferType: true } }, Signature>;
   run<
     const Handler extends (
       this: TW.Scope<
@@ -119,8 +119,8 @@ export interface ActionFactory<
 > {
   use(config: LoggerConfig): this;
   use(
-    config: TypeLoggerConfig,
-  ): ActionFactory<Name, Ctx & { scope: { typeLogger: true } }>;
+    config: InferTypeConfig,
+  ): ActionFactory<Name, Ctx & { scope: { inferType: true } }>;
   sig<
     const Schema extends ((...args: any) => any) | TW.Handler,
   >(): SignatureBody<Name, Ctx, Schema>;
@@ -168,10 +168,10 @@ const SignalTag = Symbol.for("TW.Signal");
 export const ActionEventTag = Symbol.for("TW.ActionEvent");
 
 
-// ── TypeLogger action-step probe ──────────────────────────────────────────────
+// ── InferType action-step probe ───────────────────────────────────────────────
 
 /** Sentinel property set on the fake return value inside `probeForActionCall`. */
-const TypeLoggerActionCallTag = Symbol.for("TW.TypeLoggerActionCall");
+const InferTypeActionCallTag = Symbol.for("TW.InferTypeActionCall");
 
 type ActionCallCapture = { name: string; params: Record<string, unknown> };
 
@@ -221,7 +221,7 @@ function probeForActionCall(fn: Function): ActionCallCapture | null {
                 : {},
           };
           const sentinel = Object.create(null);
-          Object.defineProperty(sentinel, TypeLoggerActionCallTag, {
+          Object.defineProperty(sentinel, InferTypeActionCallTag, {
             value: true,
             enumerable: false,
           });
@@ -247,7 +247,7 @@ function probeForActionCall(fn: Function): ActionCallCapture | null {
       captured !== null &&
       ret !== null &&
       typeof ret === "object" &&
-      TypeLoggerActionCallTag in (ret as object)
+      InferTypeActionCallTag in (ret as object)
     ) {
       return captured;
     }
@@ -696,22 +696,22 @@ export function Action<const Name extends string>(
 ): ActionFactory<Name> {
   const actionName = name as string;
   let logger: ConsoleLike = console;
-  let typeLogger = false;
+  let inferType = false;
 
   function tap<G extends AsyncGenerator<unknown, unknown>>(gen: G): G {
     return tapWith(gen, dispatch(logger)) as G;
   }
 
-  function detectPlugin(config: LoggerConfig | TypeLoggerConfig) {
-    if ((config as any)[TW.Type] === "TypeLogger") {
-      typeLogger = true;
+  function detectPlugin(config: LoggerConfig | InferTypeConfig) {
+    if ((config as any)[TW.Type] === "InferType") {
+      inferType = true;
     } else {
       logger = (config as LoggerConfig).target;
     }
   }
 
   function createAction(inputMode: "first" | "args", handlers: unknown[]) {
-    if (typeLogger) {
+    if (inferType) {
       const steps: Array<Record<string, unknown>> = [];
       for (const handler of handlers) {
         if (
@@ -729,7 +729,7 @@ export function Action<const Name extends string>(
           }
         }
       }
-      return steps;
+      return { ">": "Command", "=": actionName, run: steps };
     }
 
     async function consume(...args: unknown[]) {
@@ -750,7 +750,7 @@ export function Action<const Name extends string>(
 
   const makeBody = (inputMode: "first" | "args") => ({
     use(config: unknown) {
-      detectPlugin(config as LoggerConfig | TypeLoggerConfig);
+      detectPlugin(config as LoggerConfig | InferTypeConfig);
       return this;
     },
     run(...handlers: unknown[]) {
@@ -766,7 +766,7 @@ export function Action<const Name extends string>(
       return makeBody("first");
     },
     use(config: unknown) {
-      detectPlugin(config as LoggerConfig | TypeLoggerConfig);
+      detectPlugin(config as LoggerConfig | InferTypeConfig);
       return this;
     },
     run(...handlers: unknown[]) {

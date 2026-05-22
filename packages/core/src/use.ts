@@ -68,10 +68,10 @@ export function Logger(target: ConsoleLike = console): LoggerConfig {
   return { [TW.Type]: "Logger", target };
 }
 
-export type TypeLoggerConfig = { [TW.Type]: "TypeLogger" };
+export type InferTypeConfig = { [TW.Type]: "InferType" };
 
-export function TypeLogger(): TypeLoggerConfig {
-  return { [TW.Type]: "TypeLogger" };
+export function InferType(): InferTypeConfig {
+  return { [TW.Type]: "InferType" };
 }
 
 export function Use<
