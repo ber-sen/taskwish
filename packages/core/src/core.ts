@@ -31,16 +31,6 @@ export namespace TW {
   }
 
   export interface Resource<Name extends string> extends Named<Name> {}
-
-  export interface Step<
-    Name extends string,
-    Handler extends (...args: any) => any,
-    Meta = null,
-  > {
-    $: ReturnType<Handler> extends Named<infer N> ? N : "step";
-    "=": Name;
-    run: Handler;
-  }
   export abstract class Handler {
     readonly ctx!: Record<"model", unknown>;
     run?: (...x: never[]) => Promise<any>;
@@ -195,4 +185,46 @@ export namespace TW {
   }
 
   export interface ResourceKind<Name extends string> extends Named<Name> {}
+
+  export type Step<Name extends string, Handler extends (...args: any) => any> =
+    ReturnType<Handler> extends Generator<infer Caller, any, any>
+      ? Caller extends ScriptStep<any, any> | ActionStep<any, any, any>
+        ? Caller
+        : ScriptStep<Name, Handler>
+      : ScriptStep<Name, Handler>;
+
+  export interface ScriptStep<
+    Name extends string,
+    Handler extends (...args: any) => any,
+  > {
+    $: "step";
+    "=": Name;
+    run: Handler;
+  }
+
+  export type ActionStep<
+    Name extends string,
+    A extends Resource<any> & Attributable<any>,
+    Params,
+  > = {
+    $: A extends Named<infer N> ? N : never;
+    "=": Name;
+  } & Params;
 }
+
+function makeStep<N extends string, H extends (...args: any) => any>(
+  name: N,
+  handler: H,
+): TW.Step<"lorem", H> {
+  return {} as never;
+}
+
+function* aa() {
+  yield {} as TW.ActionStep<"trip", TW.Action<"lorem", () => 3>, { lorem: 3 }>;
+}
+
+const b: TW.Action<"lorem", () => 3> = {} as never;
+
+const a = makeStep("Lorem", () => aa());
+
+type A = Pretty<typeof a>
