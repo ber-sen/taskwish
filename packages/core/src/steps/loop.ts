@@ -17,6 +17,12 @@ type LoopScope<
     : RawEntry<Added[K], [":loop"]>;
 };
 
+// Extract just the raw result type from a RawEntry, ignoring operators.
+// Used by LoopResult so that ":if" on the inner last (from an If without Else)
+// is never promoted to `| undefined` — the loop filters those at runtime.
+// Genuine `undefined` in a step's return type lives inside `R` and is preserved.
+type LoopItemType<T> = T extends RawEntry<infer R, any> ? R : ResolveLast<T>;
+
 type LoopResult<
   Ctx extends Record<any, any>,
   A extends Record<any, any>,
@@ -26,7 +32,7 @@ type LoopResult<
     name: A["name"];
     steps: A["steps"];
     scope: LoopScope<Ctx["scope"], A["scope"]>;
-    last: RawEntry<ResolveLast<A["last"]>[], []>;
+    last: RawEntry<LoopItemType<A["last"]>[], []>;
   };
 };
 

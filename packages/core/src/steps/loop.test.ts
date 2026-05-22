@@ -471,7 +471,7 @@ describe("Loop", () => {
 
     type T = typeof branch;
     type RetVal = Awaited<ReturnType<T>>;
-    type check = Expect<Equal<RetVal, (number | undefined)[]>>;
+    type check = Expect<Equal<RetVal, number[]>>;
 
     expect(await branch({ items: [1, 2, 3, 4] })).toEqual([2, 4]);
 
@@ -553,7 +553,7 @@ describe("Loop", () => {
 
     type T = typeof branch;
     type RetVal = Awaited<ReturnType<T>>;
-    type check = Expect<Equal<RetVal, (number | undefined)[]>>;
+    type check = Expect<Equal<RetVal, number[]>>;
 
     expect(await branch({ items: [1, 2, 3, 4, 5], threshold: 3 })).toEqual([
       4, 5,
@@ -662,7 +662,7 @@ describe("Loop", () => {
 
     type T = typeof branch;
     type RetVal = Awaited<ReturnType<T>>;
-    type check = Expect<Equal<RetVal, (string | undefined)[]>>;
+    type check = Expect<Equal<RetVal, string[]>>;
 
     expect(await branch({ items: [2, 4] })).toEqual(["2*2=4", "4*2=8"]);
 
@@ -793,7 +793,7 @@ describe("Loop", () => {
 
     type T = typeof branch;
     type RetVal = Awaited<ReturnType<T>>;
-    type check = Expect<Equal<RetVal, ((number | undefined)[])[]>>;
+    type check = Expect<Equal<RetVal, number[][]>>;
 
     expect(await branch({ inner: [1, 2, 3, 4] })).toEqual([
       [4, 8],
@@ -846,7 +846,7 @@ describe("Loop", () => {
 
     type T = typeof branch;
     type RetVal = Awaited<ReturnType<T>>;
-    type check = Expect<Equal<RetVal, (number[] | undefined)[]>>;
+    type check = Expect<Equal<RetVal, number[][]>>;
 
     expect(await branch({ inner: [10, 20] })).toEqual([
       [20, 40],
