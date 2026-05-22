@@ -27,10 +27,11 @@ export namespace TW {
 
   export interface Resource<Name extends string> extends Named<Name> {}
 
-  export interface Step<Name extends string, Handler, Meta = null>
-    extends Resource<Name>, Attributable<Meta> {
-    handler: Handler;
-  }
+  export type Step<
+    Name extends string,
+    Handler extends (...args: any) => any,
+    Meta = null,
+  > = Record<Name, Handler & Attributable<Meta>>;
   export abstract class Handler {
     readonly ctx!: Record<"model", unknown>;
     run?: (...x: never[]) => Promise<any>;
