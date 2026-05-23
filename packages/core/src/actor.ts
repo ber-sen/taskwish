@@ -10,6 +10,7 @@ import {
 import { TW } from "./core";
 import { dispatch, type ConsoleLike, type LoggerConfig } from "./use";
 import { type Steps } from "./steps/steps";
+import { ResultKind } from "./steps/hkt";
 
 type BaseScope<Ctx> = Ctx extends Record<any, any> ? Ctx["scope"] : {};
 
@@ -185,6 +186,20 @@ export interface Behavior<Ctx> {
   >;
 }
 
+/**
+ * Used by `Steps<Ctx, DefResultKind>` — produces a named behavior definition
+ * `{ [name]: () => Behavior<Last> }`.
+ */
+export interface DefResultKind extends ResultKind {
+  type: this["ctx"] extends Record<any, any>
+    ? "name" extends keyof this["ctx"]
+      ? this["ctx"]["name"] extends string
+        ? { [name in this["ctx"]["name"]]: () => Behavior<this["last"]> }
+        : never
+      : never
+    : never;
+}
+
 const HTTP_METHODS = new Set(["GET", "POST", "PUT", "DELETE", "PATCH"]);
 
 function matchPathParams(
@@ -256,8 +271,11 @@ function makeBehaviorMod(
 
 function toResponse(result: unknown): Response {
   if (result instanceof Response) return result;
-  if (typeof result === "string") return new Response(result, { headers: { "Content-Type": "text/plain" } });
-  return new Response(JSON.stringify(result), { headers: { "Content-Type": "application/json" } });
+  if (typeof result === "string")
+    return new Response(result, { headers: { "Content-Type": "text/plain" } });
+  return new Response(JSON.stringify(result), {
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 function flattenHttpInput(
@@ -294,7 +312,7 @@ function createBehavior(
     return tapWith(gen, dispatch(logger)) as G;
   }
 
-  const self: Behavior<any> = {
+  const self = {
     use(config: LoggerConfig) {
       logger = config.target;
       return self;
@@ -316,7 +334,13 @@ function createBehavior(
         async function consume(...args: unknown[]) {
           const { args: modArgs, scope: behaviorScope } = mod(args);
           const extra = { ...initialScope, ...behaviorScope };
-          const gen = tap(runAction(eventName, buildScope(inputMode, modArgs, extra), handlers));
+          const gen = tap(
+            runAction(
+              eventName,
+              buildScope(inputMode, modArgs, extra),
+              handlers,
+            ),
+          );
           let item = await gen.next();
           while (!item.done) item = await gen.next();
           return item.value;
@@ -325,23 +349,37 @@ function createBehavior(
         function stream(...args: unknown[]) {
           const { args: modArgs, scope: behaviorScope } = mod(args);
           const extra = { ...initialScope, ...behaviorScope };
-          return tap(runAction(eventName, buildScope(inputMode, modArgs, extra), handlers));
+          return tap(
+            runAction(
+              eventName,
+              buildScope(inputMode, modArgs, extra),
+              handlers,
+            ),
+          );
         }
 
         return { [actionName]: Object.assign(consume, { stream }) };
       }
 
       const makeBody = (inputMode: "first" | "args") => ({
-        use() { return this; },
+        use() {
+          return this;
+        },
         run(...handlers: unknown[]) {
           return createAction(inputMode, handlers);
         },
       });
 
       const base = {
-        sig() { return makeBody("args"); },
-        input(_schema?: unknown) { return makeBody("first"); },
-        use() { return this; },
+        sig() {
+          return makeBody("args");
+        },
+        input(_schema?: unknown) {
+          return makeBody("first");
+        },
+        use() {
+          return this;
+        },
         run(...handlers: unknown[]) {
           return createAction("first", handlers);
         },
@@ -352,7 +390,9 @@ function createBehavior(
           ...base,
           command(cmdName: string) {
             return {
-              use() { return this; },
+              use() {
+                return this;
+              },
               run(...handlers: unknown[]) {
                 const qualifiedCmdName = `${actorName}.${cmdName}`;
 
@@ -424,7 +464,7 @@ function createBehavior(
     },
   };
 
-  return self;
+  return self as unknown as Behavior<any>;
 }
 
 export const Actor = <
@@ -461,7 +501,7 @@ export const Actor = <
 >(
   name: PascalCase<Name>,
 ): {
-  def: Steps<Ctx, "def">;
+  def: Steps<Ctx, DefResultKind>;
 } & {
   [key in Name]: () => Behavior<Ctx>;
 } => {
@@ -476,4 +516,3 @@ export const Actor = <
     [actorName]: () => createBehavior(actorName, builtInEventScope),
   } as any;
 };
-

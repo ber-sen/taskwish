@@ -68,6 +68,12 @@ export function Logger(target: ConsoleLike = console): LoggerConfig {
   return { [TW.Type]: "Logger", target };
 }
 
+export type InferTypeConfig = { [TW.Type]: "InferType" };
+
+export function InferType(): InferTypeConfig {
+  return { [TW.Type]: "InferType" };
+}
+
 export function Use<
   const Ctx extends Record<any, any>,
   const Def extends Record<string, { [TW.Name]: string }>,

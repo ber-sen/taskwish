@@ -2,13 +2,13 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
-    "lib": ["esnext", "DOM"],
+    "lib": ["esnext"],
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "strict": true,
     "strictFunctionTypes": true,
     "strictNullChecks": true,
     "esModuleInterop": true,
-    "customConditions": ["source"]
+    "types": ["bun"]
   }
 }

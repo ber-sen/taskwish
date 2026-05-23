@@ -1,8 +1,8 @@
 import {
   UUIDv7String,
-  UUIDv5String,
   ValidateTrigger,
   InferTriggerScope,
+  Pretty,
 } from "./helpers";
 
 import { Type as ArkType } from "arktype";
@@ -31,7 +31,6 @@ export namespace TW {
   }
 
   export interface Resource<Name extends string> extends Named<Name> {}
-
   export abstract class Handler {
     readonly ctx!: Record<"model", unknown>;
     run?: (...x: never[]) => Promise<any>;
@@ -50,6 +49,13 @@ export namespace TW {
     : Record<string, unknown>;
 
   export type Scope<S> = S & {
+    self: <Return = any>(
+      input: S extends Record<any, any>
+        ? S["input"] extends Record<any, any>
+          ? S["input"]
+          : never
+        : never,
+    ) => Return;
     signal<
       T extends [EventKindNames<S>] extends [never]
         ? string
@@ -106,6 +112,7 @@ export namespace TW {
           };
         }
       : {}) &
+    (Meta extends { steps: readonly any[] } ? { steps(): Meta["steps"] } : {}) &
     Resource<Name> &
     Attributable<Meta>;
 
@@ -117,17 +124,6 @@ export namespace TW {
     // reply!: <const Content extends Array<Message.MessagePart<any>> | string>(
     //   message: Message.Message<Content>,
     // ) => Event<"Message", Message.Message<Content>>;
-  }
-
-  export interface Event<
-    Type extends string,
-    Data,
-    Meta extends Record<any, any> = {},
-  > extends Attributable<Meta> {
-    id: Inject<UUIDv7String>;
-    data: Data;
-    type: Type;
-    io: "io" extends keyof Meta ? IO : never;
   }
 
   export interface Execution<Stream, Return, Deps, Params = null>
@@ -179,4 +175,41 @@ export namespace TW {
   }
 
   export interface ResourceKind<Name extends string> extends Named<Name> {}
+
+  export type Event<Type extends string, Data> = {
+    ">": Type;
+  } & Data;
+
+  export type ActionInputEvent<Action extends TW.Action<any, any>, Params> = {
+    ">": string;
+    "&": Action;
+    input: Params;
+  };
+
+  export type Step<Name extends string, Handler extends (...args: any) => any> =
+    ReturnType<Handler> extends AsyncGenerator<infer Caller, any, any>
+      ? Caller extends ActionInputEvent<infer A, infer P>
+        ? A extends TW.Action<infer ActionName, infer Handler>
+          ? ActionStep<Name, ActionName, P>
+          : ScriptStep<Name, Handler>
+        : ScriptStep<Name, Handler>
+      : ScriptStep<Name, Handler>;
+
+  export interface ScriptStep<
+    Name extends string,
+    Handler extends (...args: any) => any,
+  > {
+    $: "step";
+    "=": Name;
+    run: string;
+  }
+
+  export type ActionStep<
+    Name extends string,
+    ActionName extends string,
+    Params,
+  > = {
+    $: ActionName;
+    "=": Name;
+  } & Params;
 }

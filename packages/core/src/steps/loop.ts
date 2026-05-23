@@ -1,38 +1,44 @@
 import { TW } from "../core";
-import { PrettyScope, RawEntry, ResolveScope } from "../helpers";
+import { PrettyScope, RawEntry, ResolveLast, ResolveScope } from "../helpers";
+import { ResultKind } from "./hkt";
+import { Steps, SubSteps } from "./steps";
 
 // ── Scope helpers ─────────────────────────────────────────────────────────────
 
-// After the loop: keys added inside (except the loop variable Name) get ":loop" prepended.
+// After the loop: keys added inside (not already in Base) get ":loop" prepended.
 type LoopScope<
   Base extends Record<any, any>,
   Added extends Record<any, any>,
-  Name extends string,
 > = Base & {
-  [K in keyof Added as K extends keyof Base | Name
+  [K in keyof Added as K extends keyof Base
     ? never
     : K]: Added[K] extends RawEntry<infer R, infer Ops extends string[]>
     ? RawEntry<R, [":loop", ...Ops]>
     : RawEntry<Added[K], [":loop"]>;
 };
 
+// Extract just the raw result type from a RawEntry, ignoring operators.
+// Used by LoopResult so that ":if" on the inner last (from an If without Else)
+// is never promoted to `| undefined` — the loop filters those at runtime.
+// Genuine `undefined` in a step's return type lives inside `R` and is preserved.
+type LoopItemType<T> = T extends RawEntry<infer R, any> ? R : ResolveLast<T>;
+
 type LoopResult<
   Ctx extends Record<any, any>,
   A extends Record<any, any>,
-  Name extends string,
 > = {
   [TW.Type]: "Loop";
   [TW.Step]: (input: Ctx) => {
     name: A["name"];
     steps: A["steps"];
-    scope: LoopScope<Ctx["scope"], A["scope"], Name>;
-    last: A["last"][];
+    scope: LoopScope<Ctx["scope"], A["scope"]>;
+    last: RawEntry<LoopItemType<A["last"]>[], []>;
   };
 };
 
 // ── ForEach ───────────────────────────────────────────────────────────────────
 
-export type ForEachNode<Ctx extends Record<any,any>, Item = any, Name extends string = "loop"> = {
+export type ForEachNode<Ctx extends Record<any, any>, Item = any, Name extends string = "loop"> = {
   [TW.Type]: "ForEach";
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
@@ -62,15 +68,15 @@ export function ForEach<Ctx extends Record<any, any>, const Item, Name extends s
 
 export function ForEach<Ctx extends Record<any, any>, Item>(
   fn: (scope: TW.Scope<PrettyScope<ResolveScope<Ctx["scope"]>>>) => readonly Item[],
-): ForEachNode<Ctx, Item, "loop">;
+): ForEachNode<Ctx, Item>;
 
 export function ForEach<Ctx extends Record<any, any>>(
   options: { range: readonly [number, number] },
-): ForEachNode<Ctx, number, "loop">;
+): ForEachNode<Ctx, number>;
 
 export function ForEach<Ctx extends Record<any, any>, const Item>(
   items: readonly Item[],
-): ForEachNode<Ctx, Item, "loop">;
+): ForEachNode<Ctx, Item>;
 
 export function ForEach(...args: unknown[]): never {
   const [first, second] = args;
@@ -91,49 +97,19 @@ function toFn(v: unknown): () => unknown[] {
   return v as () => unknown[];
 }
 
-// ── Overloads ─────────────────────────────────────────────────────────────────
+// ── HKT kinds ─────────────────────────────────────────────────────────────────
 
-export interface LoopFn {
-  // ForEach + 1 step
-  <
-    Ctx extends Record<any, any>,
-    A extends Record<any, any>,
-    B extends Record<any, any>,
-    Name extends string,
-  >(
-    input: { [TW.Type]: "ForEach"; [TW.Step]: (input: Ctx) => A; loopName: Name },
-    step: { [TW.Step]: (input: A) => B },
-  ): LoopResult<Ctx, B, Name>;
-
-  // ForEach + 2 steps
-  <
-    Ctx extends Record<any, any>,
-    A extends Record<any, any>,
-    B extends Record<any, any>,
-    C extends Record<any, any>,
-    Name extends string,
-  >(
-    input: { [TW.Type]: "ForEach"; [TW.Step]: (input: Ctx) => A; loopName: Name },
-    step1: { [TW.Step]: (input: A) => B },
-    step2: { [TW.Step]: (input: B) => C },
-  ): LoopResult<Ctx, C, Name>;
-
-  // ForEach + 3 steps
-  <
-    Ctx extends Record<any, any>,
-    A extends Record<any, any>,
-    B extends Record<any, any>,
-    C extends Record<any, any>,
-    D extends Record<any, any>,
-    Name extends string,
-  >(
-    input: { [TW.Type]: "ForEach"; [TW.Step]: (input: Ctx) => A; loopName: Name },
-    step1: { [TW.Step]: (input: A) => B },
-    step2: { [TW.Step]: (input: B) => C },
-    step3: { [TW.Step]: (input: C) => D },
-  ): LoopResult<Ctx, D, Name>;
-
+interface LoopResultKind extends ResultKind {
+  type: this["ctx"] extends Record<any, any>
+    ? this["last"] extends Record<any, any>
+      ? LoopResult<this["ctx"], this["last"]>
+      : never
+    : never;
 }
+
+// ── LoopFn ────────────────────────────────────────────────────────────────────
+
+export type LoopFn = Steps<typeof SubSteps, LoopResultKind, "ForEach">;
 
 export const Loop: LoopFn = function Loop(...args: unknown[]): never {
   const first = args[0];

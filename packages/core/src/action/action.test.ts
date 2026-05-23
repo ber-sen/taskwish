@@ -3,7 +3,7 @@ import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { TW } from "../core";
 import { Step } from "../steps";
-import { Logger, formatEvent, isActionEvent } from "../use";
+import { Logger, InferType, formatEvent, isActionEvent } from "../use";
 
 describe("Action", () => {
   test("no input — plain handler", async () => {
@@ -234,7 +234,11 @@ describe("Action", () => {
 
   test("Logger — logs each event via provided function", async () => {
     const logged: unknown[] = [];
-    const spy = { log: logged.push.bind(logged), info: logged.push.bind(logged), error: logged.push.bind(logged) };
+    const spy = {
+      log: logged.push.bind(logged),
+      info: logged.push.bind(logged),
+      error: logged.push.bind(logged),
+    };
 
     const { healthz } = Action("healthz")
       .use(Logger(spy))
@@ -254,7 +258,11 @@ describe("Action", () => {
 
   test("Logger — stream also logs", async () => {
     const logged: unknown[] = [];
-    const spy = { log: logged.push.bind(logged), info: logged.push.bind(logged), error: logged.push.bind(logged) };
+    const spy = {
+      log: logged.push.bind(logged),
+      info: logged.push.bind(logged),
+      error: logged.push.bind(logged),
+    };
 
     const { hello } = Action("hello")
       .use(Logger(spy))
@@ -273,7 +281,8 @@ describe("Action", () => {
 
     expect(logged).toEqual(
       yields.flatMap((v) => {
-        if (typeof v !== "object" || v === null || !(">" in (v as object))) return [v];
+        if (typeof v !== "object" || v === null || !(">" in (v as object)))
+          return [v];
         const e = v as Record<string, unknown>;
         const action = isActionEvent(e[">"] as string);
         const out = formatEvent(e);
@@ -288,7 +297,11 @@ describe("Action", () => {
 
   test("Logger — logs Step events", async () => {
     const logged: unknown[] = [];
-    const spy = { log: logged.push.bind(logged), info: logged.push.bind(logged), error: logged.push.bind(logged) };
+    const spy = {
+      log: logged.push.bind(logged),
+      info: logged.push.bind(logged),
+      error: logged.push.bind(logged),
+    };
 
     const { compute } = Action("compute")
       .use(Logger(spy))
@@ -313,6 +326,92 @@ describe("Action", () => {
       formatEvent({ ">": "compute", result: true }),
       "",
     ]);
+  });
+
+  test("InferType — .run() returns steps as typed tuple", () => {
+    const steps = Action("compute")
+      .use(InferType())
+
+      .input({ name: "string", thread: { sender: { name: "string" } } })
+
+      .run(
+        Step("gent", function () {
+          return this.actions.generateText({
+            model: "gpt5",
+            prompt: `hello ${this.input.thread.sender.name}`,
+          });
+        }),
+
+        Step("reply", function () {
+          return this.actions.generateText({
+            model: "gpt5",
+            prompt: `reply to ${this.gent} from ${this.input.name}`,
+          });
+        }),
+
+        Step("positive", function () {
+          return this.gent.length > 2;
+        }),
+
+        Step("done", function () {
+          return this.reply === this.input.name;
+        }),
+      );
+
+    type T = typeof steps;
+
+    type check = Expect<
+      Equal<
+        T,
+        {
+          ">": "Command";
+          "=": "compute";
+          run: [
+            TW.ActionStep<
+              "gent",
+              "generateText",
+              { model: "gpt5"; prompt: string }
+            >,
+            TW.ActionStep<
+              "reply",
+              "generateText",
+              { model: "gpt5"; prompt: string }
+            >,
+            TW.ScriptStep<"positive", () => boolean>,
+            TW.ScriptStep<"done", () => boolean>,
+          ];
+        }
+      >
+    >;
+
+    expect(steps).toEqual({
+      ">": "Command",
+      "=": "compute",
+      run: [
+        {
+          $: "generateText",
+          "=": "gent",
+          model: "gpt5",
+          prompt: "hello @{input.thread.sender.name}",
+        },
+        {
+          $: "generateText",
+          "=": "reply",
+          model: "gpt5",
+          prompt: "reply to @{gent} from @{input.name}",
+        },
+        {
+          $: "step",
+          "=": "positive",
+          run: "@js{function() {\nreturn this.gent.length > 2;\n}}",
+        },
+        {
+          $: "step",
+          "=": "done",
+          run: "@js{function() {\nreturn this.reply === this.input.name;\n}}",
+        },
+      ],
+    });
   });
 
   test("async generator — stream yields each value", async () => {

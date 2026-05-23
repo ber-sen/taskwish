@@ -19,6 +19,10 @@ describe("Loop", () => {
       ),
     );
 
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, number[]>>;
+
     expect(await branch()).toEqual([2, 4, 6]);
 
     const yields: unknown[] = [];
@@ -47,6 +51,10 @@ describe("Loop", () => {
         ),
       );
 
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, number[]>>;
+
     expect(await branch({ nums: [1, 2, 3] })).toEqual([2, 4, 6]);
 
     const yields: unknown[] = [];
@@ -71,6 +79,10 @@ describe("Loop", () => {
         }),
       ),
     );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, string[]>>;
 
     expect(await branch()).toEqual(["0:10", "1:20", "2:30"]);
 
@@ -97,6 +109,10 @@ describe("Loop", () => {
       ),
     );
 
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, never[]>>;
+
     expect(await branch()).toEqual([]);
 
     const yields: unknown[] = [];
@@ -121,6 +137,10 @@ describe("Loop", () => {
           }),
         ),
       );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, number[]>>;
 
     expect(await branch({ factor: 3 })).toEqual([30, 60, 90]);
 
@@ -150,6 +170,10 @@ describe("Loop", () => {
         }),
       ),
     );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, string[]>>;
 
     expect(await branch()).toEqual(["HELLO", "WORLD"]);
 
@@ -183,6 +207,10 @@ describe("Loop", () => {
         }),
       );
 
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, boolean>>;
+
     expect(await branch({ items: [1, 2] })).toEqual(false);
 
     const yields: unknown[] = [];
@@ -214,6 +242,10 @@ describe("Loop", () => {
           return this.doubled.reduce((a, b) => a + b, 0);
         }),
       );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, number>>;
 
     expect(await branch({ items: [1, 2, 3] })).toEqual(12);
 
@@ -254,6 +286,10 @@ describe("Loop", () => {
         }),
       );
 
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, string[]>>;
+
     expect(await branch({ items: [1, 2, 3] })).toEqual([
       "1x2=2",
       "2x2=4",
@@ -287,6 +323,10 @@ describe("Loop", () => {
       ),
     );
 
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, number[]>>;
+
     expect(await branch()).toEqual([0, 1, 4, 9]);
 
     const yields: unknown[] = [];
@@ -315,6 +355,10 @@ describe("Loop", () => {
           }),
         ),
       );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, number[]>>;
 
     expect(await branch({ items: [1, 2] })).toEqual([1, 2]);
 
@@ -425,6 +469,10 @@ describe("Loop", () => {
         ),
       );
 
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, number[]>>;
+
     expect(await branch({ items: [1, 2, 3, 4] })).toEqual([2, 4]);
 
     const yields: unknown[] = [];
@@ -463,6 +511,10 @@ describe("Loop", () => {
         ),
       );
 
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, string[]>>;
+
     expect(await branch({ items: [1, 2, 3] })).toEqual([
       "odd:1",
       "even:2",
@@ -499,6 +551,10 @@ describe("Loop", () => {
         ),
       );
 
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, number[]>>;
+
     expect(await branch({ items: [1, 2, 3, 4, 5], threshold: 3 })).toEqual([
       4, 5,
     ]);
@@ -530,7 +586,7 @@ describe("Loop", () => {
             Condition(({ loop }) => loop.item % 3 === 0),
 
             Step("tag", function () {
-              return "fizz";
+              return "fizz"  as const
             }),
           ),
 
@@ -538,17 +594,21 @@ describe("Loop", () => {
             Condition(({ loop }) => loop.item % 2 === 0),
 
             Step("tag", function () {
-              return "buzz";
+              return "buzz" as const
             }),
           ),
 
           Else(
             Step("tag", function () {
-              return "other";
+              return "other"  as const
             }),
           ),
         ),
       );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, ("fizz" | "buzz" | "other")[]>>;
 
     expect(await branch({ items: [1, 2, 3, 4, 5, 6] })).toEqual([
       "other",
@@ -600,6 +660,10 @@ describe("Loop", () => {
         ),
       );
 
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, string[]>>;
+
     expect(await branch({ items: [2, 4] })).toEqual(["2*2=4", "4*2=8"]);
 
     const yields: unknown[] = [];
@@ -631,6 +695,10 @@ describe("Loop", () => {
         ),
       ),
     );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, number[][]>>;
 
     expect(await branch()).toEqual([
       [10, 20],
@@ -677,6 +745,10 @@ describe("Loop", () => {
       }),
     );
 
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, string[]>>;
+
     expect(await branch()).toEqual(["a1", "a2", "a3", "b1", "b2", "b3"]);
 
     const yields: unknown[] = [];
@@ -718,6 +790,10 @@ describe("Loop", () => {
           ),
         ),
       );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, number[][]>>;
 
     expect(await branch({ inner: [1, 2, 3, 4] })).toEqual([
       [4, 8],
@@ -767,6 +843,10 @@ describe("Loop", () => {
           ),
         ),
       );
+
+    type T = typeof branch;
+    type RetVal = Awaited<ReturnType<T>>;
+    type check = Expect<Equal<RetVal, number[][]>>;
 
     expect(await branch({ inner: [10, 20] })).toEqual([
       [20, 40],

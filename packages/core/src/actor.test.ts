@@ -1,6 +1,6 @@
 import { expect, test, describe } from "bun:test";
 import { Expect, Equal } from "./helpers";
-import { Actor, HttpEvent } from "./actor";
+import { Actor } from "./actor";
 import { TW } from "./core";
 import { Step } from "./steps";
 import { Event } from "./event";

@@ -1,5 +1,40 @@
-import { Actor, Step, Steps } from "../../src";
-import { OptionSubSteps } from "../../src/steps/sub-steps";
+import { Actor, Step, TW } from "../../src";
+
+export interface OptionSubSteps {
+  <Ctx extends Record<any, any>, Options, A>(
+    options: ((scope: Ctx["scope"]) => Options) | object,
+    step: {
+      [TW.Step]: (input: Ctx) => A;
+    },
+  ): {
+    [TW.Step]: (input: Ctx) => A;
+  };
+  <Ctx extends Record<any, any>, Options, A, B>(
+    options: ((scope: Ctx["scope"]) => Options) | object,
+    step1: {
+      [TW.Step]: (input: Ctx) => A;
+    },
+    step2: {
+      [TW.Step]: (input: A) => B;
+    },
+  ): {
+    [TW.Step]: (input: Ctx) => B;
+  };
+  <Ctx extends Record<any, any>, Options, A, B, C>(
+    options: ((scope: Ctx["scope"]) => Options) | object,
+    step1: {
+      [TW.Step]: (input: Ctx) => A;
+    },
+    step2: {
+      [TW.Step]: (input: A) => B;
+    },
+    step3: {
+      [TW.Step]: (input: B) => C;
+    },
+  ): {
+    [TW.Step]: (input: Ctx) => C & Record<"options", Options>;
+  };
+}
 
 const Match: OptionSubSteps & {
   With: OptionSubSteps;
@@ -26,7 +61,7 @@ export const { match } = MyActor()
 
       Match.With(
         { type: "ok", data: { type: "text" } },
-        
+
         Step("Lorem", function () {
           return 3;
         }),
