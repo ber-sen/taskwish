@@ -329,7 +329,7 @@ describe("Action", () => {
   });
 
   test("InferType — .run() returns steps as typed tuple", () => {
-    const steps = Action("compute")
+    const { compute } = Action("compute")
       .use(InferType())
 
       .input({ name: "string", thread: { sender: { name: "string" } } })
@@ -358,7 +358,7 @@ describe("Action", () => {
         }),
       );
 
-    type T = typeof steps;
+    type T = typeof compute;
 
     type check = Expect<
       Equal<
@@ -384,7 +384,7 @@ describe("Action", () => {
       >
     >;
 
-    expect(steps).toEqual({
+    expect(compute).toEqual({
       ">": "Command",
       "=": "compute",
       run: [

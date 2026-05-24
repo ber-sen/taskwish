@@ -111,7 +111,7 @@ describe("Loop", () => {
 
     type T = typeof branch;
     type RetVal = Awaited<ReturnType<T>>;
-    type check = Expect<Equal<RetVal, never[]>>;
+    type check = Expect<Equal<RetVal, unknown[]>>;
 
     expect(await branch()).toEqual([]);
 

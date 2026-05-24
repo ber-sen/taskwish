@@ -167,7 +167,6 @@ export type Scope = {
 const SignalTag = Symbol.for("TW.Signal");
 export const ActionEventTag = Symbol.for("TW.ActionEvent");
 
-
 // ── InferType action-step probe ───────────────────────────────────────────────
 
 /** Sentinel property set on the fake return value inside `probeForActionCall`. */
@@ -186,8 +185,7 @@ function makeRecursiveProxy(path: string = ""): unknown {
   return new Proxy(function () {}, {
     get(_, prop) {
       if (prop === Symbol.toPrimitive) {
-        return (hint: string) =>
-          hint === "string" && path ? `@{${path}}` : 0;
+        return (hint: string) => (hint === "string" && path ? `@{${path}}` : 0);
       }
       if (prop === "valueOf") return () => 0;
       if (prop === "toString") return () => (path ? `@{${path}}` : "");
@@ -723,13 +721,21 @@ export function Action<const Name extends string>(
           const fn = Array.isArray(handler) ? (handler as any[])[0] : handler;
           const actionCall = probeForActionCall(fn as Function);
           if (actionCall) {
-            steps.push({ $: actionCall.name, "=": stepName, ...actionCall.params });
+            steps.push({
+              $: actionCall.name,
+              "=": stepName,
+              ...actionCall.params,
+            });
           } else {
-            steps.push({ $: "step", "=": stepName, run: `@js{${(fn as Function).toString().replace(/^\s+/gm, "")}}` });
+            steps.push({
+              $: "step",
+              "=": stepName,
+              run: `@js{${(fn as Function).toString().replace(/^\s+/gm, "")}}`,
+            });
           }
         }
       }
-      return { ">": "Command", "=": actionName, run: steps };
+      return { [actionName]: { ">": "Command", "=": actionName, run: steps } };
     }
 
     async function consume(...args: unknown[]) {

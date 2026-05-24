@@ -18,7 +18,13 @@ export interface ActionResultKind extends ResultKind {
           ? this["ctx"]["scope"]["inferType"] extends true
             ? this["last"] extends { steps: infer S }
               ? this["ctx"] extends { name: infer N extends string }
-                ? { ">": "Command"; "=": N; run: S }
+                ? {
+                    [Name in this["ctx"]["name"]]: {
+                      ">": "Command";
+                      "=": N;
+                      run: S;
+                    };
+                  }
                 : never
               : never
             : {
@@ -120,29 +126,47 @@ export interface Steps<
   <SubCtx extends Record<any, any>, A>(
     step: [OptionsType] extends [never]
       ?
-          | { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
+          | {
+              [TW.Step]: (
+                input: Ctx extends typeof SubSteps ? SubCtx : Ctx,
+              ) => A;
+            }
           | ((
-              this: Ctx extends typeof SubSteps ? SubCtx["scope"] : Ctx["scope"],
+              this: Ctx extends typeof SubSteps
+                ? SubCtx["scope"]
+                : Ctx["scope"],
             ) => A)
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
   ): ApplyResult<RK, Ctx extends typeof SubSteps ? SubCtx : Ctx, A>;
   <SubCtx, A, B>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
   ): ApplyResult<RK, Ctx extends typeof SubSteps ? SubCtx : Ctx, B>;
   <SubCtx, A, B, C>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
   ): ApplyResult<RK, Ctx extends typeof SubSteps ? SubCtx : Ctx, C>;
   <SubCtx, A, B, C, D>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -150,7 +174,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -159,7 +186,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E, F>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -169,7 +199,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E, F, G>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -180,7 +213,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E, F, G, H>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -192,7 +228,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E, F, G, H, I>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -205,7 +244,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E, F, G, H, I, J>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -219,7 +261,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E, F, G, H, I, J, K>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -234,7 +279,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E, F, G, H, I, J, K, L>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -250,7 +298,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E, F, G, H, I, J, K, L, M>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -267,7 +318,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E, F, G, H, I, J, K, L, M, N>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -285,7 +339,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -304,7 +361,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -324,7 +384,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -345,7 +408,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -367,7 +433,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -390,7 +459,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -414,7 +486,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -439,7 +514,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -465,7 +543,10 @@ export interface Steps<
   <SubCtx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W>(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -489,10 +570,39 @@ export interface Steps<
     step22: { [TW.Step]: (input: U) => V },
     step23: { [TW.Step]: (input: V) => W },
   ): ApplyResult<RK, Ctx extends typeof SubSteps ? SubCtx : Ctx, W>;
-  <SubCtx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X>(
+  <
+    SubCtx,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T,
+    U,
+    V,
+    W,
+    X,
+  >(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -517,10 +627,40 @@ export interface Steps<
     step23: { [TW.Step]: (input: V) => W },
     step24: { [TW.Step]: (input: W) => X },
   ): ApplyResult<RK, Ctx extends typeof SubSteps ? SubCtx : Ctx, X>;
-  <SubCtx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y>(
+  <
+    SubCtx,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T,
+    U,
+    V,
+    W,
+    X,
+    Y,
+  >(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
@@ -546,10 +686,41 @@ export interface Steps<
     step24: { [TW.Step]: (input: W) => X },
     step25: { [TW.Step]: (input: X) => Y },
   ): ApplyResult<RK, Ctx extends typeof SubSteps ? SubCtx : Ctx, Y>;
-  <SubCtx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z>(
+  <
+    SubCtx,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T,
+    U,
+    V,
+    W,
+    X,
+    Y,
+    Z,
+  >(
     step1: [OptionsType] extends [never]
       ? { [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A }
-      : { [TW.Type]: OptionsType; [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A },
+      : {
+          [TW.Type]: OptionsType;
+          [TW.Step]: (input: Ctx extends typeof SubSteps ? SubCtx : Ctx) => A;
+        },
     step2: { [TW.Step]: (input: A) => B },
     step3: { [TW.Step]: (input: B) => C },
     step4: { [TW.Step]: (input: C) => D },
