@@ -621,7 +621,7 @@ describe("Actor", () => {
       .on("Command", "tick")
 
       .input({ n: "number" })
-      
+
       .run(
         Step("doubled", function () {
           return this.input.n * 2;
@@ -666,7 +666,9 @@ describe("Actor", () => {
 
     const { ping } = hub
       .on("Command", "ping")
+      
       .input({ id: "string" })
+
       .run(
         Step("upper", function () {
           return this.input.id.toUpperCase();

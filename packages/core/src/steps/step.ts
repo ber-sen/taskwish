@@ -1,4 +1,4 @@
-import { Pretty, PrettyScope, RawEntry, ResolveScope } from "../helpers";
+import { PrettyScope, RawEntry, ResolveScope } from "../helpers";
 import { TW } from "../core";
 
 /**
@@ -44,7 +44,9 @@ export function Step<
             TW.Step<
               Name,
               "inferTypeFilter" extends keyof Ctx["scope"]
-                ? Ctx["scope"]["inferTypeFilter"] extends Name ? Handler : () => ReturnType<Handler>
+                ? Ctx["scope"]["inferTypeFilter"] extends Name
+                  ? Handler
+                  : () => ReturnType<Handler>
                 : () => ReturnType<Handler>
             >,
           ]

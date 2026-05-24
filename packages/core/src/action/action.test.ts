@@ -242,6 +242,7 @@ describe("Action", () => {
 
     const { healthz } = Action("healthz")
       .use(Logger(spy))
+      
       .run(function () {
         return { status: "ok" };
       });
@@ -305,7 +306,9 @@ describe("Action", () => {
 
     const { compute } = Action("compute")
       .use(Logger(spy))
+
       .input({ value: "number" })
+
       .run(
         Step("double", function () {
           return this.input.value * 2;
