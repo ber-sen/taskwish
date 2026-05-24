@@ -465,9 +465,7 @@ describe("Action", () => {
       | "thread"
       | "actions"
       | "self"
-      | "inferType"
       | "signal"
-      | "inferTypeFilter"
       | "get"
       | "event"
     >;

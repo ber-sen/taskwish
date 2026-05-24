@@ -74,32 +74,9 @@ export type InferTypeConfig<Filter extends string | undefined = undefined> = {
 };
 
 export function InferType(): InferTypeConfig<undefined>;
-export function InferType<const F extends string>(filter: F): InferTypeConfig<F>;
+export function InferType<const F extends string>(
+  filter: F,
+): InferTypeConfig<F>;
 export function InferType(filter?: string): InferTypeConfig<any> {
   return { [TW.Type]: "InferType", filter };
-}
-
-export function Use<
-  const Ctx extends Record<any, any>,
-  const Def extends Record<string, { [TW.Name]: string }>,
->(
-  def: Def,
-): {
-  [TW.Step]: (ctx: Ctx) => {
-    name: Ctx["name"];
-
-    steps: Ctx["steps"] & {
-      [K in keyof Def as Def[K][typeof TW.Name]]: Def[K];
-    };
-
-    [TW.Step]: Ctx["step"];
-
-    scope: {
-      [K in keyof Def as Def[K][typeof TW.Name]]: Def[K];
-    } & Ctx["scope"];
-
-    last: Def[keyof Def];
-  };
-} {
-  return {} as never;
 }

@@ -112,7 +112,6 @@ export namespace TW {
           };
         }
       : {}) &
-    (Meta extends { steps: readonly any[] } ? { steps(): Meta["steps"] } : {}) &
     Resource<Name> &
     Attributable<Meta>;
 

@@ -1,5 +1,6 @@
 import {
   Apply,
+  Append,
   ValidateTrigger,
   InferTriggerScope,
   Pretty,
@@ -15,14 +16,24 @@ import {
   type InferTypeConfig,
 } from "../use";
 
+type AppendPlugin<Ctx extends Record<any, any>, Plugin> = {
+  name: Ctx["name"];
+  steps: Ctx["steps"];
+  scope: Ctx["scope"];
+  last: Ctx["last"];
+  plugins: Append<Ctx["plugins"], Plugin>;
+};
+
 type ActionBody<
   Name extends string,
   Ctx extends Record<any, any>,
 > = TW.Contextual<Ctx> & {
-  use(config: LoggerConfig): ActionBody<Name, Ctx>;
+  use<const Config extends LoggerConfig>(
+    config: Config,
+  ): ActionBody<Name, AppendPlugin<Ctx, Config>>;
   use<const F extends string | undefined>(
     config: InferTypeConfig<F>,
-  ): ActionBody<Name, Ctx & { scope: { inferType: true; inferTypeFilter: F } }>;
+  ): ActionBody<Name, AppendPlugin<Ctx, InferTypeConfig<F>>>;
   run: Steps<Ctx, ActionResultKind>;
 };
 
@@ -31,10 +42,12 @@ type SignatureBody<
   Ctx extends Record<any, any>,
   Signature,
 > = {
-  use(config: LoggerConfig): SignatureBody<Name, Ctx, Signature>;
+  use<const Config extends LoggerConfig>(
+    config: Config,
+  ): SignatureBody<Name, AppendPlugin<Ctx, Config>, Signature>;
   use<const F extends string | undefined>(
     config: InferTypeConfig<F>,
-  ): SignatureBody<Name, Ctx & { scope: { inferType: true; inferTypeFilter: F } }, Signature>;
+  ): SignatureBody<Name, AppendPlugin<Ctx, InferTypeConfig<F>>, Signature>;
   run<
     const Handler extends (
       this: TW.Scope<
@@ -115,12 +128,15 @@ export interface ActionFactory<
       };
     };
     steps: [];
+    plugins: [];
   },
 > {
-  use(config: LoggerConfig): this;
+  use<const Config extends LoggerConfig>(
+    config: Config,
+  ): ActionFactory<Name, AppendPlugin<Ctx, Config>>;
   use<const F extends string | undefined>(
     config: InferTypeConfig<F>,
-  ): ActionFactory<Name, Ctx & { scope: { inferType: true; inferTypeFilter: F } }>;
+  ): ActionFactory<Name, AppendPlugin<Ctx, InferTypeConfig<F>>>;
   sig<
     const Schema extends ((...args: any) => any) | TW.Handler,
   >(): SignatureBody<Name, Ctx, Schema>;
@@ -138,6 +154,7 @@ export interface ActionFactory<
             map: { launchApp: string };
           };
           steps: [];
+          plugins: Ctx["plugins"];
         }
       >;
   run: Steps<Ctx, ActionResultKind>;

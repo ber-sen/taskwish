@@ -1,5 +1,5 @@
 import { TW } from "../core";
-import { ResolveLast } from "../helpers";
+import { FindInferTypeFilter, ResolveLast } from "../helpers";
 import { ResultKind, ApplyResult } from "./hkt";
 
 export const SubSteps = Symbol.for("SubSteps");
@@ -27,17 +27,53 @@ type FilterSteps<S extends readonly any[], Filter extends string> = {
  * Used by `Steps<Ctx, ActionResultKind>` — the normal action mode that
  * produces a `TW.Action` callable.
  */
+type RegularAction<Ctx extends Record<any, any>, Last> = {
+  [name in Ctx["name"]]: TW.Action<
+    Ctx["name"],
+    "scope" extends keyof Ctx
+      ? "input" extends keyof Ctx["scope"]
+        ? (
+            input: "$call" extends keyof Ctx["scope"]
+              ? Ctx["scope"]["$call"]
+              : Ctx["scope"]["input"],
+          ) => Promise<
+            "last" extends keyof Last
+              ? ResolveLast<Last["last"]>
+              : "steps" extends keyof Last
+                ? Last["steps"]
+                : Last
+          >
+        : () => Promise<
+            "last" extends keyof Last
+              ? ResolveLast<Last["last"]>
+              : "steps" extends keyof Last
+                ? Last["steps"]
+                : Last
+          >
+      : () => Promise<
+          "last" extends keyof Last
+            ? ResolveLast<Last["last"]>
+            : "steps" extends keyof Last
+              ? Last["steps"]
+              : Last
+        >
+  >;
+};
+
 export interface ActionResultKind extends ResultKind {
   type: this["ctx"] extends Record<any, any>
     ? "name" extends keyof this["ctx"]
       ? this["ctx"]["name"] extends string
-        ? "inferType" extends keyof this["ctx"]["scope"]
-          ? this["ctx"]["scope"]["inferType"] extends true
-            ? this["last"] extends { steps: infer S }
+        ? FindInferTypeFilter<this["ctx"]["plugins"]> extends infer Filter
+          ? [Filter] extends [never]
+            ? RegularAction<this["ctx"], this["last"]>
+            : this["last"] extends { steps: infer S }
               ? this["ctx"] extends { name: infer N extends string }
-                ? this["ctx"]["scope"] extends { inferTypeFilter: infer Filter extends string }
+                ? Filter extends string
                   ? {
-                      [Name in N]: FirstDefined<FilterSteps<S extends readonly any[] ? S : [], Filter>>;
+                      [Name in N]: FirstDefined<
+                        FilterSteps<S extends readonly any[] ? S : [], Filter>
+                      >;
                     }
                   : {
                       [Name in N]: {
@@ -48,78 +84,7 @@ export interface ActionResultKind extends ResultKind {
                     }
                 : never
               : never
-            : {
-                [name in this["ctx"]["name"]]: TW.Action<
-                  this["ctx"]["name"],
-                  "scope" extends keyof this["ctx"]
-                    ? "input" extends keyof this["ctx"]["scope"]
-                      ? (
-                          input: "scope" extends keyof this["ctx"]
-                            ? "$call" extends keyof this["ctx"]["scope"]
-                              ? this["ctx"]["scope"]["$call"]
-                              : "input" extends keyof this["ctx"]["scope"]
-                                ? this["ctx"]["scope"]["input"]
-                                : never
-                            : never,
-                        ) => Promise<
-                          "last" extends keyof this["last"]
-                            ? ResolveLast<this["last"]["last"]>
-                            : "steps" extends keyof this["last"]
-                              ? this["last"]["steps"]
-                              : this["last"]
-                        >
-                      : () => Promise<
-                          "last" extends keyof this["last"]
-                            ? ResolveLast<this["last"]["last"]>
-                            : "steps" extends keyof this["last"]
-                              ? this["last"]["steps"]
-                              : this["last"]
-                        >
-                    : () => Promise<
-                        "last" extends keyof this["last"]
-                          ? ResolveLast<this["last"]["last"]>
-                          : "steps" extends keyof this["last"]
-                            ? this["last"]["steps"]
-                            : this["last"]
-                      >
-                >;
-              }
-          : {
-              [name in this["ctx"]["name"]]: TW.Action<
-                this["ctx"]["name"],
-                "scope" extends keyof this["ctx"]
-                  ? "input" extends keyof this["ctx"]["scope"]
-                    ? (
-                        input: "scope" extends keyof this["ctx"]
-                          ? "$call" extends keyof this["ctx"]["scope"]
-                            ? this["ctx"]["scope"]["$call"]
-                            : "input" extends keyof this["ctx"]["scope"]
-                              ? this["ctx"]["scope"]["input"]
-                              : never
-                          : never,
-                      ) => Promise<
-                        "last" extends keyof this["last"]
-                          ? ResolveLast<this["last"]["last"]>
-                          : "steps" extends keyof this["last"]
-                            ? this["last"]["steps"]
-                            : this["last"]
-                      >
-                    : () => Promise<
-                        "last" extends keyof this["last"]
-                          ? ResolveLast<this["last"]["last"]>
-                          : "steps" extends keyof this["last"]
-                            ? this["last"]["steps"]
-                            : this["last"]
-                      >
-                  : () => Promise<
-                      "last" extends keyof this["last"]
-                        ? ResolveLast<this["last"]["last"]>
-                        : "steps" extends keyof this["last"]
-                          ? this["last"]["steps"]
-                          : this["last"]
-                    >
-              >;
-            }
+          : never
         : never
       : never
     : never;
