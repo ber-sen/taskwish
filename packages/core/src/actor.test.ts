@@ -22,7 +22,11 @@ describe("Actor", () => {
     type T = typeof greet;
     type check = Expect<
       Equal<
-        TW.Action<"Greeter.greet", (input: { name: string }) => Promise<string>, null>,
+        TW.Action<
+          "Greeter.greet",
+          (input: { name: string }) => Promise<string>,
+          null
+        >,
         T
       >
     >;
@@ -326,7 +330,14 @@ describe("Actor", () => {
 
     type T = typeof GET;
     type check = Expect<
-      Equal<TW.Action<"InvoiceProvider.GET", (input: Request) => Promise<string>, null>, T>
+      Equal<
+        TW.Action<
+          "InvoiceProvider.GET",
+          (input: Request) => Promise<string>,
+          null
+        >,
+        T
+      >
     >;
 
     expect(await GET(new Request("http://localhost/invoices/inv-42"))).toEqual(
@@ -398,7 +409,7 @@ describe("Actor", () => {
     )) {
       fetchYields.push(v);
     }
-    const fetchStreamJson = await (fetchYields[3]).result.text();
+    const fetchStreamJson = await fetchYields[3].result.text();
 
     expect(fetchYields).toMatchObject([
       {
@@ -712,9 +723,7 @@ describe("Actor", () => {
   test("multiple behaviors from same actor instance", async () => {
     const { Conductor } = Actor("Conductor");
 
-    const actor = Conductor();
-
-    const { greet } = actor
+    const { greet } = Conductor()
       .on("Command", "greet")
 
       .input({ name: "string" })
@@ -723,7 +732,7 @@ describe("Actor", () => {
         return `hi ${this.input.name}`;
       });
 
-    const { onNewMention } = actor
+    const { onNewMention } = Conductor()
       .on("NewMention")
 
       .run(function () {
