@@ -392,13 +392,13 @@ describe("Actor", () => {
       { ">": "InvoiceProvider.getInvoices", result: "id=inv-42 page=2" },
     ]);
 
-    const fetchYields: unknown[] = [];
+    const fetchYields: any[] = [];
     for await (const v of getInvoices.fetch.stream(
       new Request("http://localhost/invoices/inv-42?page=2"),
     )) {
       fetchYields.push(v);
     }
-    const fetchStreamJson = await (fetchYields[3] as any).result.text();
+    const fetchStreamJson = await (fetchYields[3]).result.text();
 
     expect(fetchYields).toMatchObject([
       {

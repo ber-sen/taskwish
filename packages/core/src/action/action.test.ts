@@ -242,7 +242,7 @@ describe("Action", () => {
 
     const { healthz } = Action("healthz")
       .use(Logger(spy))
-      
+
       .run(function () {
         return { status: "ok" };
       });
@@ -387,9 +387,7 @@ describe("Action", () => {
       >
     >;
 
-    // cast needed because the declared type narrows non-matching positions to
-    // `undefined`, while the runtime value still carries the full step objects
-    expect(compute as any).toEqual({
+    expect(compute).toEqual({
       ">": "Command",
       "=": "compute",
       run: [
@@ -462,12 +460,7 @@ describe("Action", () => {
 
     type T = ExactOmit<
       InferScope<typeof compute>,
-      | "thread"
-      | "actions"
-      | "self"
-      | "signal"
-      | "get"
-      | "event"
+      "thread" | "actions" | "self" | "signal" | "get" | "event"
     >;
 
     type check = Expect<
