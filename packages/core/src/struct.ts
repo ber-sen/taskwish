@@ -1,7 +1,7 @@
 import { type Constructor, type array, type conform } from "@ark/util";
 
 import { distill, type Type as ArkType, type } from "arktype";
-import { PascalCase, Pretty } from "./helpers";
+import { Append, PascalCase, Pretty } from "./helpers";
 import { TW } from "./core";
 import {
   ArgTwoOperator,
@@ -62,6 +62,7 @@ interface Struct {
         > &
           Ctx["scope"];
         last: TW.Struct<Name, type.instantiate<Schema, Ctx["scope"]>["infer"]>;
+        plugins: Ctx["plugins"];
       };
     }
   >;
@@ -115,9 +116,12 @@ interface Struct {
           > &
             Ctx["scope"];
           last: TW.Struct<Name, _ extends ArkType<infer T> ? T : _>;
+          plugins: Ctx["plugins"];
         };
       }
     : never;
 }
 
-export const Struct: Struct = ((name: string) => ({ [name]: undefined })) as never;
+export const Struct: Struct = ((name: string) => ({
+  [name]: undefined,
+})) as never;

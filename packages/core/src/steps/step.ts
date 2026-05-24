@@ -1,4 +1,4 @@
-import { PrettyScope, RawEntry, ResolveScope } from "../helpers";
+import { Append, FindInferTypeFilter, PrettyScope, RawEntry, ResolveScope } from "../helpers";
 import { TW } from "../core";
 
 /**
@@ -13,7 +13,9 @@ type ResolveReturn<H extends (...args: any) => any> =
     ? Awaited<R>
     : ReturnType<H> extends Generator<any, infer R, any>
       ? R
-      : ReturnType<H> extends Promise<infer A> ? A : ReturnType<H>;
+      : ReturnType<H> extends Promise<infer A>
+        ? A
+        : ReturnType<H>;
 
 type UserScope<Ctx extends Record<any, any>> = PrettyScope<
   TW.Scope<ResolveScope<Ctx["scope"]>>
@@ -43,10 +45,14 @@ export function Step<
             ...L,
             TW.Step<
               Name,
-              "inferTypeFilter" extends keyof Ctx["scope"]
-                ? Ctx["scope"]["inferTypeFilter"] extends Name
-                  ? Handler
-                  : () => ReturnType<Handler>
+              FindInferTypeFilter<Ctx["plugins"]> extends infer Filter
+                ? [Filter] extends [never]
+                  ? () => ReturnType<Handler>
+                  : Filter extends string
+                    ? Filter extends Name
+                      ? Handler
+                      : () => ReturnType<Handler>
+                    : Handler
                 : () => ReturnType<Handler>
             >,
           ]
@@ -63,6 +69,7 @@ export function Step<
     > &
       Ctx["scope"];
     last: RawEntry<ResolveReturn<Handler>, []>;
+    plugins: Ctx["plugins"];
   };
 };
 
@@ -97,6 +104,7 @@ export function Step<
     [TW.Step]: Ctx["step"];
     scope: Record<Name, RawEntry<A, []>> & Ctx["scope"];
     last: RawEntry<ResolveReturn<Handler>, []>;
+    plugins: Ctx["plugins"];
   };
 };
 
@@ -133,6 +141,7 @@ export function Step<
     [TW.Step]: Ctx["step"];
     scope: Record<Name, RawEntry<B, []>> & Ctx["scope"];
     last: RawEntry<ResolveReturn<Handler>, []>;
+    plugins: Ctx["plugins"];
   };
 };
 

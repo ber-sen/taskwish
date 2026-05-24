@@ -1,6 +1,19 @@
 import { Type, type, validateDefinition } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 import { TW } from "./core";
+import type { InferTypeConfig } from "./use";
+
+/** Walk the plugins tuple and return the filter type from the first InferTypeConfig found.
+ *  - `never`     → no InferType plugin present
+ *  - `undefined` → InferType() with no filter (infer all steps)
+ *  - `F`         → InferType(filter) (infer only the matching step)
+ */
+export type FindInferTypeFilter<Plugins> =
+  Plugins extends readonly [infer Head, ...infer Tail]
+    ? Head extends InferTypeConfig<infer F>
+      ? F
+      : FindInferTypeFilter<Tail>
+    : never;
 
 export type Expect<T extends true> = T;
 
@@ -37,6 +50,9 @@ export type PrettyScope<T> = {
 } & {};
 
 export type Pretty<T> = { [K in keyof T]: T[K] } & {};
+
+export type Append<Items, Item> =
+  Items extends readonly any[] ? [...Items, Item] : [Item];
 
 // ── Scope operator machinery ──────────────────────────────────────────────────
 
