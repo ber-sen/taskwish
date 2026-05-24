@@ -389,7 +389,7 @@ describe("Action", () => {
 
     // cast needed because the declared type narrows non-matching positions to
     // `undefined`, while the runtime value still carries the full step objects
-    expect(compute as any).toEqual({
+    expect(compute).toEqual({
       ">": "Command",
       "=": "compute",
       run: [
