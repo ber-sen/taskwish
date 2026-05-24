@@ -44,7 +44,7 @@ export function Step<
             TW.Step<
               Name,
               "inferTypeFilter" extends keyof Ctx["scope"]
-                ? Handler
+                ? Ctx["scope"]["inferTypeFilter"] extends Name ? Handler : () => ReturnType<Handler>
                 : () => ReturnType<Handler>
             >,
           ]

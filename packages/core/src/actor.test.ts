@@ -617,8 +617,11 @@ describe("Actor", () => {
     const { Counter } = Actor("Counter");
     const { tick } = Counter()
       .use(Logger(spy))
+
       .on("Command", "tick")
+
       .input({ n: "number" })
+      
       .run(
         Step("doubled", function () {
           return this.input.n * 2;
