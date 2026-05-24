@@ -1,6 +1,6 @@
 import { type Constructor, type array, type conform } from "@ark/util";
 
-import { distill, Type, type } from "arktype";
+import { distill, type Type as ArkType, type } from "arktype";
 import { PascalCase, Pretty } from "./helpers";
 import { TW } from "./core";
 import {
@@ -102,19 +102,19 @@ interface Struct {
           : []
   ): r extends infer _
     ? {
-        [key in Name]: TW.Struct<Name, _ extends Type<infer T> ? T : _>;
+        [key in Name]: TW.Struct<Name, _ extends ArkType<infer T> ? T : _>;
       } & {
         [TW.Step]: (ctx: Ctx) => {
           name: Ctx["name"];
           steps: Ctx["steps"] &
-            Record<Name, TW.Struct<Name, _ extends Type<infer T> ? T : _>>;
+            Record<Name, TW.Struct<Name, _ extends ArkType<infer T> ? T : _>>;
           [TW.Step]: Ctx["step"];
           scope: Record<
             Name,
-            TW.Struct<Name, _ extends Type<infer T> ? T : _>
+            TW.Struct<Name, _ extends ArkType<infer T> ? T : _>
           > &
             Ctx["scope"];
-          last: TW.Struct<Name, _ extends Type<infer T> ? T : _>;
+          last: TW.Struct<Name, _ extends ArkType<infer T> ? T : _>;
         };
       }
     : never;
