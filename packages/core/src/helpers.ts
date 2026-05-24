@@ -40,14 +40,16 @@ export type Pretty<T> = { [K in keyof T]: T[K] } & {};
 
 // ── Scope operator machinery ──────────────────────────────────────────────────
 
-export type RawEntry<R, Ops extends string[] = []> = { result: R; operator: Ops };
+export type RawEntry<R, Ops extends string[] = []> = {
+  result: R;
+  operator: Ops;
+};
 
-type AddOp<Op extends string, T> =
-  T extends string[]
-    ? [Op, ...T]
-    : T extends object
-      ? { [K in keyof T]: AddOp<Op, T[K]> }
-      : T;
+type AddOp<Op extends string, T> = T extends string[]
+  ? [Op, ...T]
+  : T extends object
+    ? { [K in keyof T]: AddOp<Op, T[K]> }
+    : T;
 
 type RemoveEndOps<
   T extends readonly string[],
@@ -58,25 +60,32 @@ type RemoveEndOps<
     : RemoveEndOps<Rest, [...A, H]>
   : A;
 
-type ApplyOps<O extends readonly string[], R> =
-  O extends [...infer Rest extends string[], infer Last extends string]
-    ? Last extends ":loop"
-      ? ApplyOps<Rest, R[]>
-      : Last extends ":if"
-        ? ApplyOps<Rest, R | undefined>
-        : ApplyOps<Rest, R>
-    : R;
+type ApplyOps<O extends readonly string[], R> = O extends [
+  ...infer Rest extends string[],
+  infer Last extends string,
+]
+  ? Last extends ":loop"
+    ? ApplyOps<Rest, R[]>
+    : Last extends ":if"
+      ? ApplyOps<Rest, R | undefined>
+      : ApplyOps<Rest, R>
+  : R;
 
 export type ResolveScope<T> = Pretty<{
-  [K in keyof T]: T[K] extends { result: infer R; operator: infer O extends string[] }
+  [K in keyof T]: T[K] extends {
+    result: infer R;
+    operator: infer O extends string[];
+  }
     ? ApplyOps<RemoveEndOps<O>, R>
     : T[K];
 }>;
 
-export type ResolveLast<T> =
-  T extends { result: infer R; operator: infer O extends string[] }
-    ? ApplyOps<RemoveEndOps<O>, R>
-    : T;
+export type ResolveLast<T> = T extends {
+  result: infer R;
+  operator: infer O extends string[];
+}
+  ? ApplyOps<RemoveEndOps<O>, R>
+  : T;
 
 export type DeepOptionalString<T> = {
   [K in keyof T]?: T[K] extends object ? DeepOptionalString<T[K]> : string;
@@ -120,28 +129,35 @@ export type ValidateTrigger<Schema> =
           ? type.validate<Schema>
           : object;
 
+type HasOnlyNeverValues<T> =
+  keyof T extends infer K
+    ? K extends keyof T
+      ? [T[K]] extends [never]
+        ? true
+        : false
+      : never
+    : never;
+
 export type InferTriggerScope<Schema> =
-  Schema extends StandardSchemaV1<infer Input>
-    ? { input: Input; event: TW.Event<"Command", Input> }
-    : Schema extends TW.Event<infer Name, infer Input>
+  Schema extends TW.Event<infer Name, infer Input>
+    ? {
+        input: Input;
+        event: TW.Event<Name, Input>;
+      }
+    : Schema extends TW.EventKind<infer Name, infer Input>
       ? {
           input: Input;
           event: TW.Event<Name, Input>;
         }
-      : Schema extends TW.EventKind<infer Name, infer Input>
+      : HasOnlyNeverValues<type.instantiate<Schema>["infer"]> extends false
         ? {
-            input: Input;
-            event: TW.Event<Name, Input>;
+            input: type.instantiate<Schema>["infer"];
+            event: TW.Event<"Command", type.instantiate<Schema>["infer"]>;
           }
-        : type.instantiate<Schema>["infer"] extends Record<any, never>
-          ? {
-              input: Schema;
-              event: TW.Event<"Command", Schema>;
-            }
-          : {
-              input: type.instantiate<Schema>["infer"];
-              event: TW.Event<"Command", type.instantiate<Schema>["infer"]>;
-            };
+        : {
+            input: Schema;
+            event: TW.Event<"Command", Schema>;
+          };
 
 export type Apply<
   F extends TW.Handler,

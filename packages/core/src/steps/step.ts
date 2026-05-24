@@ -13,7 +13,7 @@ type ResolveReturn<H extends (...args: any) => any> =
     ? Awaited<R>
     : ReturnType<H> extends Generator<any, infer R, any>
       ? R
-      : Awaited<ReturnType<H>>;
+      : ReturnType<H> extends Promise<infer A> ? A : ReturnType<H>;
 
 type UserScope<Ctx extends Record<any, any>> = PrettyScope<
   TW.Scope<ResolveScope<Ctx["scope"]>>
