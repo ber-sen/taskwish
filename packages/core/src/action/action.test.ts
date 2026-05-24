@@ -384,7 +384,9 @@ describe("Action", () => {
       >
     >;
 
-    expect(compute).toEqual({
+    // cast needed because the declared type narrows non-matching positions to
+    // `undefined`, while the runtime value still carries the full step objects
+    expect(compute as any).toEqual({
       ">": "Command",
       "=": "compute",
       run: [
@@ -411,6 +413,86 @@ describe("Action", () => {
           run: "@js{function() {\nreturn this.reply === this.input.name;\n}}",
         },
       ],
+    });
+  });
+
+  test("InferType — .run() returns steps as typed tuple", () => {
+    const { compute } = Action("compute")
+      .use(InferType("positive"))
+
+      .input({ name: "string", thread: { sender: { name: "string" } } })
+
+      .run(
+        Step("gent", function () {
+          return this.actions.generateText({
+            model: "gpt5",
+            prompt: `hello ${this.input.thread.sender.name}`,
+          });
+        }),
+
+        Step("reply", function () {
+          return this.actions.generateText({
+            model: "gpt5",
+            prompt: `reply to ${this.gent} from ${this.input.name}`,
+          });
+        }),
+
+        Step("positive", function () {
+          return this.gent.length > 2;
+        }),
+
+        Step("done", function () {
+          return this.reply === this.input.name;
+        }),
+      );
+
+    type InferScope<A> =
+      A extends TW.ScriptStep<any, infer H>
+        ? H extends (this: infer U, ...args: any[]) => any
+          ? U
+          : never
+        : never;
+
+    type ExactOmit<T, K extends keyof T> = {
+      [P in keyof T as P extends K ? never : P]: T[P];
+    };
+
+    type T = ExactOmit<
+      InferScope<typeof compute>,
+      | "thread"
+      | "actions"
+      | "self"
+      | "inferType"
+      | "signal"
+      | "inferTypeFilter"
+      | "get"
+      | "event"
+    >;
+
+    type check = Expect<
+      Equal<
+        T,
+        {
+          reply: string;
+          gent: string;
+          input: {
+            name: string;
+            thread: {
+              sender: {
+                name: string;
+              };
+            };
+          };
+        }
+      >
+    >;
+
+    // cast needed because the declared type narrows non-matching positions to
+    // `undefined`, while the runtime value still carries the full step objects
+    expect(compute).toEqual({
+      $: "step",
+      "=": "positive",
+      run: "@js{function() {\nreturn this.gent.length > 2;\n}}",
     });
   });
 

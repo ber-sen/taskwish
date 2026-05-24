@@ -68,10 +68,15 @@ export function Logger(target: ConsoleLike = console): LoggerConfig {
   return { [TW.Type]: "Logger", target };
 }
 
-export type InferTypeConfig = { [TW.Type]: "InferType" };
+export type InferTypeConfig<Filter extends string | undefined = undefined> = {
+  [TW.Type]: "InferType";
+  filter: Filter;
+};
 
-export function InferType(): InferTypeConfig {
-  return { [TW.Type]: "InferType" };
+export function InferType(): InferTypeConfig<undefined>;
+export function InferType<const F extends string>(filter: F): InferTypeConfig<F>;
+export function InferType(filter?: string): InferTypeConfig<any> {
+  return { [TW.Type]: "InferType", filter };
 }
 
 export function Use<

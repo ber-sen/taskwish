@@ -4,6 +4,23 @@ import { ResultKind, ApplyResult } from "./hkt";
 
 export const SubSteps = Symbol.for("SubSteps");
 
+type FirstDefined<T extends readonly unknown[]> =
+  T extends [infer Head, ...infer Tail]
+    ? Head extends undefined
+      ? FirstDefined<Tail>
+      : Head
+    : never;
+
+// ── FilterSteps ───────────────────────────────────────────────────────────────
+
+/**
+ * Maps a steps tuple so that only the element whose `"="` matches `Filter`
+ * keeps its type; all others become `undefined`.
+ */
+type FilterSteps<S extends readonly any[], Filter extends string> = {
+  [K in keyof S]: S[K] extends { "=": Filter } ? S[K] : undefined;
+};
+
 // ── Built-in result kinds ─────────────────────────────────────────────────────
 
 /**
@@ -18,13 +35,17 @@ export interface ActionResultKind extends ResultKind {
           ? this["ctx"]["scope"]["inferType"] extends true
             ? this["last"] extends { steps: infer S }
               ? this["ctx"] extends { name: infer N extends string }
-                ? {
-                    [Name in this["ctx"]["name"]]: {
-                      ">": "Command";
-                      "=": N;
-                      run: S;
-                    };
-                  }
+                ? this["ctx"]["scope"] extends { inferTypeFilter: infer Filter extends string }
+                  ? {
+                      [Name in N]: FirstDefined<FilterSteps<S extends readonly any[] ? S : [], Filter>>;
+                    }
+                  : {
+                      [Name in N]: {
+                        ">": "Command";
+                        "=": N;
+                        run: S;
+                      };
+                    }
                 : never
               : never
             : {

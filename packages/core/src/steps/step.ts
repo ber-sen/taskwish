@@ -1,4 +1,4 @@
-import { PrettyScope, RawEntry, ResolveScope } from "../helpers";
+import { Pretty, PrettyScope, RawEntry, ResolveScope } from "../helpers";
 import { TW } from "../core";
 
 /**
@@ -15,7 +15,9 @@ type ResolveReturn<H extends (...args: any) => any> =
       ? R
       : Awaited<ReturnType<H>>;
 
-type UserScope<Ctx extends Record<any, any>> = PrettyScope<TW.Scope<ResolveScope<Ctx["scope"]>>>;
+type UserScope<Ctx extends Record<any, any>> = PrettyScope<
+  TW.Scope<ResolveScope<Ctx["scope"]>>
+>;
 
 export function Step<
   Ctx extends Record<any, any>,
@@ -37,14 +39,25 @@ export function Step<
     steps: Ctx extends { steps: infer L extends any[] }
       ? Name extends keyof Ctx["step"]["map"]
         ? L
-        : [...L, TW.Step<Name, () => ReturnType<Handler>>]
+        : [
+            ...L,
+            TW.Step<
+              Name,
+              "inferTypeFilter" extends keyof Ctx["scope"]
+                ? Handler
+                : () => ReturnType<Handler>
+            >,
+          ]
       : Name extends keyof Ctx["step"]["map"]
         ? []
         : [TW.Step<Name, () => ReturnType<Handler>>];
     [TW.Step]: Ctx["step"];
     scope: Record<
       Name,
-      RawEntry<Name extends keyof Ctx["step"]["map"] ? string : ResolveReturn<Handler>, []>
+      RawEntry<
+        Name extends keyof Ctx["step"]["map"] ? string : ResolveReturn<Handler>,
+        []
+      >
     > &
       Ctx["scope"];
     last: RawEntry<ResolveReturn<Handler>, []>;
@@ -68,7 +81,9 @@ export function Step<
   handler: [
     Name extends keyof Ctx["step"]["map"] ? Params : Handler,
     (
-      res: Name extends keyof Ctx["step"]["map"] ? string : ResolveReturn<Handler>,
+      res: Name extends keyof Ctx["step"]["map"]
+        ? string
+        : ResolveReturn<Handler>,
     ) => A,
   ],
 ): {
@@ -101,7 +116,9 @@ export function Step<
   handler: [
     Name extends keyof Ctx["step"]["map"] ? Params : Handler,
     (
-      res: Name extends keyof Ctx["step"]["map"] ? string : ResolveReturn<Handler>,
+      res: Name extends keyof Ctx["step"]["map"]
+        ? string
+        : ResolveReturn<Handler>,
     ) => A,
     (input: A) => B,
   ],

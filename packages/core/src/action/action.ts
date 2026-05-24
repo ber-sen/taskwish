@@ -20,9 +20,9 @@ type ActionBody<
   Ctx extends Record<any, any>,
 > = TW.Contextual<Ctx> & {
   use(config: LoggerConfig): ActionBody<Name, Ctx>;
-  use(
-    config: InferTypeConfig,
-  ): ActionBody<Name, Ctx & { scope: { inferType: true } }>;
+  use<const F extends string | undefined>(
+    config: InferTypeConfig<F>,
+  ): ActionBody<Name, Ctx & { scope: { inferType: true; inferTypeFilter: F } }>;
   run: Steps<Ctx, ActionResultKind>;
 };
 
@@ -32,9 +32,9 @@ type SignatureBody<
   Signature,
 > = {
   use(config: LoggerConfig): SignatureBody<Name, Ctx, Signature>;
-  use(
-    config: InferTypeConfig,
-  ): SignatureBody<Name, Ctx & { scope: { inferType: true } }, Signature>;
+  use<const F extends string | undefined>(
+    config: InferTypeConfig<F>,
+  ): SignatureBody<Name, Ctx & { scope: { inferType: true; inferTypeFilter: F } }, Signature>;
   run<
     const Handler extends (
       this: TW.Scope<
@@ -118,9 +118,9 @@ export interface ActionFactory<
   },
 > {
   use(config: LoggerConfig): this;
-  use(
-    config: InferTypeConfig,
-  ): ActionFactory<Name, Ctx & { scope: { inferType: true } }>;
+  use<const F extends string | undefined>(
+    config: InferTypeConfig<F>,
+  ): ActionFactory<Name, Ctx & { scope: { inferType: true; inferTypeFilter: F } }>;
   sig<
     const Schema extends ((...args: any) => any) | TW.Handler,
   >(): SignatureBody<Name, Ctx, Schema>;
@@ -695,14 +695,16 @@ export function Action<const Name extends string>(
   const actionName = name as string;
   let logger: ConsoleLike = console;
   let inferType = false;
+  let inferTypeFilter: string | undefined = undefined;
 
   function tap<G extends AsyncGenerator<unknown, unknown>>(gen: G): G {
     return tapWith(gen, dispatch(logger)) as G;
   }
 
-  function detectPlugin(config: LoggerConfig | InferTypeConfig) {
+  function detectPlugin(config: LoggerConfig | InferTypeConfig<any>) {
     if ((config as any)[TW.Type] === "InferType") {
       inferType = true;
+      inferTypeFilter = (config as InferTypeConfig<any>).filter;
     } else {
       logger = (config as LoggerConfig).target;
     }
@@ -735,6 +737,11 @@ export function Action<const Name extends string>(
           }
         }
       }
+      if (inferTypeFilter !== undefined) {
+        const filtered = steps.find((s) => s["="] === inferTypeFilter);
+        return { [actionName]: filtered };
+      }
+
       return { [actionName]: { ">": "Command", "=": actionName, run: steps } };
     }
 
