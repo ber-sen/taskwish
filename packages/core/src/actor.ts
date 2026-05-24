@@ -46,7 +46,7 @@ type FlatInput<Schema> = Pretty<
     (Schema extends { body: infer B } ? InferSchema<B> : {})
 >;
 
-interface HttpBody<Method extends string, Scope extends Record<any, any>> {
+interface HttpBody<Method extends string, Scope extends Record<any, any>, Service extends string = string> {
   use(): this;
   run<
     H extends (
@@ -56,7 +56,7 @@ interface HttpBody<Method extends string, Scope extends Record<any, any>> {
     handler: H,
   ): {
     [key in Method]: TW.Action<
-      Method,
+      `${Service}.${Method}`,
       (input: Request) => Promise<Awaited<ReturnType<H>>>,
       null
     >;
@@ -72,6 +72,7 @@ interface CommandBody<
   Path extends string,
   Schema,
   Scope extends Record<any, any>,
+  Service extends string,
 > {
   use(): this;
   run<
@@ -81,7 +82,7 @@ interface CommandBody<
     ...rest: unknown[]
   ): {
     [key in CmdName]: TW.Action<
-      CmdName,
+      `${Service}.${CmdName}`,
       (input: FlatIn) => Promise<Awaited<ReturnType<H>>>,
       { route: [Method, Path, DeepWriteable<Schema>] }
     >;
@@ -123,20 +124,20 @@ const builtInEventScope: Record<string, unknown> = {
   }),
 };
 
-export interface Behavior<Ctx> {
+export interface Behavior<Ctx extends Record<any, any>> {
   use(config: LoggerConfig): this;
 
   on<Name extends string>(
     behavior: "Command",
     name: CamelCase<Name>,
-  ): ActionFactory<Name, { name: Name; scope: BaseScope<Ctx> }>;
+  ): ActionFactory<Name, { name: Name; service: Ctx["name"]; scope: BaseScope<Ctx> }>;
 
   on(
     behavior: "Schedule",
     expression?: string,
   ): ActionFactory<
     "onSchedule",
-    { name: "onSchedule"; scope: { input: ScheduleInput } & BaseScope<Ctx> }
+    { name: "onSchedule"; service: Ctx["name"]; scope: { input: ScheduleInput } & BaseScope<Ctx> }
   >;
 
   on<
@@ -163,14 +164,15 @@ export interface Behavior<Ctx> {
       Method,
       Path,
       Schema,
-      BaseScope<Ctx>
+      BaseScope<Ctx>,
+      Ctx["name"]
     >;
   };
 
   on<const Method extends "GET" | "POST" | "PUT" | "DELETE" | "PATCH">(
     behavior: Method,
     path: string,
-  ): HttpBody<Method, BaseScope<Ctx>>;
+  ): HttpBody<Method, BaseScope<Ctx>, Ctx["name"] & string>;
 
   on<const EventName extends EventKeys<BaseScope<Ctx>>>(
     behavior: EventName,
@@ -178,6 +180,7 @@ export interface Behavior<Ctx> {
     `on${EventName}`,
     {
       name: `on${EventName}`;
+      service: Ctx["name"] & string;
       scope: {
         input: ExtractEventInput<BaseScope<Ctx>, EventName>;
       } & ExtractEventExtraScope<BaseScope<Ctx>, EventName> &
@@ -194,7 +197,7 @@ export interface DefResultKind extends ResultKind {
   type: this["ctx"] extends Record<any, any>
     ? "name" extends keyof this["ctx"]
       ? this["ctx"]["name"] extends string
-        ? { [name in this["ctx"]["name"]]: () => Behavior<this["last"]> }
+        ? { [name in this["ctx"]["name"]]: () => Behavior<this["last"] & Record<any, any>> }
         : never
       : never
     : never;

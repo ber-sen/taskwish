@@ -22,7 +22,7 @@ describe("Actor", () => {
     type T = typeof greet;
     type check = Expect<
       Equal<
-        TW.Action<"greet", (input: { name: string }) => Promise<string>, null>,
+        TW.Action<"Greeter.greet", (input: { name: string }) => Promise<string>, null>,
         T
       >
     >;
@@ -65,7 +65,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "process",
+          "Processor.process",
           (input: { value: number }) => Promise<boolean>,
           null
         >,
@@ -121,7 +121,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "onNewMessage",
+          "Broadcaster.onNewMessage",
           (input: {
             sender: { name: string };
             content: string;
@@ -211,7 +211,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "onInvoicePaid",
+          "Biller.onInvoicePaid",
           (input: { invoiceId: string; amount: number }) => Promise<string>,
           null
         >,
@@ -300,7 +300,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "onSchedule",
+          "Scheduler.onSchedule",
           (input: { expression: string; at: Date }) => Promise<string>,
           null
         >,
@@ -326,7 +326,7 @@ describe("Actor", () => {
 
     type T = typeof GET;
     type check = Expect<
-      Equal<TW.Action<"GET", (input: Request) => Promise<string>, null>, T>
+      Equal<TW.Action<"InvoiceProvider.GET", (input: Request) => Promise<string>, null>, T>
     >;
 
     expect(await GET(new Request("http://localhost/invoices/inv-42"))).toEqual(
@@ -355,7 +355,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "getInvoices",
+          "InvoiceProvider.getInvoices",
           (input: { id: string; page: string }) => Promise<string>,
           {
             route: [
@@ -458,7 +458,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "onNewEmail",
+          "Mailer.onNewEmail",
           (input: {
             from: string;
             to: string;
@@ -666,7 +666,7 @@ describe("Actor", () => {
 
     const { ping } = hub
       .on("Command", "ping")
-      
+
       .input({ id: "string" })
 
       .run(
