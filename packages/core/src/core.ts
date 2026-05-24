@@ -161,7 +161,7 @@ export namespace TW {
     scopeOf?: (input: Data) => Scope;
   }
 
-  export type Struct<Name extends string, Type> = ArkType<Type> &
+  export type Struct<Name extends string, TypeDef> = ArkType<TypeDef> &
     Resource<Name>;
 
   export interface Extendable<Scope> {
