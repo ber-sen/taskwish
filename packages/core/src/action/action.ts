@@ -18,6 +18,7 @@ import {
 
 type AppendPlugin<Ctx extends Record<any, any>, Plugin> = {
   name: Ctx["name"];
+  service: Ctx["service"];
   steps: Ctx["steps"];
   scope: Ctx["scope"];
   last: Ctx["last"];
@@ -72,9 +73,20 @@ type SignatureBody<
     run: Handler,
   ): {
     [key in Name]: Signature extends (...args: any) => any
-      ? TW.Action<Name, Signature>
+      ? TW.Action<
+          "service" extends keyof Ctx
+            ? `${Ctx["service"]}.${Name}`
+            : Name,
+          Signature
+        >
       : Signature extends TW.Handler
-        ? TW.Action<Name, Apply<Signature, Ctx>, Record<"handler", Signature>>
+        ? TW.Action<
+            "service" extends keyof Ctx
+              ? `${Ctx["service"]}.${Name}`
+              : Name,
+            Apply<Signature, Ctx>,
+            Record<"handler", Signature>
+          >
         : never;
   };
 };
@@ -148,6 +160,7 @@ export interface ActionFactory<
         Name,
         {
           name: Ctx["name"];
+          service: Ctx["service"];
           scope: InferTriggerScope<Schema> & Ctx["scope"];
           [TW.Step]: {
             name: "launchApp" | StepName;

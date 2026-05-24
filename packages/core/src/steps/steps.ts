@@ -29,7 +29,9 @@ type FilterSteps<S extends readonly any[], Filter extends string> = {
  */
 type RegularAction<Ctx extends Record<any, any>, Last> = {
   [name in Ctx["name"]]: TW.Action<
-    Ctx["name"],
+    Ctx extends { service: infer S extends string }
+      ? `${S}.${Ctx["name"]}`
+      : Ctx["name"],
     "scope" extends keyof Ctx
       ? "input" extends keyof Ctx["scope"]
         ? (
