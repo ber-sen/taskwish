@@ -5,6 +5,7 @@ import {
   InferTriggerScope,
   Pretty,
   CamelCase,
+  AddActionsToCtx,
 } from "../helpers";
 import type { Steps, ActionResultKind } from "../steps";
 import { TW } from "../core";
@@ -35,6 +36,9 @@ type ActionBody<
   use<const F extends string | undefined>(
     config: InferTypeConfig<F>,
   ): ActionBody<Name, AppendPlugin<Ctx, InferTypeConfig<F>>>;
+  use<const U extends (...args: any[]) => any>(
+    plugin: U,
+  ): ActionBody<Name, AddActionsToCtx<Ctx, U>>;
   run: Steps<Ctx, ActionResultKind>;
 };
 
@@ -49,6 +53,9 @@ type SignatureBody<
   use<const F extends string | undefined>(
     config: InferTypeConfig<F>,
   ): SignatureBody<Name, AppendPlugin<Ctx, InferTypeConfig<F>>, Signature>;
+  use<const U extends (...args: any[]) => any>(
+    plugin: U,
+  ): SignatureBody<Name, AddActionsToCtx<Ctx, U>, Signature>;
   run<
     const Handler extends (
       this: TW.Scope<
@@ -135,6 +142,9 @@ export interface ActionFactory<
   use<const F extends string | undefined>(
     config: InferTypeConfig<F>,
   ): ActionFactory<Name, AppendPlugin<Ctx, InferTypeConfig<F>>>;
+  use<const U extends (...args: any[]) => any>(
+    plugin: U,
+  ): ActionFactory<Name, AddActionsToCtx<Ctx, U>>;
   sig<
     const Schema extends ((...args: any) => any) | TW.Handler,
   >(): SignatureBody<Name, Ctx, Schema>;
@@ -712,6 +722,7 @@ export function Action<const Name extends string>(
   let logger: ConsoleLike = console;
   let inferType = false;
   let inferTypeFilter: string | undefined = undefined;
+  const injectedActions: Record<string, unknown> = {};
 
   function tap<G extends AsyncGenerator<unknown, unknown>>(gen: G): G {
     return tapWith(gen, dispatch(logger)) as G;
@@ -723,6 +734,25 @@ export function Action<const Name extends string>(
       inferTypeFilter = (config as InferTypeConfig<any>).filter;
     } else {
       logger = (config as LoggerConfig).target;
+    }
+  }
+
+  function injectAction(plugin: unknown) {
+    const fullName: unknown = (plugin as any)[TW.Name];
+    if (typeof fullName !== "string") return;
+    const dot = fullName.indexOf(".");
+    if (dot === -1) {
+      // Flat name: store directly — this.actions.notify
+      injectedActions[fullName] = plugin;
+    } else {
+      // Dotted name: store nested — this.actions.notifier.notify
+      const rawService = fullName.slice(0, dot);
+      const service = rawService.charAt(0).toLowerCase() + rawService.slice(1);
+      const method = fullName.slice(dot + 1);
+      injectedActions[service] = {
+        ...(injectedActions[service] as Record<string, unknown> | undefined),
+        [method]: plugin,
+      };
     }
   }
 
@@ -761,9 +791,14 @@ export function Action<const Name extends string>(
       return { [actionName]: { ">": "Command", "=": actionName, run: steps } };
     }
 
+    const extra: Record<string, unknown> =
+      Object.keys(injectedActions).length > 0
+        ? { actions: { ...injectedActions } }
+        : {};
+
     async function consume(...args: unknown[]) {
       const gen = tap(
-        runAction(actionName, buildScope(inputMode, args), handlers),
+        runAction(actionName, buildScope(inputMode, args, extra), handlers),
       );
       let item = await gen.next();
       while (!item.done) item = await gen.next();
@@ -771,15 +806,20 @@ export function Action<const Name extends string>(
     }
 
     function stream(...args: unknown[]) {
-      return tap(runAction(actionName, buildScope(inputMode, args), handlers));
+      return tap(
+        runAction(actionName, buildScope(inputMode, args, extra), handlers),
+      );
     }
 
-    return { [actionName]: Object.assign(consume, { stream }) };
+    return {
+      [actionName]: Object.assign(consume, { [TW.Name]: actionName, stream }),
+    };
   }
 
   const makeBody = (inputMode: "first" | "args") => ({
     use(config: unknown) {
-      detectPlugin(config as LoggerConfig | InferTypeConfig);
+      if (typeof config === "function") injectAction(config);
+      else detectPlugin(config as LoggerConfig | InferTypeConfig);
       return this;
     },
     run(...handlers: unknown[]) {
@@ -795,7 +835,8 @@ export function Action<const Name extends string>(
       return makeBody("first");
     },
     use(config: unknown) {
-      detectPlugin(config as LoggerConfig | InferTypeConfig);
+      if (typeof config === "function") injectAction(config);
+      else detectPlugin(config as LoggerConfig | InferTypeConfig);
       return this;
     },
     run(...handlers: unknown[]) {

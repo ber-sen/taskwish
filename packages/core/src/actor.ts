@@ -2,11 +2,16 @@ import { buildScope, runAction, tapWith, type ActionFactory } from "./action";
 import { Event } from "./event";
 import {
   CamelCase,
-  LowercaseFirst,
   PascalCase,
   InferSchema,
   ValidateSchema,
   Pretty,
+  ExtractActionName,
+  ActionService,
+  ActionMethod,
+  GroupActions,
+  ActionsFromPlugin,
+  AddActionsToCtx,
 } from "./helpers";
 import { TW } from "./core";
 import { dispatch, type ConsoleLike, type LoggerConfig } from "./use";
@@ -491,69 +496,6 @@ function createBehavior(
   return self as unknown as Behavior<any>;
 }
 
-// ── Actor.use() type helpers ──────────────────────────────────────────────────
-
-/**
- * Extract the action name from a TW.Action by inspecting its `stream` return
- * type.  The only Yield member that carries both `">"` and `"input"` fields is
- * the action-input event, so that discriminator reliably extracts the name.
- */
-type ExtractActionName<T> = T extends {
-  stream(...args: any[]): AsyncGenerator<infer Yield, any, any>;
-}
-  ? Yield extends { ">": infer N extends string; input: any }
-    ? N
-    : never
-  : never;
-
-/** "Slack.postMessage" → "slack" */
-type ActionService<N extends string> = N extends `${infer S}.${string}`
-  ? LowercaseFirst<S>
-  : never;
-
-/** "Slack.postMessage" → "postMessage" */
-type ActionMethod<N extends string> = N extends `${string}.${infer M}` ? M : N;
-
-/**
- * Groups every TW.Action export by its service name (camelCase prefix before
- * the dot) and method name (the part after the dot).
- * E.g. `{ postMessage: TW.Action<"Slack.postMessage", …> }`
- *   →  `{ slack: { postMessage: TW.Action<"Slack.postMessage", …> } }`
- * Only exports whose name contains a dot are included; plain functions are
- * silently skipped.
- */
-type GroupActions<M> = {
-  [S in {
-    [K in keyof M]: ExtractActionName<M[K]> extends infer N extends string
-      ? ActionService<N>
-      : never;
-  }[keyof M] &
-    string]: {
-    [K in keyof M as ExtractActionName<M[K]> extends infer N extends string
-      ? ActionService<N> extends S
-        ? ActionMethod<N>
-        : never
-      : never]: M[K];
-  };
-};
-
-/** Extract grouped actions from a plugin (plain object or Promise<module>). */
-type ActionsFromPlugin<U> =
-  U extends Promise<infer M> ? GroupActions<M> : GroupActions<U>;
-
-/** Merge actions from a plugin into Ctx["scope"]["actions"]. */
-type AddActionsToCtx<Ctx extends Record<any, any>, U> = {
-  [K in keyof Ctx]: K extends "scope"
-    ? Omit<Ctx["scope"], "actions"> & {
-        actions: Pretty<
-          ("actions" extends keyof Ctx["scope"]
-            ? Ctx["scope"]["actions"]
-            : {}) &
-            ActionsFromPlugin<U>
-        >;
-      }
-    : Ctx[K];
-};
 
 /**
  * The full return type of Actor(), including:
@@ -599,6 +541,39 @@ function makeActorBuilder(
     },
 
     use(plugin: unknown): any {
+      // Single TW.Action passed directly — e.g. Actor("X").use(notify)
+      if (typeof plugin === "function") {
+        const fullName: unknown = (plugin as any)[TW.Name];
+        if (typeof fullName === "string") {
+          const existing =
+            (actorScope.actions as Record<string, unknown> | undefined) ?? {};
+          const dot = fullName.indexOf(".");
+          let merged: Record<string, unknown>;
+          if (dot === -1) {
+            // Flat name → this.actions.notify
+            merged = { ...existing, [fullName]: plugin };
+          } else {
+            // Dotted name → this.actions.notifier.notify
+            const rawService = fullName.slice(0, dot);
+            const service =
+              rawService.charAt(0).toLowerCase() + rawService.slice(1);
+            const method = fullName.slice(dot + 1);
+            merged = {
+              ...existing,
+              [service]: {
+                ...(existing[service] as Record<string, unknown> | undefined),
+                [method]: plugin,
+              },
+            };
+          }
+          return makeActorBuilder(actorName, {
+            ...actorScope,
+            actions: merged,
+          });
+        }
+        return makeActorBuilder(actorName, actorScope);
+      }
+
       if (plugin !== null && typeof plugin === "object") {
         if ("then" in (plugin as object)) {
           // Dynamic import — action types flow in at compile time via
@@ -606,20 +581,29 @@ function makeActorBuilder(
           return makeActorBuilder(actorName, actorScope);
         }
 
-        // Plain object — group every TW.Action (tagged with [TW.Name]) under
-        // its camelCase service name.  Non-action values are silently ignored.
-        const incoming: Record<string, Record<string, unknown>> = {};
+        // Plain object — inject every TW.Action (tagged with [TW.Name]).
+        // Dotted names ("Service.method") → nested; flat names → direct.
+        // Non-action values are silently ignored.
+        const incoming: Record<string, unknown> = {};
         for (const v of Object.values(plugin as Record<string, unknown>)) {
           if (typeof v !== "function") continue;
           const fullName: unknown = (v as any)[TW.Name];
           if (typeof fullName !== "string") continue;
           const dot = fullName.indexOf(".");
-          if (dot === -1) continue;
-          const rawService = fullName.slice(0, dot);
-          const service =
-            rawService.charAt(0).toLowerCase() + rawService.slice(1);
-          const method = fullName.slice(dot + 1);
-          (incoming[service] ??= {})[method] = v;
+          if (dot === -1) {
+            // Flat name → this.actions.notify
+            incoming[fullName] = v;
+          } else {
+            // Dotted name → this.actions.notifier.notify
+            const rawService = fullName.slice(0, dot);
+            const service =
+              rawService.charAt(0).toLowerCase() + rawService.slice(1);
+            const method = fullName.slice(dot + 1);
+            incoming[service] = {
+              ...(incoming[service] as Record<string, unknown> | undefined),
+              [method]: v,
+            };
+          }
         }
 
         if (Object.keys(incoming).length === 0)
@@ -628,11 +612,15 @@ function makeActorBuilder(
         const existing =
           (actorScope.actions as Record<string, unknown> | undefined) ?? {};
         const merged: Record<string, unknown> = { ...existing };
-        for (const [service, methods] of Object.entries(incoming)) {
-          merged[service] = {
-            ...(merged[service] as Record<string, unknown> | undefined),
-            ...methods,
-          };
+        for (const [key, value] of Object.entries(incoming)) {
+          if (typeof value === "function") {
+            merged[key] = value;
+          } else {
+            merged[key] = {
+              ...(merged[key] as Record<string, unknown> | undefined),
+              ...(value as Record<string, unknown>),
+            };
+          }
         }
         return makeActorBuilder(actorName, {
           ...actorScope,
