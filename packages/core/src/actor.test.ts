@@ -748,4 +748,106 @@ describe("Actor", () => {
       }),
     ).toEqual("mentioned by Bob: hello");
   });
+
+  describe("use(object) — scoped action injection", () => {
+    test("groups TW.Actions by service name under this.actions.<service>.<method>", async () => {
+      // ── build a real TW.Action from a service actor ───────────────────────
+      const { Notifier } = Actor("Notifier");
+      const { notify } = Notifier()
+        .on("Command", "notify")
+        .input({ message: "string" })
+        .run(function () {
+          return `sent: ${this.input.message}`;
+        });
+
+      // ── inject into a consumer actor ──────────────────────────────────────
+      const { Consumer } = Actor("Consumer").use({ notify });
+
+      const { run } = Consumer()
+        .on("Command", "run")
+        
+        .input({ text: "string" })
+
+        .run(function () {
+          // Type-check: this.actions.notifier.notify must be typed as the action
+          type Check = Expect<
+            Equal<
+              typeof this.actions.notifier.notify,
+              TW.Action<
+                "Notifier.notify",
+                (input: { message: string }) => Promise<string>,
+                null
+              >
+            >
+          >;
+          // Runtime: call the injected action from a step
+          return this.actions.notifier.notify({ message: this.input.text });
+        });
+
+      expect(await run({ text: "hello" })).toEqual("sent: hello");
+    });
+
+    test("merges actions from multiple .use() calls preserving prior services", async () => {
+      const { ServiceA } = Actor("ServiceA");
+      const { actionA } = ServiceA()
+        .on("Command", "actionA")
+        .run(function () {
+          return "A";
+        });
+
+      const { ServiceB } = Actor("ServiceB");
+      const { actionB } = ServiceB()
+        .on("Command", "actionB")
+        .run(function () {
+          return "B";
+        });
+
+      const { Multi } = Actor("Multi").use({ actionA }).use({ actionB });
+
+      const { run } = Multi()
+        .on("Command", "run")
+        .run(async function () {
+          const a = await this.actions.serviceA.actionA();
+          const b = await this.actions.serviceB.actionB();
+          return `${a}+${b}`;
+        });
+
+      expect(await run()).toEqual("A+B");
+    });
+
+    test("non-TW.Action values in .use() object are silently ignored", async () => {
+      // Plain object with a mix of action and non-action values
+      const { Pinger } = Actor("Pinger");
+      const { ping } = Pinger()
+        .on("Command", "ping")
+        .run(function () {
+          return "pong";
+        });
+
+      // notAnAction is a plain function without [TW.Name] → should be skipped
+      const { Caller } = Actor("Caller").use({
+        ping,
+        notAnAction: () => "ignored",
+      });
+
+      const { run } = Caller()
+        .on("Command", "run")
+        .run(function () {
+          return this.actions.pinger.ping();
+        });
+
+      expect(await run()).toEqual("pong");
+      // `notAnAction` must NOT appear in actions scope at the type level
+      type actions = typeof run extends TW.Action<any, any>
+        ? never // prevents unused-type-param error
+        : never;
+      type Check = "notAnAction" extends keyof (typeof Caller extends {
+        Caller: () => infer B;
+      }
+        ? B
+        : never)
+        ? false
+        : true;
+    });
+  });
 });

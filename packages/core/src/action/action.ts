@@ -123,20 +123,6 @@ export interface ActionFactory<
           Promise<string>,
           unknown
         >;
-        slack: {
-          [key: `@${string}`]: {
-            sendMessage: (params: {
-              channel: "#general";
-              message: string;
-            }) => string;
-          };
-        } & {
-          sendMessage: (params: {
-            "@"?: string;
-            channel: "#general";
-            message: string;
-          }) => string;
-        };
       };
     };
     steps: [];

@@ -2,6 +2,7 @@ import { buildScope, runAction, tapWith, type ActionFactory } from "./action";
 import { Event } from "./event";
 import {
   CamelCase,
+  LowercaseFirst,
   PascalCase,
   InferSchema,
   ValidateSchema,
@@ -46,7 +47,11 @@ type FlatInput<Schema> = Pretty<
     (Schema extends { body: infer B } ? InferSchema<B> : {})
 >;
 
-interface HttpBody<Method extends string, Scope extends Record<any, any>, Service extends string = string> {
+interface HttpBody<
+  Method extends string,
+  Scope extends Record<any, any>,
+  Service extends string = string,
+> {
   use(): this;
   run<
     H extends (
@@ -130,14 +135,21 @@ export interface Behavior<Ctx extends Record<any, any>> {
   on<Name extends string>(
     behavior: "Command",
     name: CamelCase<Name>,
-  ): ActionFactory<Name, { name: Name; service: Ctx["name"]; scope: BaseScope<Ctx> }>;
+  ): ActionFactory<
+    Name,
+    { name: Name; service: Ctx["name"]; scope: BaseScope<Ctx> }
+  >;
 
   on(
     behavior: "Schedule",
     expression?: string,
   ): ActionFactory<
     "onSchedule",
-    { name: "onSchedule"; service: Ctx["name"]; scope: { input: ScheduleInput } & BaseScope<Ctx> }
+    {
+      name: "onSchedule";
+      service: Ctx["name"];
+      scope: { input: ScheduleInput } & BaseScope<Ctx>;
+    }
   >;
 
   on<
@@ -197,7 +209,11 @@ export interface DefResultKind extends ResultKind {
   type: this["ctx"] extends Record<any, any>
     ? "name" extends keyof this["ctx"]
       ? this["ctx"]["name"] extends string
-        ? { [name in this["ctx"]["name"]]: () => Behavior<this["last"] & Record<any, any>> }
+        ? {
+            [name in this["ctx"]["name"]]: () => Behavior<
+              this["last"] & Record<any, any>
+            >;
+          }
         : never
       : never
     : never;
@@ -361,7 +377,12 @@ function createBehavior(
           );
         }
 
-        return { [actionName]: Object.assign(consume, { stream }) };
+        return {
+          [actionName]: Object.assign(consume, {
+            [TW.Name]: eventName,
+            stream,
+          }),
+        };
       }
 
       const makeBody = (inputMode: "first" | "args") => ({
@@ -470,6 +491,169 @@ function createBehavior(
   return self as unknown as Behavior<any>;
 }
 
+// ── Actor.use() type helpers ──────────────────────────────────────────────────
+
+/**
+ * Extract the action name from a TW.Action by inspecting its `stream` return
+ * type.  The only Yield member that carries both `">"` and `"input"` fields is
+ * the action-input event, so that discriminator reliably extracts the name.
+ */
+type ExtractActionName<T> = T extends {
+  stream(...args: any[]): AsyncGenerator<infer Yield, any, any>;
+}
+  ? Yield extends { ">": infer N extends string; input: any }
+    ? N
+    : never
+  : never;
+
+/** "Slack.postMessage" → "slack" */
+type ActionService<N extends string> = N extends `${infer S}.${string}`
+  ? LowercaseFirst<S>
+  : never;
+
+/** "Slack.postMessage" → "postMessage" */
+type ActionMethod<N extends string> = N extends `${string}.${infer M}` ? M : N;
+
+/**
+ * Groups every TW.Action export by its service name (camelCase prefix before
+ * the dot) and method name (the part after the dot).
+ * E.g. `{ postMessage: TW.Action<"Slack.postMessage", …> }`
+ *   →  `{ slack: { postMessage: TW.Action<"Slack.postMessage", …> } }`
+ * Only exports whose name contains a dot are included; plain functions are
+ * silently skipped.
+ */
+type GroupActions<M> = {
+  [S in {
+    [K in keyof M]: ExtractActionName<M[K]> extends infer N extends string
+      ? ActionService<N>
+      : never;
+  }[keyof M] &
+    string]: {
+    [K in keyof M as ExtractActionName<M[K]> extends infer N extends string
+      ? ActionService<N> extends S
+        ? ActionMethod<N>
+        : never
+      : never]: M[K];
+  };
+};
+
+/** Extract grouped actions from a plugin (plain object or Promise<module>). */
+type ActionsFromPlugin<U> =
+  U extends Promise<infer M> ? GroupActions<M> : GroupActions<U>;
+
+/** Merge actions from a plugin into Ctx["scope"]["actions"]. */
+type AddActionsToCtx<Ctx extends Record<any, any>, U> = {
+  [K in keyof Ctx]: K extends "scope"
+    ? Omit<Ctx["scope"], "actions"> & {
+        actions: Pretty<
+          ("actions" extends keyof Ctx["scope"]
+            ? Ctx["scope"]["actions"]
+            : {}) &
+            ActionsFromPlugin<U>
+        >;
+      }
+    : Ctx[K];
+};
+
+/**
+ * The full return type of Actor(), including:
+ *  - `def` / `[actorName]` — standard builder API
+ *  - `use(plugin)` — inject action scope from an object or dynamic import
+ *  - all `Behavior` methods (except `use`) so `.on()` can be called fluently
+ *    directly on the builder without needing an explicit `[actorName]()` call
+ */
+type ActorBuilderResult<Name extends string, Ctx extends Record<any, any>> = {
+  def: Steps<Ctx, DefResultKind>;
+  use<const U>(plugin: U): ActorBuilderResult<Name, AddActionsToCtx<Ctx, U>>;
+} & {
+  [key in Name]: () => Behavior<Ctx>;
+} & Omit<Behavior<Ctx>, "use">;
+
+// ── Actor builder runtime ─────────────────────────────────────────────────────
+
+function makeActorBuilder(
+  actorName: string,
+  actorScope: Record<string, unknown>,
+): any {
+  // Lazily-created behavior for fluid `.on()` calls directly on the builder.
+  let _behavior: ReturnType<typeof createBehavior> | null = null;
+  const getBehavior = () => {
+    if (!_behavior)
+      _behavior = createBehavior(actorName, {
+        ...builtInEventScope,
+        ...actorScope,
+      });
+    return _behavior;
+  };
+
+  return {
+    def(...steps: unknown[]) {
+      const initialScope = {
+        ...builtInEventScope,
+        ...actorScope,
+        ...collectScope(steps),
+      };
+      return {
+        [actorName]: () => createBehavior(actorName, initialScope),
+      } as any;
+    },
+
+    use(plugin: unknown): any {
+      if (plugin !== null && typeof plugin === "object") {
+        if ("then" in (plugin as object)) {
+          // Dynamic import — action types flow in at compile time via
+          // ActionsFromPlugin<U>; runtime injection is handled by the Package system.
+          return makeActorBuilder(actorName, actorScope);
+        }
+
+        // Plain object — group every TW.Action (tagged with [TW.Name]) under
+        // its camelCase service name.  Non-action values are silently ignored.
+        const incoming: Record<string, Record<string, unknown>> = {};
+        for (const v of Object.values(plugin as Record<string, unknown>)) {
+          if (typeof v !== "function") continue;
+          const fullName: unknown = (v as any)[TW.Name];
+          if (typeof fullName !== "string") continue;
+          const dot = fullName.indexOf(".");
+          if (dot === -1) continue;
+          const rawService = fullName.slice(0, dot);
+          const service =
+            rawService.charAt(0).toLowerCase() + rawService.slice(1);
+          const method = fullName.slice(dot + 1);
+          (incoming[service] ??= {})[method] = v;
+        }
+
+        if (Object.keys(incoming).length === 0)
+          return makeActorBuilder(actorName, actorScope);
+
+        const existing =
+          (actorScope.actions as Record<string, unknown> | undefined) ?? {};
+        const merged: Record<string, unknown> = { ...existing };
+        for (const [service, methods] of Object.entries(incoming)) {
+          merged[service] = {
+            ...(merged[service] as Record<string, unknown> | undefined),
+            ...methods,
+          };
+        }
+        return makeActorBuilder(actorName, {
+          ...actorScope,
+          actions: merged,
+        });
+      }
+      return makeActorBuilder(actorName, actorScope);
+    },
+
+    // Fluent `.on()` — delegates to a lazily-created Behavior so callers
+    // can write `Actor("X").use(plugin).on("Command", "foo")` without the
+    // explicit `[actorName]()` call.
+    on(...args: unknown[]) {
+      return (getBehavior() as any).on(...args);
+    },
+
+    [actorName]: () =>
+      createBehavior(actorName, { ...builtInEventScope, ...actorScope }),
+  };
+}
+
 export const Actor = <
   const Name extends string,
   const Ctx extends Record<any, any> = {
@@ -484,38 +668,11 @@ export const Actor = <
       };
       actions: {
         generateText: (params: { model: "gpt5"; prompt: string }) => string;
-        slack: {
-          [key: `@${string}`]: {
-            sendMessage: (params: {
-              channel: "#general";
-              message: string;
-            }) => string;
-          };
-        } & {
-          sendMessage: (params: {
-            "@"?: string;
-            channel: "#general";
-            message: string;
-          }) => string;
-        };
       };
     } & BuiltInEventScope;
   },
 >(
   name: PascalCase<Name>,
-): {
-  def: Steps<Ctx, DefResultKind>;
-} & {
-  [key in Name]: () => Behavior<Ctx>;
-} => {
-  const actorName = name as string;
-  return {
-    def(...steps: unknown[]) {
-      const initialScope = { ...builtInEventScope, ...collectScope(steps) };
-      return {
-        [actorName]: () => createBehavior(actorName, initialScope),
-      } as any;
-    },
-    [actorName]: () => createBehavior(actorName, builtInEventScope),
-  } as any;
+): ActorBuilderResult<Name, Ctx> => {
+  return makeActorBuilder(name as string, {}) as any;
 };
