@@ -6,6 +6,12 @@ import {
   InferSchema,
   ValidateSchema,
   Pretty,
+  ExtractActionName,
+  ActionService,
+  ActionMethod,
+  GroupActions,
+  ActionsFromPlugin,
+  AddActionsToCtx,
 } from "./helpers";
 import { TW } from "./core";
 import { dispatch, type ConsoleLike, type LoggerConfig } from "./use";
@@ -46,7 +52,11 @@ type FlatInput<Schema> = Pretty<
     (Schema extends { body: infer B } ? InferSchema<B> : {})
 >;
 
-interface HttpBody<Method extends string, Scope extends Record<any, any>, Service extends string = string> {
+interface HttpBody<
+  Method extends string,
+  Scope extends Record<any, any>,
+  Service extends string = string,
+> {
   use(): this;
   run<
     H extends (
@@ -130,14 +140,21 @@ export interface Behavior<Ctx extends Record<any, any>> {
   on<Name extends string>(
     behavior: "Command",
     name: CamelCase<Name>,
-  ): ActionFactory<Name, { name: Name; service: Ctx["name"]; scope: BaseScope<Ctx> }>;
+  ): ActionFactory<
+    Name,
+    { name: Name; service: Ctx["name"]; scope: BaseScope<Ctx> }
+  >;
 
   on(
     behavior: "Schedule",
     expression?: string,
   ): ActionFactory<
     "onSchedule",
-    { name: "onSchedule"; service: Ctx["name"]; scope: { input: ScheduleInput } & BaseScope<Ctx> }
+    {
+      name: "onSchedule";
+      service: Ctx["name"];
+      scope: { input: ScheduleInput } & BaseScope<Ctx>;
+    }
   >;
 
   on<
@@ -197,7 +214,11 @@ export interface DefResultKind extends ResultKind {
   type: this["ctx"] extends Record<any, any>
     ? "name" extends keyof this["ctx"]
       ? this["ctx"]["name"] extends string
-        ? { [name in this["ctx"]["name"]]: () => Behavior<this["last"] & Record<any, any>> }
+        ? {
+            [name in this["ctx"]["name"]]: () => Behavior<
+              this["last"] & Record<any, any>
+            >;
+          }
         : never
       : never
     : never;
@@ -361,7 +382,12 @@ function createBehavior(
           );
         }
 
-        return { [actionName]: Object.assign(consume, { stream }) };
+        return {
+          [actionName]: Object.assign(consume, {
+            [TW.Name]: eventName,
+            stream,
+          }),
+        };
       }
 
       const makeBody = (inputMode: "first" | "args") => ({
@@ -470,6 +496,152 @@ function createBehavior(
   return self as unknown as Behavior<any>;
 }
 
+
+/**
+ * The full return type of Actor(), including:
+ *  - `def` / `[actorName]` — standard builder API
+ *  - `use(plugin)` — inject action scope from an object or dynamic import
+ *  - all `Behavior` methods (except `use`) so `.on()` can be called fluently
+ *    directly on the builder without needing an explicit `[actorName]()` call
+ */
+type ActorBuilderResult<Name extends string, Ctx extends Record<any, any>> = {
+  def: Steps<Ctx, DefResultKind>;
+  use<const U>(plugin: U): ActorBuilderResult<Name, AddActionsToCtx<Ctx, U>>;
+} & {
+  [key in Name]: () => Behavior<Ctx>;
+} & Omit<Behavior<Ctx>, "use">;
+
+// ── Actor builder runtime ─────────────────────────────────────────────────────
+
+function makeActorBuilder(
+  actorName: string,
+  actorScope: Record<string, unknown>,
+): any {
+  // Lazily-created behavior for fluid `.on()` calls directly on the builder.
+  let _behavior: ReturnType<typeof createBehavior> | null = null;
+  const getBehavior = () => {
+    if (!_behavior)
+      _behavior = createBehavior(actorName, {
+        ...builtInEventScope,
+        ...actorScope,
+      });
+    return _behavior;
+  };
+
+  return {
+    def(...steps: unknown[]) {
+      const initialScope = {
+        ...builtInEventScope,
+        ...actorScope,
+        ...collectScope(steps),
+      };
+      return {
+        [actorName]: () => createBehavior(actorName, initialScope),
+      } as any;
+    },
+
+    use(plugin: unknown): any {
+      // Single TW.Action passed directly — e.g. Actor("X").use(notify)
+      if (typeof plugin === "function") {
+        const fullName: unknown = (plugin as any)[TW.Name];
+        if (typeof fullName === "string") {
+          const existing =
+            (actorScope.actions as Record<string, unknown> | undefined) ?? {};
+          const dot = fullName.indexOf(".");
+          let merged: Record<string, unknown>;
+          if (dot === -1) {
+            // Flat name → this.actions.notify
+            merged = { ...existing, [fullName]: plugin };
+          } else {
+            // Dotted name → this.actions.notifier.notify
+            const rawService = fullName.slice(0, dot);
+            const service =
+              rawService.charAt(0).toLowerCase() + rawService.slice(1);
+            const method = fullName.slice(dot + 1);
+            merged = {
+              ...existing,
+              [service]: {
+                ...(existing[service] as Record<string, unknown> | undefined),
+                [method]: plugin,
+              },
+            };
+          }
+          return makeActorBuilder(actorName, {
+            ...actorScope,
+            actions: merged,
+          });
+        }
+        return makeActorBuilder(actorName, actorScope);
+      }
+
+      if (plugin !== null && typeof plugin === "object") {
+        if ("then" in (plugin as object)) {
+          // Dynamic import — action types flow in at compile time via
+          // ActionsFromPlugin<U>; runtime injection is handled by the Package system.
+          return makeActorBuilder(actorName, actorScope);
+        }
+
+        // Plain object — inject every TW.Action (tagged with [TW.Name]).
+        // Dotted names ("Service.method") → nested; flat names → direct.
+        // Non-action values are silently ignored.
+        const incoming: Record<string, unknown> = {};
+        for (const v of Object.values(plugin as Record<string, unknown>)) {
+          if (typeof v !== "function") continue;
+          const fullName: unknown = (v as any)[TW.Name];
+          if (typeof fullName !== "string") continue;
+          const dot = fullName.indexOf(".");
+          if (dot === -1) {
+            // Flat name → this.actions.notify
+            incoming[fullName] = v;
+          } else {
+            // Dotted name → this.actions.notifier.notify
+            const rawService = fullName.slice(0, dot);
+            const service =
+              rawService.charAt(0).toLowerCase() + rawService.slice(1);
+            const method = fullName.slice(dot + 1);
+            incoming[service] = {
+              ...(incoming[service] as Record<string, unknown> | undefined),
+              [method]: v,
+            };
+          }
+        }
+
+        if (Object.keys(incoming).length === 0)
+          return makeActorBuilder(actorName, actorScope);
+
+        const existing =
+          (actorScope.actions as Record<string, unknown> | undefined) ?? {};
+        const merged: Record<string, unknown> = { ...existing };
+        for (const [key, value] of Object.entries(incoming)) {
+          if (typeof value === "function") {
+            merged[key] = value;
+          } else {
+            merged[key] = {
+              ...(merged[key] as Record<string, unknown> | undefined),
+              ...(value as Record<string, unknown>),
+            };
+          }
+        }
+        return makeActorBuilder(actorName, {
+          ...actorScope,
+          actions: merged,
+        });
+      }
+      return makeActorBuilder(actorName, actorScope);
+    },
+
+    // Fluent `.on()` — delegates to a lazily-created Behavior so callers
+    // can write `Actor("X").use(plugin).on("Command", "foo")` without the
+    // explicit `[actorName]()` call.
+    on(...args: unknown[]) {
+      return (getBehavior() as any).on(...args);
+    },
+
+    [actorName]: () =>
+      createBehavior(actorName, { ...builtInEventScope, ...actorScope }),
+  };
+}
+
 export const Actor = <
   const Name extends string,
   const Ctx extends Record<any, any> = {
@@ -484,38 +656,11 @@ export const Actor = <
       };
       actions: {
         generateText: (params: { model: "gpt5"; prompt: string }) => string;
-        slack: {
-          [key: `@${string}`]: {
-            sendMessage: (params: {
-              channel: "#general";
-              message: string;
-            }) => string;
-          };
-        } & {
-          sendMessage: (params: {
-            "@"?: string;
-            channel: "#general";
-            message: string;
-          }) => string;
-        };
       };
     } & BuiltInEventScope;
   },
 >(
   name: PascalCase<Name>,
-): {
-  def: Steps<Ctx, DefResultKind>;
-} & {
-  [key in Name]: () => Behavior<Ctx>;
-} => {
-  const actorName = name as string;
-  return {
-    def(...steps: unknown[]) {
-      const initialScope = { ...builtInEventScope, ...collectScope(steps) };
-      return {
-        [actorName]: () => createBehavior(actorName, initialScope),
-      } as any;
-    },
-    [actorName]: () => createBehavior(actorName, builtInEventScope),
-  } as any;
+): ActorBuilderResult<Name, Ctx> => {
+  return makeActorBuilder(name as string, {}) as any;
 };

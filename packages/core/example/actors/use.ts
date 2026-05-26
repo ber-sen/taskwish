@@ -1,15 +1,18 @@
 import { Actor, Step } from "../../src";
 
-const { MyActor } = Actor("MyActor").use(import("@taskwish/slack/postMessage"));
+// Actions from the dynamic import are merged into this.actions at the type level.
+// No slack hardcoding — the scope is driven by whatever .use() receives.
+const { MyActor } = Actor("MyActor").use(import("@taskwish/slack"));
 
 export const { sendMessage } = MyActor()
   .on("Command", "sendMessage")
 
   .run(
     Step("First step", function () {
-      return this.actions.slack.sendMessage({
+      // `postMessage` is typed from the dynamic import above — no hardcoding needed
+      return this.actions.slack.postMessage({
         channel: "#general",
-        message: `Hello World`,
+        text: `Hello World`,
       });
     }),
   );

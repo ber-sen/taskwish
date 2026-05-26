@@ -1,6 +1,7 @@
 import { expect, test, describe } from "bun:test";
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
+import { Actor } from "../actor";
 import { TW } from "../core";
 import { Step } from "../steps";
 import { Logger, InferType, formatEvent, isActionEvent } from "../use";
@@ -488,6 +489,79 @@ describe("Action", () => {
       "=": "positive",
       run: "@js{function() {\nreturn this.gent.length > 2;\n}}",
     });
+  });
+
+  test("use(TW.Action) — bare Action (no Actor) injected directly as this.actions.<name>", async () => {
+    // Bare Action — no Actor wrapper; flat name → this.actions.notify (directly callable)
+    const { notify } = Action("notify")
+      .input({ message: "string" })
+
+      .run(function () {
+        return `sent: ${this.input.message}`;
+      });
+
+    const { greet } = Action("greet")
+      .use(notify)
+
+      .input({ name: "string" })
+
+      .run(async function () {
+        // flat name → this.actions.notify (direct, not nested)
+        type Check = Expect<
+          Equal<
+            typeof this.actions.notify,
+            TW.Action<
+              "notify",
+              (input: { message: string }) => Promise<string>,
+              null
+            >
+          >
+        >;
+        const result = await this.actions.notify({ message: this.input.name });
+
+        return `Hello, ${result}`;
+      });
+
+    expect(await greet({ name: "World" })).toEqual("Hello, sent: World");
+  });
+
+  test("use(TW.Action) — Actor-service action injected into this.actions.<service>.<method>", async () => {
+    // Actor-created: TW.Name = "Notifier.notify" → this.actions.notifier.notify
+    const { Notifier } = Actor("Notifier");
+
+    const { notify } = Notifier()
+      .on("Command", "notify")
+
+      .input({ message: "string" })
+
+      .run(function () {
+        return `sent: ${this.input.message}`;
+      });
+
+    const { greet } = Action("greet")
+      .use(notify)
+
+      .input({ name: "string" })
+
+      .run(async function () {
+        type Check = Expect<
+          Equal<
+            typeof this.actions.notifier.notify,
+            TW.Action<
+              "Notifier.notify",
+              (input: { message: string }) => Promise<string>,
+              null
+            >
+          >
+        >;
+        const result = await this.actions.notifier.notify({
+          message: this.input.name,
+        });
+        
+        return `Hello, ${result}`;
+      });
+
+    expect(await greet({ name: "World" })).toEqual("Hello, sent: World");
   });
 
   test("async generator — stream yields each value", async () => {

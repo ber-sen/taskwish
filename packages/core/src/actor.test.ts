@@ -1,6 +1,7 @@
 import { expect, test, describe } from "bun:test";
 import { Expect, Equal } from "./helpers";
 import { Actor } from "./actor";
+import { Action } from "./action";
 import { TW } from "./core";
 import { Step } from "./steps";
 import { Event } from "./event";
@@ -747,5 +748,245 @@ describe("Actor", () => {
         channel: "general",
       }),
     ).toEqual("mentioned by Bob: hello");
+  });
+
+  describe("use(object) — scoped action injection", () => {
+    test("groups TW.Actions by service name under this.actions.<service>.<method>", async () => {
+      // ── build a real TW.Action from a service actor ───────────────────────
+      const { Notifier } = Actor("Notifier");
+
+      const { notify } = Notifier()
+        .on("Command", "notify")
+
+        .input({ message: "string" })
+
+        .run(function () {
+          return `sent: ${this.input.message}`;
+        });
+
+      // ── inject into a consumer actor ──────────────────────────────────────
+      const { Consumer } = Actor("Consumer").use({ notify });
+
+      const { run } = Consumer()
+        .on("Command", "run")
+        
+        .input({ text: "string" })
+
+        .run(function () {
+          // Type-check: this.actions.notifier.notify must be typed as the action
+          type Check = Expect<
+            Equal<
+              typeof this.actions.notifier.notify,
+              TW.Action<
+                "Notifier.notify",
+                (input: { message: string }) => Promise<string>,
+                null
+              >
+            >
+          >;
+          // Runtime: call the injected action from a step
+          return this.actions.notifier.notify({ message: this.input.text });
+        });
+
+      expect(await run({ text: "hello" })).toEqual("sent: hello");
+    });
+
+    test("merges actions from multiple .use() calls preserving prior services", async () => {
+      const { Emailer } = Actor("Emailer");
+
+      const { sendEmail } = Emailer()
+        .on("Command", "sendEmail")
+
+        .input({ to: "string" })
+
+        .run(function () {
+          return `email→${this.input.to}`;
+        });
+
+      const { Texter } = Actor("Texter");
+
+      const { sendText } = Texter()
+        .on("Command", "sendText")
+
+        .input({ to: "string" })
+
+        .run(function () {
+          return `text→${this.input.to}`;
+        });
+
+      const { Dispatcher } = Actor("Dispatcher").use({ sendEmail, sendText });
+
+      const { dispatch } = Dispatcher()
+        .on("Command", "dispatch")
+        
+        .input({ recipient: "string" })
+
+        .run(async function () {
+          const email = await this.actions.emailer.sendEmail({ to: this.input.recipient });
+          const text = await this.actions.texter.sendText({ to: this.input.recipient });
+          return `${email} | ${text}`;
+        });
+
+      expect(await dispatch({ recipient: "alice" })).toEqual(
+        "email→alice | text→alice",
+      );
+    });
+
+    test("bare TW.Action (no wrapping object) — use(notify) equivalent to use({ notify })", async () => {
+      const { Notifier } = Actor("Notifier");
+
+      const { notify } = Notifier()
+        .on("Command", "notify")
+
+        .input({ message: "string" })
+
+        .run(function () {
+          return `sent: ${this.input.message}`;
+        });
+
+      // Pass the action directly instead of wrapping it
+      const { Consumer } = Actor("Consumer").use(notify);
+
+      const { run } = Consumer()
+        .on("Command", "run")
+
+        .input({ text: "string" })
+
+        .run(function () {
+          type Check = Expect<
+            Equal<
+              typeof this.actions.notifier.notify,
+              TW.Action<
+                "Notifier.notify",
+                (input: { message: string }) => Promise<string>,
+                null
+              >
+            >
+          >;
+          return this.actions.notifier.notify({ message: this.input.text });
+        });
+
+      expect(await run({ text: "hello" })).toEqual("sent: hello");
+    });
+
+    test("bare TW.Action — destructuring actor name works: const { Consumer } = Actor(...).use(notify)", async () => {
+      const { Notifier } = Actor("Notifier");
+
+      const { notify } = Notifier()
+        .on("Command", "notify")
+
+        .input({ message: "string" })
+
+        .run(function () {
+          return `bare: ${this.input.message}`;
+        });
+
+      // Destructure the actor name directly from the .use() result
+      const { Consumer } = Actor("Consumer").use(notify);
+
+      const { run } = Consumer()
+        .on("Command", "run")
+
+        .input({ text: "string" })
+
+        .run(function () {
+          return this.actions.notifier.notify({ message: this.input.text });
+        });
+
+      expect(await run({ text: "world" })).toEqual("bare: world");
+    });
+
+    test("bare Action (no Actor) — use(action) injects directly as this.actions.<name>", async () => {
+      // Flat name: TW.Name = "notify" → this.actions.notify (directly callable)
+      const { notify } = Action("notify")
+        .input({ message: "string" })
+        
+        .run(function () {
+          return `sent: ${this.input.message}`;
+        });
+
+      const { Consumer } = Actor("Consumer").use(notify);
+
+      const { run } = Consumer()
+        .on("Command", "run")
+
+        .input({ text: "string" })
+
+        .run(function () {
+          type Check = Expect<
+            Equal<
+              typeof this.actions.notify,
+              TW.Action<
+                "notify",
+                (input: { message: string }) => Promise<string>,
+                null
+              >
+            >
+          >;
+          return this.actions.notify({ message: this.input.text });
+        });
+
+      expect(await run({ text: "hello" })).toEqual("sent: hello");
+    });
+
+    test("bare Action — use({ action }) object form also works", async () => {
+      const { notify } = Action("notify")
+        .input({ message: "string" })
+
+        .run(function () {
+          return `sent: ${this.input.message}`;
+        });
+
+      const { Consumer } = Actor("Consumer").use({ notify });
+
+      const { run } = Consumer()
+        .on("Command", "run")
+
+        .input({ text: "string" })
+
+        .run(function () {
+          return this.actions.notify({ message: this.input.text });
+        });
+
+      expect(await run({ text: "world" })).toEqual("sent: world");
+    });
+
+    test("non-TW.Action values in .use() object are silently ignored", async () => {
+      // Plain object with a mix of action and non-action values
+      const { Pinger } = Actor("Pinger");
+      
+      const { ping } = Pinger()
+        .on("Command", "ping")
+
+        .run(function () {
+          return "pong";
+        });
+
+      // notAnAction is a plain function without [TW.Name] → should be skipped
+      const { Caller } = Actor("Caller").use({
+        ping,
+        notAnAction: () => "ignored",
+      });
+
+      const { run } = Caller()
+        .on("Command", "run")
+
+        .run(function () {
+          return this.actions.pinger.ping();
+        });
+
+      expect(await run()).toEqual("pong");
+      // `notAnAction` must NOT appear in actions scope at the type level
+      type actions = typeof run extends TW.Action<any, any>
+        ? never // prevents unused-type-param error
+        : never;
+      type Check = "notAnAction" extends keyof (typeof Caller extends {
+        Caller: () => infer B;
+      }
+        ? B
+        : never)
+        ? false
+        : true;
+    });
   });
 });

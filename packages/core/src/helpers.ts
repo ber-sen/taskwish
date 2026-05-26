@@ -210,3 +210,84 @@ export type PascalCase<S extends string> =
     : S extends Capitalize<S>
       ? S
       : Fail<`Expected PascalCase string, "${S}" must start with uppercase`>;
+
+// ── Action grouping type helpers ──────────────────────────────────────────────
+
+/**
+ * Extract the action name from a TW.Action by inspecting its `stream` return
+ * type.  The only Yield member that carries both `">"` and `"input"` fields is
+ * the action-input event, so that discriminator reliably extracts the name.
+ */
+export type ExtractActionName<T> = T extends {
+  stream(...args: any[]): AsyncGenerator<infer Yield, any, any>;
+}
+  ? Yield extends { ">": infer N extends string; input: any }
+    ? N
+    : never
+  : never;
+
+/** "Slack.postMessage" → "slack" */
+export type ActionService<N extends string> = N extends `${infer S}.${string}`
+  ? LowercaseFirst<S>
+  : never;
+
+/** "Slack.postMessage" → "postMessage" */
+export type ActionMethod<N extends string> = N extends `${string}.${infer M}`
+  ? M
+  : N;
+
+/**
+ * Groups TW.Action exports in two ways:
+ *  - Dotted names ("Slack.postMessage") → nested `{ slack: { postMessage: T } }`
+ *  - Flat names ("notify")             → direct  `{ notify: T }`
+ */
+export type GroupActions<M> =
+  // Dotted names → { service: { method: T } }
+  {
+    [S in {
+      [K in keyof M]: ExtractActionName<M[K]> extends infer N extends string
+        ? N extends `${string}.${string}`
+          ? ActionService<N>
+          : never
+        : never;
+    }[keyof M] &
+      string]: {
+      [K in keyof M as ExtractActionName<M[K]> extends infer N extends string
+        ? N extends `${string}.${string}`
+          ? ActionService<N> extends S
+            ? ActionMethod<N>
+            : never
+          : never
+        : never]: M[K];
+    };
+  } &
+  // Flat names → { name: T } (directly callable)
+  {
+    [K in keyof M as ExtractActionName<M[K]> extends infer N extends string
+      ? N extends `${string}.${string}`
+        ? never
+        : N
+      : never]: M[K];
+  };
+
+/** Extract grouped actions from a plugin (plain object, single TW.Action, or Promise<module>). */
+export type ActionsFromPlugin<U> =
+  U extends Promise<infer M>
+    ? GroupActions<M>
+    : U extends (...args: any[]) => any
+      ? GroupActions<Record<"_", U>>
+      : GroupActions<U>;
+
+/** Merge actions from a plugin into Ctx["scope"]["actions"]. */
+export type AddActionsToCtx<Ctx extends Record<any, any>, U> = {
+  [K in keyof Ctx]: K extends "scope"
+    ? Omit<Ctx["scope"], "actions"> & {
+        actions: Pretty<
+          ("actions" extends keyof Ctx["scope"]
+            ? Ctx["scope"]["actions"]
+            : {}) &
+            ActionsFromPlugin<U>
+        >;
+      }
+    : Ctx[K];
+};
