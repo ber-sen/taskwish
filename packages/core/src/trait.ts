@@ -1,0 +1,43 @@
+import { TW } from "./core";
+import { PascalCase, Pretty } from "./helpers";
+
+type TraitActions<
+  N extends string,
+  T extends Record<string, (...args: any[]) => any>,
+> = {
+  [K in keyof T]: TW.Action<
+    `${N}.${K & string}`,
+    (...args: Parameters<T[K]>) => ReturnType<T[K]> extends Promise<any>
+      ? ReturnType<T[K]>
+      : Promise<ReturnType<T[K]>>,
+    { trait: true }
+  >;
+};
+
+interface TraitFn<N extends string> {
+  <T extends Record<string, (...args: any[]) => any>>(): Pretty<
+    TraitActions<N, T>
+  >;
+}
+
+type TraitResult<N extends string> = {
+  [K in N]: TraitFn<K>;
+};
+
+interface TraitConstructor {
+  <const N extends string>(name: PascalCase<N>): Pretty<TraitResult<N>>;
+}
+
+export const Trait: TraitConstructor = (name: string) =>
+  ({
+    [name]: () =>
+      new Proxy({} as any, {
+        get(_target, key: string | symbol) {
+          if (typeof key !== "string") return undefined;
+          const fn = () => {};
+          (fn as any)[TW.Name] = `${name}.${key}`;
+          (fn as any)[TW.Meta] = { trait: true };
+          return fn;
+        },
+      }),
+  }) as never;
