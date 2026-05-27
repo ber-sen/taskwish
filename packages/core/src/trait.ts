@@ -5,13 +5,17 @@ type TraitActions<
   N extends string,
   T extends Record<string, (...args: any[]) => any>,
 > = {
-  [K in keyof T]: TW.Action<
-    `${N}.${K & string}`,
-    (...args: Parameters<T[K]>) => ReturnType<T[K]> extends Promise<any>
-      ? ReturnType<T[K]>
-      : Promise<ReturnType<T[K]>>,
-    { trait: true }
-  >;
+  [K in keyof T]: T[K] extends TW.Action<`${N}.${K & string}`, infer Handler, infer Meta>
+    ? TW.Action<`${N}.${K & string}`, Handler, Pretty<Meta & { trait: true }>>
+    : TW.Action<
+        `${N}.${K & string}`,
+        (
+          ...args: Parameters<T[K]>
+        ) => ReturnType<T[K]> extends Promise<any>
+          ? ReturnType<T[K]>
+          : Promise<ReturnType<T[K]>>,
+        { trait: true }
+      >;
 };
 
 interface TraitFn<N extends string> {

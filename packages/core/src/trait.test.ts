@@ -34,13 +34,25 @@ describe("Trait", () => {
       log: TW.Action<
         "Logger.log",
         () => Promise<string>,
-        {
-          meta: true;
-        }
+        { service: "logger" }
       >;
     }>();
 
     expect((log as any)[TW.Name]).toBe("Logger.log");
+
+    type check = Expect<
+      Equal<
+        typeof log,
+        TW.Action<
+          "Logger.log",
+          () => Promise<string>,
+          {
+            service: "logger";
+            trait: true;
+          }
+        >
+      >
+    >;
   });
 
   test("each method carries TW.Meta { trait: true } at runtime", () => {
