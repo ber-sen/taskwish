@@ -4,6 +4,87 @@ import { TW } from "./core";
 import { Trait } from "./trait";
 
 describe("Trait", () => {
+  // ── anonymous form: Trait<T>() ─────────────────────────────────────────────
+
+  test("anonymous — returns an object directly", () => {
+    const instance = Trait<{ log: () => string }>();
+
+    expect(typeof instance).toBe("object");
+  });
+
+  test("anonymous — each method is tagged with TW.Name as bare method name", () => {
+    const { log } = Trait<{ log: () => string }>();
+
+    expect((log as any)[TW.Name]).toBe("log");
+  });
+
+  test("anonymous — each method carries TW.Meta { trait: true } at runtime", () => {
+    const { log } = Trait<{ log: () => string }>();
+
+    expect((log as any)[TW.Meta]).toEqual({ trait: true });
+  });
+
+  test("anonymous — type: single method wrapped in TW.Action with bare key", () => {
+    const { log } = Trait<{ log: () => string }>();
+
+    type check = Expect<
+      Equal<
+        typeof log,
+        TW.Action<"log", () => Promise<string>, { trait: true }>
+      >
+    >;
+  });
+
+  test("anonymous — type: already-Promise return is not double-wrapped", () => {
+    const { get } = Trait<{ get: (key: string) => Promise<string> }>();
+
+    type check = Expect<
+      Equal<
+        typeof get,
+        TW.Action<"get", (key: string) => Promise<string>, { trait: true }>
+      >
+    >;
+  });
+
+  test("anonymous — type: multi-method shape, each keyed by bare method name", () => {
+    const { get, post } = Trait<{
+      get: (url: string) => Promise<Response>;
+      post: (url: string, body: unknown) => Promise<Response>;
+    }>();
+
+    type checkGet = Expect<
+      Equal<
+        typeof get,
+        TW.Action<"get", (url: string) => Promise<Response>, { trait: true }>
+      >
+    >;
+    type checkPost = Expect<
+      Equal<
+        typeof post,
+        TW.Action<
+          "post",
+          (url: string, body: unknown) => Promise<Response>,
+          { trait: true }
+        >
+      >
+    >;
+  });
+
+  test("anonymous — type: existing TW.Action meta is merged with { trait: true }", () => {
+    const { log } = Trait<{
+      log: TW.Action<"log", () => Promise<string>, { service: "logger" }>;
+    }>();
+
+    type check = Expect<
+      Equal<
+        typeof log,
+        TW.Action<"log", () => Promise<string>, { service: "logger"; trait: true }>
+      >
+    >;
+  });
+
+  // ── named form: Trait("Name") ──────────────────────────────────────────────
+
   test("returns an object keyed by the trait name", () => {
     const result = Trait("Logger");
 
