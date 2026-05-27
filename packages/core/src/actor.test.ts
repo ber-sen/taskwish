@@ -6,6 +6,7 @@ import { TW } from "./core";
 import { Step } from "./steps";
 import { Event } from "./event";
 import { Logger, formatEvent, isActionEvent } from "./use";
+import { Trait } from "./trait";
 
 describe("Actor", () => {
   test("Command — plain handler with input", async () => {
@@ -987,6 +988,122 @@ describe("Actor", () => {
         : never)
         ? false
         : true;
+    });
+  });
+
+  // ── Trait implementation ─────────────────────────────────────────────────────
+
+  describe("trait implementation", () => {
+    test("actor implements trait — input type inferred from trait instance", async () => {
+      const { Logger } = Trait("Logger");
+      
+      const logger = Logger<{ log: (input: string) => string }>();
+
+      const { S3Logger } = Actor("S3Logger");
+
+      const { log } = S3Logger(logger)
+        .on("Logger.log")
+
+        .run(function () {
+          return `s3: ${this.input}`;
+        });
+
+      // Runtime behaviour
+      expect(await log("hello")).toEqual("s3: hello");
+
+      // TW.Name is the actor-qualified name
+      expect((log as any)[TW.Name]).toBe("S3Logger.log");
+
+      // TW.Meta carries the trait reference
+      expect((log as any)[TW.Meta]).toEqual({ trait: "Logger.log" });
+
+      // Type: keyed by method name, qualified action name, trait meta
+      type check = Expect<
+        Equal<
+          typeof log,
+          TW.Action<
+            "S3Logger.log",
+            (input: string) => Promise<string>,
+            { trait: "Logger.log" }
+          >
+        >
+      >;
+    });
+
+    test("actor implements trait — no-arg method produces no-arg action", async () => {
+      const { Logger } = Trait("Logger");
+
+      const logger = Logger<{ log: () => string }>();
+
+      const { S3Logger } = Actor("S3Logger");
+
+      const { log } = S3Logger(logger)
+        .on("Logger.log")
+
+        .run(function () {
+          return "logged";
+        });
+
+      expect(await log()).toEqual("logged");
+      expect((log as any)[TW.Name]).toBe("S3Logger.log");
+      expect((log as any)[TW.Meta]).toEqual({ trait: "Logger.log" });
+
+      type check = Expect<
+        Equal<
+          typeof log,
+          TW.Action<"S3Logger.log", () => Promise<string>, { trait: "Logger.log" }>
+        >
+      >;
+    });
+
+    test("actor implements trait — multiple methods, input inferred per method", async () => {
+      const { Storage } = Trait("Storage");
+      
+      const storage = Storage<{
+        read: (input: string) => string;
+        write: (input: { key: string; value: string }) => string;
+      }>();
+
+      const { S3Storage } = Actor("S3Storage");
+
+      const { read } = S3Storage(storage)
+        .on("Storage.read")
+
+        .run(function () {
+          return `data:${this.input}`;
+        });
+
+      const { write } = S3Storage(storage)
+        .on("Storage.write")
+
+        .run(function () {
+          return `wrote:${this.input.key}`;
+        });
+
+      expect(await read("k")).toEqual("data:k");
+      expect(await write({ key: "k", value: "v" })).toEqual("wrote:k");
+
+      expect((read as any)[TW.Name]).toBe("S3Storage.read");
+      expect((write as any)[TW.Name]).toBe("S3Storage.write");
+      expect((read as any)[TW.Meta]).toEqual({ trait: "Storage.read" });
+      expect((write as any)[TW.Meta]).toEqual({ trait: "Storage.write" });
+
+      type checkRead = Expect<
+        Equal<
+          typeof read,
+          TW.Action<"S3Storage.read", (input: string) => Promise<string>, { trait: "Storage.read" }>
+        >
+      >;
+      type checkWrite = Expect<
+        Equal<
+          typeof write,
+          TW.Action<
+            "S3Storage.write",
+            (input: { key: string; value: string }) => Promise<string>,
+            { trait: "Storage.write" }
+          >
+        >
+      >;
     });
   });
 });
