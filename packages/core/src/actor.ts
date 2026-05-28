@@ -176,10 +176,14 @@ interface TraitBehavior<
  * The actor factory function — overloaded:
  *   - `()` → `Behavior<Ctx>` (existing, full overload set)
  *   - `(traitInstance)` → `TraitBehavior<Ctx, T>` (typed input from trait)
+ *
+ * The `trait` parameter accepts either a plain trait object or a `Promise`
+ * of one (e.g. `import("./storage.ts")`). TypeScript infers `T` as the
+ * unwrapped record in both cases.
  */
 interface ActorFactoryFn<Ctx extends Record<any, any>> {
   (): Behavior<Ctx>;
-  <const T extends Record<string, any>>(trait: T): TraitBehavior<Ctx, T>;
+  <const T extends Record<string, any>>(trait: T | Promise<T>): TraitBehavior<Ctx, T>;
 }
 
 /**

@@ -1058,7 +1058,7 @@ describe("Actor", () => {
 
     test("actor implements trait — multiple methods, input inferred per method", async () => {
       const { Storage } = Trait("Storage");
-      
+
       const storage = Storage<{
         read: (input: string) => string;
         write: (input: { key: string; value: string }) => string;
@@ -1074,6 +1074,61 @@ describe("Actor", () => {
         });
 
       const { write } = S3Storage(storage)
+        .on("Storage.write")
+
+        .run(function () {
+          return `wrote:${this.input.key}`;
+        });
+
+      expect(await read("k")).toEqual("data:k");
+      expect(await write({ key: "k", value: "v" })).toEqual("wrote:k");
+
+      expect((read as any)[TW.Name]).toBe("S3Storage.read");
+      expect((write as any)[TW.Name]).toBe("S3Storage.write");
+      expect((read as any)[TW.Meta]).toEqual({ trait: "Storage.read" });
+      expect((write as any)[TW.Meta]).toEqual({ trait: "Storage.write" });
+
+      type checkRead = Expect<
+        Equal<
+          typeof read,
+          TW.Action<"S3Storage.read", (input: string) => Promise<string>, { trait: "Storage.read" }>
+        >
+      >;
+      type checkWrite = Expect<
+        Equal<
+          typeof write,
+          TW.Action<
+            "S3Storage.write",
+            (input: { key: string; value: string }) => Promise<string>,
+            { trait: "Storage.write" }
+          >
+        >
+      >;
+    });
+
+    test("actor implements trait — dynamic import (Promise<module>) form", async () => {
+      const { Storage } = Trait("Storage");
+
+      const storage = Storage<{
+        read: (input: string) => string;
+        write: (input: { key: string; value: string }) => string;
+      }>();
+
+      // Simulate `import("./storage.ts")` — a Promise that resolves to the
+      // module's named exports (which are trait stubs).
+      const storageImport = Promise.resolve(storage);
+
+      const { S3Storage } = Actor("S3Storage");
+
+      // Both forms must compile and produce identical types.
+      const { read } = S3Storage(storageImport)
+        .on("Storage.read")
+
+        .run(function () {
+          return `data:${this.input}`;
+        });
+
+      const { write } = S3Storage(storageImport)
         .on("Storage.write")
 
         .run(function () {
