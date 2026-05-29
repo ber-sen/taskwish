@@ -127,13 +127,13 @@ type ElseResult<
   };
 };
 
-// ── Condition ─────────────────────────────────────────────────────────────────
+// ── Cond ──────────────────────────────────────────────────────────────────────
 
-export type ConditionNode<
+export type CondNode<
   Ctx extends Record<any, any> = any,
   Cond = any,
 > = {
-  [TW.Type]: "Condition";
+  [TW.Type]: "Cond";
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["steps"];
@@ -144,11 +144,11 @@ export type ConditionNode<
   fn: (...args: any[]) => unknown;
 };
 
-export function Condition<Ctx extends Record<any, any>, Cond>(
+export function Cond<Ctx extends Record<any, any>, Cond>(
   fn: (scope: TW.Scope<PrettyScope<ResolveScope<Ctx["scope"]>>>) => Cond
-): ConditionNode<Ctx, Cond>;
-export function Condition(fn: unknown): never {
-  return { [TW.Type]: "Condition", fn } as never;
+): CondNode<Ctx, Cond>;
+export function Cond(fn: unknown): never {
+  return { [TW.Type]: "Cond", fn } as never;
 }
 
 // ── HKT kinds ─────────────────────────────────────────────────────────────────
@@ -179,7 +179,7 @@ interface ElseResultKind extends ResultKind {
 
 // ── If ────────────────────────────────────────────────────────────────────────
 
-export type IfFn = Steps<typeof SubSteps, IfResultKind, "Condition">;
+export type IfFn = Steps<typeof SubSteps, IfResultKind, "Cond">;
 
 export const If: IfFn = function If(condition: unknown, ...steps: unknown[]): never {
   return { [TW.Type]: "If", condition, steps } as never;
@@ -187,7 +187,7 @@ export const If: IfFn = function If(condition: unknown, ...steps: unknown[]): ne
 
 // ── ElseIf ────────────────────────────────────────────────────────────────────
 
-export type ElseIfFn = Steps<typeof SubSteps, ElseIfResultKind, "Condition">;
+export type ElseIfFn = Steps<typeof SubSteps, ElseIfResultKind, "Cond">;
 
 export const ElseIf: ElseIfFn = function ElseIf(condition: unknown, ...steps: unknown[]): never {
   return { [TW.Type]: "ElseIf", condition, steps } as never;
