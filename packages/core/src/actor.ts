@@ -12,6 +12,7 @@ import {
   GroupActions,
   ActionsFromPlugin,
   AddActionsToCtx,
+  InferTriggerScope,
 } from "./helpers";
 import { TW } from "./core";
 import { dispatch, type ConsoleLike, type LoggerConfig } from "./use";
@@ -74,6 +75,152 @@ interface HttpBody<
 }
 
 type DeepWriteable<T> = { -readonly [P in keyof T]: DeepWriteable<T[P]> } & {};
+
+// ── Trait method implementation ───────────────────────────────────────────────
+
+/** Extract the method part from a dotted trait-method name: "Logger.log" → "log" */
+type TraitMethodPart<T extends string> = T extends `${string}.${infer M}` ? M : never;
+
+/**
+ * Pull the first-argument type out of a trait action's handler.
+ * Yields `void` for no-arg handlers so the overload can produce `() => …`.
+ *
+ * Uses `Parameters<A>` rather than an `infer I` pattern so that
+ * `() => R` correctly yields `void` instead of `unknown`.
+ */
+type ExtractTraitInput<A> =
+  A extends (...args: any[]) => any
+    ? Parameters<A> extends []
+      ? void
+      : Parameters<A>[0]
+    : void;
+
+/** Helper: `(input: I) => Promise<R>` when I is known, `() => Promise<R>` when void. */
+type TraitActionHandler<I, R> =
+  [I] extends [void] ? () => Promise<R> : (input: I) => Promise<R>;
+
+/**
+ * Extract the trait-name prefix from the qualified action name carried inside
+ * a trait action's stream events.  e.g. TW.Action<"Storage.read", …> → "Storage".
+ */
+type ExtractTraitPrefix<A> =
+  ExtractActionName<A> extends `${infer P}.${string}` ? P : never;
+
+/**
+ * Derive all valid dotted method strings for a trait instance, e.g.
+ *   { read: TW.Action<"Storage.read", …>, write: TW.Action<"Storage.write", …> }
+ *     → "Storage.read" | "Storage.write"
+ */
+type AllTraitMethods<TraitInstance extends Record<string, any>> = {
+  [M in keyof TraitInstance & string]:
+    ExtractTraitPrefix<TraitInstance[M]> extends infer P extends string
+      ? `${P}.${M}`
+      : never;
+}[keyof TraitInstance & string];
+
+/**
+ * Returned by `TraitBehavior.on("Storage.read")` — a fluent builder whose
+ * input type is already fixed by the trait instance. No `.input()` call needed.
+ */
+interface TraitMethodFactoryFromTrait<
+  TraitMethod extends `${string}.${string}`,
+  Ctx extends Record<any, any>,
+  Input,
+> {
+  run<
+    const H extends (
+      this: TW.Scope<
+        Pretty<([Input] extends [void] ? {} : { input: Input }) & BaseScope<Ctx>>
+      >
+    ) => any,
+  >(
+    handler: H,
+  ): {
+    [K in TraitMethodPart<TraitMethod>]: TW.Action<
+      `${Ctx["name"] & string}.${TraitMethodPart<TraitMethod>}`,
+      TraitActionHandler<Input, Awaited<ReturnType<H>>>,
+      { trait: TraitMethod }
+    >;
+  };
+}
+
+/**
+ * Resolve the factory type for a specific dotted key, threading the matching
+ * trait method's input type through from the instance.
+ */
+type TraitMethodFactoryFor<
+  TraitInstance extends Record<string, any>,
+  K extends `${string}.${string}`,
+  Ctx extends Record<any, any>,
+> = K extends `${string}.${infer M}`
+  ? M extends keyof TraitInstance
+    ? TraitMethodFactoryFromTrait<K, Ctx, ExtractTraitInput<TraitInstance[M]>>
+    : never
+  : never;
+
+/**
+ * Returned by `Actor("S3Storage")(storage)` — `.on()` is constrained to the
+ * trait's own dotted method names, with each method's input type inferred from
+ * the trait instance.
+ */
+interface TraitBehavior<
+  Ctx extends Record<any, any>,
+  TraitInstance extends Record<string, any>,
+> {
+  on<const K extends AllTraitMethods<TraitInstance>>(
+    traitMethod: K,
+  ): TraitMethodFactoryFor<TraitInstance, K, Ctx>;
+}
+
+/**
+ * The actor factory function — overloaded:
+ *   - `()` → `Behavior<Ctx>` (existing, full overload set)
+ *   - `(traitInstance)` → `TraitBehavior<Ctx, T>` (typed input from trait)
+ *
+ * The `trait` parameter accepts either a plain trait object or a `Promise`
+ * of one (e.g. `import("./storage.ts")`). TypeScript infers `T` as the
+ * unwrapped record in both cases.
+ */
+interface ActorFactoryFn<Ctx extends Record<any, any>> {
+  (): Behavior<Ctx>;
+  <const T extends Record<string, any>>(trait: T | Promise<T>): TraitBehavior<Ctx, T>;
+}
+
+/**
+ * Returned by `Behavior.on("Logger.log")` (no trait instance passed) —
+ * a fluent builder that requires `.input(schema)` to specify the input type.
+ */
+interface TraitMethodFactory<
+  TraitMethod extends `${string}.${string}`,
+  Ctx extends Record<any, any>,
+> {
+  use(): this;
+
+  input<const Schema>(
+    schema?: Schema,
+  ): TraitMethodFactory<
+    TraitMethod,
+    Omit<Ctx, "scope"> & {
+      scope: Pretty<InferTriggerScope<Schema> & BaseScope<Ctx>>;
+    }
+  >;
+
+  run<
+    const H extends (
+      this: TW.Scope<Pretty<BaseScope<Ctx>>>
+    ) => any,
+  >(
+    handler: H,
+  ): {
+    [K in TraitMethodPart<TraitMethod>]: TW.Action<
+      `${Ctx["name"] & string}.${TraitMethodPart<TraitMethod>}`,
+      "input" extends keyof BaseScope<Ctx>
+        ? (input: BaseScope<Ctx>["input"]) => Promise<Awaited<ReturnType<H>>>
+        : () => Promise<Awaited<ReturnType<H>>>,
+      { trait: TraitMethod }
+    >;
+  };
+}
 
 interface CommandBody<
   CmdName extends string,
@@ -191,6 +338,10 @@ export interface Behavior<Ctx extends Record<any, any>> {
     path: string,
   ): HttpBody<Method, BaseScope<Ctx>, Ctx["name"] & string>;
 
+  on<const TraitMethod extends `${string}.${string}`>(
+    traitMethod: TraitMethod,
+  ): TraitMethodFactory<TraitMethod, Ctx>;
+
   on<const EventName extends EventKeys<BaseScope<Ctx>>>(
     behavior: EventName,
   ): ActionFactory<
@@ -215,7 +366,7 @@ export interface DefResultKind extends ResultKind {
     ? "name" extends keyof this["ctx"]
       ? this["ctx"]["name"] extends string
         ? {
-            [name in this["ctx"]["name"]]: () => Behavior<
+            [name in this["ctx"]["name"]]: ActorFactoryFn<
               this["last"] & Record<any, any>
             >;
           }
@@ -343,7 +494,14 @@ function createBehavior(
     },
     on(behavior: string, config?: string, schema?: unknown) {
       let actionName: string;
-      if (behavior === "Command") {
+      let traitMeta: string | null = null;
+
+      const dotIdx = behavior.indexOf(".");
+      if (dotIdx !== -1) {
+        // Trait method: "Logger.log" → actionName = "log", traitMeta = "Logger.log"
+        actionName = behavior.slice(dotIdx + 1);
+        traitMeta = behavior;
+      } else if (behavior === "Command") {
         actionName = config!;
       } else if (HTTP_METHODS.has(behavior)) {
         actionName = behavior;
@@ -386,6 +544,7 @@ function createBehavior(
           [actionName]: Object.assign(consume, {
             [TW.Name]: eventName,
             stream,
+            ...(traitMeta !== null ? { [TW.Meta]: { trait: traitMeta } } : {}),
           }),
         };
       }
@@ -508,7 +667,7 @@ type ActorBuilderResult<Name extends string, Ctx extends Record<any, any>> = {
   def: Steps<Ctx, DefResultKind>;
   use<const U>(plugin: U): ActorBuilderResult<Name, AddActionsToCtx<Ctx, U>>;
 } & {
-  [key in Name]: () => Behavior<Ctx>;
+  [key in Name]: ActorFactoryFn<Ctx>;
 } & Omit<Behavior<Ctx>, "use">;
 
 // ── Actor builder runtime ─────────────────────────────────────────────────────
@@ -536,7 +695,7 @@ function makeActorBuilder(
         ...collectScope(steps),
       };
       return {
-        [actorName]: () => createBehavior(actorName, initialScope),
+        [actorName]: (_trait?: unknown) => createBehavior(actorName, initialScope),
       } as any;
     },
 
@@ -637,7 +796,7 @@ function makeActorBuilder(
       return (getBehavior() as any).on(...args);
     },
 
-    [actorName]: () =>
+    [actorName]: (_trait?: unknown) =>
       createBehavior(actorName, { ...builtInEventScope, ...actorScope }),
   };
 }
