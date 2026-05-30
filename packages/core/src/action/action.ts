@@ -352,7 +352,7 @@ async function evalCond(
   const val =
     typeof condition === "function"
       ? await (condition as (scope: unknown) => unknown).call(ctx, ctx)
-      : twType(condition) === "Condition"
+      : twType(condition) === "Cond"
         ? await ((condition as any).fn as (scope: unknown) => unknown).call(
             ctx,
             ctx,
@@ -404,7 +404,7 @@ async function* runHandlerList(
 
     if (type === "If") {
       const { condition, steps } = handler as IfEntry;
-      const isCondNode = twType(condition) === "Condition";
+      const isCondNode = twType(condition) === "Cond";
       let condRaw: unknown;
       if (isCondNode) {
         condRaw = await ((condition as any).fn as Function).call(ctx, ctx);
@@ -431,7 +431,7 @@ async function* runHandlerList(
     } else if (type === "ElseIf") {
       if (lastCond === false) {
         const { condition, steps } = handler as IfEntry;
-        const isCondNode = twType(condition) === "Condition";
+        const isCondNode = twType(condition) === "Cond";
         let condRaw: unknown;
         if (isCondNode) {
           condRaw = await ((condition as any).fn as Function).call(ctx, ctx);

@@ -3,7 +3,7 @@ import { Expect, Equal } from "../helpers";
 import { Action } from "../action";
 import { Step } from "./step";
 import { Loop, ForEach } from "./loop";
-import { If, Else, ElseIf, Condition } from "./if-else";
+import { If, Else, ElseIf, Cond } from "./if-else";
 
 // ─── Runtime ────────────────────────────────────────────────────────────────
 
@@ -460,7 +460,7 @@ describe("Loop", () => {
           ForEach(({ input }) => input.items),
 
           If(
-            Condition(({ loop }) => loop.item % 2 === 0),
+            Cond(({ loop }) => loop.item % 2 === 0),
 
             Step("even", function () {
               return this.loop.item;
@@ -496,7 +496,7 @@ describe("Loop", () => {
           ForEach(({ input }) => input.items),
 
           If(
-            Condition(({ loop }) => loop.item % 2 !== 0),
+            Cond(({ loop }) => loop.item % 2 !== 0),
 
             Step("tag", function () {
               return `odd:${this.loop.item}`;
@@ -542,7 +542,7 @@ describe("Loop", () => {
           ForEach(({ input }) => input.items),
 
           If(
-            Condition(({ loop, input }) => loop.item > input.threshold),
+            Cond(({ loop, input }) => loop.item > input.threshold),
 
             Step("big", function () {
               return this.loop.item;
@@ -583,7 +583,7 @@ describe("Loop", () => {
           ForEach(({ input }) => input.items),
 
           If(
-            Condition(({ loop }) => loop.item % 3 === 0),
+            Cond(({ loop }) => loop.item % 3 === 0),
 
             Step("tag", function () {
               return "fizz"  as const
@@ -591,7 +591,7 @@ describe("Loop", () => {
           ),
 
           ElseIf(
-            Condition(({ loop }) => loop.item % 2 === 0),
+            Cond(({ loop }) => loop.item % 2 === 0),
 
             Step("tag", function () {
               return "buzz" as const
@@ -647,7 +647,7 @@ describe("Loop", () => {
           ForEach(({ input }) => input.items),
 
           If(
-            Condition(({ loop }) => loop.item % 2 === 0),
+            Cond(({ loop }) => loop.item % 2 === 0),
 
             Step("doubled", function () {
               return this.loop.item * 2;
@@ -781,7 +781,7 @@ describe("Loop", () => {
             ForEach("inner", ({ input }) => input.inner),
 
             If(
-              Condition(({ inner }) => inner.item % 2 === 0),
+              Cond(({ inner }) => inner.item % 2 === 0),
 
               Step("even", function () {
                 return this.outer.item * this.inner.item;
@@ -831,7 +831,7 @@ describe("Loop", () => {
           ForEach("outer", () => [1, 2, 3, 4]),
 
           If(
-            Condition(({ outer }) => outer.item % 2 === 0),
+            Cond(({ outer }) => outer.item % 2 === 0),
 
             Loop(
               ForEach("inner", ({ input }) => input.inner),

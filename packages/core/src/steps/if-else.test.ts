@@ -2,7 +2,7 @@ import { expect, test, describe } from "bun:test";
 import { Expect, Equal } from "../helpers";
 import { Action } from "../action";
 import { Step } from "./step";
-import { If, Else, ElseIf, Condition } from "./if-else";
+import { If, Else, ElseIf, Cond } from "./if-else";
 import { Loop, ForEach } from "./loop";
 
 // ─── Runtime ────────────────────────────────────────────────────────────────
@@ -14,7 +14,7 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.n <= 1),
+          Cond(({ input }) => input.n <= 1),
 
           Step("done", function () {
             return 1;
@@ -63,7 +63,7 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.flag),
+          Cond(({ input }) => input.flag),
 
           Step("result", function () {
             return "truthy" as const
@@ -98,7 +98,7 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.flag),
+          Cond(({ input }) => input.flag),
 
           Step("result", function () {
             return "truthy" as const
@@ -137,7 +137,7 @@ describe("If / Else", () => {
         }),
 
         If(
-          Condition(({ input }) => input.run),
+          Cond(({ input }) => input.run),
 
           Step("skipped", function () {
             return 99;
@@ -175,7 +175,7 @@ describe("If / Else", () => {
         }),
 
         If(
-          Condition(({ input }) => input.value > 0),
+          Cond(({ input }) => input.value > 0),
 
           Step("result", function () {
             return this.doubled > 0;
@@ -205,7 +205,7 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.x > 10),
+          Cond(({ input }) => input.x > 10),
 
           Step("result", function () {
             return this.condition ? "big" : "not big";
@@ -241,7 +241,7 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.x > 10),
+          Cond(({ input }) => input.x > 10),
 
           Step("result", function () {
             return "big" as const
@@ -249,7 +249,7 @@ describe("If / Else", () => {
         ),
 
         ElseIf(
-          Condition(({ input }) => input.x > 5),
+          Cond(({ input }) => input.x > 5),
 
           Step("result", function () {
             return "medium" as const
@@ -286,7 +286,7 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.x > 0),
+          Cond(({ input }) => input.x > 0),
 
           Step("doubled", function () {
             return this.input.x * 2;
@@ -320,7 +320,7 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.x > 10),
+          Cond(({ input }) => input.x > 10),
 
           Step("result", function () {
             return "if-branch";
@@ -360,7 +360,7 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.x > 10),
+          Cond(({ input }) => input.x > 10),
 
           Step("result", function () {
             return "big";
@@ -368,7 +368,7 @@ describe("If / Else", () => {
         ),
 
         ElseIf(
-          Condition(({ input }) => input.x > 0),
+          Cond(({ input }) => input.x > 0),
 
           Step("doubled", function () {
             return this.input.x * 2;
@@ -412,7 +412,7 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.run),
+          Cond(({ input }) => input.run),
 
           Step("check", function () {
             return 42 as number;
@@ -432,7 +432,7 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.flag),
+          Cond(({ input }) => input.flag),
 
           Step("check", function () {
             return "yes" as const;
@@ -458,7 +458,7 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.x > 10),
+          Cond(({ input }) => input.x > 10),
 
           Step("result", function () {
             return "a" as const;
@@ -466,7 +466,7 @@ describe("If / Else", () => {
         ),
 
         ElseIf(
-          Condition(({ input }) => input.x > 5),
+          Cond(({ input }) => input.x > 5),
 
           Step("result", function () {
             return "b" as const;
@@ -492,7 +492,7 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.x > 10),
+          Cond(({ input }) => input.x > 10),
 
           Step("result", function () {
             return "a" as const;
@@ -500,7 +500,7 @@ describe("If / Else", () => {
         ),
 
         ElseIf(
-          Condition(({ input }) => input.x > 5),
+          Cond(({ input }) => input.x > 5),
 
           Step("result", function () {
             return "b" as const;
@@ -520,7 +520,7 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.x > 0),
+          Cond(({ input }) => input.x > 0),
 
           Step("doubled", function () {
             return this.input.x * 2;
@@ -540,7 +540,7 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.x > 10),
+          Cond(({ input }) => input.x > 10),
 
           Step("result", function () {
             return 0 as number;
@@ -548,7 +548,7 @@ describe("If / Else", () => {
         ),
 
         ElseIf(
-          Condition(({ input }) => input.x > 0),
+          Cond(({ input }) => input.x > 0),
 
           Step("doubled", function () {
             return this.input.x * 2;
@@ -568,7 +568,7 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.x > 0),
+          Cond(({ input }) => input.x > 0),
 
           Step("result", function () {
             return 0 as number;
@@ -596,7 +596,7 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.run),
+          Cond(({ input }) => input.run),
 
           Loop(
             ForEach(() => [1, 2, 3]),
@@ -636,7 +636,7 @@ describe("If / Else", () => {
         }),
 
         If(
-          Condition(({ input }) => input.run),
+          Cond(({ input }) => input.run),
 
           Loop(
             ForEach(() => [1, 2, 3]),
@@ -674,7 +674,7 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.run),
+          Cond(({ input }) => input.run),
 
           Step("result", function () {
             return "if-branch";
@@ -715,7 +715,7 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.run),
+          Cond(({ input }) => input.run),
 
           Loop(
             ForEach(() => [1, 2, 3]),
@@ -758,10 +758,10 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.outer),
+          Cond(({ input }) => input.outer),
 
           If(
-            Condition(({ input }) => input.inner),
+            Cond(({ input }) => input.inner),
 
             Step("result", function () {
               return "both";
@@ -796,10 +796,10 @@ describe("If / Else", () => {
         }),
 
         If(
-          Condition(({ input }) => input.outer),
+          Cond(({ input }) => input.outer),
 
           If(
-            Condition(({ input }) => input.inner),
+            Cond(({ input }) => input.inner),
 
             Step("result", function () {
               return "inner";
@@ -839,10 +839,10 @@ describe("If / Else", () => {
         }),
 
         If(
-          Condition(({ input }) => input.outer),
+          Cond(({ input }) => input.outer),
 
           If(
-            Condition(({ input }) => input.inner),
+            Cond(({ input }) => input.inner),
 
             Step("result", function () {
               return "inner";
@@ -878,10 +878,10 @@ describe("If / Else", () => {
 
       .run(
         If(
-          Condition(({ input }) => input.x > 0),
+          Cond(({ input }) => input.x > 0),
 
           If(
-            Condition(({ input }) => input.x > 10),
+            Cond(({ input }) => input.x > 10),
 
             Step("result", function () {
               return "big" as const
