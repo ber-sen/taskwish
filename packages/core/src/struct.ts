@@ -1,13 +1,12 @@
 import { type Constructor, type array, type conform } from "@ark/util";
 
 import { distill, type Type as ArkType, type } from "arktype";
-import { Append, PascalCase, Pretty } from "./helpers";
+import { PascalCase, Pretty } from "./helpers";
 import { TW } from "./core";
-import {
-  ArgTwoOperator,
-  IndexZeroOperator,
-  TupleInfixOperator,
-} from "arktype/internal/parser/tupleExpressions.ts";
+
+type ArgTwoOperator = "[]" | "&" | "|" | "|>" | ":" | "=>" | "@";
+type IndexZeroOperator = "keyof" | "instanceof" | "===";
+type TupleInfixOperator = "&" | "|" | "|>" | ":" | "=>" | "@" | "=";
 
 import {
   type Morph,
