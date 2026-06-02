@@ -564,6 +564,45 @@ describe("Action", () => {
     expect(await greet({ name: "World" })).toEqual("Hello, sent: World");
   });
 
+  test("use(object) — injects TW.Actions and ignores non-action exports", async () => {
+    const { notify } = Action("notify")
+      .input({ message: "string" })
+
+      .run(function () {
+        return `sent: ${this.input.message}`;
+      });
+
+    const { greet } = Action("greet")
+      .use(Promise.resolve({
+        notify,
+        helper: () => "ignored",
+        version: "1.0.0",
+      }))
+
+      .input({ name: "string" })
+
+      .run(async function () {
+        type Check = Expect<
+          Equal<
+            typeof this.actions.notify,
+            TW.Action<
+              "notify",
+              (input: { message: string }) => Promise<string>,
+              null
+            >
+          >
+        >;
+        type HelperIsIgnored = "helper" extends keyof typeof this.actions
+          ? false
+          : true;
+        type HelperCheck = Expect<Equal<HelperIsIgnored, true>>;
+
+        return this.actions.notify({ message: this.input.name });
+      });
+
+    expect(await greet({ name: "World" })).toEqual("sent: World");
+  });
+
   test("async generator — stream yields each value", async () => {
     const { greet } = Action("greet")
       .input({ name: "string" })

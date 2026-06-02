@@ -766,11 +766,11 @@ describe("Actor", () => {
         });
 
       // ── inject into a consumer actor ──────────────────────────────────────
-      const { Consumer } = Actor("Consumer").use({ notify });
+      const { Consumer } = Actor("Consumer").use(notify);
 
       const { run } = Consumer()
         .on("Command", "run")
-        
+
         .input({ text: "string" })
 
         .run(function () {
@@ -819,12 +819,16 @@ describe("Actor", () => {
 
       const { dispatch } = Dispatcher()
         .on("Command", "dispatch")
-        
+
         .input({ recipient: "string" })
 
         .run(async function () {
-          const email = await this.actions.emailer.sendEmail({ to: this.input.recipient });
-          const text = await this.actions.texter.sendText({ to: this.input.recipient });
+          const email = await this.actions.emailer.sendEmail({
+            to: this.input.recipient,
+          });
+          const text = await this.actions.texter.sendText({
+            to: this.input.recipient,
+          });
           return `${email} | ${text}`;
         });
 
@@ -901,7 +905,7 @@ describe("Actor", () => {
       // Flat name: TW.Name = "notify" → this.actions.notify (directly callable)
       const { notify } = Action("notify")
         .input({ message: "string" })
-        
+
         .run(function () {
           return `sent: ${this.input.message}`;
         });
@@ -955,7 +959,7 @@ describe("Actor", () => {
     test("non-TW.Action values in .use() object are silently ignored", async () => {
       // Plain object with a mix of action and non-action values
       const { Pinger } = Actor("Pinger");
-      
+
       const { ping } = Pinger()
         .on("Command", "ping")
 
@@ -978,9 +982,10 @@ describe("Actor", () => {
 
       expect(await run()).toEqual("pong");
       // `notAnAction` must NOT appear in actions scope at the type level
-      type actions = typeof run extends TW.Action<any, any>
-        ? never // prevents unused-type-param error
-        : never;
+      type actions =
+        typeof run extends TW.Action<any, any>
+          ? never // prevents unused-type-param error
+          : never;
       type Check = "notAnAction" extends keyof (typeof Caller extends {
         Caller: () => infer B;
       }
@@ -996,7 +1001,7 @@ describe("Actor", () => {
   describe("trait implementation", () => {
     test("actor implements trait — input type inferred from trait instance", async () => {
       const { Logger } = Trait("Logger");
-      
+
       const logger = Logger<{ log: (input: string) => string }>();
 
       const { S3Logger } = Actor("S3Logger");
@@ -1051,7 +1056,11 @@ describe("Actor", () => {
       type check = Expect<
         Equal<
           typeof log,
-          TW.Action<"S3Logger.log", () => Promise<string>, { trait: "Logger.log" }>
+          TW.Action<
+            "S3Logger.log",
+            () => Promise<string>,
+            { trait: "Logger.log" }
+          >
         >
       >;
     });
@@ -1091,7 +1100,11 @@ describe("Actor", () => {
       type checkRead = Expect<
         Equal<
           typeof read,
-          TW.Action<"S3Storage.read", (input: string) => Promise<string>, { trait: "Storage.read" }>
+          TW.Action<
+            "S3Storage.read",
+            (input: string) => Promise<string>,
+            { trait: "Storage.read" }
+          >
         >
       >;
       type checkWrite = Expect<
@@ -1146,7 +1159,11 @@ describe("Actor", () => {
       type checkRead = Expect<
         Equal<
           typeof read,
-          TW.Action<"S3Storage.read", (input: string) => Promise<string>, { trait: "Storage.read" }>
+          TW.Action<
+            "S3Storage.read",
+            (input: string) => Promise<string>,
+            { trait: "Storage.read" }
+          >
         >
       >;
       type checkWrite = Expect<

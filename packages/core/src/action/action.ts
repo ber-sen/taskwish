@@ -36,7 +36,7 @@ type ActionBody<
   use<const F extends string | undefined>(
     config: InferTypeConfig<F>,
   ): ActionBody<Name, AppendPlugin<Ctx, InferTypeConfig<F>>>;
-  use<const U extends (...args: any[]) => any>(
+  use<const U>(
     plugin: U,
   ): ActionBody<Name, AddActionsToCtx<Ctx, U>>;
   run: Steps<Ctx, ActionResultKind>;
@@ -53,7 +53,7 @@ type SignatureBody<
   use<const F extends string | undefined>(
     config: InferTypeConfig<F>,
   ): SignatureBody<Name, AppendPlugin<Ctx, InferTypeConfig<F>>, Signature>;
-  use<const U extends (...args: any[]) => any>(
+  use<const U>(
     plugin: U,
   ): SignatureBody<Name, AddActionsToCtx<Ctx, U>, Signature>;
   run<
@@ -142,7 +142,7 @@ export interface ActionFactory<
   use<const F extends string | undefined>(
     config: InferTypeConfig<F>,
   ): ActionFactory<Name, AppendPlugin<Ctx, InferTypeConfig<F>>>;
-  use<const U extends (...args: any[]) => any>(
+  use<const U>(
     plugin: U,
   ): ActionFactory<Name, AddActionsToCtx<Ctx, U>>;
   sig<
@@ -723,6 +723,7 @@ export function Action<const Name extends string>(
   let inferType = false;
   let inferTypeFilter: string | undefined = undefined;
   const injectedActions: Record<string, unknown> = {};
+  const pendingPlugins: Promise<void>[] = [];
 
   function tap<G extends AsyncGenerator<unknown, unknown>>(gen: G): G {
     return tapWith(gen, dispatch(logger)) as G;
@@ -754,6 +755,43 @@ export function Action<const Name extends string>(
         [method]: plugin,
       };
     }
+  }
+
+  function injectActions(plugin: unknown) {
+    if (typeof plugin === "function") {
+      injectAction(plugin);
+      return;
+    }
+
+    if (plugin === null || typeof plugin !== "object") return;
+    if ("then" in (plugin as object)) {
+      pendingPlugins.push(Promise.resolve(plugin).then(injectActions));
+      return;
+    }
+
+    for (const value of Object.values(plugin as Record<string, unknown>)) {
+      if (typeof value === "function") injectAction(value);
+    }
+  }
+
+  function usePlugin(config: unknown) {
+    const type =
+      config !== null && typeof config === "object"
+        ? (config as any)[TW.Type]
+        : undefined;
+    if (type === "Logger" || type === "InferType") {
+      detectPlugin(config as LoggerConfig | InferTypeConfig);
+    } else {
+      injectActions(config);
+    }
+  }
+
+  async function buildExtra() {
+    if (pendingPlugins.length > 0) await Promise.all(pendingPlugins);
+
+    return Object.keys(injectedActions).length > 0
+      ? { actions: { ...injectedActions } }
+      : {};
   }
 
   function createAction(inputMode: "first" | "args", handlers: unknown[]) {
@@ -791,12 +829,8 @@ export function Action<const Name extends string>(
       return { [actionName]: { ">": "Command", "=": actionName, run: steps } };
     }
 
-    const extra: Record<string, unknown> =
-      Object.keys(injectedActions).length > 0
-        ? { actions: { ...injectedActions } }
-        : {};
-
     async function consume(...args: unknown[]) {
+      const extra = await buildExtra();
       const gen = tap(
         runAction(actionName, buildScope(inputMode, args, extra), handlers),
       );
@@ -805,10 +839,13 @@ export function Action<const Name extends string>(
       return item.value;
     }
 
+    async function* rawStream(...args: unknown[]) {
+      const extra = await buildExtra();
+      yield* runAction(actionName, buildScope(inputMode, args, extra), handlers);
+    }
+
     function stream(...args: unknown[]) {
-      return tap(
-        runAction(actionName, buildScope(inputMode, args, extra), handlers),
-      );
+      return tap(rawStream(...args));
     }
 
     return {
@@ -818,8 +855,7 @@ export function Action<const Name extends string>(
 
   const makeBody = (inputMode: "first" | "args") => ({
     use(config: unknown) {
-      if (typeof config === "function") injectAction(config);
-      else detectPlugin(config as LoggerConfig | InferTypeConfig);
+      usePlugin(config);
       return this;
     },
     run(...handlers: unknown[]) {
@@ -835,8 +871,7 @@ export function Action<const Name extends string>(
       return makeBody("first");
     },
     use(config: unknown) {
-      if (typeof config === "function") injectAction(config);
-      else detectPlugin(config as LoggerConfig | InferTypeConfig);
+      usePlugin(config);
       return this;
     },
     run(...handlers: unknown[]) {

@@ -7,10 +7,6 @@ import {
   ValidateSchema,
   Pretty,
   ExtractActionName,
-  ActionService,
-  ActionMethod,
-  GroupActions,
-  ActionsFromPlugin,
   AddActionsToCtx,
   InferTriggerScope,
 } from "./helpers";
@@ -181,9 +177,11 @@ interface TraitBehavior<
  * of one (e.g. `import("./storage.ts")`). TypeScript infers `T` as the
  * unwrapped record in both cases.
  */
-interface ActorFactoryFn<Ctx extends Record<any, any>> {
+export interface ActorFactoryFn<Ctx extends Record<any, any>> {
   (): Behavior<Ctx>;
-  <const T extends Record<string, any>>(trait: T | Promise<T>): TraitBehavior<Ctx, T>;
+  <const T extends Record<string, any>>(
+    trait: T | Promise<T>,
+  ): TraitBehavior<Ctx, T>;
 }
 
 /**
@@ -480,6 +478,8 @@ function collectScope(steps: unknown[]): Record<string, unknown> {
 function createBehavior(
   actorName: string,
   initialScope: Record<string, unknown>,
+  resolveInitialScope: () => Promise<Record<string, unknown>> = async () =>
+    initialScope,
 ): Behavior<any> {
   let logger: ConsoleLike = console;
 
@@ -514,8 +514,9 @@ function createBehavior(
 
       function createAction(inputMode: "first" | "args", handlers: unknown[]) {
         async function consume(...args: unknown[]) {
+          const resolvedInitialScope = await resolveInitialScope();
           const { args: modArgs, scope: behaviorScope } = mod(args);
-          const extra = { ...initialScope, ...behaviorScope };
+          const extra = { ...resolvedInitialScope, ...behaviorScope };
           const gen = tap(
             runAction(
               eventName,
@@ -528,16 +529,19 @@ function createBehavior(
           return item.value;
         }
 
-        function stream(...args: unknown[]) {
+        async function* rawStream(...args: unknown[]) {
+          const resolvedInitialScope = await resolveInitialScope();
           const { args: modArgs, scope: behaviorScope } = mod(args);
-          const extra = { ...initialScope, ...behaviorScope };
-          return tap(
-            runAction(
-              eventName,
-              buildScope(inputMode, modArgs, extra),
-              handlers,
-            ),
+          const extra = { ...resolvedInitialScope, ...behaviorScope };
+          yield* runAction(
+            eventName,
+            buildScope(inputMode, modArgs, extra),
+            handlers,
           );
+        }
+
+        function stream(...args: unknown[]) {
+          return tap(rawStream(...args));
         }
 
         return {
@@ -584,10 +588,13 @@ function createBehavior(
               run(...handlers: unknown[]) {
                 const qualifiedCmdName = `${actorName}.${cmdName}`;
 
-                function rawCmdStream(flatInput: unknown) {
-                  return runAction(
+                async function* rawCmdStream(flatInput: unknown) {
+                  const resolvedInitialScope = await resolveInitialScope();
+                  return yield* runAction(
                     qualifiedCmdName,
-                    buildScope("first", [flatInput], { ...initialScope }),
+                    buildScope("first", [flatInput], {
+                      ...resolvedInitialScope,
+                    }),
                     handlers,
                   );
                 }
@@ -604,6 +611,7 @@ function createBehavior(
                 }
 
                 async function* rawFetchStream(input: Request) {
+                  const resolvedInitialScope = await resolveInitialScope();
                   const request = input;
                   const { args: modArgs } = mod([request]);
                   const rawInput = modArgs[0] as Record<string, unknown>;
@@ -611,7 +619,13 @@ function createBehavior(
                   const flatInput = flattenHttpInput(rawInput);
                   let result: unknown;
                   try {
-                    const inner = rawCmdStream(flatInput);
+                    const inner = runAction(
+                      qualifiedCmdName,
+                      buildScope("first", [flatInput], {
+                        ...resolvedInitialScope,
+                      }),
+                      handlers,
+                    );
                     let item = await inner.next();
                     while (!item.done) {
                       yield item.value;
@@ -663,7 +677,10 @@ function createBehavior(
  *  - all `Behavior` methods (except `use`) so `.on()` can be called fluently
  *    directly on the builder without needing an explicit `[actorName]()` call
  */
-type ActorBuilderResult<Name extends string, Ctx extends Record<any, any>> = {
+export type ActorBuilderResult<
+  Name extends string,
+  Ctx extends Record<any, any>,
+> = {
   def: Steps<Ctx, DefResultKind>;
   use<const U>(plugin: U): ActorBuilderResult<Name, AddActionsToCtx<Ctx, U>>;
 } & {
@@ -672,18 +689,82 @@ type ActorBuilderResult<Name extends string, Ctx extends Record<any, any>> = {
 
 // ── Actor builder runtime ─────────────────────────────────────────────────────
 
+function collectAction(plugin: unknown): Record<string, unknown> {
+  const fullName: unknown = (plugin as any)[TW.Name];
+  if (typeof fullName !== "string") return {};
+
+  const dot = fullName.indexOf(".");
+  if (dot === -1) return { [fullName]: plugin };
+
+  const rawService = fullName.slice(0, dot);
+  const service = rawService.charAt(0).toLowerCase() + rawService.slice(1);
+  const method = fullName.slice(dot + 1);
+
+  return { [service]: { [method]: plugin } };
+}
+
+function mergeActions(
+  existing: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...existing };
+
+  for (const [key, value] of Object.entries(incoming)) {
+    if (typeof value === "function") {
+      merged[key] = value;
+    } else {
+      merged[key] = {
+        ...(merged[key] as Record<string, unknown> | undefined),
+        ...(value as Record<string, unknown>),
+      };
+    }
+  }
+
+  return merged;
+}
+
+function collectActions(plugin: unknown): Record<string, unknown> {
+  if (typeof plugin === "function") return collectAction(plugin);
+  if (plugin === null || typeof plugin !== "object") return {};
+
+  let incoming: Record<string, unknown> = {};
+  for (const value of Object.values(plugin as Record<string, unknown>)) {
+    if (typeof value !== "function") continue;
+    incoming = mergeActions(incoming, collectAction(value));
+  }
+
+  return incoming;
+}
+
 function makeActorBuilder(
   actorName: string,
   actorScope: Record<string, unknown>,
+  pendingPlugins: Promise<Record<string, unknown>>[] = [],
 ): any {
   // Lazily-created behavior for fluid `.on()` calls directly on the builder.
   let _behavior: ReturnType<typeof createBehavior> | null = null;
+  const resolveActorScope = async () => {
+    if (pendingPlugins.length === 0) return actorScope;
+
+    const pluginScopes = await Promise.all(pendingPlugins);
+    let actions =
+      (actorScope.actions as Record<string, unknown> | undefined) ?? {};
+    for (const pluginActions of pluginScopes) {
+      actions = mergeActions(actions, pluginActions);
+    }
+
+    return { ...actorScope, actions };
+  };
+
   const getBehavior = () => {
     if (!_behavior)
       _behavior = createBehavior(actorName, {
         ...builtInEventScope,
         ...actorScope,
-      });
+      }, async () => ({
+        ...builtInEventScope,
+        ...(await resolveActorScope()),
+      }));
     return _behavior;
   };
 
@@ -695,98 +776,41 @@ function makeActorBuilder(
         ...collectScope(steps),
       };
       return {
-        [actorName]: (_trait?: unknown) => createBehavior(actorName, initialScope),
+        [actorName]: (_trait?: unknown) =>
+          createBehavior(actorName, initialScope, async () => ({
+            ...builtInEventScope,
+            ...(await resolveActorScope()),
+            ...collectScope(steps),
+          })),
       } as any;
     },
 
     use(plugin: unknown): any {
-      // Single TW.Action passed directly — e.g. Actor("X").use(notify)
-      if (typeof plugin === "function") {
-        const fullName: unknown = (plugin as any)[TW.Name];
-        if (typeof fullName === "string") {
-          const existing =
-            (actorScope.actions as Record<string, unknown> | undefined) ?? {};
-          const dot = fullName.indexOf(".");
-          let merged: Record<string, unknown>;
-          if (dot === -1) {
-            // Flat name → this.actions.notify
-            merged = { ...existing, [fullName]: plugin };
-          } else {
-            // Dotted name → this.actions.notifier.notify
-            const rawService = fullName.slice(0, dot);
-            const service =
-              rawService.charAt(0).toLowerCase() + rawService.slice(1);
-            const method = fullName.slice(dot + 1);
-            merged = {
-              ...existing,
-              [service]: {
-                ...(existing[service] as Record<string, unknown> | undefined),
-                [method]: plugin,
-              },
-            };
-          }
-          return makeActorBuilder(actorName, {
-            ...actorScope,
-            actions: merged,
-          });
-        }
+      if (
+        plugin !== null &&
+        typeof plugin === "object" &&
+        "then" in (plugin as object)
+      ) {
+        return makeActorBuilder(actorName, actorScope, [
+          ...pendingPlugins,
+          Promise.resolve(plugin).then(collectActions),
+        ]);
+      }
+
+      const incoming = collectActions(plugin);
+      if (Object.keys(incoming).length === 0)
         return makeActorBuilder(actorName, actorScope);
-      }
 
-      if (plugin !== null && typeof plugin === "object") {
-        if ("then" in (plugin as object)) {
-          // Dynamic import — action types flow in at compile time via
-          // ActionsFromPlugin<U>; runtime injection is handled by the Package system.
-          return makeActorBuilder(actorName, actorScope);
-        }
-
-        // Plain object — inject every TW.Action (tagged with [TW.Name]).
-        // Dotted names ("Service.method") → nested; flat names → direct.
-        // Non-action values are silently ignored.
-        const incoming: Record<string, unknown> = {};
-        for (const v of Object.values(plugin as Record<string, unknown>)) {
-          if (typeof v !== "function") continue;
-          const fullName: unknown = (v as any)[TW.Name];
-          if (typeof fullName !== "string") continue;
-          const dot = fullName.indexOf(".");
-          if (dot === -1) {
-            // Flat name → this.actions.notify
-            incoming[fullName] = v;
-          } else {
-            // Dotted name → this.actions.notifier.notify
-            const rawService = fullName.slice(0, dot);
-            const service =
-              rawService.charAt(0).toLowerCase() + rawService.slice(1);
-            const method = fullName.slice(dot + 1);
-            incoming[service] = {
-              ...(incoming[service] as Record<string, unknown> | undefined),
-              [method]: v,
-            };
-          }
-        }
-
-        if (Object.keys(incoming).length === 0)
-          return makeActorBuilder(actorName, actorScope);
-
-        const existing =
-          (actorScope.actions as Record<string, unknown> | undefined) ?? {};
-        const merged: Record<string, unknown> = { ...existing };
-        for (const [key, value] of Object.entries(incoming)) {
-          if (typeof value === "function") {
-            merged[key] = value;
-          } else {
-            merged[key] = {
-              ...(merged[key] as Record<string, unknown> | undefined),
-              ...(value as Record<string, unknown>),
-            };
-          }
-        }
-        return makeActorBuilder(actorName, {
+      const existing =
+        (actorScope.actions as Record<string, unknown> | undefined) ?? {};
+      return makeActorBuilder(
+        actorName,
+        {
           ...actorScope,
-          actions: merged,
-        });
-      }
-      return makeActorBuilder(actorName, actorScope);
+          actions: mergeActions(existing, incoming),
+        },
+        pendingPlugins,
+      );
     },
 
     // Fluent `.on()` — delegates to a lazily-created Behavior so callers
@@ -797,7 +821,14 @@ function makeActorBuilder(
     },
 
     [actorName]: (_trait?: unknown) =>
-      createBehavior(actorName, { ...builtInEventScope, ...actorScope }),
+      createBehavior(
+        actorName,
+        { ...builtInEventScope, ...actorScope },
+        async () => ({
+          ...builtInEventScope,
+          ...(await resolveActorScope()),
+        }),
+      ),
   };
 }
 
