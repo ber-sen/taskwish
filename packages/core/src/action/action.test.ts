@@ -557,7 +557,7 @@ describe("Action", () => {
         const result = await this.actions.notifier.notify({
           message: this.input.name,
         });
-        
+
         return `Hello, ${result}`;
       });
 
@@ -573,11 +573,13 @@ describe("Action", () => {
       });
 
     const { greet } = Action("greet")
-      .use(Promise.resolve({
-        notify,
-        helper: () => "ignored",
-        version: "1.0.0",
-      }))
+      .use(
+        Promise.resolve({
+          notify,
+          helper: () => "ignored",
+          version: "1.0.0",
+        }),
+      )
 
       .input({ name: "string" })
 
@@ -601,6 +603,59 @@ describe("Action", () => {
       });
 
     expect(await greet({ name: "World" })).toEqual("sent: World");
+  });
+
+  test("meta options can use an injected conversationsList action for Slack.postMessage", async () => {
+    const channels = [
+      { id: "C123", name: "general" },
+      { id: "C456", name: "engineering" },
+    ];
+
+    const { conversationsList } = Action("conversationsList").run(function () {
+      return { ok: true, channels };
+    });
+
+    const { postMessage } = Action("postMessage")
+      .use(conversationsList)
+
+      .input({ channel: "string", text: "string" })
+
+      .meta({
+        description: "Post a message to a Slack channel",
+        input: {
+          channel: {
+            description: "Channel receiving the message",
+            example: "#general",
+            options: "conversationsList",
+          },
+          text: {
+            description: "Message text",
+            example: "Deploy completed",
+          },
+        },
+      })
+
+      .run(async function () {
+        const response = await this.actions.conversationsList();
+        const selected = response.channels.find(
+          (item) => item.id === this.input.channel,
+        );
+
+        return {
+          channel: selected,
+          text: this.input.text,
+        };
+      });
+
+    const meta = postMessage[TW.Meta];
+    expect(meta.description).toEqual("Post a message to a Slack channel");
+    expect(meta.input.channel.options).toEqual("conversationsList");
+    expect(
+      await postMessage({ channel: "C456", text: "Deploy completed" }),
+    ).toEqual({
+      channel: { id: "C456", name: "engineering" },
+      text: "Deploy completed",
+    });
   });
 
   test("async generator — stream yields each value", async () => {

@@ -9,6 +9,7 @@ import {
   ExtractActionName,
   AddActionsToCtx,
   InferTriggerScope,
+  DeepWriteable
 } from "./helpers";
 import { TW } from "./core";
 import { dispatch, type ConsoleLike, type LoggerConfig } from "./use";
@@ -70,7 +71,7 @@ interface HttpBody<
   };
 }
 
-type DeepWriteable<T> = { -readonly [P in keyof T]: DeepWriteable<T[P]> } & {};
+
 
 // ── Trait method implementation ───────────────────────────────────────────────
 
@@ -228,8 +229,21 @@ interface CommandBody<
   Schema,
   Scope extends Record<any, any>,
   Service extends string,
+  Meta = {},
 > {
   use(): this;
+  meta<const NextMeta extends Record<string, unknown>>(
+    meta: NextMeta,
+  ): CommandBody<
+    CmdName,
+    FlatIn,
+    Method,
+    Path,
+    Schema,
+    Scope,
+    Service,
+    NextMeta
+  >;
   run<
     const H extends (this: TW.Scope<Pretty<{ input: FlatIn } & Scope>>) => any,
   >(
@@ -239,7 +253,13 @@ interface CommandBody<
     [key in CmdName]: TW.Action<
       `${Service}.${CmdName}`,
       (input: FlatIn) => Promise<Awaited<ReturnType<H>>>,
-      { route: [Method, Path, DeepWriteable<Schema>] }
+      {
+        route: [
+          Method,
+          Path,
+          Pretty<DeepWriteable<Schema> & DeepWriteable<Meta>>,
+        ];
+      }
     >;
   };
 }
@@ -511,6 +531,7 @@ function createBehavior(
 
       const eventName = `${actorName}.${actionName}`;
       const mod = makeBehaviorMod(behavior, config, schema, initialScope);
+      let actionMeta: Record<string, unknown> | null = null;
 
       function createAction(inputMode: "first" | "args", handlers: unknown[]) {
         async function consume(...args: unknown[]) {
@@ -548,13 +569,23 @@ function createBehavior(
           [actionName]: Object.assign(consume, {
             [TW.Name]: eventName,
             stream,
-            ...(traitMeta !== null ? { [TW.Meta]: { trait: traitMeta } } : {}),
+            [TW.Meta]:
+              traitMeta !== null || actionMeta !== null
+                ? {
+                    ...(traitMeta !== null ? { trait: traitMeta } : {}),
+                    ...(actionMeta ?? {}),
+                  }
+                : null,
           }),
         };
       }
 
       const makeBody = (inputMode: "first" | "args") => ({
         use() {
+          return this;
+        },
+        meta(meta: Record<string, unknown>) {
+          actionMeta = meta;
           return this;
         },
         run(...handlers: unknown[]) {
@@ -572,6 +603,10 @@ function createBehavior(
         use() {
           return this;
         },
+        meta(meta: Record<string, unknown>) {
+          actionMeta = meta;
+          return this;
+        },
         run(...handlers: unknown[]) {
           return createAction("first", handlers);
         },
@@ -581,8 +616,13 @@ function createBehavior(
         return {
           ...base,
           command(cmdName: string) {
+            let commandMeta: Record<string, unknown> = {};
             return {
               use() {
+                return this;
+              },
+              meta(meta: Record<string, unknown>) {
+                commandMeta = meta;
                 return this;
               },
               run(...handlers: unknown[]) {
@@ -652,6 +692,17 @@ function createBehavior(
 
                 return {
                   [cmdName]: Object.assign(cmdConsume, {
+                    [TW.Name]: qualifiedCmdName,
+                    [TW.Meta]: {
+                      route: [
+                        behavior,
+                        config,
+                        {
+                          ...(schema as Record<string, unknown>),
+                          ...commandMeta,
+                        },
+                      ],
+                    },
                     stream: cmdStream,
                     fetch: Object.assign(fetchFn, { stream: fetchStream }),
                   }),

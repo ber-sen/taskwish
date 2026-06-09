@@ -1,5 +1,5 @@
 import { TW } from "../core";
-import { FindInferTypeFilter, ResolveLast } from "../helpers";
+import { DeepWriteable, FindInferTypeFilter, ResolveLast } from "../helpers";
 import { ResultKind, ApplyResult } from "./hkt";
 
 export const SubSteps = Symbol.for("SubSteps");
@@ -58,7 +58,8 @@ type RegularAction<Ctx extends Record<any, any>, Last> = {
             : "steps" extends keyof Last
               ? Last["steps"]
               : Last
-        >
+        >,
+    "meta" extends keyof Ctx ? DeepWriteable<Ctx["meta"]> : null
   >;
 };
 

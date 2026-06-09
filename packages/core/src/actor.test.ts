@@ -360,6 +360,20 @@ describe("Actor", () => {
 
       .command("getInvoices")
 
+      .meta({
+        description: "Get an invoice by id",
+        input: {
+          id: {
+            description: "Invoice identifier",
+            example: "inv-42",
+          },
+          page: {
+            description: "Result page",
+            example: "2",
+          },
+        },
+      })
+
       .run(function () {
         return `id=${this.input.id} page=${this.input.page}`;
       });
@@ -381,6 +395,17 @@ describe("Actor", () => {
                 query: {
                   page: "string";
                 };
+                description: "Get an invoice by id";
+                input: {
+                  id: {
+                    description: "Invoice identifier";
+                    example: "inv-42";
+                  };
+                  page: {
+                    description: "Result page";
+                    example: "2";
+                  };
+                };
               },
             ];
           }
@@ -392,6 +417,27 @@ describe("Actor", () => {
     expect(await getInvoices({ id: "inv-42", page: "2" })).toEqual(
       "id=inv-42 page=2",
     );
+    expect(getInvoices[TW.Meta]).toEqual({
+      route: [
+        "GET",
+        "/invoices/:id",
+        {
+          params: { id: "string" },
+          query: { page: "string" },
+          description: "Get an invoice by id",
+          input: {
+            id: {
+              description: "Invoice identifier",
+              example: "inv-42",
+            },
+            page: {
+              description: "Result page",
+              example: "2",
+            },
+          },
+        },
+      ],
+    });
 
     const directYields: unknown[] = [];
     for await (const v of getInvoices.stream({ id: "inv-42", page: "2" })) {
@@ -752,6 +798,66 @@ describe("Actor", () => {
   });
 
   describe("use(object) — scoped action injection", () => {
+    test("meta options can use an injected conversationsList action for Slack.postMessage", async () => {
+      const channels = [
+        { id: "C123", name: "general" },
+        { id: "C456", name: "engineering" },
+      ];
+
+      const { Slack } = Actor("Slack");
+
+      const { conversationsList } = Slack()
+        .on("Command", "conversationsList")
+
+        .run(function () {
+          return { ok: true, channels };
+        });
+
+      const { postMessage } = Actor("Slack")
+        .use(conversationsList)
+
+        .on("Command", "postMessage")
+
+        .input({ channel: "string", text: "string" })
+
+        .meta({
+          description: "Post a message to a Slack channel",
+          input: {
+            channel: {
+              description: "Channel receiving the message",
+              example: "#general",
+              options: "Slack.conversationsList",
+            },
+            text: {
+              description: "Message text",
+              example: "Deploy completed",
+            },
+          },
+        })
+
+        .run(async function () {
+          const response = await this.actions.slack.conversationsList();
+          const selected = response.channels.find(
+            (item) => item.id === this.input.channel,
+          );
+
+          return {
+            channel: selected,
+            text: this.input.text,
+          };
+        });
+
+      const meta = postMessage[TW.Meta];
+      expect(meta.description).toEqual("Post a message to a Slack channel");
+      expect(meta.input.channel.options).toEqual("Slack.conversationsList");
+      expect(
+        await postMessage({ channel: "C456", text: "Deploy completed" }),
+      ).toEqual({
+        channel: { id: "C456", name: "engineering" },
+        text: "Deploy completed",
+      });
+    });
+
     test("groups TW.Actions by service name under this.actions.<service>.<method>", async () => {
       // ── build a real TW.Action from a service actor ───────────────────────
       const { Notifier } = Actor("Notifier");

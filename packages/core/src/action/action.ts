@@ -6,6 +6,7 @@ import {
   Pretty,
   CamelCase,
   AddActionsToCtx,
+  DeepWriteable,
 } from "../helpers";
 import type { Steps, ActionResultKind } from "../steps";
 import { TW } from "../core";
@@ -26,6 +27,29 @@ type AppendPlugin<Ctx extends Record<any, any>, Plugin> = {
   plugins: Append<Ctx["plugins"], Plugin>;
 };
 
+type WithMeta<Ctx extends Record<any, any>, Meta> = Omit<Ctx, "meta"> & {
+  meta: Meta;
+};
+
+type ActionMeta<Ctx extends Record<any, any>> = {
+  description?: string;
+  input?: {
+    [K in keyof (Ctx["scope"] extends { input: infer Input } ? Input : {})]?:
+      | string
+      | {
+          description?: string;
+          example?: unknown;
+          options?:
+            | string
+            | ((
+                actions: Ctx["scope"] extends { actions: infer Actions }
+                  ? Actions
+                  : {},
+              ) => unknown);
+        };
+  };
+};
+
 type ActionBody<
   Name extends string,
   Ctx extends Record<any, any>,
@@ -36,9 +60,10 @@ type ActionBody<
   use<const F extends string | undefined>(
     config: InferTypeConfig<F>,
   ): ActionBody<Name, AppendPlugin<Ctx, InferTypeConfig<F>>>;
-  use<const U>(
-    plugin: U,
-  ): ActionBody<Name, AddActionsToCtx<Ctx, U>>;
+  use<const U>(plugin: U): ActionBody<Name, AddActionsToCtx<Ctx, U>>;
+  meta<const Meta extends ActionMeta<Ctx>>(
+    meta: Meta,
+  ): ActionBody<Name, WithMeta<Ctx, Meta>>;
   run: Steps<Ctx, ActionResultKind>;
 };
 
@@ -56,6 +81,9 @@ type SignatureBody<
   use<const U>(
     plugin: U,
   ): SignatureBody<Name, AddActionsToCtx<Ctx, U>, Signature>;
+  meta<const Meta extends ActionMeta<Ctx>>(
+    meta: Meta,
+  ): SignatureBody<Name, WithMeta<Ctx, Meta>, Signature>;
   run<
     const Handler extends (
       this: TW.Scope<
@@ -81,18 +109,16 @@ type SignatureBody<
   ): {
     [key in Name]: Signature extends (...args: any) => any
       ? TW.Action<
-          "service" extends keyof Ctx
-            ? `${Ctx["service"]}.${Name}`
-            : Name,
-          Signature
+          "service" extends keyof Ctx ? `${Ctx["service"]}.${Name}` : Name,
+          Signature,
+          "meta" extends keyof Ctx ? DeepWriteable<Ctx["meta"]> : null
         >
       : Signature extends TW.Handler
         ? TW.Action<
-            "service" extends keyof Ctx
-              ? `${Ctx["service"]}.${Name}`
-              : Name,
+            "service" extends keyof Ctx ? `${Ctx["service"]}.${Name}` : Name,
             Apply<Signature, Ctx>,
-            Record<"handler", Signature>
+            ("meta" extends keyof Ctx ? DeepWriteable<Ctx["meta"]> : {}) &
+              Record<"handler", Signature>
           >
         : never;
   };
@@ -142,9 +168,10 @@ export interface ActionFactory<
   use<const F extends string | undefined>(
     config: InferTypeConfig<F>,
   ): ActionFactory<Name, AppendPlugin<Ctx, InferTypeConfig<F>>>;
-  use<const U>(
-    plugin: U,
-  ): ActionFactory<Name, AddActionsToCtx<Ctx, U>>;
+  use<const U>(plugin: U): ActionFactory<Name, AddActionsToCtx<Ctx, U>>;
+  meta<const Meta extends ActionMeta<Ctx>>(
+    meta: Meta,
+  ): ActionFactory<Name, WithMeta<Ctx, Meta>>;
   sig<
     const Schema extends ((...args: any) => any) | TW.Handler,
   >(): SignatureBody<Name, Ctx, Schema>;
@@ -164,6 +191,7 @@ export interface ActionFactory<
           };
           steps: [];
           plugins: Ctx["plugins"];
+          meta: "meta" extends keyof Ctx ? Ctx["meta"] : null;
         }
       >;
   run: Steps<Ctx, ActionResultKind>;
@@ -724,6 +752,7 @@ export function Action<const Name extends string>(
   let inferTypeFilter: string | undefined = undefined;
   const injectedActions: Record<string, unknown> = {};
   const pendingPlugins: Promise<void>[] = [];
+  let actionMeta: unknown = null;
 
   function tap<G extends AsyncGenerator<unknown, unknown>>(gen: G): G {
     return tapWith(gen, dispatch(logger)) as G;
@@ -841,7 +870,11 @@ export function Action<const Name extends string>(
 
     async function* rawStream(...args: unknown[]) {
       const extra = await buildExtra();
-      yield* runAction(actionName, buildScope(inputMode, args, extra), handlers);
+      yield* runAction(
+        actionName,
+        buildScope(inputMode, args, extra),
+        handlers,
+      );
     }
 
     function stream(...args: unknown[]) {
@@ -849,13 +882,21 @@ export function Action<const Name extends string>(
     }
 
     return {
-      [actionName]: Object.assign(consume, { [TW.Name]: actionName, stream }),
+      [actionName]: Object.assign(consume, {
+        [TW.Name]: actionName,
+        [TW.Meta]: actionMeta,
+        stream,
+      }),
     };
   }
 
   const makeBody = (inputMode: "first" | "args") => ({
     use(config: unknown) {
       usePlugin(config);
+      return this;
+    },
+    meta(meta: unknown) {
+      actionMeta = meta;
       return this;
     },
     run(...handlers: unknown[]) {
@@ -872,6 +913,10 @@ export function Action<const Name extends string>(
     },
     use(config: unknown) {
       usePlugin(config);
+      return this;
+    },
+    meta(meta: unknown) {
+      actionMeta = meta;
       return this;
     },
     run(...handlers: unknown[]) {
