@@ -611,9 +611,18 @@ describe("Action", () => {
       { id: "C456", name: "engineering" },
     ];
 
-    const { conversationsList } = Action("conversationsList").run(function () {
-      return { ok: true, channels };
-    });
+    const { conversationsList } = Action("conversationsList")
+      .input({ types: "string" })
+
+      .run(function () {
+        return {
+          ok: true,
+          channels:
+            this.input.types === "public_channel"
+              ? channels
+              : channels.slice(1),
+        };
+      });
 
     const { postMessage } = Action("postMessage")
       .use(conversationsList)
@@ -626,10 +635,11 @@ describe("Action", () => {
           channel: {
             description: "Channel receiving the message",
             example: "#general",
-            options: ({ conversationsList }) =>
-              conversationsList().then((results) =>
-                results.channels.map((item) => item.name),
-              ),
+            options: [
+              "conversationsList",
+              "$.channels[*].name",
+              { types: "public_channel" },
+            ],
           },
           text: {
             description: "Message text",
@@ -639,7 +649,9 @@ describe("Action", () => {
       })
 
       .run(async function () {
-        const response = await this.actions.conversationsList();
+        const response = await this.actions.conversationsList({
+          types: "public_channel",
+        });
         const selected = response.channels.find(
           (item) => item.id === this.input.channel,
         );
@@ -652,7 +664,11 @@ describe("Action", () => {
 
     const meta = postMessage[TW.Meta];
     expect(meta.description).toEqual("Post a message to a Slack channel");
-    expect(meta.input.channel.options).toEqual("conversationsList");
+    expect(meta.input.channel.options).toEqual([
+      "conversationsList",
+      "$.channels[*].name",
+      { types: "public_channel" },
+    ]);
     expect(
       await postMessage({ channel: "C456", text: "Deploy completed" }),
     ).toEqual({

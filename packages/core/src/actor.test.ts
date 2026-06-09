@@ -810,7 +810,10 @@ describe("Actor", () => {
         .on("Command", "conversationsList")
 
         .run(function () {
-          return { ok: true, channels };
+          return {
+            ok: true,
+            channels: channels,
+          };
         });
 
       const { postMessage } = Actor("Slack")
@@ -826,10 +829,7 @@ describe("Actor", () => {
             channel: {
               description: "Channel receiving the message",
               example: "#general",
-              options: ({ slack }) =>
-                slack.conversationsList().then((results) =>
-                  results.channels.map((item) => item.name),
-                ),
+              options: ["slack.conversationsList", "$.channels[*].name"],
             },
             text: {
               description: "Message text",
@@ -852,7 +852,10 @@ describe("Actor", () => {
 
       const meta = postMessage[TW.Meta];
       expect(meta.description).toEqual("Post a message to a Slack channel");
-      expect(meta.input.channel.options).toEqual("Slack.conversationsList");
+      expect(meta.input.channel.options).toEqual([
+        "slack.conversationsList",
+        "$.channels[*].name",
+      ]);
       expect(
         await postMessage({ channel: "C456", text: "Deploy completed" }),
       ).toEqual({
