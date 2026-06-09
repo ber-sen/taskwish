@@ -17,10 +17,7 @@ import {
   type LoggerConfig,
   type InferTypeConfig,
 } from "../use";
-export type {
-  ActionMeta,
-  ValidateActionMeta,
-} from "./meta";
+import { ActionMeta, ValidateActionMeta } from "./meta";
 
 type AppendPlugin<Ctx extends Record<any, any>, Plugin> = {
   name: Ctx["name"];
@@ -45,24 +42,28 @@ type ActionBody<
   run: Steps<Ctx, ActionResultKind>;
 };
 
-type SignatureInput<Signature, Ctx extends Record<any, any>> =
-  Signature extends (...args: any) => any
-    ? Parameters<Signature>
-    : Signature extends TW.Handler
-      ? Parameters<Apply<Signature, Ctx>>
-      : never;
-
-type SignatureOutput<Signature, Ctx extends Record<any, any>> =
-  Signature extends (...args: any) => any
-    ? Awaited<ReturnType<Signature>>
-    : Signature extends TW.Handler
-      ? Awaited<ReturnType<Apply<Signature, Ctx>>>
-      : never;
-
-type SignatureMetaContext<
+type SignatureInput<
   Signature,
   Ctx extends Record<any, any>,
-> = Omit<Ctx, "scope"> & {
+> = Signature extends (...args: any) => any
+  ? Parameters<Signature>
+  : Signature extends TW.Handler
+    ? Parameters<Apply<Signature, Ctx>>
+    : never;
+
+type SignatureOutput<
+  Signature,
+  Ctx extends Record<any, any>,
+> = Signature extends (...args: any) => any
+  ? Awaited<ReturnType<Signature>>
+  : Signature extends TW.Handler
+    ? Awaited<ReturnType<Apply<Signature, Ctx>>>
+    : never;
+
+type SignatureMetaContext<Signature, Ctx extends Record<any, any>> = Omit<
+  Ctx,
+  "scope"
+> & {
   scope: Pretty<Record<"input", SignatureInput<Signature, Ctx>> & Ctx["scope"]>;
 };
 
@@ -89,12 +90,12 @@ type SignatureResult<
       : never;
 } & {
   meta<
-    const NextMeta extends import("./meta").ActionMeta<
+    const NextMeta extends ActionMeta<
       SignatureMetaContext<Signature, Ctx>,
       SignatureOutput<Signature, Ctx>
     >,
   >(
-    meta: import("./meta").ValidateActionMeta<
+    meta: ValidateActionMeta<
       NextMeta,
       SignatureMetaContext<Signature, Ctx>,
       SignatureOutput<Signature, Ctx>
