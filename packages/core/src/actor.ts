@@ -4,6 +4,7 @@ import {
   tapWith,
   type ActionFactory,
   type ActionMeta,
+  type ValidateActionMeta,
 } from "./action";
 import { Event } from "./event";
 import {
@@ -243,7 +244,12 @@ interface CommandBody<
       scope: Pretty<{ input: FlatIn } & Scope>;
     }>,
   >(
-    meta: NextMeta,
+    meta: ValidateActionMeta<
+      NextMeta,
+      {
+        scope: Pretty<{ input: FlatIn } & Scope>;
+      }
+    >,
   ): CommandBody<
     CmdName,
     FlatIn,

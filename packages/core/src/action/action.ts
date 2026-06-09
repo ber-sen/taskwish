@@ -86,7 +86,7 @@ type JsonPath<Value, Option> = {
     : Path;
 }[CompatibleJsonPaths<Value, Option>];
 
-type ActionOptionsObject<
+type ActionSuggestionsObject<
   Name extends string,
   Action extends (...args: any[]) => any,
   Option,
@@ -99,17 +99,17 @@ type ActionOptionsObject<
     ? Parameter
     : never);
 
-type ActionOptionsReference<Actions, Option> = {
+type ActionSuggestionsReference<Actions, Option> = {
   [Name in keyof Actions & string]: Actions[Name] extends (
     ...args: any[]
   ) => any
-    ? ActionOptionsObject<Name, Actions[Name], Option>
+    ? ActionSuggestionsObject<Name, Actions[Name], Option>
     : Actions[Name] extends Record<string, unknown>
       ? {
           [Method in keyof Actions[Name] & string]: Actions[Name][Method] extends (
             ...args: any[]
           ) => any
-            ? ActionOptionsObject<
+            ? ActionSuggestionsObject<
                 `${Name}.${Method}`,
                 Actions[Name][Method],
                 Option
@@ -133,12 +133,27 @@ export type ActionMeta<Ctx extends Record<any, any>> = {
       | {
           description?: string;
           example?: unknown;
-          options?: ActionOptionsReference<
+          suggestions?: ActionSuggestionsReference<
             Ctx["scope"] extends { actions: infer Actions } ? Actions : {},
             ActionInput<Ctx>[K]
           >;
         };
   };
+};
+
+export type ValidateActionMeta<
+  Meta extends ActionMeta<Ctx>,
+  Ctx extends Record<any, any>,
+> = {
+  [K in keyof Meta]: K extends "input"
+    ? Meta[K] extends Record<PropertyKey, unknown>
+      ? {
+          [InputKey in keyof Meta[K]]: InputKey extends keyof ActionInput<Ctx>
+            ? Meta[K][InputKey]
+            : `Unexpected input key "${InputKey & string}"`;
+        }
+      : Meta[K]
+    : Meta[K];
 };
 
 type ActionBody<
@@ -153,7 +168,7 @@ type ActionBody<
   ): ActionBody<Name, AppendPlugin<Ctx, InferTypeConfig<F>>>;
   use<const U>(plugin: U): ActionBody<Name, AddActionsToCtx<Ctx, U>>;
   meta<const Meta extends ActionMeta<Ctx>>(
-    meta: Meta,
+    meta: ValidateActionMeta<Meta, Ctx>,
   ): ActionBody<Name, WithMeta<Ctx, Meta>>;
   run: Steps<Ctx, ActionResultKind>;
 };
@@ -173,7 +188,7 @@ type SignatureBody<
     plugin: U,
   ): SignatureBody<Name, AddActionsToCtx<Ctx, U>, Signature>;
   meta<const Meta extends ActionMeta<Ctx>>(
-    meta: Meta,
+    meta: ValidateActionMeta<Meta, Ctx>,
   ): SignatureBody<Name, WithMeta<Ctx, Meta>, Signature>;
   run<
     const Handler extends (
@@ -261,7 +276,7 @@ export interface ActionFactory<
   ): ActionFactory<Name, AppendPlugin<Ctx, InferTypeConfig<F>>>;
   use<const U>(plugin: U): ActionFactory<Name, AddActionsToCtx<Ctx, U>>;
   meta<const Meta extends ActionMeta<Ctx>>(
-    meta: Meta,
+    meta: ValidateActionMeta<Meta, Ctx>,
   ): ActionFactory<Name, WithMeta<Ctx, Meta>>;
   sig<
     const Schema extends ((...args: any) => any) | TW.Handler,

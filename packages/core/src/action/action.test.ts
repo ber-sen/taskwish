@@ -635,7 +635,7 @@ describe("Action", () => {
           channel: {
             description: "Channel receiving the message",
             example: "#general",
-            options: {
+            suggestions: {
               $: "conversationsList",
               "=": "$.channels[*].name",
               types: "public_channel",
@@ -662,9 +662,19 @@ describe("Action", () => {
         };
       });
 
+    Action("invalidMeta")
+      .input({ channel: "string", text: "string" })
+
+      .meta({
+        input: {
+          // @ts-expect-error metadata input keys must exist in the action scope input
+          missing: "Not an action input",
+        },
+      });
+
     const meta = postMessage[TW.Meta];
     expect(meta.description).toEqual("Post a message to a Slack channel");
-    expect(meta.input.channel.options).toEqual({
+    expect(meta.input.channel.suggestions).toEqual({
       $: "conversationsList",
       "=": "$.channels[*].name",
       types: "public_channel",

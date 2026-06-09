@@ -849,7 +849,7 @@ describe("Actor", () => {
             channel: {
               description: "Channel receiving the message",
               example: "#general",
-              options: {
+              suggestions: {
                 $: "slack.conversationsList",
                 "=": "$.channels[*].name",
                 types: "public_channel",
@@ -878,7 +878,7 @@ describe("Actor", () => {
 
       const meta = postMessage[TW.Meta];
       expect(meta.description).toEqual("Post a message to a Slack channel");
-      expect(meta.input.channel.options).toEqual({
+      expect(meta.input.channel.suggestions).toEqual({
         $: "slack.conversationsList",
         "=": "$.channels[*].name",
         types: "public_channel",
