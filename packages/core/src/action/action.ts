@@ -125,7 +125,7 @@ type ActionInput<Ctx extends Record<any, any>> = Ctx["scope"] extends {
   ? Input
   : {};
 
-type ActionMeta<Ctx extends Record<any, any>> = {
+export type ActionMeta<Ctx extends Record<any, any>> = {
   description?: string;
   input?: {
     [K in keyof ActionInput<Ctx>]?:

@@ -1,4 +1,10 @@
-import { buildScope, runAction, tapWith, type ActionFactory } from "./action";
+import {
+  buildScope,
+  runAction,
+  tapWith,
+  type ActionFactory,
+  type ActionMeta,
+} from "./action";
 import { Event } from "./event";
 import {
   CamelCase,
@@ -232,7 +238,11 @@ interface CommandBody<
   Meta = {},
 > {
   use(): this;
-  meta<const NextMeta extends Record<string, unknown>>(
+  meta<
+    const NextMeta extends ActionMeta<{
+      scope: Pretty<{ input: FlatIn } & Scope>;
+    }>,
+  >(
     meta: NextMeta,
   ): CommandBody<
     CmdName,

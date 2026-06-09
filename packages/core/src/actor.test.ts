@@ -378,6 +378,21 @@ describe("Actor", () => {
         return `id=${this.input.id} page=${this.input.page}`;
       });
 
+    InvoiceProvider()
+      .on("GET", "/invoices/:id", {
+        params: { id: "string" },
+        query: { page: "string" },
+      })
+      
+      .command("invalidMeta")
+      
+      .meta({
+        input: {
+          // @ts-expect-error metadata input keys must exist in the command scope input
+          missing: "Not a command input",
+        },
+      });
+
     type T = typeof getInvoices;
     type check = Expect<
       Equal<
