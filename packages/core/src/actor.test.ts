@@ -360,6 +360,13 @@ describe("Actor", () => {
 
       .command("getInvoices")
 
+      .run(function () {
+        return {
+          id: this.input.id,
+          page: this.input.page,
+        };
+      })
+
       .meta({
         description: "Get an invoice by id",
         input: {
@@ -372,10 +379,10 @@ describe("Actor", () => {
             example: "2",
           },
         },
-      })
-
-      .run(function () {
-        return `id=${this.input.id} page=${this.input.page}`;
+        output: {
+          id: "Invoice identifier",
+          page: "Result page",
+        },
       });
 
     InvoiceProvider()
@@ -383,9 +390,13 @@ describe("Actor", () => {
         params: { id: "string" },
         query: { page: "string" },
       })
-      
+
       .command("invalidMeta")
-      
+
+      .run(function () {
+        return { ok: true };
+      })
+
       .meta({
         input: {
           // @ts-expect-error metadata input keys must exist in the command scope input
@@ -398,7 +409,10 @@ describe("Actor", () => {
       Equal<
         TW.Action<
           "InvoiceProvider.getInvoices",
-          (input: { id: string; page: string }) => Promise<string>,
+          (input: { id: string; page: string }) => Promise<{
+            id: string;
+            page: string;
+          }>,
           {
             route: [
               "GET",
@@ -421,6 +435,10 @@ describe("Actor", () => {
                     example: "2";
                   };
                 };
+                output: {
+                  id: "Invoice identifier";
+                  page: "Result page";
+                };
               },
             ];
           }
@@ -429,9 +447,10 @@ describe("Actor", () => {
       >
     >;
 
-    expect(await getInvoices({ id: "inv-42", page: "2" })).toEqual(
-      "id=inv-42 page=2",
-    );
+    expect(await getInvoices({ id: "inv-42", page: "2" })).toEqual({
+      id: "inv-42",
+      page: "2",
+    });
     expect(getInvoices[TW.Meta]).toEqual({
       route: [
         "GET",
@@ -450,6 +469,10 @@ describe("Actor", () => {
               example: "2",
             },
           },
+          output: {
+            id: "Invoice identifier",
+            page: "Result page",
+          },
         },
       ],
     });
@@ -463,7 +486,10 @@ describe("Actor", () => {
         ">": "InvoiceProvider.getInvoices",
         input: { id: "inv-42", page: "2" },
       },
-      { ">": "InvoiceProvider.getInvoices", result: "id=inv-42 page=2" },
+      {
+        ">": "InvoiceProvider.getInvoices",
+        result: { id: "inv-42", page: "2" },
+      },
     ]);
 
     const fetchYields: any[] = [];
@@ -487,16 +513,19 @@ describe("Actor", () => {
         ">": "InvoiceProvider.getInvoices",
         input: { id: "inv-42", page: "2" },
       },
-      { ">": "InvoiceProvider.getInvoices", result: "id=inv-42 page=2" },
+      {
+        ">": "InvoiceProvider.getInvoices",
+        result: { id: "inv-42", page: "2" },
+      },
       { ">": "InvoiceProvider.GET", result: expect.any(Response) },
     ]);
-    expect(fetchStreamJson).toEqual("id=inv-42 page=2");
+    expect(JSON.parse(fetchStreamJson)).toEqual({ id: "inv-42", page: "2" });
 
     const response = await getInvoices.fetch(
       new Request("http://localhost/invoices/inv-42?page=2"),
     );
     expect(response).toBeInstanceOf(Response);
-    expect(await response.text()).toEqual("id=inv-42 page=2");
+    expect(await response.json()).toEqual({ id: "inv-42", page: "2" });
   });
 
   test("fetch — object result serialized as application/json", async () => {
@@ -843,6 +872,20 @@ describe("Actor", () => {
 
         .input({ channel: "string", text: "string" })
 
+        .run(async function () {
+          const response = await this.actions.slack.conversationsList({
+            types: "public_channel",
+          });
+          const selected = response.channels.find(
+            (item) => item.id === this.input.channel,
+          );
+
+          return {
+            channel: selected,
+            text: this.input.text,
+          };
+        })
+
         .meta({
           description: "Post a message to a Slack channel",
           input: {
@@ -860,20 +903,6 @@ describe("Actor", () => {
               example: "Deploy completed",
             },
           },
-        })
-
-        .run(async function () {
-          const response = await this.actions.slack.conversationsList({
-            types: "public_channel",
-          });
-          const selected = response.channels.find(
-            (item) => item.id === this.input.channel,
-          );
-
-          return {
-            channel: selected,
-            text: this.input.text,
-          };
         });
 
       const meta = postMessage[TW.Meta];

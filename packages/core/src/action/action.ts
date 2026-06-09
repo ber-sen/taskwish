@@ -9,7 +9,6 @@ import {
   DeepWriteable,
 } from "../helpers";
 import type { Steps, ActionResultKind } from "../steps";
-import type { Parse } from "jsonpath-ts";
 import { TW } from "../core";
 import {
   dispatch,
@@ -18,6 +17,10 @@ import {
   type LoggerConfig,
   type InferTypeConfig,
 } from "../use";
+export type {
+  ActionMeta,
+  ValidateActionMeta,
+} from "./meta";
 
 type AppendPlugin<Ctx extends Record<any, any>, Plugin> = {
   name: Ctx["name"];
@@ -26,134 +29,6 @@ type AppendPlugin<Ctx extends Record<any, any>, Plugin> = {
   scope: Ctx["scope"];
   last: Ctx["last"];
   plugins: Append<Ctx["plugins"], Plugin>;
-};
-
-type WithMeta<Ctx extends Record<any, any>, Meta> = Omit<Ctx, "meta"> & {
-  meta: Meta;
-};
-
-type CompatibleJsonPaths<
-  Value,
-  Option,
-  Prefix extends string = "$",
-  Multiple extends boolean = false,
-  Depth extends unknown[] = [],
-> = Depth["length"] extends 6
-  ? never
-  :
-      | (Multiple extends true
-          ? Value extends Option
-            ? Prefix
-            : never
-          : Value extends readonly (infer Item)[]
-            ? Item extends Option
-              ? Prefix
-              : never
-            : never)
-      | (Value extends readonly (infer Item)[]
-          ?
-              | CompatibleJsonPaths<
-                  Item,
-                  Option,
-                  `${Prefix}[*]`,
-                  true,
-                  [...Depth, unknown]
-                >
-              | CompatibleJsonPaths<
-                  Item,
-                  Option,
-                  `${Prefix}[${number}]`,
-                  Multiple,
-                  [...Depth, unknown]
-                >
-          : Value extends object
-            ? {
-                [Key in keyof Value & string]: CompatibleJsonPaths<
-                  Value[Key],
-                  Option,
-                  `${Prefix}.${Key}`,
-                  Multiple,
-                  [...Depth, unknown]
-                >;
-              }[keyof Value & string]
-            : never);
-
-type JsonPath<Value, Option> = {
-  [Path in CompatibleJsonPaths<Value, Option>]: [
-    Parse<Path & `$${string}`, Value>,
-  ] extends [never]
-    ? never
-    : Path;
-}[CompatibleJsonPaths<Value, Option>];
-
-type ActionSuggestionsObject<
-  Name extends string,
-  Action extends (...args: any[]) => any,
-  Option,
-> = {
-  $: Name;
-  "=": JsonPath<Awaited<ReturnType<Action>>, Option>;
-} & (Parameters<Action> extends []
-  ? {}
-  : Parameters<Action> extends [infer Parameter extends object]
-    ? Parameter
-    : never);
-
-type ActionSuggestionsReference<Actions, Option> = {
-  [Name in keyof Actions & string]: Actions[Name] extends (
-    ...args: any[]
-  ) => any
-    ? ActionSuggestionsObject<Name, Actions[Name], Option>
-    : Actions[Name] extends Record<string, unknown>
-      ? {
-          [Method in keyof Actions[Name] & string]: Actions[Name][Method] extends (
-            ...args: any[]
-          ) => any
-            ? ActionSuggestionsObject<
-                `${Name}.${Method}`,
-                Actions[Name][Method],
-                Option
-              >
-            : never;
-        }[keyof Actions[Name] & string]
-      : never;
-}[keyof Actions & string];
-
-type ActionInput<Ctx extends Record<any, any>> = Ctx["scope"] extends {
-  input: infer Input;
-}
-  ? Input
-  : {};
-
-export type ActionMeta<Ctx extends Record<any, any>> = {
-  description?: string;
-  input?: {
-    [K in keyof ActionInput<Ctx>]?:
-      | string
-      | {
-          description?: string;
-          example?: unknown;
-          suggestions?: ActionSuggestionsReference<
-            Ctx["scope"] extends { actions: infer Actions } ? Actions : {},
-            ActionInput<Ctx>[K]
-          >;
-        };
-  };
-};
-
-export type ValidateActionMeta<
-  Meta extends ActionMeta<Ctx>,
-  Ctx extends Record<any, any>,
-> = {
-  [K in keyof Meta]: K extends "input"
-    ? Meta[K] extends Record<PropertyKey, unknown>
-      ? {
-          [InputKey in keyof Meta[K]]: InputKey extends keyof ActionInput<Ctx>
-            ? Meta[K][InputKey]
-            : `Unexpected input key "${InputKey & string}"`;
-        }
-      : Meta[K]
-    : Meta[K];
 };
 
 type ActionBody<
@@ -167,10 +42,64 @@ type ActionBody<
     config: InferTypeConfig<F>,
   ): ActionBody<Name, AppendPlugin<Ctx, InferTypeConfig<F>>>;
   use<const U>(plugin: U): ActionBody<Name, AddActionsToCtx<Ctx, U>>;
-  meta<const Meta extends ActionMeta<Ctx>>(
-    meta: ValidateActionMeta<Meta, Ctx>,
-  ): ActionBody<Name, WithMeta<Ctx, Meta>>;
   run: Steps<Ctx, ActionResultKind>;
+};
+
+type SignatureInput<Signature, Ctx extends Record<any, any>> =
+  Signature extends (...args: any) => any
+    ? Parameters<Signature>
+    : Signature extends TW.Handler
+      ? Parameters<Apply<Signature, Ctx>>
+      : never;
+
+type SignatureOutput<Signature, Ctx extends Record<any, any>> =
+  Signature extends (...args: any) => any
+    ? Awaited<ReturnType<Signature>>
+    : Signature extends TW.Handler
+      ? Awaited<ReturnType<Apply<Signature, Ctx>>>
+      : never;
+
+type SignatureMetaContext<
+  Signature,
+  Ctx extends Record<any, any>,
+> = Omit<Ctx, "scope"> & {
+  scope: Pretty<Record<"input", SignatureInput<Signature, Ctx>> & Ctx["scope"]>;
+};
+
+type SignatureResult<
+  Name extends string,
+  Ctx extends Record<any, any>,
+  Signature,
+  Meta = null,
+> = {
+  [key in Name]: Signature extends (...args: any) => any
+    ? TW.Action<
+        "service" extends keyof Ctx ? `${Ctx["service"]}.${Name}` : Name,
+        Signature,
+        Meta
+      >
+    : Signature extends TW.Handler
+      ? TW.Action<
+          "service" extends keyof Ctx ? `${Ctx["service"]}.${Name}` : Name,
+          Apply<Signature, Ctx>,
+          Meta extends null
+            ? Record<"handler", Signature>
+            : Meta & Record<"handler", Signature>
+        >
+      : never;
+} & {
+  meta<
+    const NextMeta extends import("./meta").ActionMeta<
+      SignatureMetaContext<Signature, Ctx>,
+      SignatureOutput<Signature, Ctx>
+    >,
+  >(
+    meta: import("./meta").ValidateActionMeta<
+      NextMeta,
+      SignatureMetaContext<Signature, Ctx>,
+      SignatureOutput<Signature, Ctx>
+    >,
+  ): SignatureResult<Name, Ctx, Signature, DeepWriteable<NextMeta>>;
 };
 
 type SignatureBody<
@@ -187,9 +116,6 @@ type SignatureBody<
   use<const U>(
     plugin: U,
   ): SignatureBody<Name, AddActionsToCtx<Ctx, U>, Signature>;
-  meta<const Meta extends ActionMeta<Ctx>>(
-    meta: ValidateActionMeta<Meta, Ctx>,
-  ): SignatureBody<Name, WithMeta<Ctx, Meta>, Signature>;
   run<
     const Handler extends (
       this: TW.Scope<
@@ -212,22 +138,7 @@ type SignatureBody<
         : never,
   >(
     run: Handler,
-  ): {
-    [key in Name]: Signature extends (...args: any) => any
-      ? TW.Action<
-          "service" extends keyof Ctx ? `${Ctx["service"]}.${Name}` : Name,
-          Signature,
-          "meta" extends keyof Ctx ? DeepWriteable<Ctx["meta"]> : null
-        >
-      : Signature extends TW.Handler
-        ? TW.Action<
-            "service" extends keyof Ctx ? `${Ctx["service"]}.${Name}` : Name,
-            Apply<Signature, Ctx>,
-            ("meta" extends keyof Ctx ? DeepWriteable<Ctx["meta"]> : {}) &
-              Record<"handler", Signature>
-          >
-        : never;
-  };
+  ): SignatureResult<Name, Ctx, Signature>;
 };
 
 type StepName = string & {};
@@ -984,22 +895,31 @@ export function Action<const Name extends string>(
       return tap(rawStream(...args));
     }
 
-    return {
-      [actionName]: Object.assign(consume, {
-        [TW.Name]: actionName,
-        [TW.Meta]: actionMeta,
-        stream,
-      }),
+    const action = Object.assign(consume, {
+      [TW.Name]: actionName,
+      [TW.Meta]: actionMeta,
+      stream,
+    });
+    const result = {
+      [actionName]: action,
+      meta(meta: Record<string, unknown>) {
+        actionMeta = {
+          ...(actionMeta !== null && typeof actionMeta === "object"
+            ? actionMeta
+            : {}),
+          ...meta,
+        };
+        action[TW.Meta] = actionMeta;
+        return result;
+      },
     };
+
+    return result;
   }
 
   const makeBody = (inputMode: "first" | "args") => ({
     use(config: unknown) {
       usePlugin(config);
-      return this;
-    },
-    meta(meta: unknown) {
-      actionMeta = meta;
       return this;
     },
     run(...handlers: unknown[]) {

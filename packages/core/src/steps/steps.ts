@@ -1,5 +1,14 @@
 import { TW } from "../core";
-import { DeepWriteable, FindInferTypeFilter, ResolveLast } from "../helpers";
+import {
+  DeepWriteable,
+  FindInferTypeFilter,
+  Pretty,
+  ResolveLast,
+} from "../helpers";
+import type {
+  ActionMeta,
+  ValidateActionMeta,
+} from "../action/meta";
 import { ResultKind, ApplyResult } from "./hkt";
 
 export const SubSteps = Symbol.for("SubSteps");
@@ -27,7 +36,28 @@ type FilterSteps<S extends readonly any[], Filter extends string> = {
  * Used by `Steps<Ctx, ActionResultKind>` — the normal action mode that
  * produces a `TW.Action` callable.
  */
-type RegularAction<Ctx extends Record<any, any>, Last> = {
+type ActionResult<Last> = "last" extends keyof Last
+  ? ResolveLast<Last["last"]>
+  : "steps" extends keyof Last
+    ? Last["steps"]
+    : Last;
+
+type ActionMetadataOutput<Result> =
+  Result extends AsyncGenerator<any, infer Return, any>
+    ? Awaited<Return>
+    : Result extends Generator<any, infer Return, any>
+      ? Return
+      : Awaited<Result>;
+
+type MergeMeta<Current, Next> = [Current] extends [null]
+  ? Next
+  : Pretty<Current & Next>;
+
+type RegularAction<
+  Ctx extends Record<any, any>,
+  Last,
+  Meta = "meta" extends keyof Ctx ? DeepWriteable<Ctx["meta"]> : null,
+> = {
   [name in Ctx["name"]]: TW.Action<
     Ctx extends { service: infer S extends string }
       ? `${S}.${Ctx["name"]}`
@@ -39,28 +69,25 @@ type RegularAction<Ctx extends Record<any, any>, Last> = {
               ? Ctx["scope"]["$call"]
               : Ctx["scope"]["input"],
           ) => Promise<
-            "last" extends keyof Last
-              ? ResolveLast<Last["last"]>
-              : "steps" extends keyof Last
-                ? Last["steps"]
-                : Last
+            ActionResult<Last>
           >
-        : () => Promise<
-            "last" extends keyof Last
-              ? ResolveLast<Last["last"]>
-              : "steps" extends keyof Last
-                ? Last["steps"]
-                : Last
-          >
-      : () => Promise<
-          "last" extends keyof Last
-            ? ResolveLast<Last["last"]>
-            : "steps" extends keyof Last
-              ? Last["steps"]
-              : Last
-        >,
-    "meta" extends keyof Ctx ? DeepWriteable<Ctx["meta"]> : null
+        : () => Promise<ActionResult<Last>>
+      : () => Promise<ActionResult<Last>>,
+    Meta
   >;
+} & {
+  meta<
+    const NextMeta extends ActionMeta<
+      Ctx,
+      ActionMetadataOutput<ActionResult<Last>>
+    >,
+  >(
+    meta: ValidateActionMeta<
+      NextMeta,
+      Ctx,
+      ActionMetadataOutput<ActionResult<Last>>
+    >,
+  ): RegularAction<Ctx, Last, DeepWriteable<MergeMeta<Meta, NextMeta>>>;
 };
 
 export interface ActionResultKind extends ResultKind {

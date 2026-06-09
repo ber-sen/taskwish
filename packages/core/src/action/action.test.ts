@@ -629,6 +629,20 @@ describe("Action", () => {
 
       .input({ channel: "string", text: "string" })
 
+      .run(async function () {
+        const response = await this.actions.conversationsList({
+          types: "public_channel",
+        });
+        const selected = response.channels.find(
+          (item) => item.id === this.input.channel,
+        );
+
+        return {
+          channel: selected,
+          text: this.input.text,
+        };
+      })
+
       .meta({
         description: "Post a message to a Slack channel",
         input: {
@@ -645,30 +659,38 @@ describe("Action", () => {
             description: "Message text",
             example: "Deploy completed",
           },
-        }
-      })
-
-      .run(async function () {
-        const response = await this.actions.conversationsList({
-          types: "public_channel",
-        });
-        const selected = response.channels.find(
-          (item) => item.id === this.input.channel,
-        );
-
-        return {
-          channel: selected,
-          text: this.input.text,
-        };
+        },
+        output: {
+          channel: "The selected channel",
+          text: "The posted message",
+        },
       });
 
     Action("invalidMeta")
       .input({ channel: "string", text: "string" })
 
+      .run(function () {
+        return { ok: true };
+      })
+
       .meta({
         input: {
           // @ts-expect-error metadata input keys must exist in the action scope input
           missing: "Not an action input",
+        },
+      });
+
+    Action("invalidOutputMeta")
+      .input({ channel: "string" })
+
+      .run(function () {
+        return { ok: true };
+      })
+
+      .meta({
+        output: {
+          // @ts-expect-error metadata output keys must exist in the action result
+          missing: "Not an action output",
         },
       });
 
@@ -679,6 +701,7 @@ describe("Action", () => {
       "=": "$.channels[*].name",
       types: "public_channel",
     });
+    expect(meta.output.channel).toEqual("The selected channel");
     expect(
       await postMessage({ channel: "C456", text: "Deploy completed" }),
     ).toEqual({

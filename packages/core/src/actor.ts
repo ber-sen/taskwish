@@ -3,9 +3,11 @@ import {
   runAction,
   tapWith,
   type ActionFactory,
-  type ActionMeta,
-  type ValidateActionMeta,
 } from "./action";
+import type {
+  ActionMeta,
+  ValidateActionMeta,
+} from "./action/meta";
 import { Event } from "./event";
 import {
   CamelCase,
@@ -16,7 +18,7 @@ import {
   ExtractActionName,
   AddActionsToCtx,
   InferTriggerScope,
-  DeepWriteable
+  DeepWriteable,
 } from "./helpers";
 import { TW } from "./core";
 import { dispatch, type ConsoleLike, type LoggerConfig } from "./use";
@@ -228,6 +230,53 @@ interface TraitMethodFactory<
   };
 }
 
+type CommandResult<
+  CmdName extends string,
+  FlatIn,
+  Method extends string,
+  Path extends string,
+  Schema,
+  Scope extends Record<any, any>,
+  Service extends string,
+  Handler extends (...args: any[]) => any,
+  Meta = {},
+> = {
+  [key in CmdName]: TW.Action<
+    `${Service}.${CmdName}`,
+    (input: FlatIn) => Promise<Awaited<ReturnType<Handler>>>,
+    {
+      route: [
+        Method,
+        Path,
+        Pretty<DeepWriteable<Schema> & DeepWriteable<Meta>>,
+      ];
+    }
+  >;
+} & {
+  meta<
+    const NextMeta extends ActionMeta<
+      { scope: Pretty<{ input: FlatIn } & Scope> },
+      Awaited<ReturnType<Handler>>
+    >,
+  >(
+    meta: ValidateActionMeta<
+      NextMeta,
+      { scope: Pretty<{ input: FlatIn } & Scope> },
+      Awaited<ReturnType<Handler>>
+    >,
+  ): CommandResult<
+    CmdName,
+    FlatIn,
+    Method,
+    Path,
+    Schema,
+    Scope,
+    Service,
+    Handler,
+    Pretty<Meta & NextMeta>
+  >;
+};
+
 interface CommandBody<
   CmdName extends string,
   FlatIn,
@@ -236,48 +285,14 @@ interface CommandBody<
   Schema,
   Scope extends Record<any, any>,
   Service extends string,
-  Meta = {},
 > {
   use(): this;
-  meta<
-    const NextMeta extends ActionMeta<{
-      scope: Pretty<{ input: FlatIn } & Scope>;
-    }>,
-  >(
-    meta: ValidateActionMeta<
-      NextMeta,
-      {
-        scope: Pretty<{ input: FlatIn } & Scope>;
-      }
-    >,
-  ): CommandBody<
-    CmdName,
-    FlatIn,
-    Method,
-    Path,
-    Schema,
-    Scope,
-    Service,
-    NextMeta
-  >;
   run<
     const H extends (this: TW.Scope<Pretty<{ input: FlatIn } & Scope>>) => any,
   >(
     handler: H,
     ...rest: unknown[]
-  ): {
-    [key in CmdName]: TW.Action<
-      `${Service}.${CmdName}`,
-      (input: FlatIn) => Promise<Awaited<ReturnType<H>>>,
-      {
-        route: [
-          Method,
-          Path,
-          Pretty<DeepWriteable<Schema> & DeepWriteable<Meta>>,
-        ];
-      }
-    >;
-  };
+  ): CommandResult<CmdName, FlatIn, Method, Path, Schema, Scope, Service, H>;
 }
 
 type BuiltInEventScope = {
@@ -581,27 +596,32 @@ function createBehavior(
           return tap(rawStream(...args));
         }
 
-        return {
-          [actionName]: Object.assign(consume, {
-            [TW.Name]: eventName,
-            stream,
-            [TW.Meta]:
-              traitMeta !== null || actionMeta !== null
-                ? {
-                    ...(traitMeta !== null ? { trait: traitMeta } : {}),
-                    ...(actionMeta ?? {}),
-                  }
-                : null,
-          }),
+        const resolveMeta = () =>
+          traitMeta !== null || actionMeta !== null
+            ? {
+                ...(traitMeta !== null ? { trait: traitMeta } : {}),
+                ...(actionMeta ?? {}),
+              }
+            : null;
+        const action = Object.assign(consume, {
+          [TW.Name]: eventName,
+          stream,
+          [TW.Meta]: resolveMeta(),
+        });
+        const result = {
+          [actionName]: action,
+          meta(meta: Record<string, unknown>) {
+            actionMeta = { ...(actionMeta ?? {}), ...meta };
+            action[TW.Meta] = resolveMeta();
+            return result;
+          },
         };
+
+        return result;
       }
 
       const makeBody = (inputMode: "first" | "args") => ({
         use() {
-          return this;
-        },
-        meta(meta: Record<string, unknown>) {
-          actionMeta = meta;
           return this;
         },
         run(...handlers: unknown[]) {
@@ -619,10 +639,6 @@ function createBehavior(
         use() {
           return this;
         },
-        meta(meta: Record<string, unknown>) {
-          actionMeta = meta;
-          return this;
-        },
         run(...handlers: unknown[]) {
           return createAction("first", handlers);
         },
@@ -635,10 +651,6 @@ function createBehavior(
             let commandMeta: Record<string, unknown> = {};
             return {
               use() {
-                return this;
-              },
-              meta(meta: Record<string, unknown>) {
-                commandMeta = meta;
                 return this;
               },
               run(...handlers: unknown[]) {
@@ -706,23 +718,32 @@ function createBehavior(
                   return last.result as Response;
                 }
 
-                return {
-                  [cmdName]: Object.assign(cmdConsume, {
-                    [TW.Name]: qualifiedCmdName,
-                    [TW.Meta]: {
-                      route: [
-                        behavior,
-                        config,
-                        {
-                          ...(schema as Record<string, unknown>),
-                          ...commandMeta,
-                        },
-                      ],
+                const resolveMeta = () => ({
+                  route: [
+                    behavior,
+                    config,
+                    {
+                      ...(schema as Record<string, unknown>),
+                      ...commandMeta,
                     },
-                    stream: cmdStream,
-                    fetch: Object.assign(fetchFn, { stream: fetchStream }),
-                  }),
+                  ],
+                });
+                const action = Object.assign(cmdConsume, {
+                  [TW.Name]: qualifiedCmdName,
+                  [TW.Meta]: resolveMeta(),
+                  stream: cmdStream,
+                  fetch: Object.assign(fetchFn, { stream: fetchStream }),
+                });
+                const result = {
+                  [cmdName]: action,
+                  meta(meta: Record<string, unknown>) {
+                    commandMeta = { ...commandMeta, ...meta };
+                    action[TW.Meta] = resolveMeta();
+                    return this;
+                  },
                 };
+
+                return result;
               },
             };
           },
