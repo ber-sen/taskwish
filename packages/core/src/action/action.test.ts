@@ -635,11 +635,11 @@ describe("Action", () => {
           channel: {
             description: "Channel receiving the message",
             example: "#general",
-            options: [
-              "conversationsList",
-              "$.channels[*].name",
-              { types: "public_channel" },
-            ],
+            options: {
+              $: "conversationsList",
+              "=": "$.channels[*].name",
+              types: "public_channel",
+            },
           },
           text: {
             description: "Message text",
@@ -664,11 +664,11 @@ describe("Action", () => {
 
     const meta = postMessage[TW.Meta];
     expect(meta.description).toEqual("Post a message to a Slack channel");
-    expect(meta.input.channel.options).toEqual([
-      "conversationsList",
-      "$.channels[*].name",
-      { types: "public_channel" },
-    ]);
+    expect(meta.input.channel.options).toEqual({
+      $: "conversationsList",
+      "=": "$.channels[*].name",
+      types: "public_channel",
+    });
     expect(
       await postMessage({ channel: "C456", text: "Deploy completed" }),
     ).toEqual({

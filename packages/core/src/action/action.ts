@@ -86,37 +86,30 @@ type JsonPath<Value, Option> = {
     : Path;
 }[CompatibleJsonPaths<Value, Option>];
 
-type ActionParameter<Action extends (...args: any[]) => any> =
-  Parameters<Action> extends []
-    ? never
-    : Parameters<Action> extends [infer Parameter]
-      ? Parameter
-      : Parameters<Action>;
-
-type ActionOptionsTuple<
+type ActionOptionsObject<
   Name extends string,
   Action extends (...args: any[]) => any,
   Option,
-> =
-  Parameters<Action> extends []
-    ? readonly [Name, JsonPath<Awaited<ReturnType<Action>>, Option>]
-    : readonly [
-        Name,
-        JsonPath<Awaited<ReturnType<Action>>, Option>,
-        ActionParameter<Action>,
-      ];
+> = {
+  $: Name;
+  "=": JsonPath<Awaited<ReturnType<Action>>, Option>;
+} & (Parameters<Action> extends []
+  ? {}
+  : Parameters<Action> extends [infer Parameter extends object]
+    ? Parameter
+    : never);
 
 type ActionOptionsReference<Actions, Option> = {
   [Name in keyof Actions & string]: Actions[Name] extends (
     ...args: any[]
   ) => any
-    ? ActionOptionsTuple<Name, Actions[Name], Option>
+    ? ActionOptionsObject<Name, Actions[Name], Option>
     : Actions[Name] extends Record<string, unknown>
       ? {
           [Method in keyof Actions[Name] & string]: Actions[Name][Method] extends (
             ...args: any[]
           ) => any
-            ? ActionOptionsTuple<
+            ? ActionOptionsObject<
                 `${Name}.${Method}`,
                 Actions[Name][Method],
                 Option

@@ -809,10 +809,15 @@ describe("Actor", () => {
       const { conversationsList } = Slack()
         .on("Command", "conversationsList")
 
+        .input({ types: "string" })
+
         .run(function () {
           return {
             ok: true,
-            channels: channels,
+            channels:
+              this.input.types === "public_channel"
+                ? channels
+                : channels.slice(1),
           };
         });
 
@@ -829,7 +834,11 @@ describe("Actor", () => {
             channel: {
               description: "Channel receiving the message",
               example: "#general",
-              options: ["slack.conversationsList", "$.channels[*].name"],
+              options: {
+                $: "slack.conversationsList",
+                "=": "$.channels[*].name",
+                types: "public_channel",
+              },
             },
             text: {
               description: "Message text",
@@ -839,7 +848,9 @@ describe("Actor", () => {
         })
 
         .run(async function () {
-          const response = await this.actions.slack.conversationsList();
+          const response = await this.actions.slack.conversationsList({
+            types: "public_channel",
+          });
           const selected = response.channels.find(
             (item) => item.id === this.input.channel,
           );
@@ -852,10 +863,11 @@ describe("Actor", () => {
 
       const meta = postMessage[TW.Meta];
       expect(meta.description).toEqual("Post a message to a Slack channel");
-      expect(meta.input.channel.options).toEqual([
-        "slack.conversationsList",
-        "$.channels[*].name",
-      ]);
+      expect(meta.input.channel.options).toEqual({
+        $: "slack.conversationsList",
+        "=": "$.channels[*].name",
+        types: "public_channel",
+      });
       expect(
         await postMessage({ channel: "C456", text: "Deploy completed" }),
       ).toEqual({
