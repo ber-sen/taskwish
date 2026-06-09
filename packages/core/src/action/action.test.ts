@@ -626,7 +626,10 @@ describe("Action", () => {
           channel: {
             description: "Channel receiving the message",
             example: "#general",
-            options: "conversationsList",
+            options: ({ conversationsList }) =>
+              conversationsList().then((results) =>
+                results.channels.map((item) => item.name),
+              ),
           },
           text: {
             description: "Message text",

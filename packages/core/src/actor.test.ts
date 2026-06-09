@@ -826,7 +826,10 @@ describe("Actor", () => {
             channel: {
               description: "Channel receiving the message",
               example: "#general",
-              options: "Slack.conversationsList",
+              options: ({ slack }) =>
+                slack.conversationsList().then((results) =>
+                  results.channels.map((item) => item.name),
+                ),
             },
             text: {
               description: "Message text",
