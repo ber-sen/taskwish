@@ -275,9 +275,6 @@ export interface ActionFactory<
     config: InferTypeConfig<F>,
   ): ActionFactory<Name, AppendPlugin<Ctx, InferTypeConfig<F>>>;
   use<const U>(plugin: U): ActionFactory<Name, AddActionsToCtx<Ctx, U>>;
-  meta<const Meta extends ActionMeta<Ctx>>(
-    meta: ValidateActionMeta<Meta, Ctx>,
-  ): ActionFactory<Name, WithMeta<Ctx, Meta>>;
   sig<
     const Schema extends ((...args: any) => any) | TW.Handler,
   >(): SignatureBody<Name, Ctx, Schema>;
@@ -1019,10 +1016,6 @@ export function Action<const Name extends string>(
     },
     use(config: unknown) {
       usePlugin(config);
-      return this;
-    },
-    meta(meta: unknown) {
-      actionMeta = meta;
       return this;
     },
     run(...handlers: unknown[]) {

@@ -645,7 +645,7 @@ describe("Action", () => {
             description: "Message text",
             example: "Deploy completed",
           },
-        },
+        }
       })
 
       .run(async function () {
