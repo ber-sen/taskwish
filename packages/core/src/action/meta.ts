@@ -60,7 +60,7 @@ type ActionSuggestionsObject<
   Option,
 > = {
   $: Name;
-  _: JsonPath<Awaited<ReturnType<Action>>, Option>;
+  $path: JsonPath<Awaited<ReturnType<Action>>, Option>;
 } & (Parameters<Action> extends []
   ? {}
   : Parameters<Action> extends [infer Parameter extends object]

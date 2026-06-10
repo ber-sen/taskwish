@@ -651,7 +651,7 @@ describe("Action", () => {
             example: "#general",
             suggestions: {
               $: "conversationsList",
-              _: "$.channels[*].name",
+              $path: "$.channels[*].name",
               types: "public_channel",
             },
           },
@@ -698,7 +698,7 @@ describe("Action", () => {
     expect(meta.description).toEqual("Post a message to a Slack channel");
     expect(meta.input.channel.suggestions).toEqual({
       $: "conversationsList",
-      _: "$.channels[*].name",
+      $path: "$.channels[*].name",
       types: "public_channel",
     });
     expect(meta.output.channel).toEqual("The selected channel");
