@@ -651,7 +651,7 @@ describe("Action", () => {
             example: "#general",
             suggestions: {
               $: "conversationsList",
-              $pick: ["$.channels[*]", { label: "$.name", value: "$.id" }],
+              $pick: ["$.channels[*]", { label: "@.name", value: "@.id" }],
               types: "public_channel",
             },
           },
@@ -712,8 +712,8 @@ describe("Action", () => {
                 "$.channels[*]",
                 {
                   // @ts-expect-error suggestion labels must resolve to strings
-                  label: "$.missing",
-                  value: "$.id",
+                  label: "@.missing",
+                  value: "@.id",
                 },
               ],
               types: "public_channel",
@@ -739,9 +739,9 @@ describe("Action", () => {
               $pick: [
                 "$.channels[*]",
                 {
-                  label: "$.name",
+                  label: "@.name",
                   // @ts-expect-error suggestion values must match the input type
-                  value: "$.id",
+                  value: "@.id",
                 },
               ],
               types: "public_channel",
@@ -754,7 +754,7 @@ describe("Action", () => {
     expect(meta.description).toEqual("Post a message to a Slack channel");
     expect(meta.input.channel.suggestions).toEqual({
       $: "conversationsList",
-      $pick: ["$.channels[*]", { label: "$.name", value: "$.id" }],
+      $pick: ["$.channels[*]", { label: "@.name", value: "@.id" }],
       types: "public_channel",
     });
     expect(meta.output.channel).toEqual("The selected channel");

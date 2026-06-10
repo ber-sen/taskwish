@@ -58,7 +58,7 @@ type JsonPath<Value, Option> = {
 type CompatibleValueJsonPaths<
   Value,
   Option,
-  Prefix extends string = "$",
+  Prefix extends string = "@",
   Depth extends unknown[] = [],
 > = Depth["length"] extends 6
   ? never
@@ -91,7 +91,9 @@ type CompatibleValueJsonPaths<
 
 type ValueJsonPath<Value, Option> = {
   [Path in CompatibleValueJsonPaths<Value, Option>]: [
-    Parse<Path & `$${string}`, Value>,
+    Path extends `@${infer RelativePath}`
+      ? Parse<`$${RelativePath}`, Value>
+      : never,
   ] extends [never]
     ? never
     : Path;
