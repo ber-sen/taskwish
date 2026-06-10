@@ -1,16 +1,22 @@
-import { Actor, Desc, Step, Tool, Type } from "../../src";
+import { Action, Actor, Step } from "@taskwish/core";
+import { Tool } from "../src";
 // import tsEvent from "../events/ts-event";
 
-export default Actor("ChatBot")
-  .use(import("../package"))
+const Type = <const T, const D>(
+  type: T,
+  meta?: { desciption: D },
+): readonly [T, "|", never] => {
+  return {} as never;
+};
 
-  .on({ tools: "string[]", prompt: "string" })
+export const { chat } = Action("chat")
+  .input({ tools: "string[]", prompt: "string" })
 
   .run(
     Tool("wether", {
       description: "Get the weather in a location",
       input: {
-        location: ["string", Desc`The location to get the weather for`],
+        location: Type("string", { desciption: "asdadads" }),
       },
       run() {
         console.log(this.input.location);

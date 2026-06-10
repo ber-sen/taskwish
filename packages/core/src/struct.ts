@@ -15,13 +15,6 @@ import {
   type TypeMeta,
 } from "@ark/schema";
 
-export function Desc(
-  strings: TemplateStringsArray,
-  ...values: any[]
-): "string" {
-  return strings.join("") as never;
-}
-
 export type Unwrap<T> =
   T extends TW.Struct<any, infer Shape>
     ? Shape
