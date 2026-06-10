@@ -55,6 +55,87 @@ type JsonPath<Value, Option> = {
     : Path;
 }[CompatibleJsonPaths<Value, Option>];
 
+type CompatibleValueJsonPaths<
+  Value,
+  Option,
+  Prefix extends string = "$",
+  Depth extends unknown[] = [],
+> = Depth["length"] extends 6
+  ? never
+  :
+      | (Value extends Option ? Prefix : never)
+      | (Value extends readonly (infer Item)[]
+          ?
+              | CompatibleValueJsonPaths<
+                  Item,
+                  Option,
+                  `${Prefix}[*]`,
+                  [...Depth, unknown]
+                >
+              | CompatibleValueJsonPaths<
+                  Item,
+                  Option,
+                  `${Prefix}[${number}]`,
+                  [...Depth, unknown]
+                >
+          : Value extends object
+            ? {
+                [Key in keyof Value & string]: CompatibleValueJsonPaths<
+                  Value[Key],
+                  Option,
+                  `${Prefix}.${Key}`,
+                  [...Depth, unknown]
+                >;
+              }[keyof Value & string]
+            : never);
+
+type ValueJsonPath<Value, Option> = {
+  [Path in CompatibleValueJsonPaths<Value, Option>]: [
+    Parse<Path & `$${string}`, Value>,
+  ] extends [never]
+    ? never
+    : Path;
+}[CompatibleValueJsonPaths<Value, Option>];
+
+type MappedJsonPaths<
+  Value,
+  Option,
+  Prefix extends string = "$",
+  Depth extends unknown[] = [],
+> = Depth["length"] extends 6
+  ? never
+  : Value extends readonly (infer Item)[]
+    ?
+        | (Item extends object
+            ? [
+                `${Prefix}[*]`,
+                {
+                  label: ValueJsonPath<Item, string>;
+                  value: ValueJsonPath<Item, Option>;
+                },
+              ]
+            : never)
+        | MappedJsonPaths<
+            Item,
+            Option,
+            `${Prefix}[*]`,
+            [...Depth, unknown]
+          >
+    : Value extends object
+      ? {
+          [Key in keyof Value & string]: MappedJsonPaths<
+            Value[Key],
+            Option,
+            `${Prefix}.${Key}`,
+            [...Depth, unknown]
+          >;
+        }[keyof Value & string]
+      : never;
+
+type SuggestionsPick<Value, Option> =
+  | JsonPath<Value, Option>
+  | MappedJsonPaths<Value, Option>;
+
 type ActionSuggestionsObject<
   Name extends string,
   Action extends (...args: any[]) => any,
@@ -63,7 +144,7 @@ type ActionSuggestionsObject<
   $: [ExtractActionName<Action>] extends [never]
     ? Name
     : ExtractActionName<Action>;
-  $pick: JsonPath<Awaited<ReturnType<Action>>, Option>;
+  $pick: SuggestionsPick<Awaited<ReturnType<Action>>, Option>;
 } & (Parameters<Action> extends []
   ? {}
   : Parameters<Action> extends [infer Parameter extends object]

@@ -651,7 +651,7 @@ describe("Action", () => {
             example: "#general",
             suggestions: {
               $: "conversationsList",
-              $pick: "$.channels[*].name",
+              $pick: ["$.channels[*]", { label: "$.name", value: "$.id" }],
               types: "public_channel",
             },
           },
@@ -694,11 +694,67 @@ describe("Action", () => {
         },
       });
 
+    Action("invalidSuggestionLabel")
+      .use(conversationsList)
+
+      .input({ channel: "string" })
+
+      .run(function () {
+        return { ok: true };
+      })
+
+      .meta({
+        input: {
+          channel: {
+            suggestions: {
+              $: "conversationsList",
+              $pick: [
+                "$.channels[*]",
+                {
+                  // @ts-expect-error suggestion labels must resolve to strings
+                  label: "$.missing",
+                  value: "$.id",
+                },
+              ],
+              types: "public_channel",
+            },
+          },
+        },
+      });
+
+    Action("invalidSuggestionValue")
+      .use(conversationsList)
+
+      .input({ channel: "number" })
+
+      .run(function () {
+        return { ok: true };
+      })
+
+      .meta({
+        input: {
+          channel: {
+            suggestions: {
+              $: "conversationsList",
+              $pick: [
+                "$.channels[*]",
+                {
+                  label: "$.name",
+                  // @ts-expect-error suggestion values must match the input type
+                  value: "$.id",
+                },
+              ],
+              types: "public_channel",
+            },
+          },
+        },
+      });
+
     const meta = postMessage[TW.Meta];
     expect(meta.description).toEqual("Post a message to a Slack channel");
     expect(meta.input.channel.suggestions).toEqual({
       $: "conversationsList",
-      $pick: "$.channels[*].name",
+      $pick: ["$.channels[*]", { label: "$.name", value: "$.id" }],
       types: "public_channel",
     });
     expect(meta.output.channel).toEqual("The selected channel");
