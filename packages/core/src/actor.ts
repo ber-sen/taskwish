@@ -1,4 +1,13 @@
-import { buildScope, runAction, tapWith, type ActionFactory } from "./action";
+import {
+  buildScope,
+  runAction,
+  tapWith,
+  type ActionFactory,
+} from "./action";
+import type {
+  ActionMeta,
+  ValidateActionMeta,
+} from "./action/meta";
 import { Event } from "./event";
 import {
   CamelCase,
@@ -9,6 +18,7 @@ import {
   ExtractActionName,
   AddActionsToCtx,
   InferTriggerScope,
+  DeepWriteable,
 } from "./helpers";
 import { TW } from "./core";
 import { dispatch, type ConsoleLike, type LoggerConfig } from "./use";
@@ -70,7 +80,7 @@ interface HttpBody<
   };
 }
 
-type DeepWriteable<T> = { -readonly [P in keyof T]: DeepWriteable<T[P]> } & {};
+
 
 // ── Trait method implementation ───────────────────────────────────────────────
 
@@ -220,6 +230,53 @@ interface TraitMethodFactory<
   };
 }
 
+type CommandResult<
+  CmdName extends string,
+  FlatIn,
+  Method extends string,
+  Path extends string,
+  Schema,
+  Scope extends Record<any, any>,
+  Service extends string,
+  Handler extends (...args: any[]) => any,
+  Meta = {},
+> = {
+  [key in CmdName]: TW.Action<
+    `${Service}.${CmdName}`,
+    (input: FlatIn) => Promise<Awaited<ReturnType<Handler>>>,
+    {
+      route: [
+        Method,
+        Path,
+        Pretty<DeepWriteable<Schema> & DeepWriteable<Meta>>,
+      ];
+    }
+  >;
+} & {
+  meta<
+    const NextMeta extends ActionMeta<
+      { scope: Pretty<{ input: FlatIn } & Scope> },
+      Awaited<ReturnType<Handler>>
+    >,
+  >(
+    meta: ValidateActionMeta<
+      NextMeta,
+      { scope: Pretty<{ input: FlatIn } & Scope> },
+      Awaited<ReturnType<Handler>>
+    >,
+  ): CommandResult<
+    CmdName,
+    FlatIn,
+    Method,
+    Path,
+    Schema,
+    Scope,
+    Service,
+    Handler,
+    Pretty<Meta & NextMeta>
+  >;
+};
+
 interface CommandBody<
   CmdName extends string,
   FlatIn,
@@ -235,13 +292,7 @@ interface CommandBody<
   >(
     handler: H,
     ...rest: unknown[]
-  ): {
-    [key in CmdName]: TW.Action<
-      `${Service}.${CmdName}`,
-      (input: FlatIn) => Promise<Awaited<ReturnType<H>>>,
-      { route: [Method, Path, DeepWriteable<Schema>] }
-    >;
-  };
+  ): CommandResult<CmdName, FlatIn, Method, Path, Schema, Scope, Service, H>;
 }
 
 type BuiltInEventScope = {
@@ -511,6 +562,7 @@ function createBehavior(
 
       const eventName = `${actorName}.${actionName}`;
       const mod = makeBehaviorMod(behavior, config, schema, initialScope);
+      let actionMeta: Record<string, unknown> | null = null;
 
       function createAction(inputMode: "first" | "args", handlers: unknown[]) {
         async function consume(...args: unknown[]) {
@@ -544,13 +596,28 @@ function createBehavior(
           return tap(rawStream(...args));
         }
 
-        return {
-          [actionName]: Object.assign(consume, {
-            [TW.Name]: eventName,
-            stream,
-            ...(traitMeta !== null ? { [TW.Meta]: { trait: traitMeta } } : {}),
-          }),
+        const resolveMeta = () =>
+          traitMeta !== null || actionMeta !== null
+            ? {
+                ...(traitMeta !== null ? { trait: traitMeta } : {}),
+                ...(actionMeta ?? {}),
+              }
+            : null;
+        const action = Object.assign(consume, {
+          [TW.Name]: eventName,
+          stream,
+          [TW.Meta]: resolveMeta(),
+        });
+        const result = {
+          [actionName]: action,
+          meta(meta: Record<string, unknown>) {
+            actionMeta = { ...(actionMeta ?? {}), ...meta };
+            action[TW.Meta] = resolveMeta();
+            return result;
+          },
         };
+
+        return result;
       }
 
       const makeBody = (inputMode: "first" | "args") => ({
@@ -581,6 +648,7 @@ function createBehavior(
         return {
           ...base,
           command(cmdName: string) {
+            let commandMeta: Record<string, unknown> = {};
             return {
               use() {
                 return this;
@@ -650,12 +718,32 @@ function createBehavior(
                   return last.result as Response;
                 }
 
-                return {
-                  [cmdName]: Object.assign(cmdConsume, {
-                    stream: cmdStream,
-                    fetch: Object.assign(fetchFn, { stream: fetchStream }),
-                  }),
+                const resolveMeta = () => ({
+                  route: [
+                    behavior,
+                    config,
+                    {
+                      ...(schema as Record<string, unknown>),
+                      ...commandMeta,
+                    },
+                  ],
+                });
+                const action = Object.assign(cmdConsume, {
+                  [TW.Name]: qualifiedCmdName,
+                  [TW.Meta]: resolveMeta(),
+                  stream: cmdStream,
+                  fetch: Object.assign(fetchFn, { stream: fetchStream }),
+                });
+                const result = {
+                  [cmdName]: action,
+                  meta(meta: Record<string, unknown>) {
+                    commandMeta = { ...commandMeta, ...meta };
+                    action[TW.Meta] = resolveMeta();
+                    return this;
+                  },
                 };
+
+                return result;
               },
             };
           },

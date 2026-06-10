@@ -557,7 +557,7 @@ describe("Action", () => {
         const result = await this.actions.notifier.notify({
           message: this.input.name,
         });
-        
+
         return `Hello, ${result}`;
       });
 
@@ -573,11 +573,13 @@ describe("Action", () => {
       });
 
     const { greet } = Action("greet")
-      .use(Promise.resolve({
-        notify,
-        helper: () => "ignored",
-        version: "1.0.0",
-      }))
+      .use(
+        Promise.resolve({
+          notify,
+          helper: () => "ignored",
+          version: "1.0.0",
+        }),
+      )
 
       .input({ name: "string" })
 
@@ -601,6 +603,167 @@ describe("Action", () => {
       });
 
     expect(await greet({ name: "World" })).toEqual("sent: World");
+  });
+
+  test("meta options can use an injected conversationsList action for Slack.postMessage", async () => {
+    const channels = [
+      { id: "C123", name: "general" },
+      { id: "C456", name: "engineering" },
+    ];
+
+    const { conversationsList } = Action("conversationsList")
+      .input({ types: "string" })
+
+      .run(function () {
+        return {
+          ok: true,
+          channels:
+            this.input.types === "public_channel"
+              ? channels
+              : channels.slice(1),
+        };
+      });
+
+    const { postMessage } = Action("postMessage")
+      .use(conversationsList)
+
+      .input({ channel: "string", text: "string" })
+
+      .run(async function () {
+        const response = await this.actions.conversationsList({
+          types: "public_channel",
+        });
+        const selected = response.channels.find(
+          (item) => item.id === this.input.channel,
+        );
+
+        return {
+          channel: selected,
+          text: this.input.text,
+        };
+      })
+
+      .meta({
+        description: "Post a message to a Slack channel",
+        input: {
+          channel: {
+            description: "Channel receiving the message",
+            example: "#general",
+            suggestions: {
+              $: "conversationsList",
+              $pick: ["$.channels[*]", { label: "$.name", value: "$.id" }],
+              types: "public_channel",
+            },
+          },
+          text: {
+            description: "Message text",
+            example: "Deploy completed",
+          },
+        },
+        output: {
+          channel: "The selected channel",
+          text: "The posted message",
+        },
+      });
+
+    Action("invalidMeta")
+      .input({ channel: "string", text: "string" })
+
+      .run(function () {
+        return { ok: true };
+      })
+
+      .meta({
+        input: {
+          // @ts-expect-error metadata input keys must exist in the action scope input
+          missing: "Not an action input",
+        },
+      });
+
+    Action("invalidOutputMeta")
+      .input({ channel: "string" })
+
+      .run(function () {
+        return { ok: true };
+      })
+
+      .meta({
+        output: {
+          // @ts-expect-error metadata output keys must exist in the action result
+          missing: "Not an action output",
+        },
+      });
+
+    Action("invalidSuggestionLabel")
+      .use(conversationsList)
+
+      .input({ channel: "string" })
+
+      .run(function () {
+        return { ok: true };
+      })
+
+      .meta({
+        input: {
+          channel: {
+            suggestions: {
+              $: "conversationsList",
+              $pick: [
+                "$.channels[*]",
+                {
+                  // @ts-expect-error suggestion labels must resolve to strings
+                  label: "$.missing",
+                  value: "$.id",
+                },
+              ],
+              types: "public_channel",
+            },
+          },
+        },
+      });
+
+    Action("invalidSuggestionValue")
+      .use(conversationsList)
+
+      .input({ channel: "number" })
+
+      .run(function () {
+        return { ok: true };
+      })
+
+      .meta({
+        input: {
+          channel: {
+            suggestions: {
+              $: "conversationsList",
+              $pick: [
+                "$.channels[*]",
+                {
+                  label: "$.name",
+                  // @ts-expect-error suggestion values must match the input type
+                  value: "$.id",
+                },
+              ],
+              types: "public_channel",
+            },
+          },
+        },
+      });
+
+    const meta = postMessage[TW.Meta];
+    expect(meta.description).toEqual("Post a message to a Slack channel");
+    expect(meta.input.channel.suggestions).toEqual({
+      $: "conversationsList",
+      $pick: ["$.channels[*]", { label: "$.name", value: "$.id" }],
+      types: "public_channel",
+    });
+    expect(meta.output.channel).toEqual("The selected channel");
+    expect(
+      await postMessage({ channel: "C456", text: "Deploy completed" }),
+    ).toEqual({
+      channel: { id: "C456", name: "engineering" },
+      text: "Deploy completed",
+    });
   });
 
   test("async generator — stream yields each value", async () => {
