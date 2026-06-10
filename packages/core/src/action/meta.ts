@@ -63,7 +63,7 @@ type ActionSuggestionsObject<
   $: [ExtractActionName<Action>] extends [never]
     ? Name
     : ExtractActionName<Action>;
-  $path: JsonPath<Awaited<ReturnType<Action>>, Option>;
+  $pick: JsonPath<Awaited<ReturnType<Action>>, Option>;
 } & (Parameters<Action> extends []
   ? {}
   : Parameters<Action> extends [infer Parameter extends object]
