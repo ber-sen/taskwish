@@ -1,4 +1,5 @@
 import type { Parse } from "jsonpath-ts";
+import type { ExtractActionName } from "../helpers";
 
 type CompatibleJsonPaths<
   Value,
@@ -59,7 +60,9 @@ type ActionSuggestionsObject<
   Action extends (...args: any[]) => any,
   Option,
 > = {
-  $: Name;
+  $: [ExtractActionName<Action>] extends [never]
+    ? Name
+    : ExtractActionName<Action>;
   $path: JsonPath<Awaited<ReturnType<Action>>, Option>;
 } & (Parameters<Action> extends []
   ? {}
