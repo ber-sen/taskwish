@@ -407,12 +407,12 @@ describe("Action", () => {
         {
           $: "step",
           "=": "positive",
-          run: "@js{function() {\nreturn this.gent.length > 2;\n}}",
+          run: "@{function() {\nreturn this.gent.length > 2;\n}}",
         },
         {
           $: "step",
           "=": "done",
-          run: "@js{function() {\nreturn this.reply === this.input.name;\n}}",
+          run: "@{function() {\nreturn this.reply === this.input.name;\n}}",
         },
       ],
     });
@@ -487,7 +487,7 @@ describe("Action", () => {
     expect(compute).toEqual({
       $: "step",
       "=": "positive",
-      run: "@js{function() {\nreturn this.gent.length > 2;\n}}",
+      run: "@{function() {\nreturn this.gent.length > 2;\n}}",
     });
   });
 

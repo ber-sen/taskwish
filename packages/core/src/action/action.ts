@@ -860,7 +860,7 @@ export function Action<const Name extends string>(
             steps.push({
               $: "step",
               "=": stepName,
-              run: `@js{${(fn as Function).toString().replace(/^\s+/gm, "")}}`,
+              run: `@{${(fn as Function).toString().replace(/^\s+/gm, "")}}`,
             });
           }
         }
