@@ -121,18 +121,30 @@ type JsonPathSlice =
   | `[${number | ""}:${number | ""}]`
   | `[${number | ""}:${number | ""}:${number | ""}]`;
 
+type ExcludeFunctions<Value> =
+  Value extends (...args: any[]) => any ? never : Value;
+
 type JsonPathEntry<
   Value,
   Prefix extends string = "$",
   Multiple extends boolean = false,
   Depth extends unknown[] = [],
-> = Depth["length"] extends 6
-  ? { path: Prefix; value: Value; multiple: Multiple }
-  :
-      | { path: Prefix; value: Value; multiple: Multiple }
-      | (0 extends 1 & Value
-          ? never
-          : Value extends readonly (infer Item)[]
+> = JsonPathEntryValue<ExcludeFunctions<Value>, Prefix, Multiple, Depth>;
+
+type JsonPathEntryValue<
+  Value,
+  Prefix extends string,
+  Multiple extends boolean,
+  Depth extends unknown[],
+> = [Value] extends [never]
+  ? never
+  : Depth["length"] extends 6
+    ? { path: Prefix; value: Value; multiple: Multiple }
+    :
+        | { path: Prefix; value: Value; multiple: Multiple }
+        | (0 extends 1 & Value
+            ? never
+            : Value extends readonly (infer Item)[]
             ?
                 | JsonPathEntry<Item, `${Prefix}[*]`, true, [...Depth, unknown]>
                 | JsonPathEntry<
@@ -147,8 +159,6 @@ type JsonPathEntry<
                     Multiple,
                     [...Depth, unknown]
                   >
-            : Value extends (...args: any[]) => any
-              ? never
               : Value extends object
                 ? {
                     [Key in keyof Value & string]: JsonPathEntry<

@@ -264,8 +264,9 @@ function evaluateExp(
   path: string,
   map?: Record<string, string>,
 ): unknown {
+  const { actions: _, ...scope } = this;
   if (map !== undefined) {
-    const selected = queryJsonPath(this, path);
+    const selected = queryJsonPath(scope, path);
     const mapValue = (value: unknown) =>
       Object.fromEntries(
         Object.entries(map).map(([key, currentPath]) => [
@@ -277,7 +278,7 @@ function evaluateExp(
       ? selected.map(mapValue)
       : mapValue(selected);
   }
-  return queryJsonPath(this, path);
+  return queryJsonPath(scope, path);
 }
 
 /**

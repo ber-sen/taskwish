@@ -253,6 +253,7 @@ describe("exp", () => {
   test("evaluates against previous step results", async () => {
     const { select } = Action("select")
       .input({ name: "string" })
+
       .run(
         Step("upper", function () {
           return this.input.name.toUpperCase();
@@ -263,6 +264,49 @@ describe("exp", () => {
       );
 
     await expect(select({ name: "Ada" })).resolves.toBe("ADA");
+  });
+
+  test("excludes functions from expression paths", async () => {
+    const { notify } = Action("notify")
+      .input({ message: "string" })
+
+      .run(function () {
+        return this.input.message;
+      });
+
+    const { inspect } = Action("inspect")
+      .use(notify)
+
+      .run(
+        Step("provider", function () {
+          return {
+            name: "catalog",
+            execute() {
+              return "done";
+            },
+          };
+        }),
+        Step("selected", function () {
+          const name = this.exp("$.provider.name");
+          const root = this.exp("$");
+
+          if (false) {
+            // @ts-expect-error scope functions are not expression values
+            this.exp("$.thread.reply");
+            // @ts-expect-error actions are excluded from expression scope
+            this.exp("$.actions");
+            // @ts-expect-error functions returned by steps are excluded
+            this.exp("$.provider.execute");
+          }
+
+          return { name, hasActions: "actions" in root };
+        }),
+      );
+
+    await expect(inspect()).resolves.toEqual({
+      name: "catalog",
+      hasActions: false,
+    });
   });
 
   test("validates this.exp while defining action steps", () => {
