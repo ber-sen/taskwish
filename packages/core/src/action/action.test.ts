@@ -347,17 +347,50 @@ describe("Action", () => {
         }),
 
         Step("reply", function () {
-          // @ts-expect-error exp only accepts the limited jq path syntax
-          this.exp("$.input[*].name");
-          this.exp(".");
-          this.exp(".input");
-          this.exp(".input.thread.sender.name");
-          this.exp(".gent");
+          const root: {
+            input: { name: string; thread: { sender: { name: string } } };
+          } = this.exp(".");
+
+          const input: {
+            name: string;
+            thread: { sender: { name: string } };
+          } = this.exp(".input");
+
+          const sender: { name: string } = this.exp(".input.thread.sender");
+          const senderName = this.exp(".input.thread.sender.name");
+          const gent = this.exp(".gent");
           this.exp(".external.value");
+
+          type expCheck = Expect<
+            Equal<
+              [
+                typeof root,
+                typeof input,
+                typeof sender,
+                typeof senderName,
+                typeof gent,
+              ],
+              [
+                {
+                  input: {
+                    name: string;
+                    thread: { sender: { name: string } };
+                  };
+                },
+                {
+                  name: string;
+                  thread: { sender: { name: string } };
+                },
+                { name: string },
+                string,
+                string,
+              ]
+            >
+          >;
 
           return this.actions.generateText({
             model: "gpt5",
-            prompt: `reply to ${this.gent} from ${this.exp(".input.name")}`,
+            prompt: `reply to ${this.gent} from ${this.exp(".event.name")}`,
           });
         }),
 
@@ -410,7 +443,7 @@ describe("Action", () => {
           $: "generateText",
           "=": "reply",
           model: "gpt5",
-          prompt: "reply to @{gent} from *{.input.name}",
+          prompt: "reply to @{gent} from *{.event.name}",
         },
         {
           $: "step",

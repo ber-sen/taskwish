@@ -51,8 +51,8 @@ export namespace TW {
     : Record<string, unknown>;
 
   export type Scope<S> = S & {
-    exp(path: ScopeJqPath<S>): string;
-    exp<const Path extends string>(path: LimitedJqPath<Path>): string;
+    exp<const T = string>(path: ScopeJqPath<S, T> | (string & {}) ): T;
+    exp<const Path extends string, const T = string>(path: LimitedJqPath<Path> | (string & {})): T;
     self: <Return = any>(
       input: S extends Record<any, any>
         ? S["input"] extends Record<any, any>

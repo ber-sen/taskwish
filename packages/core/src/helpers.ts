@@ -145,8 +145,6 @@ export type JqPath<Value> =
       : never
     : never;
 
-export type ScopeJqPath<Value> = JqPath<Value>;
-
 type CompatibleJqPath<Value, Option> =
   JqPathEntry<Value> extends infer Entry
     ? Entry extends {
@@ -177,6 +175,11 @@ type CompatibleValueJqPath<Value, Option> =
         : never
       : never
     : never;
+
+export type ScopeJqPath<Value, Result = string> = CompatibleValueJqPath<
+  Value,
+  Result
+>;
 
 type MappedJqPath<Value, Option> =
   JqPathEntry<Value> extends infer Entry
