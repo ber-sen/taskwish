@@ -1,10 +1,12 @@
-import type { Parse } from "jsonpath-ts";
 import type { ExtractActionName } from "../helpers";
 
-type CompatibleJsonPaths<
+type AppendProperty<Prefix extends string, Key extends string> =
+  Prefix extends "." ? `.${Key}` : `${Prefix}.${Key}`;
+
+type CompatibleJqPaths<
   Value,
   Option,
-  Prefix extends string = "$",
+  Prefix extends string = ".",
   Multiple extends boolean = false,
   Depth extends unknown[] = [],
 > = Depth["length"] extends 6
@@ -21,14 +23,14 @@ type CompatibleJsonPaths<
             : never)
       | (Value extends readonly (infer Item)[]
           ?
-              | CompatibleJsonPaths<
+              | CompatibleJqPaths<
                   Item,
                   Option,
-                  `${Prefix}[*]`,
+                  `${Prefix}[]`,
                   true,
                   [...Depth, unknown]
                 >
-              | CompatibleJsonPaths<
+              | CompatibleJqPaths<
                   Item,
                   Option,
                   `${Prefix}[${number}]`,
@@ -37,28 +39,22 @@ type CompatibleJsonPaths<
                 >
           : Value extends object
             ? {
-                [Key in keyof Value & string]: CompatibleJsonPaths<
+                [Key in keyof Value & string]: CompatibleJqPaths<
                   Value[Key],
                   Option,
-                  `${Prefix}.${Key}`,
+                  AppendProperty<Prefix, Key>,
                   Multiple,
                   [...Depth, unknown]
                 >;
               }[keyof Value & string]
             : never);
 
-type JsonPath<Value, Option> = {
-  [Path in CompatibleJsonPaths<Value, Option>]: [
-    Parse<Path & `$${string}`, Value>,
-  ] extends [never]
-    ? never
-    : Path;
-}[CompatibleJsonPaths<Value, Option>];
+type JqPath<Value, Option> = CompatibleJqPaths<Value, Option>;
 
-type CompatibleValueJsonPaths<
+type CompatibleValueJqPaths<
   Value,
   Option,
-  Prefix extends string = "@",
+  Prefix extends string = ".",
   Depth extends unknown[] = [],
 > = Depth["length"] extends 6
   ? never
@@ -66,13 +62,13 @@ type CompatibleValueJsonPaths<
       | (Value extends Option ? Prefix : never)
       | (Value extends readonly (infer Item)[]
           ?
-              | CompatibleValueJsonPaths<
+              | CompatibleValueJqPaths<
                   Item,
                   Option,
-                  `${Prefix}[*]`,
+                  `${Prefix}[]`,
                   [...Depth, unknown]
                 >
-              | CompatibleValueJsonPaths<
+              | CompatibleValueJqPaths<
                   Item,
                   Option,
                   `${Prefix}[${number}]`,
@@ -80,29 +76,21 @@ type CompatibleValueJsonPaths<
                 >
           : Value extends object
             ? {
-                [Key in keyof Value & string]: CompatibleValueJsonPaths<
+                [Key in keyof Value & string]: CompatibleValueJqPaths<
                   Value[Key],
                   Option,
-                  `${Prefix}.${Key}`,
+                  AppendProperty<Prefix, Key>,
                   [...Depth, unknown]
                 >;
               }[keyof Value & string]
             : never);
 
-type ValueJsonPath<Value, Option> = {
-  [Path in CompatibleValueJsonPaths<Value, Option>]: [
-    Path extends `@${infer RelativePath}`
-      ? Parse<`$${RelativePath}`, Value>
-      : never,
-  ] extends [never]
-    ? never
-    : Path;
-}[CompatibleValueJsonPaths<Value, Option>];
+type ValueJqPath<Value, Option> = CompatibleValueJqPaths<Value, Option>;
 
-type MappedJsonPaths<
+type MappedJqPaths<
   Value,
   Option,
-  Prefix extends string = "$",
+  Prefix extends string = ".",
   Depth extends unknown[] = [],
 > = Depth["length"] extends 6
   ? never
@@ -110,33 +98,33 @@ type MappedJsonPaths<
     ?
         | (Item extends object
             ? [
-                `${Prefix}[*]`,
+                `${Prefix}[]`,
                 {
-                  label: ValueJsonPath<Item, string>;
-                  value: ValueJsonPath<Item, Option>;
+                  label: ValueJqPath<Item, string>;
+                  value: ValueJqPath<Item, Option>;
                 },
               ]
             : never)
-        | MappedJsonPaths<
+        | MappedJqPaths<
             Item,
             Option,
-            `${Prefix}[*]`,
+            `${Prefix}[]`,
             [...Depth, unknown]
           >
     : Value extends object
       ? {
-          [Key in keyof Value & string]: MappedJsonPaths<
+          [Key in keyof Value & string]: MappedJqPaths<
             Value[Key],
             Option,
-            `${Prefix}.${Key}`,
+            AppendProperty<Prefix, Key>,
             [...Depth, unknown]
           >;
         }[keyof Value & string]
       : never;
 
 type SuggestionsPick<Value, Option> =
-  | JsonPath<Value, Option>
-  | MappedJsonPaths<Value, Option>;
+  | JqPath<Value, Option>
+  | MappedJqPaths<Value, Option>;
 
 type ActionSuggestionsObject<
   Name extends string,
