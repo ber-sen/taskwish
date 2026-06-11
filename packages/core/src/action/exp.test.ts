@@ -202,7 +202,7 @@ describe("exp", () => {
     expect(summarize.run[0]).toMatchObject({
       $: "generateText",
       "=": "reply",
-      prompt: "*{$.input.message}",
+      prompt: "{$.input.message}",
     });
   });
 
@@ -229,7 +229,8 @@ describe("exp", () => {
     expect(summarize.run[0]).toMatchObject({
       $: "generateText",
       "=": "reply",
-      prompt: '*{["$.input.items[*]",{"title":"@.name","enabled":"@.active"}]}',
+      prompt:
+        '{$.input.items[*] | {"title":"@.name","enabled":"@.active"}}',
     });
   });
 });

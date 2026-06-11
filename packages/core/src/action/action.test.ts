@@ -435,7 +435,7 @@ describe("Action", () => {
           $: "generateText",
           "=": "reply",
           model: "gpt5",
-          prompt: "reply to @{gent} from *{$.event.name}",
+          prompt: "reply to @{gent} from {$.event.name}",
         },
         {
           $: "step",

@@ -254,9 +254,9 @@ function inferTypeExp(
     for (const currentPath of Object.values(map)) {
       parseJsonPath(currentPath.replace(/^@/, "$"));
     }
-    return `*{${JSON.stringify([path, map])}}`;
+    return `{${path} | ${JSON.stringify(map)}}`;
   }
-  return `*{${path}}`;
+  return `{${path}}`;
 }
 
 function evaluateExp(
@@ -341,7 +341,7 @@ function probeForActionCall(fn: Function): ActionCallCapture | null {
       get(_, prop) {
         if (prop === "actions") return actionsProxy;
         if (prop === "exp") return inferTypeExp;
-        if (prop === "map") return (path: string) => `*{${path}}`;
+        if (prop === "map") return (path: string) => `{${path}}`;
         return makeRecursiveProxy(String(prop));
       },
     },
