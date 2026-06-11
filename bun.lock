@@ -30,9 +30,8 @@
     },
     "packages/core": {
       "name": "@taskwish/core",
-      "version": "0.0.2",
+      "version": "0.0.4",
       "dependencies": {
-        "@gabrielbryk/jq-ts": "^1.4.0",
         "@standard-schema/spec": "^1.0.0",
         "arktype": "^2.1.23",
         "ms": "^2.1.3",
@@ -41,19 +40,6 @@
       "devDependencies": {
         "@types/bun": "^1.3.12",
         "@types/ms": "^2.1.0",
-        "dedent": "^1.7.2",
-        "typescript": "^5.9.2",
-      },
-    },
-    "packages/inline-py": {
-      "name": "inline-py",
-      "version": "0.0.1",
-    },
-    "packages/json-2-ts": {
-      "name": "@taskwish/json-2-ts",
-      "version": "0.0.1",
-      "devDependencies": {
-        "@types/bun": "^1.3.12",
         "dedent": "^1.7.2",
         "typescript": "^5.9.2",
       },
@@ -130,8 +116,6 @@
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.25.4", "", { "os": "win32", "cpu": "x64" }, "sha512-nOT2vZNw6hJ+z43oP1SPea/G/6AbN6X+bGNhNuq8NtRHy4wsMhw765IKLNmnjek7GvjWBYQ8Q5VBoYTFg9y1UQ=="],
 
-    "@gabrielbryk/jq-ts": ["@gabrielbryk/jq-ts@1.4.0", "", { "peerDependencies": { "typescript": "^5.0.0" } }, "sha512-FJ55osmJCfbHhOAW8muLuPT2fpoBRk+2cLolN43mLyJxJk6QlGYCN/T6C6RKoySMDwSwD4Jf9tFkAkXr7NL/kg=="],
-
     "@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.0", "", {}, "sha512-gv3ZRaISU3fjPAgNsriBRqGWQL6quFx04YMPW/zD8XMLsU32mhCCbfbO6KZFLjvYpCZ8zyDEgqsgf+PwPaM7GQ=="],
 
     "@rollup/plugin-alias": ["@rollup/plugin-alias@5.1.1", "", { "peerDependencies": { "rollup": "^1.20.0||^2.0.0||^3.0.0||^4.0.0" }, "optionalPeers": ["rollup"] }, "sha512-PR9zDb+rOzkRb2VD+EuKB7UC41vU5DIwZ5qqCpk0KJudcWAyi8rvYOhS7+L5aZCspw1stTViLgN5v6FF1p5cgQ=="],
@@ -191,8 +175,6 @@
     "@taskwish/ai": ["@taskwish/ai@workspace:packages/ai"],
 
     "@taskwish/core": ["@taskwish/core@workspace:packages/core"],
-
-    "@taskwish/json-2-ts": ["@taskwish/json-2-ts@workspace:packages/json-2-ts"],
 
     "@taskwish/slack": ["@taskwish/slack@workspace:packages/slack"],
 
@@ -298,8 +280,6 @@
 
     "hookable": ["hookable@5.5.3", "", {}, "sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ=="],
 
-    "inline-py": ["inline-py@workspace:packages/inline-py"],
-
     "is-core-module": ["is-core-module@2.16.1", "", { "dependencies": { "hasown": "^2.0.2" } }, "sha512-UfoeMA6fIJ8wTYFEUjelnaGI67v6+N7qXJEvQuIGa99l4xsCruSYOVSQ0uPANn4dAzm8lkYPaKLrrijLq7x23w=="],
 
     "is-module": ["is-module@1.0.0", "", {}, "sha512-51ypPSPCoTEIN9dy5Oy+h4pShgJmPCygKfyRCISBI+JoWT/2oJvK8QPxmwv7b/p239jXrm9M1mlQbyKJ5A152g=="],
@@ -309,7 +289,6 @@
     "jiti": ["jiti@2.4.2", "", { "bin": { "jiti": "lib/jiti-cli.mjs" } }, "sha512-rg9zJN+G4n2nfJl5MW3BMygZX56zKPNVEYYqq7adpmMh4Jn2QNEwhvQlFy6jPVdcod7txZtKHWnyZiA3a0zP7A=="],
 
     "js-tokens": ["js-tokens@4.0.0", "", {}, "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ=="],
-
 
     "knitwork": ["knitwork@1.2.0", "", {}, "sha512-xYSH7AvuQ6nXkq42x0v5S8/Iry+cfulBz/DJQzhIyESdLD7425jXsPy4vn5cCXU+HhRN2kVw51Vd1K6/By4BQg=="],
 
@@ -464,7 +443,6 @@
     "util-deprecate": ["util-deprecate@1.0.2", "", {}, "sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw=="],
 
     "csso/css-tree": ["css-tree@2.2.1", "", { "dependencies": { "mdn-data": "2.0.28", "source-map-js": "^1.0.1" } }, "sha512-OA0mILzGc1kCOCSJerOeqDxDQ4HOh+G8NbOJFOTgOCzpw7fCBubk0fEyxp8AgOL/jvLgYA/uV0cMbe43ElF1JA=="],
-
 
     "mkdist/jiti": ["jiti@1.21.7", "", { "bin": { "jiti": "bin/jiti.js" } }, "sha512-/imKNG4EbWNrVjoNC/1H5/9GFy+tqjGBHCaSsN+P2RnPqjsLmv6UD3Ej+Kj8nBWaRAwyk7kK5ZUc+OEatnTR3A=="],
 

@@ -2,9 +2,8 @@ import {
   UUIDv7String,
   ValidateTrigger,
   InferTriggerScope,
-  JqPath,
-  JqPathValue,
-  Pretty,
+  JsonPath,
+  JsonPathValue,
 } from "./helpers";
 
 import { Type as ArkType } from "arktype";
@@ -51,8 +50,7 @@ export namespace TW {
     : Record<string, unknown>;
 
   export type Scope<S> = S & {
-    exp<const Path extends JqPath<S>>(path: Path): JqPathValue<S, Path>;
-    exp<const T = string>(expression: string): T;
+    exp<const Path extends JsonPath<S>>(path: Path): JsonPathValue<S, Path>;
     self: <Return = any>(
       input: S extends Record<any, any>
         ? S["input"] extends Record<any, any>

@@ -1,4 +1,4 @@
-import { Type, type, validateDefinition } from "arktype";
+import { Type, type } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 import { TW } from "./core";
 import type { InferTypeConfig } from "./use";
@@ -8,16 +8,20 @@ import type { InferTypeConfig } from "./use";
  *  - `undefined` → InferType() with no filter (infer all steps)
  *  - `F`         → InferType(filter) (infer only the matching step)
  */
-export type FindInferTypeFilter<Plugins> =
-  Plugins extends readonly [infer Head, ...infer Tail]
-    ? Head extends InferTypeConfig<infer F>
-      ? F
-      : FindInferTypeFilter<Tail>
-    : never;
+export type FindInferTypeFilter<Plugins> = Plugins extends readonly [
+  infer Head,
+  ...infer Tail,
+]
+  ? Head extends InferTypeConfig<infer F>
+    ? F
+    : FindInferTypeFilter<Tail>
+  : never;
 
 export type Expect<T extends true> = T;
 
-export type DeepWriteable<T> = { -readonly [P in keyof T]: DeepWriteable<T[P]> } & {};
+export type DeepWriteable<T> = {
+  -readonly [P in keyof T]: DeepWriteable<T[P]>;
+} & {};
 
 export type Equal<X, Y> =
   (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
@@ -53,56 +57,69 @@ export type PrettyScope<T> = {
 
 export type Pretty<T> = { [K in keyof T]: T[K] } & {};
 
-export type Append<Items, Item> =
-  Items extends readonly any[] ? [...Items, Item] : [Item];
+export type Append<Items, Item> = Items extends readonly any[]
+  ? [...Items, Item]
+  : [Item];
 
-// ── jq paths ─────────────────────────────────────────────────────────────────
+// ── JSONPath paths ───────────────────────────────────────────────────────────
 
-type ValidateJqTail<Path extends string> = Path extends ""
+type JsonPathIdentifierStart =
+  | "_"
+  | "$"
+  | LowercaseLetter
+  | Uppercase<LowercaseLetter>;
+
+type LowercaseLetter =
+  | "a"
+  | "b"
+  | "c"
+  | "d"
+  | "e"
+  | "f"
+  | "g"
+  | "h"
+  | "i"
+  | "j"
+  | "k"
+  | "l"
+  | "m"
+  | "n"
+  | "o"
+  | "p"
+  | "q"
+  | "r"
+  | "s"
+  | "t"
+  | "u"
+  | "v"
+  | "w"
+  | "x"
+  | "y"
+  | "z";
+
+type JsonPathIdentifierPart = JsonPathIdentifierStart | `${number}`;
+
+type IsJsonPathIdentifierTail<Value extends string> = Value extends ""
   ? true
-  : Path extends `.${infer Rest}`
-    ? ValidateJqProperty<Rest>
-    : Path extends `[${infer Rest}`
-      ? ValidateJqIndex<Rest>
-      : false;
-
-type ValidateJqProperty<Path extends string> =
-  Path extends `${infer Property}.${infer Rest}`
-    ? Property extends ""
-      ? false
-      : ValidateJqTail<`.${Rest}`>
-    : Path extends `${infer Property}[${infer Rest}`
-      ? Property extends ""
-        ? false
-        : ValidateJqTail<`[${Rest}`>
-      : Path extends ""
-        ? false
-        : true;
-
-type ValidateJqIndex<Path extends string> = Path extends `]${infer Rest}`
-  ? ValidateJqTail<Rest>
-  : Path extends `${infer Index}]${infer Rest}`
-    ? Index extends `${number}`
-      ? Index extends ""
-        ? false
-        : ValidateJqTail<Rest>
-      : false
+  : Value extends `${JsonPathIdentifierPart}${infer Rest}`
+    ? IsJsonPathIdentifierTail<Rest>
     : false;
 
-export type LimitedJqPath<Path extends string> = Path extends "."
-  ? Path
-  : Path extends `.${infer Rest}`
-    ? ValidateJqProperty<Rest> extends true
-      ? Path
-      : never
-    : never;
+type IsJsonPathIdentifier<Value extends string> =
+  Value extends `${JsonPathIdentifierStart}${infer Rest}`
+    ? IsJsonPathIdentifierTail<Rest>
+    : false;
 
-type AppendJqProperty<Prefix extends string, Key extends string> =
-  Prefix extends "." ? `.${Key}` : `${Prefix}.${Key}`;
+type AppendJsonPathProperty<
+  Prefix extends string,
+  Key extends string,
+> = IsJsonPathIdentifier<Key> extends true
+  ? `${Prefix}.${Key}`
+  : `${Prefix}["${Key}"]`;
 
-type JqPathEntry<
+type JsonPathEntry<
   Value,
-  Prefix extends string = ".",
+  Prefix extends string = "$",
   Multiple extends boolean = false,
   Depth extends unknown[] = [],
 > = Depth["length"] extends 6
@@ -113,13 +130,8 @@ type JqPathEntry<
           ? never
           : Value extends readonly (infer Item)[]
             ?
-                | JqPathEntry<
-                    Item,
-                    `${Prefix}[]`,
-                    true,
-                    [...Depth, unknown]
-                  >
-                | JqPathEntry<
+                | JsonPathEntry<Item, `${Prefix}[*]`, true, [...Depth, unknown]>
+                | JsonPathEntry<
                     Item,
                     `${Prefix}[${number}]`,
                     Multiple,
@@ -129,44 +141,46 @@ type JqPathEntry<
               ? never
               : Value extends object
                 ? {
-                    [Key in keyof Value & string]: JqPathEntry<
+                    [Key in keyof Value & string]: JsonPathEntry<
                       Value[Key],
-                      AppendJqProperty<Prefix, Key>,
+                      AppendJsonPathProperty<Prefix, Key>,
                       Multiple,
                       [...Depth, unknown]
                     >;
                   }[keyof Value & string]
                 : never);
 
-export type JqPath<Value> =
-  JqPathEntry<Value> extends infer Entry
+export type JsonPath<Value> =
+  JsonPathEntry<Value> extends infer Entry
     ? Entry extends { path: infer Path extends string }
       ? Path
       : never
     : never;
 
-export type JqPathValue<Value, Path extends string> =
-  JqPathEntry<Value> extends infer Entry
+export type JsonPathValue<Value, Path extends `$${string}`> =
+  JsonPathEntry<Value> extends infer Entry
     ? Entry extends {
         path: Path;
-        value: infer PathValue;
-      }
-      ? PathValue
-      : never
-    : never;
-
-type CompatibleJqPath<Value, Option> =
-  JqPathEntry<Value> extends infer Entry
-    ? Entry extends {
-        path: infer Path extends string;
         value: infer PathValue;
         multiple: infer Multiple extends boolean;
       }
       ? Multiple extends true
-        ? PathValue extends Option
+        ? PathValue[]
+        : PathValue
+      : never
+    : never;
+
+type CompatibleJsonPath<Value, Option> =
+  JsonPathEntry<Value> extends infer Entry
+    ? Entry extends {
+        path: infer Path extends `$${string}`;
+        multiple: infer Multiple extends boolean;
+      }
+      ? Multiple extends true
+        ? JsonPathValue<Value, Path> extends readonly Option[]
           ? Path
           : never
-        : PathValue extends readonly (infer Item)[]
+        : JsonPathValue<Value, Path> extends readonly (infer Item)[]
           ? Item extends Option
             ? Path
             : never
@@ -174,42 +188,48 @@ type CompatibleJqPath<Value, Option> =
       : never
     : never;
 
-type CompatibleValueJqPath<Value, Option> =
-  JqPathEntry<Value> extends infer Entry
+type CompatibleValueJsonPath<Value, Option> =
+  JsonPathEntry<Value> extends infer Entry
     ? Entry extends {
-        path: infer Path extends string;
-        value: infer PathValue;
+        path: infer Path extends `$${string}`;
       }
-      ? PathValue extends Option
+      ? JsonPathValue<Value, Path> extends Option
         ? Path
         : never
       : never
     : never;
 
-export type ScopeJqPath<Value, Result = string> = CompatibleValueJqPath<
+type CompatibleCurrentJsonPath<Value, Option> =
+  CompatibleValueJsonPath<Value, Option> extends infer Path extends string
+    ? Path extends `$${infer Tail}`
+      ? `@${Tail}`
+      : never
+    : never;
+
+export type ScopeJsonPath<Value, Result = string> = CompatibleValueJsonPath<
   Value,
   Result
 >;
 
-type MappedJqPath<Value, Option> =
-  JqPathEntry<Value> extends infer Entry
+type MappedJsonPath<Value, Option> =
+  JsonPathEntry<Value> extends infer Entry
     ? Entry extends {
-        path: infer Path extends `${string}[]`;
+        path: infer Path extends `${string}[*]`;
         value: infer Item extends object;
       }
       ? [
           Path,
           {
-            label: CompatibleValueJqPath<Item, string>;
-            value: CompatibleValueJqPath<Item, Option>;
+            label: CompatibleCurrentJsonPath<Item, string>;
+            value: CompatibleCurrentJsonPath<Item, Option>;
           },
         ]
       : never
     : never;
 
 export type SuggestionsPick<Value, Option> =
-  | CompatibleJqPath<Value, Option>
-  | MappedJqPath<Value, Option>;
+  | CompatibleJsonPath<Value, Option>
+  | MappedJsonPath<Value, Option>;
 
 // ── Scope operator machinery ──────────────────────────────────────────────────
 
@@ -302,14 +322,13 @@ export type ValidateTrigger<Schema> =
           ? type.validate<Schema>
           : object;
 
-type HasOnlyNeverValues<T> =
-  keyof T extends infer K
-    ? K extends keyof T
-      ? [T[K]] extends [never]
-        ? true
-        : false
-      : never
-    : never;
+type HasOnlyNeverValues<T> = keyof T extends infer K
+  ? K extends keyof T
+    ? [T[K]] extends [never]
+      ? true
+      : false
+    : never
+  : never;
 
 export type InferTriggerScope<Schema> =
   Schema extends TW.Event<infer Name, infer Input>
@@ -417,8 +436,7 @@ export type GroupActions<M> =
           : never
         : never]: M[K];
     };
-  } &
-  // Flat names → { name: T } (directly callable)
+  } & // Flat names → { name: T } (directly callable)
   {
     [K in keyof M as ExtractActionName<M[K]> extends infer N extends string
       ? N extends `${string}.${string}`

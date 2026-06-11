@@ -1,27 +1,27 @@
 import { describe, expect, test } from "bun:test";
-import { ParseError, ValidationError } from "@gabrielbryk/jq-ts";
 import { Equal, Expect } from "../helpers";
 import { Step } from "../steps";
 import { InferType } from "../use";
 import { Action } from "./action";
+import { JSONPathSyntaxError } from "./json-path";
 
 describe("exp", () => {
-  test("evaluates input paths and jq expressions in an action", async () => {
+  test("evaluates JSONPath expressions in an action", async () => {
     const { selectItems } = Action("selectItems")
       .input({
         items: [{ name: "string", active: "boolean" }, "[]"],
       })
-      
+
       .run(
         Step("selected", function () {
-          const firstName = this.exp(".input.items[].name");
-          const activeCount = this.exp<number>(
-            "[.input.items[] | select(.active)] | length",
-          );
+          const names = this.exp("$.input.items[*].name");
+          const active = this.exp("$.input.items[*].active");
 
-          type check = Expect<Equal<typeof firstName, string>>;
+          type check = Expect<
+            Equal<[typeof names, typeof active], [string[], boolean[]]>
+          >;
 
-          return { firstName, activeCount };
+          return { names, active };
         }),
       );
 
@@ -32,32 +32,69 @@ describe("exp", () => {
           { name: "second", active: false },
         ],
       }),
-    ).resolves.toEqual({ firstName: "first", activeCount: 1 });
+    ).resolves.toEqual({
+      names: ["first", "second"],
+      active: [true, false],
+    });
   });
 
-  test("rejects invalid jq expressions in an action", async () => {
+  test("evaluates indexed paths", async () => {
+    const { selectItem } = Action("selectItem")
+      .input({ items: [{ name: "string" }, "[]"] })
+      .run(
+        Step("selected", function () {
+          return this.exp("$.input.items[1].name");
+        }),
+      );
+
+    await expect(
+      selectItem({ items: [{ name: "first" }, { name: "second" }] }),
+    ).resolves.toBe("second");
+  });
+
+  test("rejects invalid JSONPath expressions in an action", async () => {
     const { invalidExpression } = Action("invalidExpression").run(
       Step("selected", function () {
-        return this.exp(".input[");
+        // @ts-expect-error exp only accepts paths in the current scope
+        return this.exp("$.input[");
       }),
     );
 
-    await expect(invalidExpression()).rejects.toBeInstanceOf(ParseError);
-  });
-
-  test("rejects unsupported jq expressions in an action", async () => {
-    const { unsupportedExpression } = Action("unsupportedExpression").run(
-      Step("selected", function () {
-        return this.exp("unknown_builtin(.)");
-      }),
-    );
-
-    await expect(unsupportedExpression()).rejects.toBeInstanceOf(
-      ValidationError,
+    await expect(invalidExpression()).rejects.toBeInstanceOf(
+      JSONPathSyntaxError,
     );
   });
 
-  test("supports inferred and explicit result types in an action", async () => {
+  test("event path", async () => {
+    const { event } = Action("event")
+      .input({})
+
+      .run(
+        Step("selected", function () {
+          const names = this.exp('$.event[">"]');
+          return names;
+        }),
+      );
+
+    await expect(await event({})).toEqual("Command");
+  });
+
+  test("rejects special property names in dot notation", async () => {
+    const { invalidEventPath } = Action("invalidEventPath")
+      .input({})
+      .run(
+        Step("selected", function () {
+          // @ts-expect-error special property names require bracket notation
+          return this.exp("$.event.>");
+        }),
+      );
+
+    await expect(invalidEventPath({})).rejects.toBeInstanceOf(
+      JSONPathSyntaxError,
+    );
+  });
+
+  test("infers result types from paths", async () => {
     const { inspectInput } = Action("inspectInput")
       .input({
         name: "string",
@@ -66,14 +103,18 @@ describe("exp", () => {
       })
       .run(
         Step("selected", function () {
-          const inferredName = this.exp(".input.name");
-          const explicitName = this.exp<string>(".input.name");
-          const count = this.exp<number>(".input.items | length");
-          const active = this.exp<boolean>(".input.active");
+          const name = this.exp("$.input.name");
+          const items = this.exp("$.input.items");
+          const active = this.exp("$.input.active");
 
-          type check = Expect<Equal<typeof inferredName, string>>;
+          type check = Expect<
+            Equal<
+              [typeof name, typeof items, typeof active],
+              [string, string[], boolean]
+            >
+          >;
 
-          return { inferredName, explicitName, count, active };
+          return { name, items, active };
         }),
       );
 
@@ -84,9 +125,8 @@ describe("exp", () => {
         active: true,
       }),
     ).resolves.toEqual({
-      inferredName: "Ada",
-      explicitName: "Ada",
-      count: 2,
+      name: "Ada",
+      items: ["one", "two"],
       active: true,
     });
   });
@@ -99,7 +139,7 @@ describe("exp", () => {
           return this.input.name.toUpperCase();
         }),
         Step("selected", function () {
-          return this.exp(".upper");
+          return this.exp("$.upper");
         }),
       );
 
@@ -109,14 +149,14 @@ describe("exp", () => {
   test("validates this.exp while defining action steps", () => {
     const { summarize } = Action("summarize")
       .use(InferType())
-      .input({ items: [{ active: "boolean" }] })
+
+      .input({ message: "string" })
+
       .run(
         Step("reply", function () {
           return this.actions.generateText({
             model: "gpt5",
-            prompt: this.exp<string>(
-              "[.input.items[] | select(.active)] | length",
-            ),
+            prompt: this.exp("$.input.message"),
           });
         }),
       );
@@ -124,7 +164,7 @@ describe("exp", () => {
     expect(summarize.run[0]).toMatchObject({
       $: "generateText",
       "=": "reply",
-      prompt: "*{[.input.items[] | select(.active)] | length}",
+      prompt: "*{$.input.message}",
     });
   });
 });

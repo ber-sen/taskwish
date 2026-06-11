@@ -7,9 +7,7 @@ import {
   CamelCase,
   AddActionsToCtx,
   DeepWriteable,
-  LimitedJqPath,
 } from "../helpers";
-import { parse, run, validate, type Value } from "@gabrielbryk/jq-ts";
 import type { Steps, ActionResultKind } from "../steps";
 import { TW } from "../core";
 import {
@@ -20,6 +18,7 @@ import {
   type InferTypeConfig,
 } from "../use";
 import { ActionMeta, ValidateActionMeta } from "./meta";
+import { parseJsonPath, queryJsonPath } from "./json-path";
 
 type AppendPlugin<Ctx extends Record<any, any>, Plugin> = {
   name: Ctx["name"];
@@ -231,10 +230,7 @@ export async function* tapWith(
 
 export type Scope = {
   input: unknown;
-  exp<const Path extends string, const T = string>(
-    path: LimitedJqPath<Path>,
-  ): T;
-  exp<const T = string>(expression: string): T;
+  exp(path: `$${string}`): unknown;
   get<T>(Cls: abstract new (...a: unknown[]) => T): T;
   signal(type: string, data: Record<string, unknown>): object;
 };
@@ -249,16 +245,16 @@ const InferTypeActionCallTag = Symbol.for("TW.InferTypeActionCall");
 
 type ActionCallCapture = { name: string; params: Record<string, unknown> };
 
-function inferTypeExp<T = string>(expression: string): T {
-  validate(parse(expression));
-  return `*{${expression}}` as T;
+function inferTypeExp(expression: string): unknown {
+  parseJsonPath(expression);
+  return `*{${expression}}`;
 }
 
-function evaluateExp<T = string>(
+function evaluateExp(
   this: Record<string | symbol, unknown>,
   expression: string,
-): T {
-  return run(expression, this as unknown as Value)[0] as T;
+): unknown {
+  return queryJsonPath(this, expression);
 }
 
 /**
@@ -356,6 +352,13 @@ function actionEvent(obj: Record<string, unknown>) {
     value: true,
     enumerable: false,
   });
+}
+
+function commandEvent(input: unknown): TW.Event<"Command", object> {
+  return {
+    ">": "Command",
+    ...(input !== null && typeof input === "object" ? input : {}),
+  };
 }
 
 async function* runStep(
@@ -674,7 +677,7 @@ async function* runHandlerList(
         ctx[SelfCalledTag] = true;
         const gen = runAction(
           `${_actionName}.${_stepName}`,
-          buildScope("first", [input]),
+          buildScope("first", [input], { event: commandEvent(input) }),
           _actionHandlers,
           true,
         );
@@ -895,7 +898,10 @@ export function Action<const Name extends string>(
     }
 
     async function consume(...args: unknown[]) {
-      const extra = await buildExtra();
+      const extra = {
+        event: commandEvent(args[0]),
+        ...(await buildExtra()),
+      };
       const gen = tap(
         runAction(actionName, buildScope(inputMode, args, extra), handlers),
       );
@@ -905,7 +911,10 @@ export function Action<const Name extends string>(
     }
 
     async function* rawStream(...args: unknown[]) {
-      const extra = await buildExtra();
+      const extra = {
+        event: commandEvent(args[0]),
+        ...(await buildExtra()),
+      };
       yield* runAction(
         actionName,
         buildScope(inputMode, args, extra),
