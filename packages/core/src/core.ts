@@ -2,7 +2,11 @@ import {
   UUIDv7String,
   ValidateTrigger,
   InferTriggerScope,
-  Pretty,
+  JsonPath,
+  JsonPathItem,
+  JsonPathMap,
+  JsonPathMappedValue,
+  JsonPathValue,
 } from "./helpers";
 
 import { Type as ArkType } from "arktype";
@@ -48,7 +52,26 @@ export namespace TW {
       : Record<string, unknown>
     : Record<string, unknown>;
 
+  type ExpressionScope<S> = S extends object ? Omit<S, "actions"> : S;
+
   export type Scope<S> = S & {
+    exp<const Path extends JsonPath<ExpressionScope<S>>>(
+      path: Path,
+    ): JsonPathValue<ExpressionScope<S>, Path>;
+    exp<
+      const Path extends JsonPath<ExpressionScope<S>>,
+      const Map extends JsonPathMap<
+        JsonPathItem<JsonPathValue<ExpressionScope<S>, Path>>
+      >,
+    >(
+      path: Path,
+      map: Map,
+    ): JsonPathValue<ExpressionScope<S>, Path> extends readonly unknown[]
+      ? JsonPathMappedValue<
+          JsonPathItem<JsonPathValue<ExpressionScope<S>, Path>>,
+          Map
+        >[]
+      : JsonPathMappedValue<JsonPathValue<ExpressionScope<S>, Path>, Map>;
     self: <Return = any>(
       input: S extends Record<any, any>
         ? S["input"] extends Record<any, any>

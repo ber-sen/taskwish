@@ -1,4 +1,4 @@
-import { Type, type, validateDefinition } from "arktype";
+import { Type, type } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 import { TW } from "./core";
 import type { InferTypeConfig } from "./use";
@@ -8,16 +8,20 @@ import type { InferTypeConfig } from "./use";
  *  - `undefined` → InferType() with no filter (infer all steps)
  *  - `F`         → InferType(filter) (infer only the matching step)
  */
-export type FindInferTypeFilter<Plugins> =
-  Plugins extends readonly [infer Head, ...infer Tail]
-    ? Head extends InferTypeConfig<infer F>
-      ? F
-      : FindInferTypeFilter<Tail>
-    : never;
+export type FindInferTypeFilter<Plugins> = Plugins extends readonly [
+  infer Head,
+  ...infer Tail,
+]
+  ? Head extends InferTypeConfig<infer F>
+    ? F
+    : FindInferTypeFilter<Tail>
+  : never;
 
 export type Expect<T extends true> = T;
 
-export type DeepWriteable<T> = { -readonly [P in keyof T]: DeepWriteable<T[P]> } & {};
+export type DeepWriteable<T> = {
+  -readonly [P in keyof T]: DeepWriteable<T[P]>;
+} & {};
 
 export type Equal<X, Y> =
   (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
@@ -53,8 +57,229 @@ export type PrettyScope<T> = {
 
 export type Pretty<T> = { [K in keyof T]: T[K] } & {};
 
-export type Append<Items, Item> =
-  Items extends readonly any[] ? [...Items, Item] : [Item];
+export type Append<Items, Item> = Items extends readonly any[]
+  ? [...Items, Item]
+  : [Item];
+
+// ── JSONPath paths ───────────────────────────────────────────────────────────
+
+type JsonPathIdentifierStart =
+  | "_"
+  | "$"
+  | LowercaseLetter
+  | Uppercase<LowercaseLetter>;
+
+type LowercaseLetter =
+  | "a"
+  | "b"
+  | "c"
+  | "d"
+  | "e"
+  | "f"
+  | "g"
+  | "h"
+  | "i"
+  | "j"
+  | "k"
+  | "l"
+  | "m"
+  | "n"
+  | "o"
+  | "p"
+  | "q"
+  | "r"
+  | "s"
+  | "t"
+  | "u"
+  | "v"
+  | "w"
+  | "x"
+  | "y"
+  | "z";
+
+type JsonPathIdentifierPart = JsonPathIdentifierStart | `${number}`;
+
+type IsJsonPathIdentifierTail<Value extends string> = Value extends ""
+  ? true
+  : Value extends `${JsonPathIdentifierPart}${infer Rest}`
+    ? IsJsonPathIdentifierTail<Rest>
+    : false;
+
+type IsJsonPathIdentifier<Value extends string> =
+  Value extends `${JsonPathIdentifierStart}${infer Rest}`
+    ? IsJsonPathIdentifierTail<Rest>
+    : false;
+
+type AppendJsonPathProperty<
+  Prefix extends string,
+  Key extends string,
+> = IsJsonPathIdentifier<Key> extends true
+  ? `${Prefix}.${Key}`
+  : `${Prefix}["${Key}"]`;
+
+type JsonPathSlice =
+  | `[${number | ""}:${number | ""}]`
+  | `[${number | ""}:${number | ""}:${number | ""}]`;
+
+type ExcludeFunctions<Value> =
+  Value extends (...args: any[]) => any ? never : Value;
+
+type JsonPathEntry<
+  Value,
+  Prefix extends string = "$",
+  Multiple extends boolean = false,
+  Depth extends unknown[] = [],
+> = JsonPathEntryValue<ExcludeFunctions<Value>, Prefix, Multiple, Depth>;
+
+type JsonPathEntryValue<
+  Value,
+  Prefix extends string,
+  Multiple extends boolean,
+  Depth extends unknown[],
+> = [Value] extends [never]
+  ? never
+  : Depth["length"] extends 6
+    ? { path: Prefix; value: Value; multiple: Multiple }
+    :
+        | { path: Prefix; value: Value; multiple: Multiple }
+        | (0 extends 1 & Value
+            ? never
+            : Value extends readonly (infer Item)[]
+            ?
+                | JsonPathEntry<Item, `${Prefix}[*]`, true, [...Depth, unknown]>
+                | JsonPathEntry<
+                    Item,
+                    `${Prefix}${JsonPathSlice}`,
+                    true,
+                    [...Depth, unknown]
+                  >
+                | JsonPathEntry<
+                    Item,
+                    `${Prefix}[${number}]`,
+                    Multiple,
+                    [...Depth, unknown]
+                  >
+              : Value extends object
+                ? {
+                    [Key in keyof Value & string]: JsonPathEntry<
+                      Value[Key],
+                      AppendJsonPathProperty<Prefix, Key>,
+                      Multiple,
+                      [...Depth, unknown]
+                    >;
+                  }[keyof Value & string]
+                : never);
+
+export type JsonPath<Value> =
+  JsonPathEntry<Value> extends infer Entry
+    ? Entry extends { path: infer Path extends string }
+      ? Path
+      : never
+    : never;
+
+export type JsonPathValue<Value, Path extends `$${string}`> =
+  JsonPathEntry<Value> extends infer Entry
+    ? Entry extends {
+        path: infer EntryPath extends `$${string}`;
+        value: infer PathValue;
+        multiple: infer Multiple extends boolean;
+      }
+      ? Path extends EntryPath
+        ? Multiple extends true
+          ? PathValue[]
+          : PathValue
+        : never
+      : never
+    : never;
+
+type CompatibleJsonPath<Value, Option> =
+  JsonPathEntry<Value> extends infer Entry
+    ? Entry extends {
+        path: infer Path extends `$${string}`;
+        multiple: infer Multiple extends boolean;
+      }
+      ? Multiple extends true
+        ? JsonPathValue<Value, Path> extends readonly Option[]
+          ? Path
+          : never
+        : JsonPathValue<Value, Path> extends readonly (infer Item)[]
+          ? Item extends Option
+            ? Path
+            : never
+          : never
+      : never
+    : never;
+
+type CompatibleValueJsonPath<Value, Option> =
+  JsonPathEntry<Value> extends infer Entry
+    ? Entry extends {
+        path: infer Path extends `$${string}`;
+      }
+      ? JsonPathValue<Value, Path> extends Option
+        ? Path
+        : never
+      : never
+    : never;
+
+type CompatibleCurrentJsonPath<Value, Option> =
+  CompatibleValueJsonPath<Value, Option> extends infer Path extends string
+    ? Path extends `$${infer Tail}`
+      ? `@${Tail}`
+      : never
+    : never;
+
+export type CurrentJsonPath<Value> =
+  JsonPath<Value> extends infer Path extends string
+    ? Path extends `$${infer Tail}`
+      ? `@${Tail}`
+      : never
+    : never;
+
+export type CurrentJsonPathValue<
+  Value,
+  Path extends `@${string}`,
+> = Path extends `@${infer Tail}`
+  ? JsonPathValue<Value, `$${Tail}`>
+  : never;
+
+export type JsonPathItem<Value> =
+  Value extends readonly (infer Item)[] ? Item : Value;
+
+export type JsonPathMap<Value> = Record<string, CurrentJsonPath<Value>>;
+
+export type JsonPathMappedValue<
+  Value,
+  Map extends JsonPathMap<Value>,
+> = {
+  -readonly [Key in keyof Map]: Map[Key] extends `@${string}`
+    ? CurrentJsonPathValue<Value, Map[Key]>
+    : never;
+};
+
+export type ScopeJsonPath<Value, Result = string> = CompatibleValueJsonPath<
+  Value,
+  Result
+>;
+
+type MappedJsonPath<Value, Option> =
+  JsonPathEntry<Value> extends infer Entry
+    ? Entry extends {
+        path: infer Path extends `${string}[*]`;
+        value: infer Item extends object;
+      }
+      ? [
+          Path,
+          {
+            label: CompatibleCurrentJsonPath<Item, string>;
+            value: CompatibleCurrentJsonPath<Item, Option>;
+          },
+        ]
+      : never
+    : never;
+
+export type SuggestionsPick<Value, Option> =
+  | CompatibleJsonPath<Value, Option>
+  | MappedJsonPath<Value, Option>;
 
 // ── Scope operator machinery ──────────────────────────────────────────────────
 
@@ -147,14 +372,13 @@ export type ValidateTrigger<Schema> =
           ? type.validate<Schema>
           : object;
 
-type HasOnlyNeverValues<T> =
-  keyof T extends infer K
-    ? K extends keyof T
-      ? [T[K]] extends [never]
-        ? true
-        : false
-      : never
-    : never;
+type HasOnlyNeverValues<T> = keyof T extends infer K
+  ? K extends keyof T
+    ? [T[K]] extends [never]
+      ? true
+      : false
+    : never
+  : never;
 
 export type InferTriggerScope<Schema> =
   Schema extends TW.Event<infer Name, infer Input>
@@ -262,8 +486,7 @@ export type GroupActions<M> =
           : never
         : never]: M[K];
     };
-  } &
-  // Flat names → { name: T } (directly callable)
+  } & // Flat names → { name: T } (directly callable)
   {
     [K in keyof M as ExtractActionName<M[K]> extends infer N extends string
       ? N extends `${string}.${string}`

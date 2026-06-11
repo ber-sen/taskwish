@@ -347,9 +347,42 @@ describe("Action", () => {
         }),
 
         Step("reply", function () {
+          const root = this.exp("$");
+          const input = this.exp("$.input");
+          const sender = this.exp("$.input.thread.sender");
+          const senderName = this.exp("$.input.thread.sender.name");
+          const gent = this.exp("$.gent");
+
+          type expCheck = Expect<
+            Equal<
+              [
+                typeof root.input,
+                typeof root.gent,
+                typeof input,
+                typeof sender,
+                typeof senderName,
+                typeof gent,
+              ],
+              [
+                {
+                  name: string;
+                  thread: { sender: { name: string } };
+                },
+                string,
+                {
+                  name: string;
+                  thread: { sender: { name: string } };
+                },
+                { name: string },
+                string,
+                string,
+              ]
+            >
+          >;
+
           return this.actions.generateText({
             model: "gpt5",
-            prompt: `reply to ${this.gent} from ${this.input.name}`,
+            prompt: `reply to ${this.gent} from ${this.exp("$.event.name")}`,
           });
         }),
 
@@ -402,7 +435,7 @@ describe("Action", () => {
           $: "generateText",
           "=": "reply",
           model: "gpt5",
-          prompt: "reply to @{gent} from @{input.name}",
+          prompt: "reply to @{gent} from {$.event.name}",
         },
         {
           $: "step",
@@ -461,7 +494,7 @@ describe("Action", () => {
 
     type T = ExactOmit<
       InferScope<typeof compute>,
-      "thread" | "actions" | "self" | "signal" | "get" | "event"
+      "thread" | "actions" | "self" | "signal" | "get" | "event" | "exp"
     >;
 
     type check = Expect<
@@ -651,7 +684,7 @@ describe("Action", () => {
             example: "#general",
             suggestions: {
               $: "conversationsList",
-              $pick: [".channels[]", { label: ".name", value: ".id" }],
+              "*": ["$.channels[*]", { label: "@.name", value: "@.id" }],
               types: "public_channel",
             },
           },
@@ -708,12 +741,12 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "conversationsList",
-              $pick: [
-                ".channels[]",
+              "*": [
+                "$.channels[*]",
                 {
                   // @ts-expect-error suggestion labels must resolve to strings
-                  label: ".missing",
-                  value: ".id",
+                  label: "@.missing",
+                  value: "@.id",
                 },
               ],
               types: "public_channel",
@@ -736,8 +769,8 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "conversationsList",
-              // @ts-expect-error suggestion paths use jq syntax
-              $pick: ["$.channels[*]", { label: "@.name", value: "@.id" }],
+              // @ts-expect-error suggestion paths use JSONPath syntax
+              "*": [".channels[]", { label: ".name", value: ".id" }],
               types: "public_channel",
             },
           },
@@ -758,12 +791,12 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "conversationsList",
-              $pick: [
-                ".channels[]",
+              "*": [
+                "$.channels[*]",
                 {
-                  label: ".name",
+                  label: "@.name",
                   // @ts-expect-error suggestion values must match the input type
-                  value: ".id",
+                  value: "@.id",
                 },
               ],
               types: "public_channel",
@@ -776,7 +809,7 @@ describe("Action", () => {
     expect(meta.description).toEqual("Post a message to a Slack channel");
     expect(meta.input.channel.suggestions).toEqual({
       $: "conversationsList",
-      $pick: [".channels[]", { label: ".name", value: ".id" }],
+      "*": ["$.channels[*]", { label: "@.name", value: "@.id" }],
       types: "public_channel",
     });
     expect(meta.output.channel).toEqual("The selected channel");
