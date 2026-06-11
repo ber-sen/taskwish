@@ -347,16 +347,9 @@ describe("Action", () => {
         }),
 
         Step("reply", function () {
-          const root: {
-            input: { name: string; thread: { sender: { name: string } } };
-          } = this.exp(".");
-
-          const input: {
-            name: string;
-            thread: { sender: { name: string } };
-          } = this.exp(".input");
-
-          const sender: { name: string } = this.exp(".input.thread.sender");
+          const root = this.exp(".");
+          const input = this.exp(".input");
+          const sender = this.exp(".input.thread.sender");
           const senderName = this.exp(".input.thread.sender.name");
           const gent = this.exp(".gent");
           this.exp(".external.value");
@@ -364,7 +357,8 @@ describe("Action", () => {
           type expCheck = Expect<
             Equal<
               [
-                typeof root,
+                typeof root.input,
+                typeof root.gent,
                 typeof input,
                 typeof sender,
                 typeof senderName,
@@ -372,11 +366,10 @@ describe("Action", () => {
               ],
               [
                 {
-                  input: {
-                    name: string;
-                    thread: { sender: { name: string } };
-                  };
+                  name: string;
+                  thread: { sender: { name: string } };
                 },
+                string,
                 {
                   name: string;
                   thread: { sender: { name: string } };

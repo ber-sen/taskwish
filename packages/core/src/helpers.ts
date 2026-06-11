@@ -145,6 +145,16 @@ export type JqPath<Value> =
       : never
     : never;
 
+export type JqPathValue<Value, Path extends string> =
+  JqPathEntry<Value> extends infer Entry
+    ? Entry extends {
+        path: Path;
+        value: infer PathValue;
+      }
+      ? PathValue
+      : never
+    : never;
+
 type CompatibleJqPath<Value, Option> =
   JqPathEntry<Value> extends infer Entry
     ? Entry extends {

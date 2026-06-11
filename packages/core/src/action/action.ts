@@ -9,6 +9,7 @@ import {
   DeepWriteable,
   LimitedJqPath,
 } from "../helpers";
+import { parse, run, validate, type Value } from "@gabrielbryk/jq-ts";
 import type { Steps, ActionResultKind } from "../steps";
 import { TW } from "../core";
 import {
@@ -233,6 +234,7 @@ export type Scope = {
   exp<const Path extends string, const T = string>(
     path: LimitedJqPath<Path>,
   ): T;
+  exp<const T = string>(expression: string): T;
   get<T>(Cls: abstract new (...a: unknown[]) => T): T;
   signal(type: string, data: Record<string, unknown>): object;
 };
@@ -246,6 +248,18 @@ export const ActionEventTag = Symbol.for("TW.ActionEvent");
 const InferTypeActionCallTag = Symbol.for("TW.InferTypeActionCall");
 
 type ActionCallCapture = { name: string; params: Record<string, unknown> };
+
+function inferTypeExp<T = string>(expression: string): T {
+  validate(parse(expression));
+  return `*{${expression}}` as T;
+}
+
+function evaluateExp<T = string>(
+  this: Record<string | symbol, unknown>,
+  expression: string,
+): T {
+  return run(expression, this as unknown as Value)[0] as T;
+}
 
 /**
  * Infinite-depth proxy that tracks the property-access path.
@@ -307,9 +321,8 @@ function probeForActionCall(fn: Function): ActionCallCapture | null {
     {
       get(_, prop) {
         if (prop === "actions") return actionsProxy;
-        if (prop === "exp" || prop === "map") {
-          return (path: string) => `*{${path}}`;
-        }
+        if (prop === "exp") return inferTypeExp;
+        if (prop === "map") return (path: string) => `*{${path}}`;
         return makeRecursiveProxy(String(prop));
       },
     },
@@ -739,9 +752,7 @@ export function buildScope(
   return {
     ...extra,
     input: inputMode === "args" ? args : args[0],
-    exp<Path extends string, T>(path: LimitedJqPath<Path>) {
-      return `*{${path}}` as T;
-    },
+    exp: evaluateExp,
     signal(type: string, data: Record<string, unknown>) {
       const event = { ">": type, ...data };
       Object.defineProperty(event, SignalTag, {
