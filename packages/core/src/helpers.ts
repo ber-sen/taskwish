@@ -206,6 +206,34 @@ type CompatibleCurrentJsonPath<Value, Option> =
       : never
     : never;
 
+export type CurrentJsonPath<Value> =
+  JsonPath<Value> extends infer Path extends string
+    ? Path extends `$${infer Tail}`
+      ? `@${Tail}`
+      : never
+    : never;
+
+export type CurrentJsonPathValue<
+  Value,
+  Path extends `@${string}`,
+> = Path extends `@${infer Tail}`
+  ? JsonPathValue<Value, `$${Tail}`>
+  : never;
+
+export type JsonPathItem<Value> =
+  Value extends readonly (infer Item)[] ? Item : Value;
+
+export type JsonPathMap<Value> = Record<string, CurrentJsonPath<Value>>;
+
+export type JsonPathMappedValue<
+  Value,
+  Map extends JsonPathMap<Value>,
+> = {
+  -readonly [Key in keyof Map]: Map[Key] extends `@${string}`
+    ? CurrentJsonPathValue<Value, Map[Key]>
+    : never;
+};
+
 export type ScopeJsonPath<Value, Result = string> = CompatibleValueJsonPath<
   Value,
   Result

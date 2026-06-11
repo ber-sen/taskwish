@@ -3,6 +3,9 @@ import {
   ValidateTrigger,
   InferTriggerScope,
   JsonPath,
+  JsonPathItem,
+  JsonPathMap,
+  JsonPathMappedValue,
   JsonPathValue,
 } from "./helpers";
 
@@ -51,6 +54,15 @@ export namespace TW {
 
   export type Scope<S> = S & {
     exp<const Path extends JsonPath<S>>(path: Path): JsonPathValue<S, Path>;
+    exp<
+      const Path extends JsonPath<S>,
+      const Map extends JsonPathMap<JsonPathItem<JsonPathValue<S, Path>>>,
+    >(
+      path: Path,
+      map: Map,
+    ): JsonPathValue<S, Path> extends readonly unknown[]
+      ? JsonPathMappedValue<JsonPathItem<JsonPathValue<S, Path>>, Map>[]
+      : JsonPathMappedValue<JsonPathValue<S, Path>, Map>;
     self: <Return = any>(
       input: S extends Record<any, any>
         ? S["input"] extends Record<any, any>

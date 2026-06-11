@@ -52,6 +52,44 @@ describe("exp", () => {
     ).resolves.toBe("second");
   });
 
+  test("maps selected values with a custom shape", async () => {
+    const { selectItems } = Action("selectItems")
+      .input({
+        items: [{ name: "string", active: "boolean" }, "[]"],
+      })
+      .run(
+        Step("selected", function () {
+          const items = this.exp("$.input.items[*]", {
+            title: "@.name",
+            enabled: "@.active",
+          });
+
+          type check = Expect<
+            Equal<typeof items, { title: string; enabled: boolean }[]>
+          >;
+
+          if (false) {
+            // @ts-expect-error mapped paths must exist on the selected item
+            this.exp("$.input.items[*]", { missing: "@.missing" });
+          }
+
+          return items;
+        }),
+      );
+
+    await expect(
+      selectItems({
+        items: [
+          { name: "first", active: true },
+          { name: "second", active: false },
+        ],
+      }),
+    ).resolves.toEqual([
+      { title: "first", enabled: true },
+      { title: "second", enabled: false },
+    ]);
+  });
+
   test("rejects invalid JSONPath expressions in an action", async () => {
     const { invalidExpression } = Action("invalidExpression").run(
       Step("selected", function () {
@@ -165,6 +203,33 @@ describe("exp", () => {
       $: "generateText",
       "=": "reply",
       prompt: "*{$.input.message}",
+    });
+  });
+
+  test("serializes mapped expressions while defining action steps", () => {
+    const { summarize } = Action("summarize")
+      .use(InferType())
+
+      .input({
+        items: [{ name: "string", active: "boolean" }, "[]"],
+      })
+
+      .run(
+        Step("reply", function () {
+          return this.actions.generateText({
+            model: "gpt5",
+            prompt: this.exp("$.input.items[*]", {
+              title: "@.name",
+              enabled: "@.active",
+            }) as unknown as string,
+          });
+        }),
+      );
+
+    expect(summarize.run[0]).toMatchObject({
+      $: "generateText",
+      "=": "reply",
+      prompt: '*{["$.input.items[*]",{"title":"@.name","enabled":"@.active"}]}',
     });
   });
 });

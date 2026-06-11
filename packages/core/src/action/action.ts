@@ -230,7 +230,7 @@ export async function* tapWith(
 
 export type Scope = {
   input: unknown;
-  exp(path: `$${string}`): unknown;
+  exp(path: `$${string}`, map?: Record<string, `@${string}`>): unknown;
   get<T>(Cls: abstract new (...a: unknown[]) => T): T;
   signal(type: string, data: Record<string, unknown>): object;
 };
@@ -245,16 +245,39 @@ const InferTypeActionCallTag = Symbol.for("TW.InferTypeActionCall");
 
 type ActionCallCapture = { name: string; params: Record<string, unknown> };
 
-function inferTypeExp(expression: string): unknown {
-  parseJsonPath(expression);
-  return `*{${expression}}`;
+function inferTypeExp(
+  path: string,
+  map?: Record<string, string>,
+): unknown {
+  parseJsonPath(path);
+  if (map !== undefined) {
+    for (const currentPath of Object.values(map)) {
+      parseJsonPath(currentPath.replace(/^@/, "$"));
+    }
+    return `*{${JSON.stringify([path, map])}}`;
+  }
+  return `*{${path}}`;
 }
 
 function evaluateExp(
   this: Record<string | symbol, unknown>,
-  expression: string,
+  path: string,
+  map?: Record<string, string>,
 ): unknown {
-  return queryJsonPath(this, expression);
+  if (map !== undefined) {
+    const selected = queryJsonPath(this, path);
+    const mapValue = (value: unknown) =>
+      Object.fromEntries(
+        Object.entries(map).map(([key, currentPath]) => [
+          key,
+          queryJsonPath(value, currentPath.replace(/^@/, "$")),
+        ]),
+      );
+    return Array.isArray(selected)
+      ? selected.map(mapValue)
+      : mapValue(selected);
+  }
+  return queryJsonPath(this, path);
 }
 
 /**
