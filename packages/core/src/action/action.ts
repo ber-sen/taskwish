@@ -7,6 +7,7 @@ import {
   CamelCase,
   AddActionsToCtx,
   DeepWriteable,
+  LimitedJqPath,
 } from "../helpers";
 import type { Steps, ActionResultKind } from "../steps";
 import { TW } from "../core";
@@ -229,6 +230,7 @@ export async function* tapWith(
 
 export type Scope = {
   input: unknown;
+  exp<const Path extends string>(path: LimitedJqPath<Path>): string;
   get<T>(Cls: abstract new (...a: unknown[]) => T): T;
   signal(type: string, data: Record<string, unknown>): object;
 };
@@ -303,6 +305,7 @@ function probeForActionCall(fn: Function): ActionCallCapture | null {
     {
       get(_, prop) {
         if (prop === "actions") return actionsProxy;
+        if (prop === "exp") return (path: string) => `*{${path}}`;
         return makeRecursiveProxy(String(prop));
       },
     },
@@ -732,6 +735,9 @@ export function buildScope(
   return {
     ...extra,
     input: inputMode === "args" ? args : args[0],
+    exp(path: string) {
+      return `*{${path}}`;
+    },
     signal(type: string, data: Record<string, unknown>) {
       const event = { ">": type, ...data };
       Object.defineProperty(event, SignalTag, {

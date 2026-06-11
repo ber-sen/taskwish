@@ -2,6 +2,8 @@ import {
   UUIDv7String,
   ValidateTrigger,
   InferTriggerScope,
+  LimitedJqPath,
+  ScopeJqPath,
   Pretty,
 } from "./helpers";
 
@@ -49,6 +51,8 @@ export namespace TW {
     : Record<string, unknown>;
 
   export type Scope<S> = S & {
+    exp(path: ScopeJqPath<S>): string;
+    exp<const Path extends string>(path: LimitedJqPath<Path>): string;
     self: <Return = any>(
       input: S extends Record<any, any>
         ? S["input"] extends Record<any, any>

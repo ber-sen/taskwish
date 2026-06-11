@@ -347,9 +347,17 @@ describe("Action", () => {
         }),
 
         Step("reply", function () {
+          // @ts-expect-error exp only accepts the limited jq path syntax
+          this.exp("$.input[*].name");
+          this.exp(".");
+          this.exp(".input");
+          this.exp(".input.thread.sender.name");
+          this.exp(".gent");
+          this.exp(".external.value");
+
           return this.actions.generateText({
             model: "gpt5",
-            prompt: `reply to ${this.gent} from ${this.input.name}`,
+            prompt: `reply to ${this.gent} from ${this.exp(".input.name")}`,
           });
         }),
 
@@ -402,7 +410,7 @@ describe("Action", () => {
           $: "generateText",
           "=": "reply",
           model: "gpt5",
-          prompt: "reply to @{gent} from @{input.name}",
+          prompt: "reply to @{gent} from *{.input.name}",
         },
         {
           $: "step",
@@ -461,7 +469,7 @@ describe("Action", () => {
 
     type T = ExactOmit<
       InferScope<typeof compute>,
-      "thread" | "actions" | "self" | "signal" | "get" | "event"
+      "thread" | "actions" | "self" | "signal" | "get" | "event" | "exp"
     >;
 
     type check = Expect<
@@ -651,7 +659,7 @@ describe("Action", () => {
             example: "#general",
             suggestions: {
               $: "conversationsList",
-              $pick: [".channels[]", { label: ".name", value: ".id" }],
+              "*": [".channels[]", { label: ".name", value: ".id" }],
               types: "public_channel",
             },
           },
@@ -708,7 +716,7 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "conversationsList",
-              $pick: [
+              "*": [
                 ".channels[]",
                 {
                   // @ts-expect-error suggestion labels must resolve to strings
@@ -737,7 +745,7 @@ describe("Action", () => {
             suggestions: {
               $: "conversationsList",
               // @ts-expect-error suggestion paths use jq syntax
-              $pick: ["$.channels[*]", { label: "@.name", value: "@.id" }],
+              "*": ["$.channels[*]", { label: "@.name", value: "@.id" }],
               types: "public_channel",
             },
           },
@@ -758,7 +766,7 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "conversationsList",
-              $pick: [
+              "*": [
                 ".channels[]",
                 {
                   label: ".name",
@@ -776,7 +784,7 @@ describe("Action", () => {
     expect(meta.description).toEqual("Post a message to a Slack channel");
     expect(meta.input.channel.suggestions).toEqual({
       $: "conversationsList",
-      $pick: [".channels[]", { label: ".name", value: ".id" }],
+      "*": [".channels[]", { label: ".name", value: ".id" }],
       types: "public_channel",
     });
     expect(meta.output.channel).toEqual("The selected channel");

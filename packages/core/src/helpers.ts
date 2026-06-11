@@ -56,6 +56,148 @@ export type Pretty<T> = { [K in keyof T]: T[K] } & {};
 export type Append<Items, Item> =
   Items extends readonly any[] ? [...Items, Item] : [Item];
 
+// ── jq paths ─────────────────────────────────────────────────────────────────
+
+type ValidateJqTail<Path extends string> = Path extends ""
+  ? true
+  : Path extends `.${infer Rest}`
+    ? ValidateJqProperty<Rest>
+    : Path extends `[${infer Rest}`
+      ? ValidateJqIndex<Rest>
+      : false;
+
+type ValidateJqProperty<Path extends string> =
+  Path extends `${infer Property}.${infer Rest}`
+    ? Property extends ""
+      ? false
+      : ValidateJqTail<`.${Rest}`>
+    : Path extends `${infer Property}[${infer Rest}`
+      ? Property extends ""
+        ? false
+        : ValidateJqTail<`[${Rest}`>
+      : Path extends ""
+        ? false
+        : true;
+
+type ValidateJqIndex<Path extends string> = Path extends `]${infer Rest}`
+  ? ValidateJqTail<Rest>
+  : Path extends `${infer Index}]${infer Rest}`
+    ? Index extends `${number}`
+      ? Index extends ""
+        ? false
+        : ValidateJqTail<Rest>
+      : false
+    : false;
+
+export type LimitedJqPath<Path extends string> = Path extends "."
+  ? Path
+  : Path extends `.${infer Rest}`
+    ? ValidateJqProperty<Rest> extends true
+      ? Path
+      : never
+    : never;
+
+type AppendJqProperty<Prefix extends string, Key extends string> =
+  Prefix extends "." ? `.${Key}` : `${Prefix}.${Key}`;
+
+type JqPathEntry<
+  Value,
+  Prefix extends string = ".",
+  Multiple extends boolean = false,
+  Depth extends unknown[] = [],
+> = Depth["length"] extends 6
+  ? { path: Prefix; value: Value; multiple: Multiple }
+  :
+      | { path: Prefix; value: Value; multiple: Multiple }
+      | (0 extends 1 & Value
+          ? never
+          : Value extends readonly (infer Item)[]
+            ?
+                | JqPathEntry<
+                    Item,
+                    `${Prefix}[]`,
+                    true,
+                    [...Depth, unknown]
+                  >
+                | JqPathEntry<
+                    Item,
+                    `${Prefix}[${number}]`,
+                    Multiple,
+                    [...Depth, unknown]
+                  >
+            : Value extends (...args: any[]) => any
+              ? never
+              : Value extends object
+                ? {
+                    [Key in keyof Value & string]: JqPathEntry<
+                      Value[Key],
+                      AppendJqProperty<Prefix, Key>,
+                      Multiple,
+                      [...Depth, unknown]
+                    >;
+                  }[keyof Value & string]
+                : never);
+
+export type JqPath<Value> =
+  JqPathEntry<Value> extends infer Entry
+    ? Entry extends { path: infer Path extends string }
+      ? Path
+      : never
+    : never;
+
+export type ScopeJqPath<Value> = JqPath<Value>;
+
+type CompatibleJqPath<Value, Option> =
+  JqPathEntry<Value> extends infer Entry
+    ? Entry extends {
+        path: infer Path extends string;
+        value: infer PathValue;
+        multiple: infer Multiple extends boolean;
+      }
+      ? Multiple extends true
+        ? PathValue extends Option
+          ? Path
+          : never
+        : PathValue extends readonly (infer Item)[]
+          ? Item extends Option
+            ? Path
+            : never
+          : never
+      : never
+    : never;
+
+type CompatibleValueJqPath<Value, Option> =
+  JqPathEntry<Value> extends infer Entry
+    ? Entry extends {
+        path: infer Path extends string;
+        value: infer PathValue;
+      }
+      ? PathValue extends Option
+        ? Path
+        : never
+      : never
+    : never;
+
+type MappedJqPath<Value, Option> =
+  JqPathEntry<Value> extends infer Entry
+    ? Entry extends {
+        path: infer Path extends `${string}[]`;
+        value: infer Item extends object;
+      }
+      ? [
+          Path,
+          {
+            label: CompatibleValueJqPath<Item, string>;
+            value: CompatibleValueJqPath<Item, Option>;
+          },
+        ]
+      : never
+    : never;
+
+export type SuggestionsPick<Value, Option> =
+  | CompatibleJqPath<Value, Option>
+  | MappedJqPath<Value, Option>;
+
 // ── Scope operator machinery ──────────────────────────────────────────────────
 
 export type RawEntry<R, Ops extends string[] = []> = {
