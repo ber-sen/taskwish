@@ -41,15 +41,94 @@ describe("exp", () => {
   test("evaluates indexed paths", async () => {
     const { selectItem } = Action("selectItem")
       .input({ items: [{ name: "string" }, "[]"] })
+
       .run(
         Step("selected", function () {
-          return this.exp("$.input.items[1].name");
+          const selected = this.exp("$.input.items[1].name");
+
+          type check = Expect<Equal<typeof selected, string>>;
+
+          return selected;
         }),
       );
+
+    type check = Expect<
+      Equal<Awaited<ReturnType<typeof selectItem>>, string>
+    >;
 
     await expect(
       selectItem({ items: [{ name: "first" }, { name: "second" }] }),
     ).resolves.toBe("second");
+  });
+
+  test("evaluates array slices with steps", async () => {
+    const { selectItems } = Action("selectItems")
+      .input({ items: [{ name: "string" }, "[]"] })
+
+      .run(
+        Step("selected", function () {
+          const selected = this.exp("$.input.items[1:5:2].name");
+
+          type check = Expect<Equal<typeof selected, string[]>>;
+
+          return selected;
+        }),
+      );
+
+    type check = Expect<
+      Equal<Awaited<ReturnType<typeof selectItems>>, string[]>
+    >;
+
+    await expect(
+      selectItems({
+        items: [
+          { name: "zero" },
+          { name: "one" },
+          { name: "two" },
+          { name: "three" },
+          { name: "four" },
+          { name: "five" },
+        ],
+      }),
+    ).resolves.toEqual(["one", "three"]);
+  });
+
+  test("supports omitted and negative slice values", async () => {
+    const { selectItems } = Action("selectItems")
+      .input({ items: ["string", "[]"] })
+
+      .run(
+        Step("selected", function () {
+          return {
+            everyOther: this.exp("$.input.items[::2]"),
+            reversed: this.exp("$.input.items[::-1]"),
+            withoutEnds: this.exp("$.input.items[1:-1]"),
+          };
+        }),
+      );
+
+    await expect(
+      selectItems({ items: ["zero", "one", "two", "three", "four"] }),
+    ).resolves.toEqual({
+      everyOther: ["zero", "two", "four"],
+      reversed: ["four", "three", "two", "one", "zero"],
+      withoutEnds: ["one", "two", "three"],
+    });
+  });
+
+  test("rejects zero slice steps", async () => {
+    const { invalidSlice } = Action("invalidSlice")
+      .input({ items: ["string", "[]"] })
+
+      .run(
+        Step("selected", function () {
+          return this.exp("$.input.items[::0]");
+        }),
+      );
+
+    await expect(
+      invalidSlice({ items: ["one", "two"] }),
+    ).rejects.toBeInstanceOf(JSONPathSyntaxError);
   });
 
   test("maps selected values with a custom shape", async () => {
@@ -120,6 +199,7 @@ describe("exp", () => {
   test("rejects special property names in dot notation", async () => {
     const { invalidEventPath } = Action("invalidEventPath")
       .input({})
+
       .run(
         Step("selected", function () {
           // @ts-expect-error special property names require bracket notation
@@ -139,6 +219,7 @@ describe("exp", () => {
         items: "string[]",
         active: "boolean",
       })
+      
       .run(
         Step("selected", function () {
           const name = this.exp("$.input.name");
@@ -207,8 +288,19 @@ describe("exp", () => {
   });
 
   test("serializes mapped expressions while defining action steps", () => {
+    const { saveCatalog } = Action("saveCatalog")
+      .input({
+        items: [{ title: "string", enabled: "boolean" }, "[]"],
+      })
+
+      .run(function () {
+        return this.input.items.length;
+      });
+
     const { summarize } = Action("summarize")
       .use(InferType())
+
+      .use(saveCatalog)
 
       .input({
         items: [{ name: "string", active: "boolean" }, "[]"],
@@ -216,20 +308,19 @@ describe("exp", () => {
 
       .run(
         Step("reply", function () {
-          return this.actions.generateText({
-            model: "gpt5",
-            prompt: this.exp("$.input.items[*]", {
+          return this.actions.saveCatalog({
+            items: this.exp("$.input.items[*]", {
               title: "@.name",
               enabled: "@.active",
-            }) as unknown as string,
+            }),
           });
         }),
       );
 
     expect(summarize.run[0]).toMatchObject({
-      $: "generateText",
+      $: "saveCatalog",
       "=": "reply",
-      prompt:
+      items:
         '{$.input.items[*] | {"title":"@.name","enabled":"@.active"}}',
     });
   });

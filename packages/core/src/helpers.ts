@@ -117,6 +117,10 @@ type AppendJsonPathProperty<
   ? `${Prefix}.${Key}`
   : `${Prefix}["${Key}"]`;
 
+type JsonPathSlice =
+  | `[${number | ""}:${number | ""}]`
+  | `[${number | ""}:${number | ""}:${number | ""}]`;
+
 type JsonPathEntry<
   Value,
   Prefix extends string = "$",
@@ -131,6 +135,12 @@ type JsonPathEntry<
           : Value extends readonly (infer Item)[]
             ?
                 | JsonPathEntry<Item, `${Prefix}[*]`, true, [...Depth, unknown]>
+                | JsonPathEntry<
+                    Item,
+                    `${Prefix}${JsonPathSlice}`,
+                    true,
+                    [...Depth, unknown]
+                  >
                 | JsonPathEntry<
                     Item,
                     `${Prefix}[${number}]`,
@@ -160,13 +170,15 @@ export type JsonPath<Value> =
 export type JsonPathValue<Value, Path extends `$${string}`> =
   JsonPathEntry<Value> extends infer Entry
     ? Entry extends {
-        path: Path;
+        path: infer EntryPath extends `$${string}`;
         value: infer PathValue;
         multiple: infer Multiple extends boolean;
       }
-      ? Multiple extends true
-        ? PathValue[]
-        : PathValue
+      ? Path extends EntryPath
+        ? Multiple extends true
+          ? PathValue[]
+          : PathValue
+        : never
       : never
     : never;
 
