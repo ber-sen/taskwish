@@ -18,7 +18,6 @@ import {
   type InferTypeConfig,
 } from "../use";
 import { ActionMeta, ValidateActionMeta } from "./meta";
-import { parseJsonPath, queryJsonPath } from "./json-path";
 
 type AppendPlugin<Ctx extends Record<any, any>, Plugin> = {
   name: Ctx["name"];
@@ -230,7 +229,6 @@ export async function* tapWith(
 
 export type Scope = {
   input: unknown;
-  exp(path: `$${string}`, map?: Record<string, `@${string}`>): unknown;
   get<T>(Cls: abstract new (...a: unknown[]) => T): T;
   signal(type: string, data: Record<string, unknown>): object;
 };
@@ -244,42 +242,6 @@ export const ActionEventTag = Symbol.for("TW.ActionEvent");
 const InferTypeActionCallTag = Symbol.for("TW.InferTypeActionCall");
 
 type ActionCallCapture = { name: string; params: Record<string, unknown> };
-
-function inferTypeExp(
-  path: string,
-  map?: Record<string, string>,
-): unknown {
-  parseJsonPath(path);
-  if (map !== undefined) {
-    for (const currentPath of Object.values(map)) {
-      parseJsonPath(currentPath.replace(/^@/, "$"));
-    }
-    return `{${path} | ${JSON.stringify(map)}}`;
-  }
-  return `{${path}}`;
-}
-
-function evaluateExp(
-  this: Record<string | symbol, unknown>,
-  path: string,
-  map?: Record<string, string>,
-): unknown {
-  const { actions: _, ...scope } = this;
-  if (map !== undefined) {
-    const selected = queryJsonPath(scope, path);
-    const mapValue = (value: unknown) =>
-      Object.fromEntries(
-        Object.entries(map).map(([key, currentPath]) => [
-          key,
-          queryJsonPath(value, currentPath.replace(/^@/, "$")),
-        ]),
-      );
-    return Array.isArray(selected)
-      ? selected.map(mapValue)
-      : mapValue(selected);
-  }
-  return queryJsonPath(scope, path);
-}
 
 /**
  * Infinite-depth proxy that tracks the property-access path.
@@ -341,8 +303,6 @@ function probeForActionCall(fn: Function): ActionCallCapture | null {
     {
       get(_, prop) {
         if (prop === "actions") return actionsProxy;
-        if (prop === "exp") return inferTypeExp;
-        if (prop === "map") return (path: string) => `{${path}}`;
         return makeRecursiveProxy(String(prop));
       },
     },
@@ -779,7 +739,6 @@ export function buildScope(
   return {
     ...extra,
     input: inputMode === "args" ? args : args[0],
-    exp: evaluateExp,
     signal(type: string, data: Record<string, unknown>) {
       const event = { ">": type, ...data };
       Object.defineProperty(event, SignalTag, {

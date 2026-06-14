@@ -347,42 +347,9 @@ describe("Action", () => {
         }),
 
         Step("reply", function () {
-          const root = this.exp("$");
-          const input = this.exp("$.input");
-          const sender = this.exp("$.input.thread.sender");
-          const senderName = this.exp("$.input.thread.sender.name");
-          const gent = this.exp("$.gent");
-
-          type expCheck = Expect<
-            Equal<
-              [
-                typeof root.input,
-                typeof root.gent,
-                typeof input,
-                typeof sender,
-                typeof senderName,
-                typeof gent,
-              ],
-              [
-                {
-                  name: string;
-                  thread: { sender: { name: string } };
-                },
-                string,
-                {
-                  name: string;
-                  thread: { sender: { name: string } };
-                },
-                { name: string },
-                string,
-                string,
-              ]
-            >
-          >;
-
           return this.actions.generateText({
             model: "gpt5",
-            prompt: `reply to ${this.gent} from ${this.exp("$.event.name")}`,
+            prompt: `reply to ${this.gent} from ${this.input.thread.sender.name}`,
           });
         }),
 
@@ -435,7 +402,7 @@ describe("Action", () => {
           $: "generateText",
           "=": "reply",
           model: "gpt5",
-          prompt: "reply to @{gent} from {$.event.name}",
+          prompt: "reply to @{gent} from @{input.thread.sender.name}",
         },
         {
           $: "step",
@@ -494,7 +461,7 @@ describe("Action", () => {
 
     type T = ExactOmit<
       InferScope<typeof compute>,
-      "thread" | "actions" | "self" | "signal" | "get" | "event" | "exp"
+      "thread" | "actions" | "self" | "signal" | "get" | "event"
     >;
 
     type check = Expect<
