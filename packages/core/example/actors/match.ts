@@ -48,23 +48,17 @@ export const { match } = MyActor()
   .input({ type: "string" })
 
   .run(
-    Match(
-      ($) => $.input,
+    Match(($) => $.input),
 
-      Match.With(
-        { type: "error" },
+    _({ type: "error" }),
 
-        Step("Lorem", function () {
-          return 3;
-        }),
-      ),
+    Step("Lorem", function () {
+      return 3;
+    }),
 
-      Match.With(
-        { type: "ok", data: { type: "text" } },
+    _({ type: "ok", data: { type: "text" } }),
 
-        Step("Lorem", function () {
-          return 3;
-        }),
-      ),
-    ),
+    Step("Lorem", function () {
+      return 3;
+    }),
   );
