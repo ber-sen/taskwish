@@ -47,7 +47,7 @@ const Match: (<const Ctx extends Record<any, any>>(
     last: void;
     plugins: Ctx["plugins"];
   };
-}) & { With: OptionSubSteps } = {} as never
+}) & { on: OptionSubSteps } = {} as never
 
 const { MyActor } = Actor("MyActor");
 
@@ -59,7 +59,7 @@ export const { match } = MyActor()
   .run(
     Match(($) => $.input),
 
-    Match.With(
+    Match.on(
       { type: "error" },
 
       Step("Lorem", function () {
@@ -67,7 +67,7 @@ export const { match } = MyActor()
       }),
     ),
 
-    Match.With(
+    Match.on(
       { type: "ok", data: { type: "text" } },
 
       Step("Lorem", function () {
