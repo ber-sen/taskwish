@@ -36,9 +36,9 @@ export interface OptionSubSteps {
   };
 }
 
-const Match = <const Ctx extends Record<any, any>>(
+const Match: (<const Ctx extends Record<any, any>>(
   fn: (scope: Ctx["scope"]) => any,
-): {
+) => {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["steps"];
@@ -47,24 +47,7 @@ const Match = <const Ctx extends Record<any, any>>(
     last: void;
     plugins: Ctx["plugins"];
   };
-} => {
-  return {} as never;
-};
-
-const _ = <const Ctx extends Record<any, any>>(
-  args: any,
-): {
-  [TW.Step]: (ctx: Ctx) => {
-    name: Ctx["name"];
-    steps: Ctx["steps"];
-    [TW.Step]: Ctx["step"];
-    scope: Ctx["scope"];
-    last: void;
-    plugins: Ctx["plugins"];
-  };
-} => {
-  return {} as never;
-};
+}) & { With: OptionSubSteps } = {} as never
 
 const { MyActor } = Actor("MyActor");
 
@@ -76,15 +59,19 @@ export const { match } = MyActor()
   .run(
     Match(($) => $.input),
 
-    _({ type: "error" }),
+    Match.With(
+      { type: "error" },
 
-    Step("Lorem", function () {
-      return 3;
-    }),
+      Step("Lorem", function () {
+        return 3;
+      }),
+    ),
 
-    _({ type: "ok", data: { type: "text" } }),
+    Match.With(
+      { type: "ok", data: { type: "text" } },
 
-    Step("Lorem", function () {
-      return this;
-    }),
+      Step("Lorem", function () {
+        return this;
+      }),
+    ),
   );
