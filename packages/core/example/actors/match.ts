@@ -36,9 +36,35 @@ export interface OptionSubSteps {
   };
 }
 
-const Match: OptionSubSteps & {
-  With: OptionSubSteps;
-} = {} as never;
+const Match = <const Ctx extends Record<any, any>>(
+  fn: (scope: Ctx["scope"]) => any,
+): {
+  [TW.Step]: (ctx: Ctx) => {
+    name: Ctx["name"];
+    steps: Ctx["steps"];
+    [TW.Step]: Ctx["step"];
+    scope: Ctx["scope"];
+    last: void;
+    plugins: Ctx["plugins"];
+  };
+} => {
+  return {} as never;
+};
+
+const _ = <const Ctx extends Record<any, any>>(
+  args: any,
+): {
+  [TW.Step]: (ctx: Ctx) => {
+    name: Ctx["name"];
+    steps: Ctx["steps"];
+    [TW.Step]: Ctx["step"];
+    scope: Ctx["scope"];
+    last: void;
+    plugins: Ctx["plugins"];
+  };
+} => {
+  return {} as never;
+};
 
 const { MyActor } = Actor("MyActor");
 
@@ -59,6 +85,6 @@ export const { match } = MyActor()
     _({ type: "ok", data: { type: "text" } }),
 
     Step("Lorem", function () {
-      return 3;
+      return this;
     }),
   );
