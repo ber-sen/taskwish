@@ -119,3 +119,7 @@ export const { match } = MyActor()
       return this.case1
     }),
   );
+
+  type A = { lorem: 3} | { ipsum: 2 } 
+
+  type B = Extract<A, { ipsum: 2 }>
