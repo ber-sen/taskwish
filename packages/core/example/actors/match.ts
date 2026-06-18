@@ -1,18 +1,41 @@
 import { Actor, Step, TW } from "../../src";
 
 export interface OptionSubSteps {
-  <Ctx extends Record<any, any>, Options, A>(
-    options: ((scope: Ctx["scope"]) => Options) | object,
+  <
+    const Value extends Ctx["scope"]["$match"],
+    Ctx extends Record<any, any>,
+    Options,
+    A,
+  >(
+    options: Value,
     step: {
-      [TW.Step]: (input: Ctx) => A;
+      [TW.Step]: (
+        input: Omit<Ctx, "scope"> &
+          Record<
+            "scope",
+            Omit<Ctx["scope"], "matched"> & Record<"matched", Value>
+          >,
+      ) => A;
     },
   ): {
     [TW.Step]: (input: Ctx) => A;
   };
-  <Ctx extends Record<any, any>, Options, A, B>(
+  <
+    const Value extends Ctx["scope"]["$match"],
+    Ctx extends Record<any, any>,
+    Options,
+    A,
+    B,
+  >(
     options: ((scope: Ctx["scope"]) => Options) | object,
     step1: {
-      [TW.Step]: (input: Ctx) => A;
+      [TW.Step]: (
+        input: Omit<Ctx, "scope"> &
+          Record<
+            "scope",
+            Omit<Ctx["scope"], "matched"> & Record<"matched", Value>
+          >,
+      ) => A;
     },
     step2: {
       [TW.Step]: (input: A) => B;
@@ -20,10 +43,23 @@ export interface OptionSubSteps {
   ): {
     [TW.Step]: (input: Ctx) => B;
   };
-  <Ctx extends Record<any, any>, Options, A, B, C>(
+  <
+    Ctx extends Record<any, any>,
+    Options,
+    A,
+    B,
+    C,
+    const Value extends Ctx["scope"]["$match"],
+  >(
     options: ((scope: Ctx["scope"]) => Options) | object,
     step1: {
-      [TW.Step]: (input: Ctx) => A;
+      [TW.Step]: (
+        input: Omit<Ctx, "scope"> &
+          Record<
+            "scope",
+            Omit<Ctx["scope"], "matched"> & Record<"matched", Value>
+          >,
+      ) => A;
     },
     step2: {
       [TW.Step]: (input: A) => B;
@@ -36,18 +72,18 @@ export interface OptionSubSteps {
   };
 }
 
-const Match: (<const Ctx extends Record<any, any>>(
-  fn: (scope: Ctx["scope"]) => any,
+const Match: (<const Value, const Ctx extends Record<any, any>>(
+  fn: (scope: Ctx["scope"]) => Value,
 ) => {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["steps"];
     [TW.Step]: Ctx["step"];
-    scope: Ctx["scope"];
-    last: void;
+    scope: Ctx["scope"] & Record<"$match", Value>;
+    last: Value;
     plugins: Ctx["plugins"];
   };
-}) & { on: OptionSubSteps } = {} as never
+}) & { on: OptionSubSteps } = {} as never;
 
 const { MyActor } = Actor("MyActor");
 
@@ -57,21 +93,29 @@ export const { match } = MyActor()
   .input({ type: "string" })
 
   .run(
+    Step("Lorem", function () {
+      return 3;
+    }),
+
     Match(($) => $.input),
 
     Match.on(
-      { type: "error" },
+      { type: "sad" },
 
-      Step("Lorem", function () {
-        return 3;
+      Step("case1", function () {
+        return this.matched;
       }),
     ),
 
     Match.on(
-      { type: "ok", data: { type: "text" } },
+      { type: "asds" },
 
-      Step("Lorem", function () {
-        return this;
+      Step("case2", function () {
+        return this.matched;
       }),
     ),
+
+    Step("end", function () {
+      return this.case1
+    }),
   );
