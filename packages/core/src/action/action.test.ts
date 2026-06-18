@@ -41,6 +41,59 @@ describe("Action", () => {
     expect(await hello({ name: "World" })).toEqual("Hello World");
   });
 
+  test("object schema input — ArkType scoped primitive aliases", async () => {
+    const { storeBlob } = Action("storeBlob")
+      .input({
+        signed32: "i32",
+        signed64: "i64",
+        unsigned32: "u32",
+        unsigned64: "u64",
+        size: "usize",
+        float32: "f32",
+        float64: "f64",
+        payload: "bytes",
+      })
+
+      .run(function () {
+        return this.input.payload.byteLength + this.input.size;
+      });
+
+    type T = typeof storeBlob;
+
+    type check = Expect<
+      Equal<
+        TW.Action<
+          "storeBlob",
+          (input: {
+            signed32: number;
+            signed64: number;
+            unsigned32: number;
+            unsigned64: number;
+            size: number;
+            float32: number;
+            float64: number;
+            payload: Uint8Array;
+          }) => Promise<number>,
+          null
+        >,
+        T
+      >
+    >;
+
+    expect(
+      await storeBlob({
+        signed32: -1,
+        signed64: -2,
+        unsigned32: 1,
+        unsigned64: 2,
+        size: 3,
+        float32: 1.5,
+        float64: 2.5,
+        payload: new Uint8Array([1, 2, 3, 4]),
+      }),
+    ).toEqual(7);
+  });
+
   test("step chain — yields each step, resolves to last", async () => {
     const { hello } = Action("hello")
       .input({ name: "string" })

@@ -1,4 +1,4 @@
-import { Type, type } from "arktype";
+import { Type, type, scope } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 import { TW } from "./core";
 import type { InferTypeConfig } from "./use";
@@ -325,13 +325,30 @@ export type UUIDv7String = `${string}-${string}-7${string}-${string}-${string}`;
 
 export type UUIDv5String = `${string}-${string}-5${string}-${string}-${string}`;
 
+export type ArkTypeScopeDef = {
+  i32: "number.integer>=-2147483648<=2147483647";
+  i64: "number.integer";
+  u32: "number.integer>=0<=4294967295";
+  u64: "number.integer>=0";
+  usize: "number.integer>=0";
+  f32: "number";
+  f64: "number";
+  bytes: "TypedArray.Uint8";
+};
+
+export type ArkTypeScope = scope.infer<ArkTypeScopeDef>;
+
+type WithArkTypeScope<Scope> = Omit<ArkTypeScope, keyof Scope> & Scope;
+
 export type ValidateSchema<Schema, Scope = {}> =
-  Schema extends StandardSchemaV1<any> ? Schema : type.validate<Schema, Scope>;
+  Schema extends StandardSchemaV1<any>
+    ? Schema
+    : type.validate<Schema, WithArkTypeScope<Scope>>;
 
 export type InferSchema<Schema, Scope = {}> =
   Schema extends StandardSchemaV1<infer Input>
     ? Input
-    : type.instantiate<Schema, Scope>["infer"];
+    : type.instantiate<Schema, WithArkTypeScope<Scope>>["infer"];
 
 export type ValidateTrigger<Schema> =
   Schema extends TW.EventKind<any, infer Input>
@@ -341,7 +358,7 @@ export type ValidateTrigger<Schema> =
       : Schema extends StandardSchemaV1<any>
         ? Schema
         : Schema extends object
-          ? type.validate<Schema>
+          ? type.validate<Schema, ArkTypeScope>
           : object;
 
 type HasOnlyNeverValues<T> = keyof T extends infer K
@@ -363,10 +380,15 @@ export type InferTriggerScope<Schema> =
           input: Input;
           event: TW.Event<Name, Input>;
         }
-      : HasOnlyNeverValues<type.instantiate<Schema>["infer"]> extends false
+      : HasOnlyNeverValues<
+            type.instantiate<Schema, ArkTypeScope>["infer"]
+          > extends false
         ? {
-            input: type.instantiate<Schema>["infer"];
-            event: TW.Event<"Command", type.instantiate<Schema>["infer"]>;
+            input: type.instantiate<Schema, ArkTypeScope>["infer"];
+            event: TW.Event<
+              "Command",
+              type.instantiate<Schema, ArkTypeScope>["infer"]
+            >;
           }
         : {
             input: Schema;
