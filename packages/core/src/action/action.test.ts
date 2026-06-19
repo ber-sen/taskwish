@@ -2,7 +2,27 @@ import { expect, test, describe } from "bun:test";
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { Actor } from "../actor";
-import { TW, bytes, f32, f64, i32, i64, u32, u64, usize } from "../core";
+import {
+  TW,
+  bool,
+  bytes,
+  char,
+  f32,
+  f64,
+  i8,
+  i16,
+  i32,
+  i64,
+  i128,
+  isize,
+  str,
+  u8,
+  u16,
+  u32,
+  u64,
+  u128,
+  usize,
+} from "../core";
 import { Step } from "../steps";
 import { Logger, InferType, formatEvent, isActionEvent } from "../use";
 
@@ -44,13 +64,23 @@ describe("Action", () => {
   test("object schema input — ArkType scoped primitive aliases", async () => {
     const { storeBlob } = Action("storeBlob")
       .input({
+        signed8: "i8",
+        signed16: "i16",
         signed32: "i32",
         signed64: "i64",
+        signed128: "i128",
+        signedSize: "isize",
+        unsigned8: "u8",
+        unsigned16: "u16",
         unsigned32: "u32",
         unsigned64: "u64",
+        unsigned128: "u128",
         size: "usize",
         float32: "f32",
         float64: "f64",
+        active: "bool",
+        initial: "char",
+        label: "str",
         payload: "bytes",
       })
 
@@ -65,13 +95,23 @@ describe("Action", () => {
         TW.Action<
           "storeBlob",
           (input: {
+            signed8: i8;
+            signed16: i16;
             signed32: i32;
             signed64: i64;
+            signed128: i128;
+            signedSize: isize;
+            unsigned8: u8;
+            unsigned16: u16;
             unsigned32: u32;
             unsigned64: u64;
+            unsigned128: u128;
             size: usize;
             float32: f32;
             float64: f64;
+            active: bool;
+            initial: char;
+            label: str;
             payload: bytes;
           }) => Promise<number>,
           null
@@ -82,13 +122,23 @@ describe("Action", () => {
 
     expect(
       await storeBlob({
+        signed8: -1,
+        signed16: -1,
         signed32: -1,
-        signed64: -2,
+        signed64: -2n,
+        signed128: -3n,
+        signedSize: -4,
+        unsigned8: 1,
+        unsigned16: 1,
         unsigned32: 1,
-        unsigned64: 2,
+        unsigned64: 2n,
+        unsigned128: 3n,
         size: 3,
         float32: 1.5,
         float64: 2.5,
+        active: true,
+        initial: "b",
+        label: "blob",
         payload: new Uint8Array([1, 2, 3, 4]),
       }),
     ).toEqual(7);
@@ -160,13 +210,23 @@ describe("Action", () => {
   test("TypeScript type input — branded primitive aliases", async () => {
     const { tsTypedAction } = Action("tsTypedAction")
       .input<{
+        signed8: i8;
+        signed16: i16;
         signed32: i32;
         signed64: i64;
+        signed128: i128;
+        signedSize: isize;
+        unsigned8: u8;
+        unsigned16: u16;
         unsigned32: u32;
         unsigned64: u64;
+        unsigned128: u128;
         size: usize;
         float32: f32;
         float64: f64;
+        active: bool;
+        initial: char;
+        label: str;
         payload: bytes;
       }>()
 
@@ -181,13 +241,23 @@ describe("Action", () => {
         TW.Action<
           "tsTypedAction",
           (input: {
+            signed8: i8;
+            signed16: i16;
             signed32: i32;
             signed64: i64;
+            signed128: i128;
+            signedSize: isize;
+            unsigned8: u8;
+            unsigned16: u16;
             unsigned32: u32;
             unsigned64: u64;
+            unsigned128: u128;
             size: usize;
             float32: f32;
             float64: f64;
+            active: bool;
+            initial: char;
+            label: str;
             payload: bytes;
           }) => Promise<Promise<number>>,
           null
@@ -198,13 +268,23 @@ describe("Action", () => {
 
     expect(
       await tsTypedAction({
+        signed8: -1,
+        signed16: -1,
         signed32: -1,
-        signed64: -2,
+        signed64: -2n,
+        signed128: -3n,
+        signedSize: -4,
+        unsigned8: 1,
+        unsigned16: 1,
         unsigned32: 1,
-        unsigned64: 2,
+        unsigned64: 2n,
+        unsigned128: 3n,
         size: 3,
         float32: 1.5,
         float64: 2.5,
+        active: true,
+        initial: "b",
+        label: "blob",
         payload: new Uint8Array([1, 2, 3, 4]),
       }),
     ).toEqual(7);

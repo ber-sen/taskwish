@@ -7,6 +7,7 @@ export type ConsoleLike = Pick<typeof console, "log" | "info" | "error">;
 function fmt(val: unknown): string {
   if (val === null) return "null";
   if (val instanceof Error) return fmt({ message: val.message });
+  if (typeof val === "bigint") return `${val}n`;
   if (typeof val !== "object") return JSON.stringify(val);
   if (Array.isArray(val)) {
     const items = val.map(fmt);

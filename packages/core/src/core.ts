@@ -212,11 +212,25 @@ export namespace TW {
   } & Params;
 }
 
+export type i8 = number & { [TW.Type]?: "i8" };
+export type i16 = number & { [TW.Type]?: "i16" };
 export type i32 = number & { [TW.Type]?: "i32" };
-export type i64 = number & { [TW.Type]?: "i64" };
+export type i64 = bigint & { [TW.Type]?: "i64" };
+export type i128 = bigint & { [TW.Type]?: "i128" };
+export type isize = number & { [TW.Type]?: "isize" };
+
+export type u8 = number & { [TW.Type]?: "u8" };
+export type u16 = number & { [TW.Type]?: "u16" };
 export type u32 = number & { [TW.Type]?: "u32" };
-export type u64 = number & { [TW.Type]?: "u64" };
+export type u64 = bigint & { [TW.Type]?: "u64" };
+export type u128 = bigint & { [TW.Type]?: "u128" };
 export type usize = number & { [TW.Type]?: "usize" };
+
 export type f32 = number & { [TW.Type]?: "f32" };
 export type f64 = number & { [TW.Type]?: "f64" };
+
+export type bool = boolean & { [TW.Type]?: "bool" };
+export type char = string & { [TW.Type]?: "char" };
+
+export type str = string & { [TW.Type]?: "str" };
 export type bytes = Uint8Array & { [TW.Type]?: "bytes" };
