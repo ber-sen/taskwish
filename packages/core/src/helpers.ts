@@ -1,6 +1,7 @@
 import { Type, type, scope } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 import { TW } from "./core";
+import type { bytes, f32, f64, i32, i64, u32, u64, usize } from "./core";
 import type { InferTypeConfig } from "./use";
 
 /** Walk the plugins tuple and return the filter type from the first InferTypeConfig found.
@@ -326,14 +327,14 @@ export type UUIDv7String = `${string}-${string}-7${string}-${string}-${string}`;
 export type UUIDv5String = `${string}-${string}-5${string}-${string}-${string}`;
 
 export type ArkTypeScopeDef = {
-  i32: "number.integer>=-2147483648<=2147483647";
-  i64: "number.integer";
-  u32: "number.integer>=0<=4294967295";
-  u64: "number.integer>=0";
-  usize: "number.integer>=0";
-  f32: "number";
-  f64: "number";
-  bytes: "TypedArray.Uint8";
+  i32: type.cast<i32>;
+  i64: type.cast<i64>;
+  u32: type.cast<u32>;
+  u64: type.cast<u64>;
+  usize: type.cast<usize>;
+  f32: type.cast<f32>;
+  f64: type.cast<f64>;
+  bytes: type.cast<bytes>;
 };
 
 export type ArkTypeScope = scope.infer<ArkTypeScopeDef>;

@@ -211,3 +211,12 @@ export namespace TW {
     "=": Name;
   } & Params;
 }
+
+export type i32 = number & { [TW.Type]?: "i32" };
+export type i64 = number & { [TW.Type]?: "i64" };
+export type u32 = number & { [TW.Type]?: "u32" };
+export type u64 = number & { [TW.Type]?: "u64" };
+export type usize = number & { [TW.Type]?: "usize" };
+export type f32 = number & { [TW.Type]?: "f32" };
+export type f64 = number & { [TW.Type]?: "f64" };
+export type bytes = Uint8Array & { [TW.Type]?: "bytes" };

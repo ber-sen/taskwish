@@ -2,7 +2,7 @@ import { expect, test, describe } from "bun:test";
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { Actor } from "../actor";
-import { TW } from "../core";
+import { TW, bytes, f32, f64, i32, i64, u32, u64, usize } from "../core";
 import { Step } from "../steps";
 import { Logger, InferType, formatEvent, isActionEvent } from "../use";
 
@@ -65,14 +65,14 @@ describe("Action", () => {
         TW.Action<
           "storeBlob",
           (input: {
-            signed32: number;
-            signed64: number;
-            unsigned32: number;
-            unsigned64: number;
-            size: number;
-            float32: number;
-            float64: number;
-            payload: Uint8Array;
+            signed32: i32;
+            signed64: i64;
+            unsigned32: u32;
+            unsigned64: u64;
+            size: usize;
+            float32: f32;
+            float64: f64;
+            payload: bytes;
           }) => Promise<number>,
           null
         >,
