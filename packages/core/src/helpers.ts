@@ -370,6 +370,28 @@ type HasOnlyNeverValues<T> = keyof T extends infer K
     : never
   : never;
 
+type HasTaskwishBrandedPrimitive<T> =
+  T extends { [TW.Type]?: infer Brand }
+    ? [Extract<Brand, string>] extends [never]
+      ? false
+      : true
+    : T extends object
+      ? true extends {
+          [K in keyof T]: HasTaskwishBrandedPrimitive<T[K]>;
+        }[keyof T]
+        ? true
+        : false
+      : false;
+
+type InferCommandInput<Schema> =
+  HasOnlyNeverValues<
+    type.instantiate<Schema, ArkTypeScope>["infer"]
+  > extends true
+    ? Schema
+    : HasTaskwishBrandedPrimitive<Schema> extends true
+      ? Schema
+      : type.instantiate<Schema, ArkTypeScope>["infer"];
+
 export type InferTriggerScope<Schema> =
   Schema extends TW.Event<infer Name, infer Input>
     ? {
@@ -381,20 +403,10 @@ export type InferTriggerScope<Schema> =
           input: Input;
           event: TW.Event<Name, Input>;
         }
-      : HasOnlyNeverValues<
-            type.instantiate<Schema, ArkTypeScope>["infer"]
-          > extends false
-        ? {
-            input: type.instantiate<Schema, ArkTypeScope>["infer"];
-            event: TW.Event<
-              "Command",
-              type.instantiate<Schema, ArkTypeScope>["infer"]
-            >;
-          }
-        : {
-            input: Schema;
-            event: TW.Event<"Command", Schema>;
-          };
+      : {
+          input: InferCommandInput<Schema>;
+          event: TW.Event<"Command", InferCommandInput<Schema>>;
+        };
 
 export type Apply<
   F extends TW.Handler,

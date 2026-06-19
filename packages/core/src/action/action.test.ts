@@ -157,6 +157,59 @@ describe("Action", () => {
     expect(await tsAction({ name: "Test" })).toEqual("Hello Test");
   });
 
+  test("TypeScript type input — branded primitive aliases", async () => {
+    const { tsTypedAction } = Action("tsTypedAction")
+      .input<{
+        signed32: i32;
+        signed64: i64;
+        unsigned32: u32;
+        unsigned64: u64;
+        size: usize;
+        float32: f32;
+        float64: f64;
+        payload: bytes;
+      }>()
+
+      .run(async function () {
+        return this.input.payload.byteLength + this.input.size;
+      });
+
+    type T = typeof tsTypedAction;
+
+    type check = Expect<
+      Equal<
+        TW.Action<
+          "tsTypedAction",
+          (input: {
+            signed32: i32;
+            signed64: i64;
+            unsigned32: u32;
+            unsigned64: u64;
+            size: usize;
+            float32: f32;
+            float64: f64;
+            payload: bytes;
+          }) => Promise<Promise<number>>,
+          null
+        >,
+        T
+      >
+    >;
+
+    expect(
+      await tsTypedAction({
+        signed32: -1,
+        signed64: -2,
+        unsigned32: 1,
+        unsigned64: 2,
+        size: 3,
+        float32: 1.5,
+        float64: 2.5,
+        payload: new Uint8Array([1, 2, 3, 4]),
+      }),
+    ).toEqual(7);
+  });
+
   test("generic function signature — this.input is args tuple", async () => {
     const { genericAction } = Action("genericAction")
       .sig<<const T>(lorem: T) => Promise<T>>()
