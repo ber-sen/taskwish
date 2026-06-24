@@ -46,17 +46,16 @@ type IsDotPathIdentifier<Value extends string> =
     ? IsDotPathIdentifierTail<Rest>
     : false;
 
-type AppendDotPathProperty<
-  Prefix extends string,
-  Key extends string,
-> = IsDotPathIdentifier<Key> extends true
-  ? Prefix extends ""
-    ? Key
-    : `${Prefix}.${Key}`
-  : never;
+type AppendDotPathProperty<Prefix extends string, Key extends string> =
+  IsDotPathIdentifier<Key> extends true
+    ? Prefix extends ""
+      ? Key
+      : `${Prefix}.${Key}`
+    : never;
 
-type ExcludeFunctions<Value> =
-  Value extends (...args: any[]) => any ? never : Value;
+type ExcludeFunctions<Value> = Value extends (...args: any[]) => any
+  ? never
+  : Value;
 
 type DotPathSelfEntry<Prefix extends string, Value> = Prefix extends ""
   ? never
@@ -117,17 +116,14 @@ type ArrayItemAtPath<Value, Path> = Path extends string
     : never
   : never;
 
-type MapFields<
-  Scope,
-  Path,
-  Alias extends string,
-> = [
+type MapFields<Scope, Path, Alias extends string> = [
   `${NoInfer<Alias>}.${DotPath<ArrayItemAtPath<Scope, Path>>}`,
   `${NoInfer<Alias>}.${DotPath<ArrayItemAtPath<Scope, Path>>}`,
 ];
 
-type SerializablePicker<Scope> = ((value: Scope) => any) & {
+type SerializablePicker<Scope> = {
   toJSON(): unknown;
+  toFn(value: Scope): any;
 };
 
 type MappedExpression<Path, Scope> = SerializablePicker<Scope> & {
@@ -138,10 +134,7 @@ type MappedExpression<Path, Scope> = SerializablePicker<Scope> & {
 };
 
 type Expression<Scope, Path> = SerializablePicker<Scope> & {
-  map: <
-    const Alias extends string,
-    MappedScope,
-  >(
+  map: <const Alias extends string, MappedScope>(
     alias: [Alias],
     fields: MapFields<MappedScope, Path, Alias>,
   ) => MappedExpression<Path, MappedScope>;
@@ -166,10 +159,11 @@ const createExpression = <Scope, Path>(
     get(target, property, receiver) {
       if (property === "map") {
         return (alias: [string], fields: readonly [string, string]) => {
-          const mapped = createExpression(
-            path,
-            [`${String(path)}.map`, alias, fields] as const,
-          ) as unknown as MappedExpression<Path, unknown>;
+          const mapped = createExpression(path, [
+            `${String(path)}.map`,
+            alias,
+            fields,
+          ] as const) as unknown as MappedExpression<Path, unknown>;
 
           Object.defineProperty(mapped, "filter", {
             value: (filterAlias: [string], predicate: string) =>

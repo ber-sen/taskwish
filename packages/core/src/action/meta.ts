@@ -7,7 +7,12 @@ type ActionSuggestionsObject<
   $: [ExtractActionName<Action>] extends [never]
     ? Name
     : ExtractActionName<Action>;
-  "*": (scope: Awaited<ReturnType<Action>>) => Array<[string, string | number]>;
+  "*": {
+    toJSON(): unknown
+    toFn: (
+      scope: Awaited<ReturnType<Action>>,
+    ) => Array<[string, string | number]>;
+  };
 } & (Parameters<Action> extends []
   ? {}
   : Parameters<Action> extends [infer Parameter extends object]
@@ -21,9 +26,8 @@ type ActionSuggestionsReference<Actions> = {
     ? ActionSuggestionsObject<Name, Actions[Name]>
     : Actions[Name] extends Record<string, unknown>
       ? {
-          [Method in keyof Actions[Name] & string]: Actions[Name][Method] extends (
-            ...args: any[]
-          ) => any
+          [Method in keyof Actions[Name] &
+            string]: Actions[Name][Method] extends (...args: any[]) => any
             ? ActionSuggestionsObject<
                 `${Name}.${Method}`,
                 Actions[Name][Method]
@@ -46,10 +50,7 @@ type MetaField =
       example?: unknown;
     };
 
-export type ActionMeta<
-  Ctx extends Record<any, any>,
-  Output,
-> = {
+export type ActionMeta<Ctx extends Record<any, any>, Output> = {
   description?: string;
   input?: {
     [K in keyof ActionInput<Ctx>]?:
