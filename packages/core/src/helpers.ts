@@ -215,9 +215,7 @@ type MappedDotPath<Value> =
       : never
     : never;
 
-export type SuggestionsPick<Value, Option> =
-  | CompatibleDotPath<Value, Option>
-  | MappedDotPath<Value>;
+export type SuggestionsPick<Value, Option> = (value: Value) => [string, string][]
 
 // ── Scope operator machinery ──────────────────────────────────────────────────
 

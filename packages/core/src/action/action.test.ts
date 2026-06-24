@@ -1,10 +1,24 @@
 import { expect, test, describe } from "bun:test";
-import { Expect, Equal } from "../helpers";
+import { Expect, Equal, DotPathValue } from "../helpers";
 import { Action } from "./action";
 import { Actor } from "../actor";
 import { TW } from "../core";
 import { Step } from "../steps";
 import { Logger, InferType, formatEvent, isActionEvent } from "../use";
+
+function $<T, const V extends keyof T>(value: keyof T) {
+  return {} as ((value: T) => any) & {
+    map: <const K extends string>(
+      k: [K],
+      p: [`${K}.id` | `${K}.name`, `${K}.id` | `${K}.name`],
+    ) => ((value: T) => any) & {
+      filter: <const F extends string>(
+        k: [F],
+        p: `${V extends string ? V : never}.${K}.${F}`,
+      ) => (value: T) => any;
+    };
+  };
+}
 
 describe("Action", () => {
   test("no input — plain handler", async () => {
@@ -663,14 +677,14 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "channelIds",
-              "*": "channels",
+              "*": $("channels").map(["x"], ["x.id", "x.name"]),
               types: "public_channel",
             },
           },
           nested: {
             suggestions: {
               $: "channelIds",
-              "*": "parent.nested",
+              "*": $("parent"),
               types: "public_channel",
             },
           },
@@ -833,11 +847,7 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "conversationsList",
-              "*": [
-                "channels.map",
-                ["x"],
-                ["x.name", "x.id"],
-              ],
+              "*": ["channels.map", ["x"], ["x.name", "x.id"]],
               types: "public_channel",
             },
           },
