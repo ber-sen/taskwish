@@ -7,6 +7,8 @@ import {
   CamelCase,
   AddActionsToCtx,
   DeepWriteable,
+  QualifiedActionName,
+  splitQualifiedActionName,
 } from "../helpers";
 import type { Steps, ActionResultKind } from "../steps";
 import { TW } from "../core";
@@ -75,13 +77,17 @@ type SignatureResult<
 > = {
   [key in Name]: Signature extends (...args: any) => any
     ? TW.Action<
-        "service" extends keyof Ctx ? `${Ctx["service"]}.${Name}` : Name,
+        "service" extends keyof Ctx
+          ? QualifiedActionName<Ctx["service"] & string, Name>
+          : Name,
         Signature,
         Meta
       >
     : Signature extends TW.Handler
       ? TW.Action<
-          "service" extends keyof Ctx ? `${Ctx["service"]}.${Name}` : Name,
+          "service" extends keyof Ctx
+            ? QualifiedActionName<Ctx["service"] & string, Name>
+            : Name,
           Apply<Signature, Ctx>,
           Meta extends null
             ? Record<"handler", Signature>
@@ -792,15 +798,15 @@ export function Action<const Name extends string>(
   function injectAction(plugin: unknown) {
     const fullName: unknown = (plugin as any)[TW.Name];
     if (typeof fullName !== "string") return;
-    const dot = fullName.indexOf(".");
-    if (dot === -1) {
+    const qualified = splitQualifiedActionName(fullName);
+    if (qualified === null) {
       // Flat name: store directly — this.actions.notify
       injectedActions[fullName] = plugin;
     } else {
-      // Dotted name: store nested — this.actions.notifier.notify
-      const rawService = fullName.slice(0, dot);
-      const service = rawService.charAt(0).toLowerCase() + rawService.slice(1);
-      const method = fullName.slice(dot + 1);
+      // Qualified name: store nested — this.actions.notifier.notify
+      const service =
+        qualified.service.charAt(0).toLowerCase() + qualified.service.slice(1);
+      const method = qualified.method;
       injectedActions[service] = {
         ...(injectedActions[service] as Record<string, unknown> | undefined),
         [method]: plugin,

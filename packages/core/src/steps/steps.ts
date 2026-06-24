@@ -3,6 +3,7 @@ import {
   DeepWriteable,
   FindInferTypeFilter,
   Pretty,
+  QualifiedActionName,
   ResolveLast,
 } from "../helpers";
 import type {
@@ -60,7 +61,7 @@ type RegularAction<
 > = {
   [name in Ctx["name"]]: TW.Action<
     Ctx extends { service: infer S extends string }
-      ? `${S}.${Ctx["name"]}`
+      ? QualifiedActionName<S, Ctx["name"]>
       : Ctx["name"],
     "scope" extends keyof Ctx
       ? "input" extends keyof Ctx["scope"]

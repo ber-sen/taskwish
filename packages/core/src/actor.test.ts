@@ -26,7 +26,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "Greeter.greet",
+          "Greeter::greet",
           (input: { name: string }) => Promise<string>,
           null
         >,
@@ -72,7 +72,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "Processor.process",
+          "Processor::process",
           (input: { value: number }) => Promise<boolean>,
           null
         >,
@@ -107,10 +107,10 @@ describe("Actor", () => {
     }
 
     expect(yields).toEqual([
-      { ">": "Pipeline.run", input: { name: "hello" } },
-      { ">": "Pipeline.run.first", result: 5 },
-      { ">": "Pipeline.run.second", result: true },
-      { ">": "Pipeline.run", result: true },
+      { ">": "Pipeline::run", input: { name: "hello" } },
+      { ">": "Pipeline::run.first", result: 5 },
+      { ">": "Pipeline::run.second", result: true },
+      { ">": "Pipeline::run", result: true },
     ]);
   });
 
@@ -128,7 +128,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "Broadcaster.onNewMessage",
+          "Broadcaster::on_new_message",
           (input: {
             sender: { name: string };
             content: string;
@@ -151,10 +151,10 @@ describe("Actor", () => {
 
     expect(yields).toEqual([
       {
-        ">": "Broadcaster.onNewMessage",
+        ">": "Broadcaster::on_new_message",
         input: { sender: { name: "Alice" }, content: "hi", channel: "general" },
       },
-      { ">": "Broadcaster.onNewMessage", result: "HI" },
+      { ">": "Broadcaster::on_new_message", result: "HI" },
     ]);
   });
 
@@ -194,10 +194,10 @@ describe("Actor", () => {
     }
 
     expect(yields).toEqual([
-      { ">": "Crasher.failing", input: { name: "World" } },
-      { ">": "Crasher.failing.first", result: 1 },
-      { ">": "Crasher.failing.bad", error: boom },
-      { ">": "Crasher.failing", error: boom },
+      { ">": "Crasher::failing", input: { name: "World" } },
+      { ">": "Crasher::failing.first", result: 1 },
+      { ">": "Crasher::failing.bad", error: boom },
+      { ">": "Crasher::failing", error: boom },
     ]);
     expect(thrown).toBe(boom);
   });
@@ -218,7 +218,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "Biller.onInvoicePaid",
+          "Biller::on_invoice_paid",
           (input: { invoiceId: string; amount: number }) => Promise<string>,
           null
         >,
@@ -307,7 +307,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "Scheduler.onSchedule",
+          "Scheduler::on_schedule",
           (input: { expression: string; at: Date }) => Promise<string>,
           null
         >,
@@ -335,7 +335,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "InvoiceProvider.GET",
+          "InvoiceProvider::get",
           (input: Request) => Promise<string>,
           null
         >,
@@ -409,7 +409,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "InvoiceProvider.getInvoices",
+          "InvoiceProvider::get_invoices",
           (input: { id: string; page: string }) => Promise<{
             id: string;
             page: string;
@@ -484,11 +484,11 @@ describe("Actor", () => {
     }
     expect(directYields).toEqual([
       {
-        ">": "InvoiceProvider.getInvoices",
+        ">": "InvoiceProvider::get_invoices",
         input: { id: "inv-42", page: "2" },
       },
       {
-        ">": "InvoiceProvider.getInvoices",
+        ">": "InvoiceProvider::get_invoices",
         result: { id: "inv-42", page: "2" },
       },
     ]);
@@ -503,7 +503,7 @@ describe("Actor", () => {
 
     expect(fetchYields).toMatchObject([
       {
-        ">": "InvoiceProvider.GET",
+        ">": "InvoiceProvider::get",
         input: {
           path: "/invoices/inv-42",
           params: { id: "inv-42" },
@@ -511,14 +511,14 @@ describe("Actor", () => {
         },
       },
       {
-        ">": "InvoiceProvider.getInvoices",
+        ">": "InvoiceProvider::get_invoices",
         input: { id: "inv-42", page: "2" },
       },
       {
-        ">": "InvoiceProvider.getInvoices",
+        ">": "InvoiceProvider::get_invoices",
         result: { id: "inv-42", page: "2" },
       },
-      { ">": "InvoiceProvider.GET", result: expect.any(Response) },
+      { ">": "InvoiceProvider::get", result: expect.any(Response) },
     ]);
     expect(JSON.parse(fetchStreamJson)).toEqual({ id: "inv-42", page: "2" });
 
@@ -562,7 +562,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "Mailer.onNewEmail",
+          "Mailer::on_new_email",
           (input: {
             from: string;
             to: string;
@@ -609,7 +609,7 @@ describe("Actor", () => {
 
     expect(yields).toEqual([
       {
-        ">": "MailAgent.onNewEmail",
+        ">": "MailAgent::on_new_email",
         input: {
           from: "bob@example.com",
           to: "me@co.com",
@@ -618,11 +618,11 @@ describe("Actor", () => {
         },
       },
       {
-        ">": "MailAgent.onNewEmail.log",
+        ">": "MailAgent::on_new_email.log",
         result: "bob@example.com: Invoice",
       },
       {
-        ">": "MailAgent.onNewEmail",
+        ">": "MailAgent::on_new_email",
         result: "bob@example.com: Invoice",
       },
     ]);
@@ -658,16 +658,16 @@ describe("Actor", () => {
 
     expect(yields).toEqual([
       {
-        ">": "Emitter.emit",
+        ">": "Emitter::emit",
         input: { orderId: "ord-1", amount: 100 },
       },
       { ">": "OrderPlaced", orderId: "ord-1", amount: 100 },
       {
-        ">": "Emitter.emit.order",
+        ">": "Emitter::emit.order",
         result: { ">": "OrderPlaced", orderId: "ord-1", amount: 100 },
       },
-      { ">": "Emitter.emit.confirm", result: "placed: ord-1" },
-      { ">": "Emitter.emit", result: "placed: ord-1" },
+      { ">": "Emitter::emit.confirm", result: "placed: ord-1" },
+      { ">": "Emitter::emit", result: "placed: ord-1" },
     ]);
   });
 
@@ -702,10 +702,10 @@ describe("Actor", () => {
 
     expect(logged).toEqual([
       "",
-      formatEvent({ ">": "Worker.run", input: { value: 5 } }),
-      formatEvent({ ">": "Worker.run.doubled", result: 10 }),
-      formatEvent({ ">": "Worker.run.positive", result: true }),
-      formatEvent({ ">": "Worker.run", result: true }),
+      formatEvent({ ">": "Worker::run", input: { value: 5 } }),
+      formatEvent({ ">": "Worker::run.doubled", result: 10 }),
+      formatEvent({ ">": "Worker::run.positive", result: true }),
+      formatEvent({ ">": "Worker::run", result: true }),
       "",
     ]);
   });
@@ -794,21 +794,21 @@ describe("Actor", () => {
 
     expect(logged).toEqual([
       "",
-      formatEvent({ ">": "Hub.ping", input: { id: "abc" } }),
-      formatEvent({ ">": "Hub.ping.upper", result: "ABC" }),
-      formatEvent({ ">": "Hub.ping", result: "ABC" }),
+      formatEvent({ ">": "Hub::ping", input: { id: "abc" } }),
+      formatEvent({ ">": "Hub::ping.upper", result: "ABC" }),
+      formatEvent({ ">": "Hub::ping", result: "ABC" }),
       "",
       "",
       formatEvent({
-        ">": "Hub.onNewMessage",
+        ">": "Hub::on_new_message",
         input: {
           sender: { name: "Alice" },
           content: "hello",
           channel: "general",
         },
       }),
-      formatEvent({ ">": "Hub.onNewMessage.excerpt", result: "hel" }),
-      formatEvent({ ">": "Hub.onNewMessage", result: "hel" }),
+      formatEvent({ ">": "Hub::on_new_message.excerpt", result: "hel" }),
+      formatEvent({ ">": "Hub::on_new_message", result: "hel" }),
       "",
     ]);
   });
@@ -894,7 +894,7 @@ describe("Actor", () => {
               description: "Channel receiving the message",
               example: "#general",
               suggestions: {
-                $: "Slack.conversationsList",
+                $: "Slack::conversations_list",
                 "*": $("channels").map(["x"], ["x.name", "x.id"]),
                 types: "public_channel",
               },
@@ -909,7 +909,7 @@ describe("Actor", () => {
       const meta = postMessage[TW.Meta];
       expect(meta.description).toEqual("Post a message to a Slack channel");
       expect(JSON.parse(JSON.stringify(meta.input.channel.suggestions))).toEqual({
-        $: "Slack.conversationsList",
+        $: "Slack::conversations_list",
         "*": ["channels.map", ["x"], ["x.name", "x.id"]],
         types: "public_channel",
       });
@@ -948,7 +948,7 @@ describe("Actor", () => {
             Equal<
               typeof this.actions.notifier.notify,
               TW.Action<
-                "Notifier.notify",
+                "Notifier::notify",
                 (input: { message: string }) => Promise<string>,
                 null
               >
@@ -1031,7 +1031,7 @@ describe("Actor", () => {
             Equal<
               typeof this.actions.notifier.notify,
               TW.Action<
-                "Notifier.notify",
+                "Notifier::notify",
                 (input: { message: string }) => Promise<string>,
                 null
               >
@@ -1186,7 +1186,7 @@ describe("Actor", () => {
       expect(await log("hello")).toEqual("s3: hello");
 
       // TW.Name is the actor-qualified name
-      expect((log as any)[TW.Name]).toBe("S3Logger.log");
+      expect((log as any)[TW.Name]).toBe("S3Logger::log");
 
       // TW.Meta carries the trait reference
       expect((log as any)[TW.Meta]).toEqual({ trait: "Logger.log" });
@@ -1196,7 +1196,7 @@ describe("Actor", () => {
         Equal<
           typeof log,
           TW.Action<
-            "S3Logger.log",
+            "S3Logger::log",
             (input: string) => Promise<string>,
             { trait: "Logger.log" }
           >
@@ -1219,14 +1219,14 @@ describe("Actor", () => {
         });
 
       expect(await log()).toEqual("logged");
-      expect((log as any)[TW.Name]).toBe("S3Logger.log");
+      expect((log as any)[TW.Name]).toBe("S3Logger::log");
       expect((log as any)[TW.Meta]).toEqual({ trait: "Logger.log" });
 
       type check = Expect<
         Equal<
           typeof log,
           TW.Action<
-            "S3Logger.log",
+            "S3Logger::log",
             () => Promise<string>,
             { trait: "Logger.log" }
           >
@@ -1261,8 +1261,8 @@ describe("Actor", () => {
       expect(await read("k")).toEqual("data:k");
       expect(await write({ key: "k", value: "v" })).toEqual("wrote:k");
 
-      expect((read as any)[TW.Name]).toBe("S3Storage.read");
-      expect((write as any)[TW.Name]).toBe("S3Storage.write");
+      expect((read as any)[TW.Name]).toBe("S3Storage::read");
+      expect((write as any)[TW.Name]).toBe("S3Storage::write");
       expect((read as any)[TW.Meta]).toEqual({ trait: "Storage.read" });
       expect((write as any)[TW.Meta]).toEqual({ trait: "Storage.write" });
 
@@ -1270,7 +1270,7 @@ describe("Actor", () => {
         Equal<
           typeof read,
           TW.Action<
-            "S3Storage.read",
+            "S3Storage::read",
             (input: string) => Promise<string>,
             { trait: "Storage.read" }
           >
@@ -1280,7 +1280,7 @@ describe("Actor", () => {
         Equal<
           typeof write,
           TW.Action<
-            "S3Storage.write",
+            "S3Storage::write",
             (input: { key: string; value: string }) => Promise<string>,
             { trait: "Storage.write" }
           >
@@ -1320,8 +1320,8 @@ describe("Actor", () => {
       expect(await read("k")).toEqual("data:k");
       expect(await write({ key: "k", value: "v" })).toEqual("wrote:k");
 
-      expect((read as any)[TW.Name]).toBe("S3Storage.read");
-      expect((write as any)[TW.Name]).toBe("S3Storage.write");
+      expect((read as any)[TW.Name]).toBe("S3Storage::read");
+      expect((write as any)[TW.Name]).toBe("S3Storage::write");
       expect((read as any)[TW.Meta]).toEqual({ trait: "Storage.read" });
       expect((write as any)[TW.Meta]).toEqual({ trait: "Storage.write" });
 
@@ -1329,7 +1329,7 @@ describe("Actor", () => {
         Equal<
           typeof read,
           TW.Action<
-            "S3Storage.read",
+            "S3Storage::read",
             (input: string) => Promise<string>,
             { trait: "Storage.read" }
           >
@@ -1339,7 +1339,7 @@ describe("Actor", () => {
         Equal<
           typeof write,
           TW.Action<
-            "S3Storage.write",
+            "S3Storage::write",
             (input: { key: string; value: string }) => Promise<string>,
             { trait: "Storage.write" }
           >

@@ -19,6 +19,9 @@ import {
   AddActionsToCtx,
   InferTriggerScope,
   DeepWriteable,
+  QualifiedActionName,
+  qualifyActionName,
+  splitQualifiedActionName,
 } from "./helpers";
 import { TW } from "./core";
 import { dispatch, type ConsoleLike, type LoggerConfig } from "./use";
@@ -38,7 +41,7 @@ type ExtractEventInput<Scope, EventName extends string> =
 type ExtractEventExtraScope<Scope, EventName extends string> =
   Scope extends Record<EventName, TW.EventKind<string, any, infer S>> ? S : {};
 
-type ScheduleInput = { expression: string; at: Date };
+export type ScheduleInput = { expression: string; at: Date };
 
 export type HttpEvent = {
   params?: Record<string, string>;
@@ -73,7 +76,7 @@ interface HttpBody<
     handler: H,
   ): {
     [key in Method]: TW.Action<
-      `${Service}.${Method}`,
+      QualifiedActionName<Service, Method>,
       (input: Request) => Promise<Awaited<ReturnType<H>>>,
       null
     >;
@@ -143,7 +146,7 @@ interface TraitMethodFactoryFromTrait<
     handler: H,
   ): {
     [K in TraitMethodPart<TraitMethod>]: TW.Action<
-      `${Ctx["name"] & string}.${TraitMethodPart<TraitMethod>}`,
+      QualifiedActionName<Ctx["name"] & string, TraitMethodPart<TraitMethod>>,
       TraitActionHandler<Input, Awaited<ReturnType<H>>>,
       { trait: TraitMethod }
     >;
@@ -221,7 +224,7 @@ interface TraitMethodFactory<
     handler: H,
   ): {
     [K in TraitMethodPart<TraitMethod>]: TW.Action<
-      `${Ctx["name"] & string}.${TraitMethodPart<TraitMethod>}`,
+      QualifiedActionName<Ctx["name"] & string, TraitMethodPart<TraitMethod>>,
       "input" extends keyof BaseScope<Ctx>
         ? (input: BaseScope<Ctx>["input"]) => Promise<Awaited<ReturnType<H>>>
         : () => Promise<Awaited<ReturnType<H>>>,
@@ -242,7 +245,7 @@ type CommandResult<
   Meta = {},
 > = {
   [key in CmdName]: TW.Action<
-    `${Service}.${CmdName}`,
+    QualifiedActionName<Service, CmdName>,
     (input: FlatIn) => Promise<Awaited<ReturnType<Handler>>>,
     {
       route: [
@@ -560,7 +563,7 @@ function createBehavior(
         actionName = `on${behavior}`;
       }
 
-      const eventName = `${actorName}.${actionName}`;
+      const eventName = qualifyActionName(actorName, actionName);
       const mod = makeBehaviorMod(behavior, config, schema, initialScope);
       let actionMeta: Record<string, unknown> | null = null;
 
@@ -654,7 +657,7 @@ function createBehavior(
                 return this;
               },
               run(...handlers: unknown[]) {
-                const qualifiedCmdName = `${actorName}.${cmdName}`;
+                const qualifiedCmdName = qualifyActionName(actorName, cmdName);
 
                 async function* rawCmdStream(flatInput: unknown) {
                   const resolvedInitialScope = await resolveInitialScope();
@@ -781,12 +784,12 @@ function collectAction(plugin: unknown): Record<string, unknown> {
   const fullName: unknown = (plugin as any)[TW.Name];
   if (typeof fullName !== "string") return {};
 
-  const dot = fullName.indexOf(".");
-  if (dot === -1) return { [fullName]: plugin };
+  const qualified = splitQualifiedActionName(fullName);
+  if (qualified === null) return { [fullName]: plugin };
 
-  const rawService = fullName.slice(0, dot);
-  const service = rawService.charAt(0).toLowerCase() + rawService.slice(1);
-  const method = fullName.slice(dot + 1);
+  const service =
+    qualified.service.charAt(0).toLowerCase() + qualified.service.slice(1);
+  const method = qualified.method;
 
   return { [service]: { [method]: plugin } };
 }

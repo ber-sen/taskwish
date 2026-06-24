@@ -527,7 +527,7 @@ describe("Action", () => {
   });
 
   test("use(TW.Action) — Actor-service action injected into this.actions.<service>.<method>", async () => {
-    // Actor-created: TW.Name = "Notifier.notify" → this.actions.notifier.notify
+    // Actor-created: TW.Name = "Notifier::notify" → this.actions.notifier.notify
     const { Notifier } = Actor("Notifier");
 
     const { notify } = Notifier()
@@ -549,7 +549,7 @@ describe("Action", () => {
           Equal<
             typeof this.actions.notifier.notify,
             TW.Action<
-              "Notifier.notify",
+              "Notifier::notify",
               (input: { message: string }) => Promise<string>,
               null
             >
