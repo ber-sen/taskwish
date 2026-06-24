@@ -1,0 +1,34 @@
+{
+  "name": "@taskwish/expr",
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "import": "./dist/index.mjs",
+        "require": "./dist/index.cjs"
+      }
+    },
+    "main": "./dist/index.cjs",
+    "types": "./dist/index.d.ts"
+  },
+  "version": "0.0.1",
+  "description": "Typed Taskwish expression helpers",
+  "license": "Elastic-2.0",
+  "author": "Bersen Pajaziti",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "unbuild",
+    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --no-cache"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

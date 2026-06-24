@@ -1,24 +1,11 @@
 import { expect, test, describe } from "bun:test";
-import { Expect, Equal, DotPathValue } from "../helpers";
+import { $ } from "@taskwish/expr";
+import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { Actor } from "../actor";
 import { TW } from "../core";
 import { Step } from "../steps";
 import { Logger, InferType, formatEvent, isActionEvent } from "../use";
-
-function $<T, const V>(value: keyof T | V) {
-  return {} as ((value: T) => any) & {
-    map: <const K extends string, T1>(
-      k: [K],
-      p: V | [`${NoInfer<K>}.id` | `${NoInfer<K>}.name`, `${NoInfer<K>}.id` | `${NoInfer<K>}.name`],
-    ) => ((value: T1) => any) & {
-      filter: <const F extends string>(
-        k: [F],
-        p: `${V extends string ? V : never}.${K}.${F}`,
-      ) => (value: T) => any;
-    };
-  };
-}
 
 describe("Action", () => {
   test("no input — plain handler", async () => {
@@ -677,7 +664,7 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "channelIds",
-              "*": $("parent").map(["k"], ["k.id", "k.name"]),
+              "*": $("channels"),
               types: "public_channel",
             },
           },
@@ -739,7 +726,7 @@ describe("Action", () => {
             example: "#general",
             suggestions: {
               $: "conversationsList",
-              "*": ["channels.map", ["x"], ["x.name", "x.id"]],
+              "*": $("channels").map(["x"], ["x.name", "x.id"]),
               types: "public_channel",
             },
           },
@@ -796,15 +783,8 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "conversationsList",
-              "*": [
-                "channels.map",
-                ["x"],
-                [
-                  // @ts-expect-error mapped fields must use item dot paths
-                  "x.missing",
-                  "x.id",
-                ],
-              ],
+              // @ts-expect-error mapped fields must use item dot paths
+              "*": $("channels").map(["x"], ["x.missing", "x.id"]),
               types: "public_channel",
             },
           },
@@ -847,7 +827,7 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "conversationsList",
-              "*": ["channels.map", ["x"], ["x.name", "x.id"]],
+              "*": $("channels").map(["x"], ["x.name", "x.id"]),
               types: "public_channel",
             },
           },
@@ -856,7 +836,7 @@ describe("Action", () => {
 
     const meta = postMessage[TW.Meta];
     expect(meta.description).toEqual("Post a message to a Slack channel");
-    expect(meta.input.channel.suggestions).toEqual({
+    expect(JSON.parse(JSON.stringify(meta.input.channel.suggestions))).toEqual({
       $: "conversationsList",
       "*": ["channels.map", ["x"], ["x.name", "x.id"]],
       types: "public_channel",
