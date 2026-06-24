@@ -47,6 +47,71 @@ export type ToCapitalCase<T extends string> = UppercaseFirst<
   CamelCaseHelper<T>
 >;
 
+type SnakeCaseTail<T extends string> =
+  T extends `${infer First}${infer Rest}`
+    ? First extends Lowercase<First>
+      ? `${First}${SnakeCaseTail<Rest>}`
+      : `_${Lowercase<First>}${SnakeCaseTail<Rest>}`
+    : T;
+
+export type ToSnakeCase<T extends string> =
+  T extends Uppercase<T> ? Lowercase<T> :
+  T extends `${infer First}${infer Rest}`
+    ? `${Lowercase<First>}${SnakeCaseTail<Rest>}`
+    : T;
+
+export type QualifiedActionName<
+  Service extends string,
+  Name extends string,
+> = `${Service}::${ToSnakeCase<Name>}`;
+
+export type QualifiedEventName<
+  Actor extends string,
+  Name extends string,
+> = `${Actor}::${Name}`;
+
+export function toSnakeCaseName(name: string): string {
+  if (/^[A-Z0-9_]+$/.test(name)) return name.toLowerCase();
+  return name
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
+    .replace(/[-\s.]+/g, "_")
+    .toLowerCase();
+}
+
+export function toCamelCaseName(name: string): string {
+  return name.replace(/[_-\s.]+([a-zA-Z0-9])/g, (_, ch: string) =>
+    ch.toUpperCase(),
+  );
+}
+
+export function qualifyActionName(service: string, name: string): string {
+  return `${service}::${toSnakeCaseName(name)}`;
+}
+
+export function qualifyEventName(actor: string, name: string): string {
+  return `${actor}::${name}`;
+}
+
+export function splitQualifiedActionName(
+  fullName: string,
+): { service: string; method: string } | null {
+  const sepIdx = fullName.indexOf("::");
+  if (sepIdx !== -1) {
+    return {
+      service: fullName.slice(0, sepIdx),
+      method: toCamelCaseName(fullName.slice(sepIdx + 2)),
+    };
+  }
+
+  const dotIdx = fullName.indexOf(".");
+  if (dotIdx === -1) return null;
+  return {
+    service: fullName.slice(0, dotIdx),
+    method: fullName.slice(dotIdx + 1),
+  };
+}
+
 export type PrettyScope<T> = {
   [K in keyof T as 0 extends 1 & T[K]
     ? Extract<K, string>
@@ -232,46 +297,51 @@ export type ExtractActionName<T> = T extends {
     : never
   : never;
 
-/** "Slack.postMessage" → "slack" */
-export type ActionService<N extends string> = N extends `${infer S}.${string}`
-  ? LowercaseFirst<S>
-  : never;
+type QualifiedActionParts<N extends string> =
+  N extends `${infer S}::${infer M}` ? [S, ToCamelCase<M>] :
+  N extends `${infer S}.${infer M}` ? [S, M] :
+  never;
 
-/** "Slack.postMessage" → "postMessage" */
-export type ActionMethod<N extends string> = N extends `${string}.${infer M}`
-  ? M
-  : N;
+/** "Slack::post_message" → "slack" */
+export type ActionService<N extends string> =
+  QualifiedActionParts<N> extends [infer S extends string, string]
+    ? LowercaseFirst<S>
+    : never;
+
+/** "Slack::post_message" → "postMessage" */
+export type ActionMethod<N extends string> =
+  QualifiedActionParts<N> extends [string, infer M extends string] ? M : N;
 
 /**
  * Groups TW.Action exports in two ways:
- *  - Dotted names ("Slack.postMessage") → nested `{ slack: { postMessage: T } }`
- *  - Flat names ("notify")             → direct  `{ notify: T }`
+ *  - Qualified names ("Slack::post_message") → nested `{ slack: { postMessage: T } }`
+ *  - Flat names ("notify")                  → direct  `{ notify: T }`
  */
 export type GroupActions<M> =
-  // Dotted names → { service: { method: T } }
+  // Qualified names → { service: { method: T } }
   {
     [S in {
       [K in keyof M]: ExtractActionName<M[K]> extends infer N extends string
-        ? N extends `${string}.${string}`
-          ? ActionService<N>
-          : never
+        ? QualifiedActionParts<N> extends never
+          ? never
+          : ActionService<N>
         : never;
     }[keyof M] &
       string]: {
       [K in keyof M as ExtractActionName<M[K]> extends infer N extends string
-        ? N extends `${string}.${string}`
-          ? ActionService<N> extends S
+        ? QualifiedActionParts<N> extends never
+          ? never
+          : ActionService<N> extends S
             ? ActionMethod<N>
             : never
-          : never
         : never]: M[K];
     };
   } & // Flat names → { name: T } (directly callable)
   {
     [K in keyof M as ExtractActionName<M[K]> extends infer N extends string
-      ? N extends `${string}.${string}`
-        ? never
-        : N
+      ? QualifiedActionParts<N> extends never
+        ? N
+        : never
       : never]: M[K];
   };
 
@@ -283,6 +353,19 @@ export type ActionsFromPlugin<U> =
       ? GroupActions<Record<"_", U>>
       : GroupActions<U>;
 
+export type EventsFromPlugin<U> =
+  U extends Promise<infer M>
+    ? EventsFromPlugin<M>
+    : U extends { events: infer E }
+      ? EventsFromPlugin<E>
+    : U extends (...args: any[]) => any
+      ? {}
+      : {
+          [K in keyof U as U[K] extends TW.EventKind<any, any>
+            ? K
+            : never]: U[K];
+        };
+
 /** Merge actions from a plugin into Ctx["scope"]["actions"]. */
 export type AddActionsToCtx<Ctx extends Record<any, any>, U> = {
   [K in keyof Ctx]: K extends "scope"
@@ -293,6 +376,6 @@ export type AddActionsToCtx<Ctx extends Record<any, any>, U> = {
             : {}) &
             ActionsFromPlugin<U>
         >;
-      }
+      } & EventsFromPlugin<U>
     : Ctx[K];
 };

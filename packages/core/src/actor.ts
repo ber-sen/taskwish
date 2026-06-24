@@ -19,6 +19,10 @@ import {
   AddActionsToCtx,
   InferTriggerScope,
   DeepWriteable,
+  QualifiedActionName,
+  qualifyActionName,
+  qualifyEventName,
+  splitQualifiedActionName,
 } from "./helpers";
 import { TW } from "./core";
 import { dispatch, type ConsoleLike, type LoggerConfig } from "./use";
@@ -28,17 +32,48 @@ import { ResultKind } from "./steps/hkt";
 type BaseScope<Ctx> = Ctx extends Record<any, any> ? Ctx["scope"] : {};
 
 type EventKeys<Scope> = {
-  [K in keyof Scope]: Scope[K] extends TW.EventKind<any, any> ? K : never;
+  [K in keyof Scope]: Scope[K] extends TW.EventKind<infer Name, any>
+    ? Name
+    : never;
 }[keyof Scope] &
   string;
 
+type ExtractEventKind<Scope, EventName extends string> = {
+  [K in keyof Scope]: Scope[K] extends TW.EventKind<infer Name, any, any>
+    ? EventName extends Name
+      ? Scope[K]
+      : never
+    : never;
+}[keyof Scope];
+
 type ExtractEventInput<Scope, EventName extends string> =
-  Scope extends Record<EventName, TW.EventKind<string, infer D>> ? D : never;
+  ExtractEventKind<Scope, EventName> extends TW.EventKind<string, infer D>
+    ? D
+    : never;
 
 type ExtractEventExtraScope<Scope, EventName extends string> =
-  Scope extends Record<EventName, TW.EventKind<string, any, infer S>> ? S : {};
+  ExtractEventKind<Scope, EventName> extends TW.EventKind<string, any, infer S>
+    ? S
+    : {};
 
-type ScheduleInput = { expression: string; at: Date };
+type EventHandlerName<EventName extends string> =
+  EventName extends `${infer Actor}::${infer Name}`
+    ? `on${Actor}${Name}`
+    : EventName extends `${infer Actor}:${infer Name}`
+      ? `on${Actor}${Name}`
+      : `on${EventName}`;
+
+type ActorEventExports<Scope, Actor extends string> = Pretty<{
+  [K in keyof Scope as Scope[K] extends TW.EventKind<infer Name, any, any>
+    ? Name extends `${Actor}::${string}`
+      ? K extends `${string}::${string}`
+        ? never
+        : K
+      : never
+    : never]: Scope[K];
+}>;
+
+export type ScheduleInput = { expression: string; at: Date };
 
 export type HttpEvent = {
   params?: Record<string, string>;
@@ -73,7 +108,7 @@ interface HttpBody<
     handler: H,
   ): {
     [key in Method]: TW.Action<
-      `${Service}.${Method}`,
+      QualifiedActionName<Service, Method>,
       (input: Request) => Promise<Awaited<ReturnType<H>>>,
       null
     >;
@@ -143,7 +178,7 @@ interface TraitMethodFactoryFromTrait<
     handler: H,
   ): {
     [K in TraitMethodPart<TraitMethod>]: TW.Action<
-      `${Ctx["name"] & string}.${TraitMethodPart<TraitMethod>}`,
+      QualifiedActionName<Ctx["name"] & string, TraitMethodPart<TraitMethod>>,
       TraitActionHandler<Input, Awaited<ReturnType<H>>>,
       { trait: TraitMethod }
     >;
@@ -192,6 +227,7 @@ export interface ActorFactoryFn<Ctx extends Record<any, any>> {
   <const T extends Record<string, any>>(
     trait: T | Promise<T>,
   ): TraitBehavior<Ctx, T>;
+  events: ActorEventExports<BaseScope<Ctx>, Ctx["name"] & string>;
 }
 
 /**
@@ -221,7 +257,7 @@ interface TraitMethodFactory<
     handler: H,
   ): {
     [K in TraitMethodPart<TraitMethod>]: TW.Action<
-      `${Ctx["name"] & string}.${TraitMethodPart<TraitMethod>}`,
+      QualifiedActionName<Ctx["name"] & string, TraitMethodPart<TraitMethod>>,
       "input" extends keyof BaseScope<Ctx>
         ? (input: BaseScope<Ctx>["input"]) => Promise<Awaited<ReturnType<H>>>
         : () => Promise<Awaited<ReturnType<H>>>,
@@ -242,7 +278,7 @@ type CommandResult<
   Meta = {},
 > = {
   [key in CmdName]: TW.Action<
-    `${Service}.${CmdName}`,
+    QualifiedActionName<Service, CmdName>,
     (input: FlatIn) => Promise<Awaited<ReturnType<Handler>>>,
     {
       route: [
@@ -394,9 +430,9 @@ export interface Behavior<Ctx extends Record<any, any>> {
   on<const EventName extends EventKeys<BaseScope<Ctx>>>(
     behavior: EventName,
   ): ActionFactory<
-    `on${EventName}`,
+    EventHandlerName<EventName>,
     {
-      name: `on${EventName}`;
+      name: EventHandlerName<EventName>;
       service: Ctx["name"] & string;
       scope: {
         input: ExtractEventInput<BaseScope<Ctx>, EventName>;
@@ -425,6 +461,18 @@ export interface DefResultKind extends ResultKind {
 }
 
 const HTTP_METHODS = new Set(["GET", "POST", "PUT", "DELETE", "PATCH"]);
+
+function eventHandlerName(eventName: string): string {
+  if (eventName.includes("::")) {
+    const [actor, event] = eventName.split("::");
+    return `on${actor}${event}`;
+  }
+  if (eventName.includes(":")) {
+    const [actor, event] = eventName.split(":");
+    return `on${actor}${event}`;
+  }
+  return `on${eventName}`;
+}
 
 function matchPathParams(
   pattern: string,
@@ -514,12 +562,65 @@ function flattenHttpInput(
   return flat;
 }
 
-function collectScope(steps: unknown[]): Record<string, unknown> {
+function scopeEventKind(
+  actorName: string,
+  eventName: string,
+  eventKind: Record<string | symbol, unknown>,
+): Record<string | symbol, unknown> {
+  const qualifiedEventName = qualifyEventName(actorName, eventName);
+  return {
+    ...eventKind,
+    [TW.Name]: qualifiedEventName,
+    emit: async function* (eventData: unknown) {
+      const event = { ">": qualifiedEventName, id: null, data: eventData };
+      yield event;
+      return event;
+    },
+  };
+}
+
+function collectScope(
+  steps: unknown[],
+  actorName?: string,
+): Record<string, unknown> {
   const scope: Record<string, unknown> = {};
   for (const step of steps) {
     if (step !== null && typeof step === "object") {
       for (const key of Object.keys(step as object)) {
-        scope[key] = (step as Record<string, unknown>)[key];
+        const value = (step as Record<string, unknown>)[key];
+        const scopedValue =
+          actorName &&
+          value !== null &&
+          typeof value === "object" &&
+          "emit" in value &&
+          TW.Name in value &&
+          typeof (value as Record<string | symbol, unknown>)[TW.Name] ===
+            "string" &&
+          !(
+            (value as Record<string | symbol, unknown>)[TW.Name] as string
+          ).includes("::")
+            ? scopeEventKind(
+                actorName,
+                key,
+                value as Record<string | symbol, unknown>,
+              )
+            : value;
+        scope[key] = scopedValue;
+
+        if (
+          actorName &&
+          value !== null &&
+          typeof value === "object" &&
+          "emit" in value &&
+          TW.Name in value &&
+          typeof (value as Record<string | symbol, unknown>)[TW.Name] ===
+            "string" &&
+          !(
+            (value as Record<string | symbol, unknown>)[TW.Name] as string
+          ).includes("::")
+        ) {
+          scope[qualifyEventName(actorName, key)] = scopedValue;
+        }
       }
     }
   }
@@ -557,10 +658,10 @@ function createBehavior(
       } else if (HTTP_METHODS.has(behavior)) {
         actionName = behavior;
       } else {
-        actionName = `on${behavior}`;
+        actionName = eventHandlerName(behavior);
       }
 
-      const eventName = `${actorName}.${actionName}`;
+      const eventName = qualifyActionName(actorName, actionName);
       const mod = makeBehaviorMod(behavior, config, schema, initialScope);
       let actionMeta: Record<string, unknown> | null = null;
 
@@ -654,7 +755,7 @@ function createBehavior(
                 return this;
               },
               run(...handlers: unknown[]) {
-                const qualifiedCmdName = `${actorName}.${cmdName}`;
+                const qualifiedCmdName = qualifyActionName(actorName, cmdName);
 
                 async function* rawCmdStream(flatInput: unknown) {
                   const resolvedInitialScope = await resolveInitialScope();
@@ -781,12 +882,12 @@ function collectAction(plugin: unknown): Record<string, unknown> {
   const fullName: unknown = (plugin as any)[TW.Name];
   if (typeof fullName !== "string") return {};
 
-  const dot = fullName.indexOf(".");
-  if (dot === -1) return { [fullName]: plugin };
+  const qualified = splitQualifiedActionName(fullName);
+  if (qualified === null) return { [fullName]: plugin };
 
-  const rawService = fullName.slice(0, dot);
-  const service = rawService.charAt(0).toLowerCase() + rawService.slice(1);
-  const method = fullName.slice(dot + 1);
+  const service =
+    qualified.service.charAt(0).toLowerCase() + qualified.service.slice(1);
+  const method = qualified.method;
 
   return { [service]: { [method]: plugin } };
 }
@@ -824,6 +925,102 @@ function collectActions(plugin: unknown): Record<string, unknown> {
   return incoming;
 }
 
+function isEventKind(value: unknown): value is Record<string | symbol, unknown> {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "emit" in value &&
+    TW.Name in value
+  );
+}
+
+function eventScopeKey(eventName: string): string {
+  return eventName;
+}
+
+function hasEventExports(value: unknown): value is { events: unknown } {
+  return (
+    value !== null &&
+    (typeof value === "object" || typeof value === "function") &&
+    "events" in value
+  );
+}
+
+function collectOwnedEvents(
+  actorName: string,
+  scope: Record<string, unknown>,
+): Record<string, unknown> {
+  const events: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(scope)) {
+    if (!isEventKind(value)) continue;
+    const eventName = value[TW.Name];
+    if (
+      typeof eventName === "string" &&
+      eventName.startsWith(`${actorName}::`) &&
+      !key.includes("::")
+    ) {
+      events[key] = value;
+    }
+  }
+  return events;
+}
+
+function collectEvents(plugin: unknown): Record<string, unknown> {
+  if (isEventKind(plugin)) {
+    const eventName = plugin[TW.Name];
+    return typeof eventName === "string"
+      ? { [eventScopeKey(eventName)]: plugin }
+      : {};
+  }
+  if (hasEventExports(plugin)) {
+    return collectEvents(plugin.events);
+  }
+  if (plugin === null || typeof plugin !== "object") return {};
+
+  const incoming: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(plugin as Record<string, unknown>)) {
+    if (!isEventKind(value)) continue;
+    const eventName = value[TW.Name];
+    incoming[key] = value;
+    if (typeof eventName === "string") {
+      incoming[eventScopeKey(eventName)] = value;
+    }
+  }
+  return incoming;
+}
+
+function collectPluginScope(plugin: unknown): Record<string, unknown> {
+  const actions = collectActions(plugin);
+  return {
+    ...collectEvents(plugin),
+    ...(Object.keys(actions).length > 0 ? { actions } : {}),
+  };
+}
+
+function mergeActorScope(
+  existing: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
+  const { actions: incomingActions, ...incomingScope } = incoming;
+  const next: Record<string, unknown> = {
+    ...existing,
+    ...incomingScope,
+  };
+
+  if (
+    incomingActions !== null &&
+    typeof incomingActions === "object" &&
+    Object.keys(incomingActions as Record<string, unknown>).length > 0
+  ) {
+    next.actions = mergeActions(
+      (existing.actions as Record<string, unknown> | undefined) ?? {},
+      incomingActions as Record<string, unknown>,
+    );
+  }
+
+  return next;
+}
+
 function makeActorBuilder(
   actorName: string,
   actorScope: Record<string, unknown>,
@@ -835,13 +1032,7 @@ function makeActorBuilder(
     if (pendingPlugins.length === 0) return actorScope;
 
     const pluginScopes = await Promise.all(pendingPlugins);
-    let actions =
-      (actorScope.actions as Record<string, unknown> | undefined) ?? {};
-    for (const pluginActions of pluginScopes) {
-      actions = mergeActions(actions, pluginActions);
-    }
-
-    return { ...actorScope, actions };
+    return pluginScopes.reduce(mergeActorScope, actorScope);
   };
 
   const getBehavior = () => {
@@ -856,20 +1047,39 @@ function makeActorBuilder(
     return _behavior;
   };
 
+  const createActorFactory = (
+    behaviorScope: Record<string, unknown>,
+    resolveBehaviorScope: () => Promise<Record<string, unknown>>,
+    eventScope: () => Record<string, unknown>,
+  ) =>
+    Object.assign(
+      (_trait?: unknown) =>
+        createBehavior(actorName, behaviorScope, resolveBehaviorScope),
+      {
+        get events() {
+          return collectOwnedEvents(actorName, eventScope());
+        },
+      },
+    );
+
   return {
     def(...steps: unknown[]) {
+      const definedScope = collectScope(steps, actorName);
       const initialScope = {
         ...builtInEventScope,
         ...actorScope,
-        ...collectScope(steps),
+        ...definedScope,
       };
       return {
-        [actorName]: (_trait?: unknown) =>
-          createBehavior(actorName, initialScope, async () => ({
+        [actorName]: createActorFactory(
+          initialScope,
+          async () => ({
             ...builtInEventScope,
             ...(await resolveActorScope()),
-            ...collectScope(steps),
-          })),
+            ...collectScope(steps, actorName),
+          }),
+          () => definedScope,
+        ),
       } as any;
     },
 
@@ -881,22 +1091,17 @@ function makeActorBuilder(
       ) {
         return makeActorBuilder(actorName, actorScope, [
           ...pendingPlugins,
-          Promise.resolve(plugin).then(collectActions),
+          Promise.resolve(plugin).then(collectPluginScope),
         ]);
       }
 
-      const incoming = collectActions(plugin);
+      const incoming = collectPluginScope(plugin);
       if (Object.keys(incoming).length === 0)
         return makeActorBuilder(actorName, actorScope);
 
-      const existing =
-        (actorScope.actions as Record<string, unknown> | undefined) ?? {};
       return makeActorBuilder(
         actorName,
-        {
-          ...actorScope,
-          actions: mergeActions(existing, incoming),
-        },
+        mergeActorScope(actorScope, incoming),
         pendingPlugins,
       );
     },
@@ -908,15 +1113,14 @@ function makeActorBuilder(
       return (getBehavior() as any).on(...args);
     },
 
-    [actorName]: (_trait?: unknown) =>
-      createBehavior(
-        actorName,
-        { ...builtInEventScope, ...actorScope },
-        async () => ({
+    [actorName]: createActorFactory(
+      { ...builtInEventScope, ...actorScope },
+      async () => ({
           ...builtInEventScope,
           ...(await resolveActorScope()),
         }),
-      ),
+      () => actorScope,
+    ),
   };
 }
 
