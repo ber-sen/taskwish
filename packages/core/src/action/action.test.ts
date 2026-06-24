@@ -6,12 +6,12 @@ import { TW } from "../core";
 import { Step } from "../steps";
 import { Logger, InferType, formatEvent, isActionEvent } from "../use";
 
-function $<T, const V extends keyof T>(value: keyof T) {
+function $<T, const V>(value: keyof T | V) {
   return {} as ((value: T) => any) & {
-    map: <const K extends string>(
+    map: <const K extends string, T1>(
       k: [K],
-      p: [`${NoInfer<K>}.id` | `${NoInfer<K>}.name`, `${NoInfer<K>}.id` | `${NoInfer<K>}.name`],
-    ) => ((value: T) => any) & {
+      p: V | [`${NoInfer<K>}.id` | `${NoInfer<K>}.name`, `${NoInfer<K>}.id` | `${NoInfer<K>}.name`],
+    ) => ((value: T1) => any) & {
       filter: <const F extends string>(
         k: [F],
         p: `${V extends string ? V : never}.${K}.${F}`,
@@ -677,7 +677,7 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "channelIds",
-              "*": $("channels").map(["x"], ["x.name", "x.id"]),
+              "*": $("parent").map(["k"], ["k.id", "k.name"]),
               types: "public_channel",
             },
           },
