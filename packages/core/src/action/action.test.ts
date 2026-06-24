@@ -10,7 +10,7 @@ function $<T, const V extends keyof T>(value: keyof T) {
   return {} as ((value: T) => any) & {
     map: <const K extends string>(
       k: [K],
-      p: [`${K}.id` | `${K}.name`, `${K}.id` | `${K}.name`],
+      p: [`${NoInfer<K>}.id` | `${NoInfer<K>}.name`, `${NoInfer<K>}.id` | `${NoInfer<K>}.name`],
     ) => ((value: T) => any) & {
       filter: <const F extends string>(
         k: [F],
@@ -677,7 +677,7 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "channelIds",
-              "*": $("channels").map(["x"], ["x.id", "x.name"]),
+              "*": $("channels").map(["x"], ["x.name", "x.id"]),
               types: "public_channel",
             },
           },
@@ -705,7 +705,7 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "numericChannelsList",
-              "*": ["channels.map", ["x"], ["x.name", "x.id"]],
+              "*": $("channels").map(["x"], ["x.name", "x.id"]),
               types: "public_channel",
             },
           },
