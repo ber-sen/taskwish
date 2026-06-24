@@ -895,6 +895,7 @@ describe("Actor", () => {
               suggestions: {
                 $: "Slack.conversationsList",
                 "*": ["channels.map", ["x"], ["x.name", "x.id"]],
+                //"*": $("channels").map(["x"], ["x.lorem", "x.lorem"]),
                 types: "public_channel",
               },
             },
