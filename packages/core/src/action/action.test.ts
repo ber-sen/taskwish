@@ -1,4 +1,5 @@
 import { expect, test, describe } from "bun:test";
+import { $ } from "@taskwish/expr";
 import { Expect, Equal } from "../helpers";
 import { Action } from "./action";
 import { Actor } from "../actor";
@@ -663,14 +664,14 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "channelIds",
-              "*": "channels",
+              "*": $("channels"),
               types: "public_channel",
             },
           },
           nested: {
             suggestions: {
               $: "channelIds",
-              "*": "parent.nested",
+              "*": $("parent"),
               types: "public_channel",
             },
           },
@@ -691,7 +692,7 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "numericChannelsList",
-              "*": ["channels.map", ["x"], ["x.name", "x.id"]],
+              "*": $("channels").map(["x"], ["x.name", "x.id"]),
               types: "public_channel",
             },
           },
@@ -725,7 +726,7 @@ describe("Action", () => {
             example: "#general",
             suggestions: {
               $: "conversationsList",
-              "*": ["channels.map", ["x"], ["x.name", "x.id"]],
+              "*": $("channels").map(["x"], ["x.name", "x.id"]),
               types: "public_channel",
             },
           },
@@ -782,15 +783,8 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "conversationsList",
-              "*": [
-                "channels.map",
-                ["x"],
-                [
-                  // @ts-expect-error mapped fields must use item dot paths
-                  "x.missing",
-                  "x.id",
-                ],
-              ],
+              // @ts-expect-error mapped fields must use item dot paths
+              "*": $("channels").map(["x"], ["x.missing", "x.id"]),
               types: "public_channel",
             },
           },
@@ -833,11 +827,7 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "conversationsList",
-              "*": [
-                "channels.map",
-                ["x"],
-                ["x.name", "x.id"],
-              ],
+              "*": $("channels").map(["x"], ["x.name", "x.id"]),
               types: "public_channel",
             },
           },
@@ -846,7 +836,7 @@ describe("Action", () => {
 
     const meta = postMessage[TW.Meta];
     expect(meta.description).toEqual("Post a message to a Slack channel");
-    expect(meta.input.channel.suggestions).toEqual({
+    expect(JSON.parse(JSON.stringify(meta.input.channel.suggestions))).toEqual({
       $: "conversationsList",
       "*": ["channels.map", ["x"], ["x.name", "x.id"]],
       types: "public_channel",

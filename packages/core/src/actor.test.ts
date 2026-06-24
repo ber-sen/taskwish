@@ -1,4 +1,5 @@
 import { expect, test, describe } from "bun:test";
+import { $ } from "@taskwish/expr";
 import { Expect, Equal } from "./helpers";
 import { Actor } from "./actor";
 import { Action } from "./action";
@@ -894,8 +895,7 @@ describe("Actor", () => {
               example: "#general",
               suggestions: {
                 $: "Slack.conversationsList",
-                "*": ["channels.map", ["x"], ["x.name", "x.id"]],
-                //"*": $("channels").map(["x"], ["x.lorem", "x.lorem"]),
+                "*": $("channels").map(["x"], ["x.name", "x.id"]),
                 types: "public_channel",
               },
             },
@@ -908,7 +908,7 @@ describe("Actor", () => {
 
       const meta = postMessage[TW.Meta];
       expect(meta.description).toEqual("Post a message to a Slack channel");
-      expect(meta.input.channel.suggestions).toEqual({
+      expect(JSON.parse(JSON.stringify(meta.input.channel.suggestions))).toEqual({
         $: "Slack.conversationsList",
         "*": ["channels.map", ["x"], ["x.name", "x.id"]],
         types: "public_channel",

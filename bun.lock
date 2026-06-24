@@ -44,6 +44,13 @@
         "typescript": "^5.9.2",
       },
     },
+    "packages/expr": {
+      "name": "@taskwish/expr",
+      "version": "0.0.1",
+      "devDependencies": {
+        "typescript": "^5.9.2",
+      },
+    },
     "packages/slack": {
       "name": "@taskwish/slack",
       "version": "0.0.1",
@@ -175,6 +182,8 @@
     "@taskwish/ai": ["@taskwish/ai@workspace:packages/ai"],
 
     "@taskwish/core": ["@taskwish/core@workspace:packages/core"],
+
+    "@taskwish/expr": ["@taskwish/expr@workspace:packages/expr"],
 
     "@taskwish/slack": ["@taskwish/slack@workspace:packages/slack"],
 

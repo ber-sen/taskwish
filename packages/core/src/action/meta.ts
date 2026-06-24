@@ -1,25 +1,24 @@
-import type { ExtractActionName, SuggestionsPick } from "../helpers";
+import type { ExtractActionName } from "../helpers";
 
 type ActionSuggestionsObject<
   Name extends string,
   Action extends (...args: any[]) => any,
-  Option,
 > = {
   $: [ExtractActionName<Action>] extends [never]
     ? Name
     : ExtractActionName<Action>;
-  "*": SuggestionsPick<Awaited<ReturnType<Action>>, Option>;
+  "*": (scope: Awaited<ReturnType<Action>>) => Array<[string, string | number]>;
 } & (Parameters<Action> extends []
   ? {}
   : Parameters<Action> extends [infer Parameter extends object]
     ? Parameter
     : never);
 
-type ActionSuggestionsReference<Actions, Option> = {
+type ActionSuggestionsReference<Actions> = {
   [Name in keyof Actions & string]: Actions[Name] extends (
     ...args: any[]
   ) => any
-    ? ActionSuggestionsObject<Name, Actions[Name], Option>
+    ? ActionSuggestionsObject<Name, Actions[Name]>
     : Actions[Name] extends Record<string, unknown>
       ? {
           [Method in keyof Actions[Name] & string]: Actions[Name][Method] extends (
@@ -27,8 +26,7 @@ type ActionSuggestionsReference<Actions, Option> = {
           ) => any
             ? ActionSuggestionsObject<
                 `${Name}.${Method}`,
-                Actions[Name][Method],
-                Option
+                Actions[Name][Method]
               >
             : never;
         }[keyof Actions[Name] & string]
@@ -60,8 +58,7 @@ export type ActionMeta<
           description?: string;
           example?: unknown;
           suggestions?: ActionSuggestionsReference<
-            Ctx["scope"] extends { actions: infer Actions } ? Actions : {},
-            ActionInput<Ctx>[K]
+            Ctx["scope"] extends { actions: infer Actions } ? Actions : {}
           >;
         };
   };
