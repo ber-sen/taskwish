@@ -207,18 +207,18 @@ describe("Actor", () => {
       Event("InvoicePaid", { invoiceId: "string", amount: "number" }),
     );
 
-    const { onInvoicePaid } = Biller()
-      .on("InvoicePaid")
+    const { onBillerInvoicePaid } = Biller()
+      .on("Biller::InvoicePaid")
 
       .run(function () {
         return `invoice: ${this.input.invoiceId}, amount: ${this.input.amount}`;
       });
 
-    type T = typeof onInvoicePaid;
+    type T = typeof onBillerInvoicePaid;
     type check = Expect<
       Equal<
         TW.Action<
-          "Biller::on_invoice_paid",
+          "Biller::on_biller_invoice_paid",
           (input: { invoiceId: string; amount: number }) => Promise<string>,
           null
         >,
@@ -226,9 +226,9 @@ describe("Actor", () => {
       >
     >;
 
-    expect(await onInvoicePaid({ invoiceId: "inv-1", amount: 99 })).toEqual(
-      "invoice: inv-1, amount: 99",
-    );
+    expect(
+      await onBillerInvoicePaid({ invoiceId: "inv-1", amount: 99 }),
+    ).toEqual("invoice: inv-1, amount: 99");
   });
 
   test("def — injects Event scope into behavior handlers", async () => {
@@ -287,10 +287,81 @@ describe("Actor", () => {
     }
 
     expect(yields).toContainEqual({
-      ">": "InvoicePaid",
+      ">": "Biller::InvoicePaid",
       id: null,
       data: { invoiceId: "inv-1", amount: 100, customer: "alice" },
     });
+  });
+
+  test("use — imports another actor's event as a trigger", async () => {
+    const invoicePaidSchema = {
+      invoiceId: "string",
+      amount: "number",
+      customer: "string",
+    } as const;
+
+    const { Biller } = Actor("Biller").def(
+      Event("InvoicePaid", invoicePaidSchema),
+    );
+
+    const { chargeCustomer } = Biller()
+      .on("Command", "chargeCustomer")
+      .input({ invoiceId: "string", amount: "number" })
+      .run(async function* () {
+        yield* this.InvoicePaid.emit({
+          invoiceId: this.input.invoiceId,
+          amount: this.input.amount,
+          customer: "alice",
+        });
+        return "done";
+      });
+
+    const { Listener } = Actor("Listener").use(
+      Event("Biller::InvoicePaid", invoicePaidSchema),
+    );
+
+    const { onBillerInvoicePaid } = Listener()
+      .on("Biller::InvoicePaid")
+      .run(function () {
+        return `${this.input.customer}:${this.input.invoiceId}`;
+      });
+
+    type T = typeof onBillerInvoicePaid;
+    type check = Expect<
+      Equal<
+        TW.Action<
+          "Listener::on_biller_invoice_paid",
+          (input: {
+            invoiceId: string;
+            amount: number;
+            customer: string;
+          }) => Promise<string>,
+          null
+        >,
+        T
+      >
+    >;
+
+    const emitted: unknown[] = [];
+    for await (const event of chargeCustomer.stream({
+      invoiceId: "inv-1",
+      amount: 100,
+    })) {
+      emitted.push(event);
+    }
+
+    expect(emitted).toContainEqual({
+      ">": "Biller::InvoicePaid",
+      id: null,
+      data: { invoiceId: "inv-1", amount: 100, customer: "alice" },
+    });
+    expect(
+      await onBillerInvoicePaid({
+        invoiceId: "inv-1",
+        amount: 100,
+        customer: "alice",
+      }),
+    ).toEqual("alice:inv-1");
   });
 
   test("Schedule — injects this.input with expression and runtime at", async () => {
@@ -640,7 +711,7 @@ describe("Actor", () => {
 
       .run(
         Step("order", function () {
-          return this.signal("OrderPlaced", {
+          return this.signal("Emitter::OrderPlaced", {
             orderId: this.input.orderId,
             amount: this.input.amount,
           });
@@ -661,10 +732,10 @@ describe("Actor", () => {
         ">": "Emitter::emit",
         input: { orderId: "ord-1", amount: 100 },
       },
-      { ">": "OrderPlaced", orderId: "ord-1", amount: 100 },
+      { ">": "Emitter::OrderPlaced", orderId: "ord-1", amount: 100 },
       {
         ">": "Emitter::emit.order",
-        result: { ">": "OrderPlaced", orderId: "ord-1", amount: 100 },
+        result: { ">": "Emitter::OrderPlaced", orderId: "ord-1", amount: 100 },
       },
       { ">": "Emitter::emit.confirm", result: "placed: ord-1" },
       { ">": "Emitter::emit", result: "placed: ord-1" },

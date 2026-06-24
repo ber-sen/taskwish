@@ -36,16 +36,31 @@ export namespace TW {
   }
 
   type EventKindNames<S> = {
-    [K in keyof S]: S[K] extends EventKind<K & string, any>
-      ? K & string
+    [K in keyof S]: S[K] extends EventKind<infer Name, any>
+      ? Name
       : never;
   }[keyof S];
 
-  type EventKindData<S, K extends string> = K extends keyof S
-    ? S[K] extends EventKind<K, infer D extends Record<string, unknown>>
+  type EventKindForName<S, Name extends string> = {
+    [K in keyof S]: S[K] extends EventKind<infer EventName, any>
+      ? Name extends EventName
+        ? S[K]
+        : never
+      : never;
+  }[keyof S];
+
+  type EventKindData<S, K extends string> =
+    EventKindForName<S, K> extends EventKind<
+      any,
+      infer D extends Record<string, unknown>
+    >
       ? D
-      : Record<string, unknown>
-    : Record<string, unknown>;
+      : Record<string, unknown>;
+
+  type EventKindName<S, K extends string> =
+    EventKindForName<S, K> extends EventKind<infer N extends string, any>
+      ? N
+      : K;
 
   export type Scope<S> = S & {
     self: <Return = any>(
@@ -62,7 +77,7 @@ export namespace TW {
     >(
       type: T,
       data: EventKindData<S, T & string>,
-    ): { ">": T } & EventKindData<S, T & string>;
+    ): { ">": EventKindName<S, T & string> } & EventKindData<S, T & string>;
     get<T>(Cls: new (...args: any[]) => T): T;
   };
 

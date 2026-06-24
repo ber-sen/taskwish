@@ -65,6 +65,11 @@ export type QualifiedActionName<
   Name extends string,
 > = `${Service}::${ToSnakeCase<Name>}`;
 
+export type QualifiedEventName<
+  Actor extends string,
+  Name extends string,
+> = `${Actor}::${Name}`;
+
 export function toSnakeCaseName(name: string): string {
   if (/^[A-Z0-9_]+$/.test(name)) return name.toLowerCase();
   return name
@@ -82,6 +87,10 @@ export function toCamelCaseName(name: string): string {
 
 export function qualifyActionName(service: string, name: string): string {
   return `${service}::${toSnakeCaseName(name)}`;
+}
+
+export function qualifyEventName(actor: string, name: string): string {
+  return `${actor}::${name}`;
 }
 
 export function splitQualifiedActionName(
@@ -344,6 +353,17 @@ export type ActionsFromPlugin<U> =
       ? GroupActions<Record<"_", U>>
       : GroupActions<U>;
 
+export type EventsFromPlugin<U> =
+  U extends Promise<infer M>
+    ? EventsFromPlugin<M>
+    : U extends (...args: any[]) => any
+      ? {}
+      : {
+          [K in keyof U as U[K] extends TW.EventKind<any, any>
+            ? K
+            : never]: U[K];
+        };
+
 /** Merge actions from a plugin into Ctx["scope"]["actions"]. */
 export type AddActionsToCtx<Ctx extends Record<any, any>, U> = {
   [K in keyof Ctx]: K extends "scope"
@@ -354,6 +374,6 @@ export type AddActionsToCtx<Ctx extends Record<any, any>, U> = {
             : {}) &
             ActionsFromPlugin<U>
         >;
-      }
+      } & EventsFromPlugin<U>
     : Ctx[K];
 };
