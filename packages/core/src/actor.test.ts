@@ -207,6 +207,19 @@ describe("Actor", () => {
       Event("InvoicePaid", { invoiceId: "string", amount: "number" }),
     );
 
+    const { InvoicePaid } = Biller.events;
+    type E = typeof InvoicePaid;
+    type eventCheck = Expect<
+      Equal<
+        TW.EventKind<
+          "Biller::InvoicePaid",
+          { invoiceId: string; amount: number }
+        >,
+        E
+      >
+    >;
+    expect(InvoicePaid[TW.Name]).toEqual("Biller::InvoicePaid");
+
     const { onBillerInvoicePaid } = Biller()
       .on("Biller::InvoicePaid")
 
@@ -306,7 +319,9 @@ describe("Actor", () => {
 
     const { chargeCustomer } = Biller()
       .on("Command", "chargeCustomer")
+      
       .input({ invoiceId: "string", amount: "number" })
+
       .run(async function* () {
         yield* this.InvoicePaid.emit({
           invoiceId: this.input.invoiceId,
@@ -316,12 +331,11 @@ describe("Actor", () => {
         return "done";
       });
 
-    const { Listener } = Actor("Listener").use(
-      Event("Biller::InvoicePaid", invoicePaidSchema),
-    );
+    const { Listener } = Actor("Listener").use(Biller);
 
     const { onBillerInvoicePaid } = Listener()
       .on("Biller::InvoicePaid")
+
       .run(function () {
         return `${this.input.customer}:${this.input.invoiceId}`;
       });
@@ -979,7 +993,9 @@ describe("Actor", () => {
 
       const meta = postMessage[TW.Meta];
       expect(meta.description).toEqual("Post a message to a Slack channel");
-      expect(JSON.parse(JSON.stringify(meta.input.channel.suggestions))).toEqual({
+      expect(
+        JSON.parse(JSON.stringify(meta.input.channel.suggestions)),
+      ).toEqual({
         $: "Slack::conversations_list",
         "*": ["channels.map", ["x"], ["x.name", "x.id"]],
         types: "public_channel",

@@ -356,6 +356,8 @@ export type ActionsFromPlugin<U> =
 export type EventsFromPlugin<U> =
   U extends Promise<infer M>
     ? EventsFromPlugin<M>
+    : U extends { events: infer E }
+      ? EventsFromPlugin<E>
     : U extends (...args: any[]) => any
       ? {}
       : {

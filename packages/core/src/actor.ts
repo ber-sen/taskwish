@@ -63,6 +63,16 @@ type EventHandlerName<EventName extends string> =
       ? `on${Actor}${Name}`
       : `on${EventName}`;
 
+type ActorEventExports<Scope, Actor extends string> = Pretty<{
+  [K in keyof Scope as Scope[K] extends TW.EventKind<infer Name, any, any>
+    ? Name extends `${Actor}::${string}`
+      ? K extends `${string}::${string}`
+        ? never
+        : K
+      : never
+    : never]: Scope[K];
+}>;
+
 export type ScheduleInput = { expression: string; at: Date };
 
 export type HttpEvent = {
@@ -217,6 +227,7 @@ export interface ActorFactoryFn<Ctx extends Record<any, any>> {
   <const T extends Record<string, any>>(
     trait: T | Promise<T>,
   ): TraitBehavior<Ctx, T>;
+  events: ActorEventExports<BaseScope<Ctx>, Ctx["name"] & string>;
 }
 
 /**
@@ -927,6 +938,33 @@ function eventScopeKey(eventName: string): string {
   return eventName;
 }
 
+function hasEventExports(value: unknown): value is { events: unknown } {
+  return (
+    value !== null &&
+    (typeof value === "object" || typeof value === "function") &&
+    "events" in value
+  );
+}
+
+function collectOwnedEvents(
+  actorName: string,
+  scope: Record<string, unknown>,
+): Record<string, unknown> {
+  const events: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(scope)) {
+    if (!isEventKind(value)) continue;
+    const eventName = value[TW.Name];
+    if (
+      typeof eventName === "string" &&
+      eventName.startsWith(`${actorName}::`) &&
+      !key.includes("::")
+    ) {
+      events[key] = value;
+    }
+  }
+  return events;
+}
+
 function collectEvents(plugin: unknown): Record<string, unknown> {
   if (isEventKind(plugin)) {
     const eventName = plugin[TW.Name];
@@ -934,12 +972,19 @@ function collectEvents(plugin: unknown): Record<string, unknown> {
       ? { [eventScopeKey(eventName)]: plugin }
       : {};
   }
+  if (hasEventExports(plugin)) {
+    return collectEvents(plugin.events);
+  }
   if (plugin === null || typeof plugin !== "object") return {};
 
   const incoming: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(plugin as Record<string, unknown>)) {
     if (!isEventKind(value)) continue;
+    const eventName = value[TW.Name];
     incoming[key] = value;
+    if (typeof eventName === "string") {
+      incoming[eventScopeKey(eventName)] = value;
+    }
   }
   return incoming;
 }
@@ -1002,20 +1047,39 @@ function makeActorBuilder(
     return _behavior;
   };
 
+  const createActorFactory = (
+    behaviorScope: Record<string, unknown>,
+    resolveBehaviorScope: () => Promise<Record<string, unknown>>,
+    eventScope: () => Record<string, unknown>,
+  ) =>
+    Object.assign(
+      (_trait?: unknown) =>
+        createBehavior(actorName, behaviorScope, resolveBehaviorScope),
+      {
+        get events() {
+          return collectOwnedEvents(actorName, eventScope());
+        },
+      },
+    );
+
   return {
     def(...steps: unknown[]) {
+      const definedScope = collectScope(steps, actorName);
       const initialScope = {
         ...builtInEventScope,
         ...actorScope,
-        ...collectScope(steps, actorName),
+        ...definedScope,
       };
       return {
-        [actorName]: (_trait?: unknown) =>
-          createBehavior(actorName, initialScope, async () => ({
+        [actorName]: createActorFactory(
+          initialScope,
+          async () => ({
             ...builtInEventScope,
             ...(await resolveActorScope()),
             ...collectScope(steps, actorName),
-          })),
+          }),
+          () => definedScope,
+        ),
       } as any;
     },
 
@@ -1049,15 +1113,14 @@ function makeActorBuilder(
       return (getBehavior() as any).on(...args);
     },
 
-    [actorName]: (_trait?: unknown) =>
-      createBehavior(
-        actorName,
-        { ...builtInEventScope, ...actorScope },
-        async () => ({
+    [actorName]: createActorFactory(
+      { ...builtInEventScope, ...actorScope },
+      async () => ({
           ...builtInEventScope,
           ...(await resolveActorScope()),
         }),
-      ),
+      () => actorScope,
+    ),
   };
 }
 
