@@ -61,11 +61,10 @@ export type Append<Items, Item> = Items extends readonly any[]
   ? [...Items, Item]
   : [Item];
 
-// ── JSONPath paths ───────────────────────────────────────────────────────────
+// ── Dot paths ────────────────────────────────────────────────────────────────
 
-type JsonPathIdentifierStart =
+type DotPathIdentifierStart =
   | "_"
-  | "$"
   | LowercaseLetter
   | Uppercase<LowercaseLetter>;
 
@@ -97,161 +96,128 @@ type LowercaseLetter =
   | "y"
   | "z";
 
-type JsonPathIdentifierPart = JsonPathIdentifierStart | `${number}`;
+type DotPathIdentifierPart = DotPathIdentifierStart | `${number}`;
 
-type IsJsonPathIdentifierTail<Value extends string> = Value extends ""
+type IsDotPathIdentifierTail<Value extends string> = Value extends ""
   ? true
-  : Value extends `${JsonPathIdentifierPart}${infer Rest}`
-    ? IsJsonPathIdentifierTail<Rest>
+  : Value extends `${DotPathIdentifierPart}${infer Rest}`
+    ? IsDotPathIdentifierTail<Rest>
     : false;
 
-type IsJsonPathIdentifier<Value extends string> =
-  Value extends `${JsonPathIdentifierStart}${infer Rest}`
-    ? IsJsonPathIdentifierTail<Rest>
+type IsDotPathIdentifier<Value extends string> =
+  Value extends `${DotPathIdentifierStart}${infer Rest}`
+    ? IsDotPathIdentifierTail<Rest>
     : false;
 
-type AppendJsonPathProperty<
+type AppendDotPathProperty<
   Prefix extends string,
   Key extends string,
-> = IsJsonPathIdentifier<Key> extends true
-  ? `${Prefix}.${Key}`
-  : `${Prefix}["${Key}"]`;
-
-type JsonPathSlice =
-  | `[${number | ""}:${number | ""}]`
-  | `[${number | ""}:${number | ""}:${number | ""}]`;
+> = IsDotPathIdentifier<Key> extends true
+  ? Prefix extends ""
+    ? Key
+    : `${Prefix}.${Key}`
+  : never;
 
 type ExcludeFunctions<Value> =
   Value extends (...args: any[]) => any ? never : Value;
 
-type JsonPathEntry<
-  Value,
-  Prefix extends string = "$",
-  Multiple extends boolean = false,
-  Depth extends unknown[] = [],
-> = JsonPathEntryValue<ExcludeFunctions<Value>, Prefix, Multiple, Depth>;
+type DotPathSelfEntry<Prefix extends string, Value> = Prefix extends ""
+  ? never
+  : { path: Prefix; value: Value };
 
-type JsonPathEntryValue<
+type DotPathEntry<
+  Value,
+  Prefix extends string = "",
+  Depth extends unknown[] = [],
+> = DotPathEntryValue<ExcludeFunctions<Value>, Prefix, Depth>;
+
+type DotPathEntryValue<
   Value,
   Prefix extends string,
-  Multiple extends boolean,
   Depth extends unknown[],
 > = [Value] extends [never]
   ? never
   : Depth["length"] extends 6
-    ? { path: Prefix; value: Value; multiple: Multiple }
+    ? DotPathSelfEntry<Prefix, Value>
     :
-        | { path: Prefix; value: Value; multiple: Multiple }
+        | DotPathSelfEntry<Prefix, Value>
         | (0 extends 1 & Value
             ? never
-            : Value extends readonly (infer Item)[]
-            ?
-                | JsonPathEntry<Item, `${Prefix}[*]`, true, [...Depth, unknown]>
-                | JsonPathEntry<
-                    Item,
-                    `${Prefix}${JsonPathSlice}`,
-                    true,
-                    [...Depth, unknown]
-                  >
-                | JsonPathEntry<
-                    Item,
-                    `${Prefix}[${number}]`,
-                    Multiple,
-                    [...Depth, unknown]
-                  >
+            : Value extends readonly unknown[]
+              ? never
               : Value extends object
                 ? {
-                    [Key in keyof Value & string]: JsonPathEntry<
+                    [Key in keyof Value & string]: DotPathEntry<
                       Value[Key],
-                      AppendJsonPathProperty<Prefix, Key>,
-                      Multiple,
+                      AppendDotPathProperty<Prefix, Key>,
                       [...Depth, unknown]
                     >;
                   }[keyof Value & string]
                 : never);
 
-export type JsonPath<Value> =
-  JsonPathEntry<Value> extends infer Entry
+export type DotPath<Value> =
+  DotPathEntry<Value> extends infer Entry
     ? Entry extends { path: infer Path extends string }
       ? Path
       : never
     : never;
 
-export type JsonPathValue<Value, Path extends `$${string}`> =
-  JsonPathEntry<Value> extends infer Entry
+export type DotPathValue<Value, Path extends string> =
+  DotPathEntry<Value> extends infer Entry
     ? Entry extends {
-        path: infer EntryPath extends `$${string}`;
+        path: infer EntryPath extends string;
         value: infer PathValue;
-        multiple: infer Multiple extends boolean;
       }
       ? Path extends EntryPath
-        ? Multiple extends true
-          ? PathValue[]
-          : PathValue
+        ? PathValue
         : never
       : never
     : never;
 
-type CompatibleJsonPath<Value, Option> =
-  JsonPathEntry<Value> extends infer Entry
+type CompatibleDotPath<Value, Option> =
+  DotPathEntry<Value> extends infer Entry
     ? Entry extends {
-        path: infer Path extends `$${string}`;
-        multiple: infer Multiple extends boolean;
+        path: infer Path extends string;
+        value: infer PathValue;
       }
-      ? Multiple extends true
-        ? JsonPathValue<Value, Path> extends readonly Option[]
+      ? PathValue extends readonly (infer Item)[]
+        ? Item extends Option
           ? Path
           : never
-        : JsonPathValue<Value, Path> extends readonly (infer Item)[]
-          ? Item extends Option
-            ? Path
-            : never
-          : never
+        : never
       : never
     : never;
 
-type CompatibleValueJsonPath<Value, Option> =
-  JsonPathEntry<Value> extends infer Entry
+type CompatibleValueDotPath<Value, Option> =
+  DotPathEntry<Value> extends infer Entry
     ? Entry extends {
-        path: infer Path extends `$${string}`;
+        path: infer Path extends string;
+        value: infer PathValue;
       }
-      ? JsonPathValue<Value, Path> extends Option
+      ? PathValue extends Option
         ? Path
         : never
       : never
     : never;
 
-type CompatibleCurrentJsonPath<Value, Option> =
-  CompatibleValueJsonPath<Value, Option> extends infer Path extends string
-    ? Path extends `$${infer Tail}`
-      ? `@${Tail}`
-      : never
-    : never;
-
-export type ScopeJsonPath<Value, Result = string> = CompatibleValueJsonPath<
+export type ScopeDotPath<Value, Result = string> = CompatibleValueDotPath<
   Value,
   Result
 >;
 
-type MappedJsonPath<Value, Option> =
-  JsonPathEntry<Value> extends infer Entry
+type MappedDotPath<Value> =
+  DotPathEntry<Value> extends infer Entry
     ? Entry extends {
-        path: infer Path extends `${string}[*]`;
-        value: infer Item extends object;
+        path: infer Path extends string;
+        value: readonly (infer Item extends object)[];
       }
-      ? [
-          Path,
-          {
-            label: CompatibleCurrentJsonPath<Item, string>;
-            value: CompatibleCurrentJsonPath<Item, Option>;
-          },
-        ]
+      ? [`${Path}.map`, ["x"], [`x.${DotPath<Item>}`, `x.${DotPath<Item>}`]]
       : never
     : never;
 
 export type SuggestionsPick<Value, Option> =
-  | CompatibleJsonPath<Value, Option>
-  | MappedJsonPath<Value, Option>;
+  | CompatibleDotPath<Value, Option>
+  | MappedDotPath<Value>;
 
 // ── Scope operator machinery ──────────────────────────────────────────────────
 

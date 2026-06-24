@@ -624,6 +624,80 @@ describe("Action", () => {
         };
       });
 
+    const { channelIds } = Action("channelIds")
+      .input({ types: "string" })
+
+      .run(function () {
+        return {
+          channels: channels.map((channel) => channel.id),
+          parent: {
+            nested: channels.map((channel) => channel.id),
+          },
+        };
+      });
+
+    const { numericChannelsList } = Action("numericChannelsList")
+      .input({ types: "string" })
+
+      .run(function () {
+        return {
+          ok: true,
+          channels: [
+            { id: 123, name: "general" },
+            { id: 456, name: "engineering" },
+          ],
+        };
+      });
+
+    Action("pathSuggestions")
+      .use(channelIds)
+
+      .input({ channel: "string", nested: "string" })
+
+      .run(function () {
+        return { ok: true };
+      })
+
+      .meta({
+        input: {
+          channel: {
+            suggestions: {
+              $: "channelIds",
+              "*": "channels",
+              types: "public_channel",
+            },
+          },
+          nested: {
+            suggestions: {
+              $: "channelIds",
+              "*": "parent.nested",
+              types: "public_channel",
+            },
+          },
+        },
+      });
+
+    Action("numericChannelSuggestions")
+      .use(numericChannelsList)
+
+      .input({ channel: "number" })
+
+      .run(function () {
+        return { ok: true };
+      })
+
+      .meta({
+        input: {
+          channel: {
+            suggestions: {
+              $: "numericChannelsList",
+              "*": ["channels.map", ["x"], ["x.name", "x.id"]],
+              types: "public_channel",
+            },
+          },
+        },
+      });
+
     const { postMessage } = Action("postMessage")
       .use(conversationsList)
 
@@ -651,7 +725,7 @@ describe("Action", () => {
             example: "#general",
             suggestions: {
               $: "conversationsList",
-              "*": ["$.channels[*]", { label: "@.name", value: "@.id" }],
+              "*": ["channels.map", ["x"], ["x.name", "x.id"]],
               types: "public_channel",
             },
           },
@@ -694,7 +768,7 @@ describe("Action", () => {
         },
       });
 
-    Action("invalidSuggestionLabel")
+    Action("invalidSuggestionField")
       .use(conversationsList)
 
       .input({ channel: "string" })
@@ -709,12 +783,13 @@ describe("Action", () => {
             suggestions: {
               $: "conversationsList",
               "*": [
-                "$.channels[*]",
-                {
-                  // @ts-expect-error suggestion labels must resolve to strings
-                  label: "@.missing",
-                  value: "@.id",
-                },
+                "channels.map",
+                ["x"],
+                [
+                  // @ts-expect-error mapped fields must use item dot paths
+                  "x.missing",
+                  "x.id",
+                ],
               ],
               types: "public_channel",
             },
@@ -736,15 +811,15 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "conversationsList",
-              // @ts-expect-error suggestion paths use JSONPath syntax
-              "*": [".channels[]", { label: ".name", value: ".id" }],
+              // @ts-expect-error suggestion paths use dot-path syntax and mapped fields use arrays
+              "*": [".channels[]", [".name", ".id"]],
               types: "public_channel",
             },
           },
         },
       });
 
-    Action("invalidSuggestionValue")
+    Action("unconstrainedSuggestionValue")
       .use(conversationsList)
 
       .input({ channel: "number" })
@@ -759,12 +834,9 @@ describe("Action", () => {
             suggestions: {
               $: "conversationsList",
               "*": [
-                "$.channels[*]",
-                {
-                  label: "@.name",
-                  // @ts-expect-error suggestion values must match the input type
-                  value: "@.id",
-                },
+                "channels.map",
+                ["x"],
+                ["x.name", "x.id"],
               ],
               types: "public_channel",
             },
@@ -776,7 +848,7 @@ describe("Action", () => {
     expect(meta.description).toEqual("Post a message to a Slack channel");
     expect(meta.input.channel.suggestions).toEqual({
       $: "conversationsList",
-      "*": ["$.channels[*]", { label: "@.name", value: "@.id" }],
+      "*": ["channels.map", ["x"], ["x.name", "x.id"]],
       types: "public_channel",
     });
     expect(meta.output.channel).toEqual("The selected channel");

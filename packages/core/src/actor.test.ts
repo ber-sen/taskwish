@@ -894,8 +894,7 @@ describe("Actor", () => {
               example: "#general",
               suggestions: {
                 $: "Slack.conversationsList",
-                "*": ["$.channels[*]", { label: "@.name", value: "@.id" }],
-                // "*": ["channels.map", ['x'], { label: "x.name", value: "x.id" }],
+                "*": ["channels.map", ["x"], ["x.name", "x.id"]],
                 types: "public_channel",
               },
             },
@@ -910,7 +909,7 @@ describe("Actor", () => {
       expect(meta.description).toEqual("Post a message to a Slack channel");
       expect(meta.input.channel.suggestions).toEqual({
         $: "Slack.conversationsList",
-        "*": ["$.channels[*]", { label: "@.name", value: "@.id" }],
+        "*": ["channels.map", ["x"], ["x.name", "x.id"]],
         types: "public_channel",
       });
       expect(
