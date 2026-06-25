@@ -1263,7 +1263,7 @@ describe("Actor", () => {
       const { S3Logger } = Actor("S3Logger");
 
       const { log } = S3Logger(logger)
-        .on("Logger.log")
+        .on("Logger::log")
 
         .run(function () {
           return `s3: ${this.input}`;
@@ -1276,7 +1276,7 @@ describe("Actor", () => {
       expect((log as any)[TW.Name]).toBe("S3Logger::log");
 
       // TW.Meta carries the trait reference
-      expect((log as any)[TW.Meta]).toEqual({ trait: "Logger.log" });
+      expect((log as any)[TW.Meta]).toEqual({ trait: "Logger::log" });
 
       // Type: keyed by method name, qualified action name, trait meta
       type check = Expect<
@@ -1285,7 +1285,7 @@ describe("Actor", () => {
           TW.Action<
             "S3Logger::log",
             (input: string) => Promise<string>,
-            { trait: "Logger.log" }
+            { trait: "Logger::log" }
           >
         >
       >;
@@ -1299,7 +1299,7 @@ describe("Actor", () => {
       const { S3Logger } = Actor("S3Logger");
 
       const { log } = S3Logger(logger)
-        .on("Logger.log")
+        .on("Logger::log")
 
         .run(function () {
           return "logged";
@@ -1307,7 +1307,7 @@ describe("Actor", () => {
 
       expect(await log()).toEqual("logged");
       expect((log as any)[TW.Name]).toBe("S3Logger::log");
-      expect((log as any)[TW.Meta]).toEqual({ trait: "Logger.log" });
+      expect((log as any)[TW.Meta]).toEqual({ trait: "Logger::log" });
 
       type check = Expect<
         Equal<
@@ -1315,7 +1315,7 @@ describe("Actor", () => {
           TW.Action<
             "S3Logger::log",
             () => Promise<string>,
-            { trait: "Logger.log" }
+            { trait: "Logger::log" }
           >
         >
       >;
@@ -1332,14 +1332,14 @@ describe("Actor", () => {
       const { S3Storage } = Actor("S3Storage");
 
       const { read } = S3Storage(storage)
-        .on("Storage.read")
+        .on("Storage::read")
 
         .run(function () {
           return `data:${this.input}`;
         });
 
       const { write } = S3Storage(storage)
-        .on("Storage.write")
+        .on("Storage::write")
 
         .run(function () {
           return `wrote:${this.input.key}`;
@@ -1350,8 +1350,8 @@ describe("Actor", () => {
 
       expect((read as any)[TW.Name]).toBe("S3Storage::read");
       expect((write as any)[TW.Name]).toBe("S3Storage::write");
-      expect((read as any)[TW.Meta]).toEqual({ trait: "Storage.read" });
-      expect((write as any)[TW.Meta]).toEqual({ trait: "Storage.write" });
+      expect((read as any)[TW.Meta]).toEqual({ trait: "Storage::read" });
+      expect((write as any)[TW.Meta]).toEqual({ trait: "Storage::write" });
 
       type checkRead = Expect<
         Equal<
@@ -1359,7 +1359,7 @@ describe("Actor", () => {
           TW.Action<
             "S3Storage::read",
             (input: string) => Promise<string>,
-            { trait: "Storage.read" }
+            { trait: "Storage::read" }
           >
         >
       >;
@@ -1369,7 +1369,7 @@ describe("Actor", () => {
           TW.Action<
             "S3Storage::write",
             (input: { key: string; value: string }) => Promise<string>,
-            { trait: "Storage.write" }
+            { trait: "Storage::write" }
           >
         >
       >;
@@ -1391,14 +1391,14 @@ describe("Actor", () => {
 
       // Both forms must compile and produce identical types.
       const { read } = S3Storage(storageImport)
-        .on("Storage.read")
+        .on("Storage::read")
 
         .run(function () {
           return `data:${this.input}`;
         });
 
       const { write } = S3Storage(storageImport)
-        .on("Storage.write")
+        .on("Storage::write")
 
         .run(function () {
           return `wrote:${this.input.key}`;
@@ -1409,8 +1409,8 @@ describe("Actor", () => {
 
       expect((read as any)[TW.Name]).toBe("S3Storage::read");
       expect((write as any)[TW.Name]).toBe("S3Storage::write");
-      expect((read as any)[TW.Meta]).toEqual({ trait: "Storage.read" });
-      expect((write as any)[TW.Meta]).toEqual({ trait: "Storage.write" });
+      expect((read as any)[TW.Meta]).toEqual({ trait: "Storage::read" });
+      expect((write as any)[TW.Meta]).toEqual({ trait: "Storage::write" });
 
       type checkRead = Expect<
         Equal<
@@ -1418,7 +1418,7 @@ describe("Actor", () => {
           TW.Action<
             "S3Storage::read",
             (input: string) => Promise<string>,
-            { trait: "Storage.read" }
+            { trait: "Storage::read" }
           >
         >
       >;
@@ -1428,7 +1428,7 @@ describe("Actor", () => {
           TW.Action<
             "S3Storage::write",
             (input: { key: string; value: string }) => Promise<string>,
-            { trait: "Storage.write" }
+            { trait: "Storage::write" }
           >
         >
       >;

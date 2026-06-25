@@ -1,14 +1,27 @@
 import { TW } from "./core";
-import { PascalCase, Pretty } from "./helpers";
+import {
+  PascalCase,
+  Pretty,
+  QualifiedActionName,
+  qualifyActionName,
+} from "./helpers";
 
 type TraitActions<
   N extends string,
   T extends Record<string, (...args: any[]) => any>,
 > = {
-  [K in keyof T]: T[K] extends TW.Action<`${N}.${K & string}`, infer Handler, infer Meta>
-    ? TW.Action<`${N}.${K & string}`, Handler, Pretty<Meta & { trait: true }>>
+  [K in keyof T]: T[K] extends TW.Action<
+    QualifiedActionName<N, K & string>,
+    infer Handler,
+    infer Meta
+  >
+    ? TW.Action<
+        QualifiedActionName<N, K & string>,
+        Handler,
+        Pretty<Meta & { trait: true }>
+      >
     : TW.Action<
-        `${N}.${K & string}`,
+        QualifiedActionName<N, K & string>,
         (
           ...args: Parameters<T[K]>
         ) => ReturnType<T[K]> extends Promise<any>
@@ -52,7 +65,7 @@ const makeProxy = (prefix?: string) =>
     get(_target, key: string | symbol) {
       if (typeof key !== "string") return undefined;
       const fn = () => {};
-      (fn as any)[TW.Name] = prefix ? `${prefix}.${key}` : key;
+      (fn as any)[TW.Name] = prefix ? qualifyActionName(prefix, key) : key;
       (fn as any)[TW.Meta] = { trait: true };
       return fn;
     },

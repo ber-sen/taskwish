@@ -100,32 +100,32 @@ describe("Trait", () => {
     expect(typeof instance).toBe("object");
   });
 
-  test("each method is tagged with TW.Name as 'TraitName.method'", () => {
+  test("each method is tagged with TW.Name as 'TraitName::method'", () => {
     const { Logger } = Trait("Logger");
 
     const { log } = Logger<{ log: () => string }>();
 
-    expect((log as any)[TW.Name]).toBe("Logger.log");
+    expect((log as any)[TW.Name]).toBe("Logger::log");
   });
 
-  test("each method is tagged with TW.Name as 'TraitName.method'", () => {
+  test("each method is tagged with TW.Name as 'TraitName::method'", () => {
     const { Logger } = Trait("Logger");
 
     const { log } = Logger<{
       log: TW.Action<
-        "Logger.log",
+        "Logger::log",
         () => Promise<string>,
         { service: "logger" }
       >;
     }>();
 
-    expect((log as any)[TW.Name]).toBe("Logger.log");
+    expect((log as any)[TW.Name]).toBe("Logger::log");
 
     type check = Expect<
       Equal<
         typeof log,
         TW.Action<
-          "Logger.log",
+          "Logger::log",
           () => Promise<string>,
           {
             service: "logger";
@@ -152,7 +152,7 @@ describe("Trait", () => {
     type check = Expect<
       Equal<
         typeof log,
-        TW.Action<"Logger.log", () => Promise<string>, { trait: true }>
+        TW.Action<"Logger::log", () => Promise<string>, { trait: true }>
       >
     >;
   });
@@ -166,7 +166,7 @@ describe("Trait", () => {
       Equal<
         typeof get,
         TW.Action<
-          "Cache.get",
+          "Cache::get",
           (key: string) => Promise<string>,
           { trait: true }
         >
@@ -174,7 +174,7 @@ describe("Trait", () => {
     >;
   });
 
-  test("type — multi-method shape, each keyed as TraitName.method", () => {
+  test("type — multi-method shape, each keyed as TraitName::method", () => {
     const { HttpClient } = Trait("HttpClient");
 
     const { get, post } = HttpClient<{
@@ -186,7 +186,7 @@ describe("Trait", () => {
       Equal<
         typeof get,
         TW.Action<
-          "HttpClient.get",
+          "HttpClient::get",
           (url: string) => Promise<Response>,
           { trait: true }
         >
@@ -196,7 +196,7 @@ describe("Trait", () => {
       Equal<
         typeof post,
         TW.Action<
-          "HttpClient.post",
+          "HttpClient::post",
           (url: string, body: unknown) => Promise<Response>,
           { trait: true }
         >
@@ -214,14 +214,14 @@ describe("Trait", () => {
     type checkLog = Expect<
       Equal<
         typeof log,
-        TW.Action<"Logger.log", (msg: string) => Promise<void>, { trait: true }>
+        TW.Action<"Logger::log", (msg: string) => Promise<void>, { trait: true }>
       >
     >;
     type checkRead = Expect<
       Equal<
         typeof read,
         TW.Action<
-          "Storage.read",
+          "Storage::read",
           (key: string) => Promise<string>,
           { trait: true }
         >
