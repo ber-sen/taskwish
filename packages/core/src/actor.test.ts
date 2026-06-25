@@ -1312,6 +1312,23 @@ describe("Actor", () => {
       >;
     });
 
+    test("actor use trait — trait actions are added directly to actions scope", () => {
+      const Logger = Trait<{ log: () => string }>();
+
+      const { S3Logger } = Actor("S3Logger").use(Logger);
+
+      const { smth } = S3Logger()
+        .on("Command", "smth")
+
+        .run(function () {
+          return this.actions.log;
+        });
+
+      type check = Expect<
+        Equal<Awaited<ReturnType<typeof smth>>, typeof Logger.log>
+      >;
+    });
+
     test("actor implements trait — multiple methods, input inferred per method", async () => {
       const Storage = Trait<{
         read: (input: string) => string;
