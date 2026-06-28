@@ -9,89 +9,99 @@ import { Steps, SubSteps } from "./steps";
 // Existing keys that were already conditional (":if" at front) get their result
 // unioned — this correctly handles ElseIf setting the same key as a prior If.
 type IfScope<Base extends Record<any, any>, Added extends Record<any, any>> = {
-  [K in keyof Base | keyof Added]:
-    K extends keyof Base
-      ? K extends keyof Added
-        ? Base[K] extends RawEntry<infer BR, [":if", ...infer RestOps extends string[]]>
-          ? Added[K] extends RawEntry<infer AR, any>
-            ? RawEntry<BR | AR, [":if", ...RestOps]>
-            : Base[K]
+  [K in keyof Base | keyof Added]: K extends keyof Base
+    ? K extends keyof Added
+      ? Base[K] extends RawEntry<
+          infer BR,
+          [":if", ...infer RestOps extends string[]]
+        >
+        ? Added[K] extends RawEntry<infer AR, any>
+          ? RawEntry<BR | AR, [":if", ...RestOps]>
           : Base[K]
         : Base[K]
-      : K extends keyof Added
-        ? Added[K] extends RawEntry<infer R, infer Ops extends string[]>
-          ? RawEntry<R, [":if", ...Ops]>
-          : RawEntry<Added[K], [":if"]>
-        : never;
+      : Base[K]
+    : K extends keyof Added
+      ? Added[K] extends RawEntry<infer R, infer Ops extends string[]>
+        ? RawEntry<R, [":if", ...Ops]>
+        : RawEntry<Added[K], [":if"]>
+      : never;
 };
 
 // ElseScope: for keys present in both branches, resolves the ":if" by unioning.
 // If the Else-side value is itself conditional (e.g., Else contains an inner If),
 // the ":if" is kept so the combined result remains optional.
-type ElseScope<IfCtxScope extends Record<any, any>, ElseAdded extends Record<any, any>> = {
-  [K in keyof IfCtxScope | keyof ElseAdded]:
-    K extends keyof IfCtxScope
-      ? K extends keyof ElseAdded
-        ? IfCtxScope[K] extends RawEntry<infer IfR, [":if", ...infer RestOps extends string[]]>
-          ? ElseAdded[K] extends RawEntry<infer ElseR, infer ElseOps extends string[]>
-            ? ElseOps extends [":if", ...string[]]
-              ? RawEntry<IfR | ElseR, [":if", ...RestOps]>
-              : RawEntry<IfR | ElseR, RestOps>
-            : IfCtxScope[K]
+type ElseScope<
+  IfCtxScope extends Record<any, any>,
+  ElseAdded extends Record<any, any>,
+> = {
+  [K in keyof IfCtxScope | keyof ElseAdded]: K extends keyof IfCtxScope
+    ? K extends keyof ElseAdded
+      ? IfCtxScope[K] extends RawEntry<
+          infer IfR,
+          [":if", ...infer RestOps extends string[]]
+        >
+        ? ElseAdded[K] extends RawEntry<
+            infer ElseR,
+            infer ElseOps extends string[]
+          >
+          ? ElseOps extends [":if", ...string[]]
+            ? RawEntry<IfR | ElseR, [":if", ...RestOps]>
+            : RawEntry<IfR | ElseR, RestOps>
           : IfCtxScope[K]
         : IfCtxScope[K]
-      : K extends keyof ElseAdded
-        ? ElseAdded[K] extends RawEntry<infer R, infer Ops extends string[]>
-          ? RawEntry<R, [":if", ...Ops]>
-          : RawEntry<ElseAdded[K], [":if"]>
-        : never;
+      : IfCtxScope[K]
+    : K extends keyof ElseAdded
+      ? ElseAdded[K] extends RawEntry<infer R, infer Ops extends string[]>
+        ? RawEntry<R, [":if", ...Ops]>
+        : RawEntry<ElseAdded[K], [":if"]>
+      : never;
 };
 
 // If didn't run → previous last preserved; if ran → branch last.
 // When there is a prior last, we union CR|AR and preserve its ops (no extra ":if" — the
 // value is guaranteed to exist).  When there is no prior last, we add ":if" so the
 // result is marked as potentially undefined — mirrors IfScope for new keys.
-type IfLast<Ctx, A> =
-  "last" extends keyof A
-    ? A["last"] extends RawEntry<infer AR, infer AOps extends string[]>
-      ? "last" extends keyof Ctx
-        ? Ctx["last"] extends RawEntry<infer CR, infer COps extends string[]>
-          ? RawEntry<CR | AR, COps>               // prior last exists: union, keep its ops
-          : RawEntry<AR, [":if", ...AOps]>
-        : RawEntry<AR, [":if", ...AOps]>          // no prior last: mark conditional
-      : never
-    : "last" extends keyof Ctx ? Ctx["last"] : RawEntry<never, []>;
+type IfLast<Ctx, A> = "last" extends keyof A
+  ? A["last"] extends RawEntry<infer AR, infer AOps extends string[]>
+    ? "last" extends keyof Ctx
+      ? Ctx["last"] extends RawEntry<infer CR, infer COps extends string[]>
+        ? RawEntry<CR | AR, COps> // prior last exists: union, keep its ops
+        : RawEntry<AR, [":if", ...AOps]>
+      : RawEntry<AR, [":if", ...AOps]> // no prior last: mark conditional
+    : never
+  : "last" extends keyof Ctx
+    ? Ctx["last"]
+    : RawEntry<never, []>;
 
 // Else always runs one branch → resolves the ":if" — mirrors ElseScope.
 // When Ctx["last"] carries ":if" (no prior step before the If), strip it on merge.
 // When Ctx["last"] has no ":if" (prior step exists), fall back to a plain union.
-type ElseLast<Ctx, A> =
-  "last" extends keyof Ctx
-    ? Ctx["last"] extends RawEntry<infer CR, [":if", ...infer RestOps extends string[]]>
-      ? "last" extends keyof A
-        ? A["last"] extends RawEntry<infer AR, infer AOps extends string[]>
-          ? AOps extends [":if", ...string[]]
-            ? RawEntry<CR | AR, [":if", ...RestOps]>
-            : RawEntry<CR | AR, RestOps>
-          : RawEntry<CR, [":if", ...RestOps]>
+type ElseLast<Ctx, A> = "last" extends keyof Ctx
+  ? Ctx["last"] extends RawEntry<
+      infer CR,
+      [":if", ...infer RestOps extends string[]]
+    >
+    ? "last" extends keyof A
+      ? A["last"] extends RawEntry<infer AR, infer AOps extends string[]>
+        ? AOps extends [":if", ...string[]]
+          ? RawEntry<CR | AR, [":if", ...RestOps]>
+          : RawEntry<CR | AR, RestOps>
         : RawEntry<CR, [":if", ...RestOps]>
-      : Ctx["last"] extends RawEntry<infer CR, infer COps extends string[]>
-        ? "last" extends keyof A
-          ? A["last"] extends RawEntry<infer AR, any>
-            ? RawEntry<CR | AR, COps>
-            : Ctx["last"]
+      : RawEntry<CR, [":if", ...RestOps]>
+    : Ctx["last"] extends RawEntry<infer CR, infer COps extends string[]>
+      ? "last" extends keyof A
+        ? A["last"] extends RawEntry<infer AR, any>
+          ? RawEntry<CR | AR, COps>
           : Ctx["last"]
         : Ctx["last"]
-    : "last" extends keyof A
-      ? A["last"]
-      : RawEntry<never, []>;
+      : Ctx["last"]
+  : "last" extends keyof A
+    ? A["last"]
+    : RawEntry<never, []>;
 
 // ── Result types ──────────────────────────────────────────────────────────────
 
-type IfResult<
-  Ctx extends Record<any, any>,
-  Last extends Record<any, any>,
-> = {
+type IfResult<Ctx extends Record<any, any>, Last extends Record<any, any>> = {
   [TW.Type]: "If";
   [TW.Step]: (input: Ctx) => {
     name: Last["name"];
@@ -114,10 +124,7 @@ type ElseIfResult<
   };
 };
 
-type ElseResult<
-  Ctx extends Record<any, any>,
-  Last extends Record<any, any>,
-> = {
+type ElseResult<Ctx extends Record<any, any>, Last extends Record<any, any>> = {
   [TW.Type]: "Else";
   [TW.Step]: (input: Ctx) => {
     name: Last["name"];
@@ -129,10 +136,7 @@ type ElseResult<
 
 // ── Cond ──────────────────────────────────────────────────────────────────────
 
-export type CondNode<
-  Ctx extends Record<any, any> = any,
-  Cond = any,
-> = {
+export type CondNode<Ctx extends Record<any, any> = any, Cond = any> = {
   [TW.Type]: "Cond";
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
@@ -145,7 +149,14 @@ export type CondNode<
 };
 
 export function Cond<Ctx extends Record<any, any>, Cond>(
-  fn: (scope: TW.Scope<PrettyScope<ResolveScope<Ctx["scope"]>>>) => Cond
+  fn:
+    | ((scope: TW.Scope<PrettyScope<ResolveScope<Ctx["scope"]>>>) => Cond)
+    | {
+        toFn: (
+          scope: TW.Scope<PrettyScope<ResolveScope<Ctx["scope"]>>>,
+        ) => Cond;
+        toJSON: () => unknown;
+      },
 ): CondNode<Ctx, Cond>;
 export function Cond(fn: unknown): never {
   return { [TW.Type]: "Cond", fn } as never;
@@ -181,7 +192,10 @@ interface ElseResultKind extends ResultKind {
 
 export type IfFn = Steps<typeof SubSteps, IfResultKind, "Cond">;
 
-export const If: IfFn = function If(condition: unknown, ...steps: unknown[]): never {
+export const If: IfFn = function If(
+  condition: unknown,
+  ...steps: unknown[]
+): never {
   return { [TW.Type]: "If", condition, steps } as never;
 } as IfFn;
 
@@ -189,7 +203,10 @@ export const If: IfFn = function If(condition: unknown, ...steps: unknown[]): ne
 
 export type ElseIfFn = Steps<typeof SubSteps, ElseIfResultKind, "Cond">;
 
-export const ElseIf: ElseIfFn = function ElseIf(condition: unknown, ...steps: unknown[]): never {
+export const ElseIf: ElseIfFn = function ElseIf(
+  condition: unknown,
+  ...steps: unknown[]
+): never {
   return { [TW.Type]: "ElseIf", condition, steps } as never;
 } as ElseIfFn;
 
