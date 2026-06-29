@@ -4,8 +4,8 @@ export namespace TWProto {
   export type PeerName = string;
 
   export type Capability =
-    | [type: "$" | ">" | (string & {}), namespace: string, capability: string]
-    | [type: "$" | ">" | (string & {}), capability: string];
+    | [type: "$" | "->" | (string & {}), namespace: string, capability: string]
+    | [type: "$" | "->" | (string & {}), capability: string];
 
   export type Connect<
     Name extends PeerName,
@@ -19,7 +19,7 @@ export namespace TWProto {
   export type ExecutionId =
     `${string}-${string}-7${string}-${string}-${string}`;
 
-  export type AnySignalCommand = { ">": string } & Record<string, any>;
+  export type AnySignalCommand = { "->": string } & Record<string, any>;
 
   export type Signal<SignalCommand extends AnySignalCommand> = {
     $: "signal";
@@ -70,7 +70,7 @@ export namespace TWProto {
       capabilities ---> [
         ["$", "sendEmail"],
         ["$", "generateReport"],
-        [">", "onUserSignup"]
+        ["->", "onUserSignup"]
       ]
 
     - t1  (peer offline)
@@ -88,7 +88,7 @@ export namespace TWProto {
         ["$", "sendEmail"],
         ["$", "PeerA", "generateReport"],
         ["&", "Playwright"],
-        [">", "onUserSignup"]
+        ["->", "onUserSignup"]
       ]>
       
     */
@@ -96,7 +96,7 @@ export namespace TWProto {
 
     /* Signal
     
-    Peer A → Signal<{ ">": "onEmail", subject: "Welcome", text: "Hi" }>
+    Peer A -> Signal<{ "->": "onEmail", subject: "Welcome", text: "Hi" }>
 
                  +---------+
                  | Peer A  |
