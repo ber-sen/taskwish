@@ -6,8 +6,8 @@ import {
 } from "./helpers";
 
 type TraitActions<T extends Record<string, (...args: any[]) => any>> = {
-  [K in keyof T]: T[K] extends TW.Action<any, infer Handler, infer Meta>
-    ? TW.Action<QualifiedActionName<"", K & string>, Handler, Meta>
+  [K in keyof T]: T[K] extends TW.Action<infer Name, infer Handler, infer Meta>
+    ? Name extends `::${string}` ? TW.Action<QualifiedActionName<"", K & string>, Handler, Meta> : never
     : TW.Action<
         QualifiedActionName<"", K & string>,
         (

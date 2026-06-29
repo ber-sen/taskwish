@@ -81,7 +81,7 @@ describe("Trait", () => {
 
   test("type — existing TW.Action handler and meta are preserved", () => {
     const Logger = Trait<{
-      log: TW.Action<"log", () => Promise<string>, { service: "logger" }>;
+      log: TW.Action<"::log", () => Promise<string>>;
     }>();
 
     type check = Expect<
@@ -90,8 +90,7 @@ describe("Trait", () => {
         {
           log: TW.Action<
             "::log",
-            () => Promise<string>,
-            { service: "logger" }
+            () => Promise<string>
           >;
         }
       >
