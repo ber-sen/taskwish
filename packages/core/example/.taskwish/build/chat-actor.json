@@ -4,7 +4,7 @@
   "color": "#c42e5b",
   "behaviors": [
     {
-      ">": "ChatMessage",
+      "->": "ChatMessage",
       "run": [
         {
           "$": "Slack.sendMessage",

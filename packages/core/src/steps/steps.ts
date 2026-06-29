@@ -108,7 +108,7 @@ export interface ActionResultKind extends ResultKind {
                     }
                   : {
                       [Name in N]: {
-                        ">": "Command";
+                        "->": "Command";
                         "=": N;
                         run: S;
                       };

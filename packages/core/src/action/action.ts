@@ -346,7 +346,7 @@ function actionEvent(obj: Record<string, unknown>) {
 
 function commandEvent(input: unknown): TW.Event<"Command", object> {
   return {
-    ">": "Command",
+    "->": "Command",
     ...(input !== null && typeof input === "object" ? input : {}),
   };
 }
@@ -380,11 +380,11 @@ async function* runStep(
     ) {
       yield result;
     }
-    yield { ">": name, result };
+    yield { "->": name, result };
 
     return result;
   } catch (error) {
-    yield { ">": name, error };
+    yield { "->": name, error };
 
     throw error;
   }
@@ -549,7 +549,7 @@ async function* runHandlerList(
                   .split(".")
                   .reduce((o: any, k) => o?.[k], ctx)
               : itemsGetter;
-      yield { ">": `${currentName}.${loopName}`, items };
+      yield { "->": `${currentName}.${loopName}`, items };
       const innerAcc: Record<string, unknown[]> = {};
       let loopLastStepName: string | null = null;
       const loopIterLasts: unknown[] = [];
@@ -716,7 +716,7 @@ export async function* runAction(
 ): AsyncGenerator<unknown, unknown> {
   const ctx: Record<string | symbol, unknown> = { ...scope };
 
-  yield { ">": name, input: scope.input };
+  yield { "->": name, input: scope.input };
 
   try {
     const r = yield* runHandlerList(
@@ -728,10 +728,10 @@ export async function* runAction(
       name,
       handlers,
     );
-    yield { ">": name, result: r.last };
+    yield { "->": name, result: r.last };
     return r.last;
   } catch (error) {
-    yield { ">": name, error };
+    yield { "->": name, error };
     throw error;
   }
 }
@@ -758,7 +758,7 @@ export function buildScope(
     ...extra,
     input: inputMode === "args" ? args : args[0],
     signal(type: string, data: Record<string, unknown>) {
-      const event = { ">": eventNames.get(type) ?? type, ...data };
+      const event = { "->": eventNames.get(type) ?? type, ...data };
       Object.defineProperty(event, SignalTag, {
         value: true,
         enumerable: false,
@@ -895,7 +895,7 @@ export function Action<const Name extends string>(
         return { [actionName]: filtered };
       }
 
-      return { [actionName]: { ">": "Command", "=": actionName, run: steps } };
+      return { [actionName]: { "->": "Command", "=": actionName, run: steps } };
     }
 
     async function consume(...args: unknown[]) {

@@ -575,7 +575,7 @@ function scopeEventKind(
     ...eventKind,
     [TW.Name]: qualifiedEventName,
     emit: async function* (eventData: unknown) {
-      const event = { ">": qualifiedEventName, id: null, data: eventData };
+      const event = { "->": qualifiedEventName, id: null, data: eventData };
       yield event;
       return event;
     },
@@ -792,7 +792,7 @@ function createBehavior(
                   const request = input;
                   const { args: modArgs } = mod([request]);
                   const rawInput = modArgs[0] as Record<string, unknown>;
-                  yield { ">": eventName, input: rawInput };
+                  yield { "->": eventName, input: rawInput };
                   const flatInput = flattenHttpInput(rawInput);
                   let result: unknown;
                   try {
@@ -810,10 +810,10 @@ function createBehavior(
                     }
                     result = item.value;
                   } catch (error) {
-                    yield { ">": eventName, error };
+                    yield { "->": eventName, error };
                     throw error;
                   }
-                  yield { ">": eventName, result: toResponse(result) };
+                  yield { "->": eventName, result: toResponse(result) };
                 }
 
                 function fetchStream(input: Request) {

@@ -77,23 +77,23 @@ export namespace TW {
     >(
       type: T,
       data: EventKindData<S, T & string>,
-    ): { ">": EventKindName<S, T & string> } & EventKindData<S, T & string>;
+    ): { "->": EventKindName<S, T & string> } & EventKindData<S, T & string>;
     get<T>(Cls: new (...args: any[]) => T): T;
   };
 
   export type Inject<Type> = Type | null;
 
   export type StepEvent<Result = unknown> =
-    | { ">": string; result: Result }
-    | { ">": string; error: unknown };
+    | { "->": string; result: Result }
+    | { "->": string; error: unknown };
 
   export type ActionEvent<Name extends string, Result = unknown> =
-    | { ">": Name; input: unknown }
-    | { ">": Name; result: Result }
-    | { ">": Name; error: unknown };
+    | { "->": Name; input: unknown }
+    | { "->": Name; result: Result }
+    | { "->": Name; error: unknown };
 
   export type GetEvent<T = unknown> = {
-    ">": "get";
+    "->": "get";
     type: abstract new (...args: any[]) => T;
   };
 
@@ -190,11 +190,11 @@ export namespace TW {
   export interface ResourceKind<Name extends string> extends Named<Name> {}
 
   export type Event<Type extends string, Data> = {
-    ">": Type;
+    "->": Type;
   } & Data;
 
   export type ActionInputEvent<Action extends TW.Action<any, any>, Params> = {
-    ">": string;
+    "->": string;
     "&": Action;
     input: Params;
   };

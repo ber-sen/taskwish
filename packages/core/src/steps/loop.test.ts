@@ -28,12 +28,12 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch" },
-      { ">": "branch.loop", items: [1, 2, 3] },
-      { ">": "branch.loop[0].doubled", result: 2 },
-      { ">": "branch.loop[1].doubled", result: 4 },
-      { ">": "branch.loop[2].doubled", result: 6 },
-      { ">": "branch", result: [2, 4, 6] },
+      { "->": "branch" },
+      { "->": "branch.loop", items: [1, 2, 3] },
+      { "->": "branch.loop[0].doubled", result: 2 },
+      { "->": "branch.loop[1].doubled", result: 4 },
+      { "->": "branch.loop[2].doubled", result: 6 },
+      { "->": "branch", result: [2, 4, 6] },
     ]);
   });
 
@@ -60,12 +60,12 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream({ nums: [1, 2, 3] })) yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch", input: { nums: [1, 2, 3] } },
-      { ">": "branch.loop", items: [1, 2, 3] },
-      { ">": "branch.loop[0].doubled", result: 2 },
-      { ">": "branch.loop[1].doubled", result: 4 },
-      { ">": "branch.loop[2].doubled", result: 6 },
-      { ">": "branch", result: [2, 4, 6] },
+      { "->": "branch", input: { nums: [1, 2, 3] } },
+      { "->": "branch.loop", items: [1, 2, 3] },
+      { "->": "branch.loop[0].doubled", result: 2 },
+      { "->": "branch.loop[1].doubled", result: 4 },
+      { "->": "branch.loop[2].doubled", result: 6 },
+      { "->": "branch", result: [2, 4, 6] },
     ]);
   });
 
@@ -89,12 +89,12 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch" },
-      { ">": "branch.n", items: [10, 20, 30] },
-      { ">": "branch.n[0].tagged", result: "0:10" },
-      { ">": "branch.n[1].tagged", result: "1:20" },
-      { ">": "branch.n[2].tagged", result: "2:30" },
-      { ">": "branch", result: ["0:10", "1:20", "2:30"] },
+      { "->": "branch" },
+      { "->": "branch.n", items: [10, 20, 30] },
+      { "->": "branch.n[0].tagged", result: "0:10" },
+      { "->": "branch.n[1].tagged", result: "1:20" },
+      { "->": "branch.n[2].tagged", result: "2:30" },
+      { "->": "branch", result: ["0:10", "1:20", "2:30"] },
     ]);
   });
 
@@ -118,9 +118,9 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch" },
-      { ">": "branch.loop", items: [] },
-      { ">": "branch", result: [] },
+      { "->": "branch" },
+      { "->": "branch.loop", items: [] },
+      { "->": "branch", result: [] },
     ]);
   });
 
@@ -147,12 +147,12 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream({ factor: 3 })) yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch", input: { factor: 3 } },
-      { ">": "branch.loop", items: [10, 20, 30] },
-      { ">": "branch.loop[0].scaled", result: 30 },
-      { ">": "branch.loop[1].scaled", result: 60 },
-      { ">": "branch.loop[2].scaled", result: 90 },
-      { ">": "branch", result: [30, 60, 90] },
+      { "->": "branch", input: { factor: 3 } },
+      { "->": "branch.loop", items: [10, 20, 30] },
+      { "->": "branch.loop[0].scaled", result: 30 },
+      { "->": "branch.loop[1].scaled", result: 60 },
+      { "->": "branch.loop[2].scaled", result: 90 },
+      { "->": "branch", result: [30, 60, 90] },
     ]);
   });
 
@@ -180,12 +180,12 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch" },
-      { ">": "branch.words", result: ["hello", "world"] },
-      { ">": "branch.loop", items: ["hello", "world"] },
-      { ">": "branch.loop[0].upper", result: "HELLO" },
-      { ">": "branch.loop[1].upper", result: "WORLD" },
-      { ">": "branch", result: ["HELLO", "WORLD"] },
+      { "->": "branch" },
+      { "->": "branch.words", result: ["hello", "world"] },
+      { "->": "branch.loop", items: ["hello", "world"] },
+      { "->": "branch.loop[0].upper", result: "HELLO" },
+      { "->": "branch.loop[1].upper", result: "WORLD" },
+      { "->": "branch", result: ["HELLO", "WORLD"] },
     ]);
   });
 
@@ -216,12 +216,12 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2] })) yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch", input: { items: [1, 2] } },
-      { ">": "branch.loop", items: [1, 2] },
-      { ">": "branch.loop[0].doubled", result: 2 },
-      { ">": "branch.loop[1].doubled", result: 4 },
-      { ">": "branch.check", result: false },
-      { ">": "branch", result: false },
+      { "->": "branch", input: { items: [1, 2] } },
+      { "->": "branch.loop", items: [1, 2] },
+      { "->": "branch.loop[0].doubled", result: 2 },
+      { "->": "branch.loop[1].doubled", result: 4 },
+      { "->": "branch.check", result: false },
+      { "->": "branch", result: false },
     ]);
   });
 
@@ -252,13 +252,13 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2, 3] })) yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch", input: { items: [1, 2, 3] } },
-      { ">": "branch.loop", items: [1, 2, 3] },
-      { ">": "branch.loop[0].doubled", result: 2 },
-      { ">": "branch.loop[1].doubled", result: 4 },
-      { ">": "branch.loop[2].doubled", result: 6 },
-      { ">": "branch.sum", result: 12 },
-      { ">": "branch", result: 12 },
+      { "->": "branch", input: { items: [1, 2, 3] } },
+      { "->": "branch.loop", items: [1, 2, 3] },
+      { "->": "branch.loop[0].doubled", result: 2 },
+      { "->": "branch.loop[1].doubled", result: 4 },
+      { "->": "branch.loop[2].doubled", result: 6 },
+      { "->": "branch.sum", result: 12 },
+      { "->": "branch", result: 12 },
     ]);
   });
 
@@ -299,16 +299,16 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2, 3] })) yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch", input: { items: [1, 2, 3] } },
-      { ">": "branch.loop", items: [1, 2, 3] },
-      { ">": "branch.loop[0].doubled", result: 2 },
-      { ">": "branch.loop[0].label", result: "1x2=2" },
-      { ">": "branch.loop[1].doubled", result: 4 },
-      { ">": "branch.loop[1].label", result: "2x2=4" },
-      { ">": "branch.loop[2].doubled", result: 6 },
-      { ">": "branch.loop[2].label", result: "3x2=6" },
-      { ">": "branch.summary", result: ["1x2=2", "2x2=4", "3x2=6"] },
-      { ">": "branch", result: ["1x2=2", "2x2=4", "3x2=6"] },
+      { "->": "branch", input: { items: [1, 2, 3] } },
+      { "->": "branch.loop", items: [1, 2, 3] },
+      { "->": "branch.loop[0].doubled", result: 2 },
+      { "->": "branch.loop[0].label", result: "1x2=2" },
+      { "->": "branch.loop[1].doubled", result: 4 },
+      { "->": "branch.loop[1].label", result: "2x2=4" },
+      { "->": "branch.loop[2].doubled", result: 6 },
+      { "->": "branch.loop[2].label", result: "3x2=6" },
+      { "->": "branch.summary", result: ["1x2=2", "2x2=4", "3x2=6"] },
+      { "->": "branch", result: ["1x2=2", "2x2=4", "3x2=6"] },
     ]);
   });
 
@@ -332,13 +332,13 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch" },
-      { ">": "branch.loop", items: [0, 1, 2, 3] },
-      { ">": "branch.loop[0].squared", result: 0 },
-      { ">": "branch.loop[1].squared", result: 1 },
-      { ">": "branch.loop[2].squared", result: 4 },
-      { ">": "branch.loop[3].squared", result: 9 },
-      { ">": "branch", result: [0, 1, 4, 9] },
+      { "->": "branch" },
+      { "->": "branch.loop", items: [0, 1, 2, 3] },
+      { "->": "branch.loop[0].squared", result: 0 },
+      { "->": "branch.loop[1].squared", result: 1 },
+      { "->": "branch.loop[2].squared", result: 4 },
+      { "->": "branch.loop[3].squared", result: 9 },
+      { "->": "branch", result: [0, 1, 4, 9] },
     ]);
   });
 
@@ -365,11 +365,11 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2] })) yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch", input: { items: [1, 2] } },
-      { ">": "branch.loop", items: [1, 2] },
-      { ">": "branch.loop[0].val", result: 1 },
-      { ">": "branch.loop[1].val", result: 2 },
-      { ">": "branch", result: [1, 2] },
+      { "->": "branch", input: { items: [1, 2] } },
+      { "->": "branch.loop", items: [1, 2] },
+      { "->": "branch.loop[0].val", result: 1 },
+      { "->": "branch.loop[1].val", result: 2 },
+      { "->": "branch", result: [1, 2] },
     ]);
   });
 
@@ -479,11 +479,11 @@ describe("Loop", () => {
     for await (const v of branch.stream({ items: [1, 2, 3, 4] }))
       yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch", input: { items: [1, 2, 3, 4] } },
-      { ">": "branch.loop", items: [1, 2, 3, 4] },
-      { ">": "branch.loop[1].if.even", result: 2 },
-      { ">": "branch.loop[3].if.even", result: 4 },
-      { ">": "branch", result: [2, 4] },
+      { "->": "branch", input: { items: [1, 2, 3, 4] } },
+      { "->": "branch.loop", items: [1, 2, 3, 4] },
+      { "->": "branch.loop[1].if.even", result: 2 },
+      { "->": "branch.loop[3].if.even", result: 4 },
+      { "->": "branch", result: [2, 4] },
     ]);
   });
 
@@ -524,12 +524,12 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2, 3] })) yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch", input: { items: [1, 2, 3] } },
-      { ">": "branch.loop", items: [1, 2, 3] },
-      { ">": "branch.loop[0].if.tag", result: "odd:1" },
-      { ">": "branch.loop[1].else.tag", result: "even:2" },
-      { ">": "branch.loop[2].if.tag", result: "odd:3" },
-      { ">": "branch", result: ["odd:1", "even:2", "odd:3"] },
+      { "->": "branch", input: { items: [1, 2, 3] } },
+      { "->": "branch.loop", items: [1, 2, 3] },
+      { "->": "branch.loop[0].if.tag", result: "odd:1" },
+      { "->": "branch.loop[1].else.tag", result: "even:2" },
+      { "->": "branch.loop[2].if.tag", result: "odd:3" },
+      { "->": "branch", result: ["odd:1", "even:2", "odd:3"] },
     ]);
   });
 
@@ -566,11 +566,11 @@ describe("Loop", () => {
     }))
       yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch", input: { items: [1, 2, 3, 4, 5], threshold: 3 } },
-      { ">": "branch.loop", items: [1, 2, 3, 4, 5] },
-      { ">": "branch.loop[3].if.big", result: 4 },
-      { ">": "branch.loop[4].if.big", result: 5 },
-      { ">": "branch", result: [4, 5] },
+      { "->": "branch", input: { items: [1, 2, 3, 4, 5], threshold: 3 } },
+      { "->": "branch.loop", items: [1, 2, 3, 4, 5] },
+      { "->": "branch.loop[3].if.big", result: 4 },
+      { "->": "branch.loop[4].if.big", result: 5 },
+      { "->": "branch", result: [4, 5] },
     ]);
   });
 
@@ -623,16 +623,16 @@ describe("Loop", () => {
     for await (const v of branch.stream({ items: [1, 2, 3, 4, 5, 6] }))
       yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch", input: { items: [1, 2, 3, 4, 5, 6] } },
-      { ">": "branch.loop", items: [1, 2, 3, 4, 5, 6] },
-      { ">": "branch.loop[0].else.tag", result: "other" },
-      { ">": "branch.loop[1].elseIf.tag", result: "buzz" },
-      { ">": "branch.loop[2].if.tag", result: "fizz" },
-      { ">": "branch.loop[3].elseIf.tag", result: "buzz" },
-      { ">": "branch.loop[4].else.tag", result: "other" },
-      { ">": "branch.loop[5].if.tag", result: "fizz" },
+      { "->": "branch", input: { items: [1, 2, 3, 4, 5, 6] } },
+      { "->": "branch.loop", items: [1, 2, 3, 4, 5, 6] },
+      { "->": "branch.loop[0].else.tag", result: "other" },
+      { "->": "branch.loop[1].elseIf.tag", result: "buzz" },
+      { "->": "branch.loop[2].if.tag", result: "fizz" },
+      { "->": "branch.loop[3].elseIf.tag", result: "buzz" },
+      { "->": "branch.loop[4].else.tag", result: "other" },
+      { "->": "branch.loop[5].if.tag", result: "fizz" },
       {
-        ">": "branch",
+        "->": "branch",
         result: ["other", "buzz", "fizz", "buzz", "other", "fizz"],
       },
     ]);
@@ -669,13 +669,13 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [2, 4] })) yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch", input: { items: [2, 4] } },
-      { ">": "branch.loop", items: [2, 4] },
-      { ">": "branch.loop[0].if.doubled", result: 4 },
-      { ">": "branch.loop[0].if.label", result: "2*2=4" },
-      { ">": "branch.loop[1].if.doubled", result: 8 },
-      { ">": "branch.loop[1].if.label", result: "4*2=8" },
-      { ">": "branch", result: ["2*2=4", "4*2=8"] },
+      { "->": "branch", input: { items: [2, 4] } },
+      { "->": "branch.loop", items: [2, 4] },
+      { "->": "branch.loop[0].if.doubled", result: 4 },
+      { "->": "branch.loop[0].if.label", result: "2*2=4" },
+      { "->": "branch.loop[1].if.doubled", result: 8 },
+      { "->": "branch.loop[1].if.label", result: "4*2=8" },
+      { "->": "branch", result: ["2*2=4", "4*2=8"] },
     ]);
   });
 
@@ -708,16 +708,16 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch" },
-      { ">": "branch.outer", items: [1, 2] },
-      { ">": "branch.outer[0].inner", items: [10, 20] },
-      { ">": "branch.outer[0].inner[0].product", result: 10 },
-      { ">": "branch.outer[0].inner[1].product", result: 20 },
-      { ">": "branch.outer[1].inner", items: [10, 20] },
-      { ">": "branch.outer[1].inner[0].product", result: 20 },
-      { ">": "branch.outer[1].inner[1].product", result: 40 },
+      { "->": "branch" },
+      { "->": "branch.outer", items: [1, 2] },
+      { "->": "branch.outer[0].inner", items: [10, 20] },
+      { "->": "branch.outer[0].inner[0].product", result: 10 },
+      { "->": "branch.outer[0].inner[1].product", result: 20 },
+      { "->": "branch.outer[1].inner", items: [10, 20] },
+      { "->": "branch.outer[1].inner[0].product", result: 20 },
+      { "->": "branch.outer[1].inner[1].product", result: 40 },
       {
-        ">": "branch",
+        "->": "branch",
         result: [
           [10, 20],
           [20, 40],
@@ -754,18 +754,18 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch" },
-      { ">": "branch.outer", items: ["a", "b"] },
-      { ">": "branch.outer[0].inner", items: [1, 2, 3] },
-      { ">": "branch.outer[0].inner[0].tagged", result: "a1" },
-      { ">": "branch.outer[0].inner[1].tagged", result: "a2" },
-      { ">": "branch.outer[0].inner[2].tagged", result: "a3" },
-      { ">": "branch.outer[1].inner", items: [1, 2, 3] },
-      { ">": "branch.outer[1].inner[0].tagged", result: "b1" },
-      { ">": "branch.outer[1].inner[1].tagged", result: "b2" },
-      { ">": "branch.outer[1].inner[2].tagged", result: "b3" },
-      { ">": "branch.flat", result: ["a1", "a2", "a3", "b1", "b2", "b3"] },
-      { ">": "branch", result: ["a1", "a2", "a3", "b1", "b2", "b3"] },
+      { "->": "branch" },
+      { "->": "branch.outer", items: ["a", "b"] },
+      { "->": "branch.outer[0].inner", items: [1, 2, 3] },
+      { "->": "branch.outer[0].inner[0].tagged", result: "a1" },
+      { "->": "branch.outer[0].inner[1].tagged", result: "a2" },
+      { "->": "branch.outer[0].inner[2].tagged", result: "a3" },
+      { "->": "branch.outer[1].inner", items: [1, 2, 3] },
+      { "->": "branch.outer[1].inner[0].tagged", result: "b1" },
+      { "->": "branch.outer[1].inner[1].tagged", result: "b2" },
+      { "->": "branch.outer[1].inner[2].tagged", result: "b3" },
+      { "->": "branch.flat", result: ["a1", "a2", "a3", "b1", "b2", "b3"] },
+      { "->": "branch", result: ["a1", "a2", "a3", "b1", "b2", "b3"] },
     ]);
   });
 
@@ -804,16 +804,16 @@ describe("Loop", () => {
     for await (const v of branch.stream({ inner: [1, 2, 3, 4] }))
       yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch", input: { inner: [1, 2, 3, 4] } },
-      { ">": "branch.outer", items: [2, 3] },
-      { ">": "branch.outer[0].inner", items: [1, 2, 3, 4] },
-      { ">": "branch.outer[0].inner[1].if.even", result: 4 },
-      { ">": "branch.outer[0].inner[3].if.even", result: 8 },
-      { ">": "branch.outer[1].inner", items: [1, 2, 3, 4] },
-      { ">": "branch.outer[1].inner[1].if.even", result: 6 },
-      { ">": "branch.outer[1].inner[3].if.even", result: 12 },
+      { "->": "branch", input: { inner: [1, 2, 3, 4] } },
+      { "->": "branch.outer", items: [2, 3] },
+      { "->": "branch.outer[0].inner", items: [1, 2, 3, 4] },
+      { "->": "branch.outer[0].inner[1].if.even", result: 4 },
+      { "->": "branch.outer[0].inner[3].if.even", result: 8 },
+      { "->": "branch.outer[1].inner", items: [1, 2, 3, 4] },
+      { "->": "branch.outer[1].inner[1].if.even", result: 6 },
+      { "->": "branch.outer[1].inner[3].if.even", result: 12 },
       {
-        ">": "branch",
+        "->": "branch",
         result: [
           [4, 8],
           [6, 12],
@@ -856,16 +856,16 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream({ inner: [10, 20] })) yields.push(v);
     expect(yields).toEqual([
-      { ">": "branch", input: { inner: [10, 20] } },
-      { ">": "branch.outer", items: [1, 2, 3, 4] },
-      { ">": "branch.outer[1].if.inner", items: [10, 20] },
-      { ">": "branch.outer[1].if.inner[0].product", result: 20 },
-      { ">": "branch.outer[1].if.inner[1].product", result: 40 },
-      { ">": "branch.outer[3].if.inner", items: [10, 20] },
-      { ">": "branch.outer[3].if.inner[0].product", result: 40 },
-      { ">": "branch.outer[3].if.inner[1].product", result: 80 },
+      { "->": "branch", input: { inner: [10, 20] } },
+      { "->": "branch.outer", items: [1, 2, 3, 4] },
+      { "->": "branch.outer[1].if.inner", items: [10, 20] },
+      { "->": "branch.outer[1].if.inner[0].product", result: 20 },
+      { "->": "branch.outer[1].if.inner[1].product", result: 40 },
+      { "->": "branch.outer[3].if.inner", items: [10, 20] },
+      { "->": "branch.outer[3].if.inner[0].product", result: 40 },
+      { "->": "branch.outer[3].if.inner[1].product", result: 80 },
       {
-        ">": "branch",
+        "->": "branch",
         result: [
           [20, 40],
           [40, 80],

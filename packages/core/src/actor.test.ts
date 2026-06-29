@@ -107,10 +107,10 @@ describe("Actor", () => {
     }
 
     expect(yields).toEqual([
-      { ">": "Pipeline::run", input: { name: "hello" } },
-      { ">": "Pipeline::run.first", result: 5 },
-      { ">": "Pipeline::run.second", result: true },
-      { ">": "Pipeline::run", result: true },
+      { "->": "Pipeline::run", input: { name: "hello" } },
+      { "->": "Pipeline::run.first", result: 5 },
+      { "->": "Pipeline::run.second", result: true },
+      { "->": "Pipeline::run", result: true },
     ]);
   });
 
@@ -151,10 +151,10 @@ describe("Actor", () => {
 
     expect(yields).toEqual([
       {
-        ">": "Broadcaster::on_new_message",
+        "->": "Broadcaster::on_new_message",
         input: { sender: { name: "Alice" }, content: "hi", channel: "general" },
       },
-      { ">": "Broadcaster::on_new_message", result: "HI" },
+      { "->": "Broadcaster::on_new_message", result: "HI" },
     ]);
   });
 
@@ -194,10 +194,10 @@ describe("Actor", () => {
     }
 
     expect(yields).toEqual([
-      { ">": "Crasher::failing", input: { name: "World" } },
-      { ">": "Crasher::failing.first", result: 1 },
-      { ">": "Crasher::failing.bad", error: boom },
-      { ">": "Crasher::failing", error: boom },
+      { "->": "Crasher::failing", input: { name: "World" } },
+      { "->": "Crasher::failing.first", result: 1 },
+      { "->": "Crasher::failing.bad", error: boom },
+      { "->": "Crasher::failing", error: boom },
     ]);
     expect(thrown).toBe(boom);
   });
@@ -300,7 +300,7 @@ describe("Actor", () => {
     }
 
     expect(yields).toContainEqual({
-      ">": "Biller::InvoicePaid",
+      "->": "Biller::InvoicePaid",
       id: null,
       data: { invoiceId: "inv-1", amount: 100, customer: "alice" },
     });
@@ -365,7 +365,7 @@ describe("Actor", () => {
     }
 
     expect(emitted).toContainEqual({
-      ">": "Biller::InvoicePaid",
+      "->": "Biller::InvoicePaid",
       id: null,
       data: { invoiceId: "inv-1", amount: 100, customer: "alice" },
     });
@@ -569,11 +569,11 @@ describe("Actor", () => {
     }
     expect(directYields).toEqual([
       {
-        ">": "InvoiceProvider::get_invoices",
+        "->": "InvoiceProvider::get_invoices",
         input: { id: "inv-42", page: "2" },
       },
       {
-        ">": "InvoiceProvider::get_invoices",
+        "->": "InvoiceProvider::get_invoices",
         result: { id: "inv-42", page: "2" },
       },
     ]);
@@ -588,7 +588,7 @@ describe("Actor", () => {
 
     expect(fetchYields).toMatchObject([
       {
-        ">": "InvoiceProvider::get",
+        "->": "InvoiceProvider::get",
         input: {
           path: "/invoices/inv-42",
           params: { id: "inv-42" },
@@ -596,14 +596,14 @@ describe("Actor", () => {
         },
       },
       {
-        ">": "InvoiceProvider::get_invoices",
+        "->": "InvoiceProvider::get_invoices",
         input: { id: "inv-42", page: "2" },
       },
       {
-        ">": "InvoiceProvider::get_invoices",
+        "->": "InvoiceProvider::get_invoices",
         result: { id: "inv-42", page: "2" },
       },
-      { ">": "InvoiceProvider::get", result: expect.any(Response) },
+      { "->": "InvoiceProvider::get", result: expect.any(Response) },
     ]);
     expect(JSON.parse(fetchStreamJson)).toEqual({ id: "inv-42", page: "2" });
 
@@ -694,7 +694,7 @@ describe("Actor", () => {
 
     expect(yields).toEqual([
       {
-        ">": "MailAgent::on_new_email",
+        "->": "MailAgent::on_new_email",
         input: {
           from: "bob@example.com",
           to: "me@co.com",
@@ -703,11 +703,11 @@ describe("Actor", () => {
         },
       },
       {
-        ">": "MailAgent::on_new_email.log",
+        "->": "MailAgent::on_new_email.log",
         result: "bob@example.com: Invoice",
       },
       {
-        ">": "MailAgent::on_new_email",
+        "->": "MailAgent::on_new_email",
         result: "bob@example.com: Invoice",
       },
     ]);
@@ -743,16 +743,16 @@ describe("Actor", () => {
 
     expect(yields).toEqual([
       {
-        ">": "Emitter::emit",
+        "->": "Emitter::emit",
         input: { orderId: "ord-1", amount: 100 },
       },
-      { ">": "Emitter::OrderPlaced", orderId: "ord-1", amount: 100 },
+      { "->": "Emitter::OrderPlaced", orderId: "ord-1", amount: 100 },
       {
-        ">": "Emitter::emit.order",
-        result: { ">": "Emitter::OrderPlaced", orderId: "ord-1", amount: 100 },
+        "->": "Emitter::emit.order",
+        result: { "->": "Emitter::OrderPlaced", orderId: "ord-1", amount: 100 },
       },
-      { ">": "Emitter::emit.confirm", result: "placed: ord-1" },
-      { ">": "Emitter::emit", result: "placed: ord-1" },
+      { "->": "Emitter::emit.confirm", result: "placed: ord-1" },
+      { "->": "Emitter::emit", result: "placed: ord-1" },
     ]);
   });
 
@@ -787,10 +787,10 @@ describe("Actor", () => {
 
     expect(logged).toEqual([
       "",
-      formatEvent({ ">": "Worker::run", input: { value: 5 } }),
-      formatEvent({ ">": "Worker::run.doubled", result: 10 }),
-      formatEvent({ ">": "Worker::run.positive", result: true }),
-      formatEvent({ ">": "Worker::run", result: true }),
+      formatEvent({ "->": "Worker::run", input: { value: 5 } }),
+      formatEvent({ "->": "Worker::run.doubled", result: 10 }),
+      formatEvent({ "->": "Worker::run.positive", result: true }),
+      formatEvent({ "->": "Worker::run", result: true }),
       "",
     ]);
   });
@@ -828,10 +828,10 @@ describe("Actor", () => {
 
     expect(logged).toEqual(
       yields.flatMap((v) => {
-        if (typeof v !== "object" || v === null || !(">" in (v as object)))
+        if (typeof v !== "object" || v === null || !("->" in (v as object)))
           return [v];
         const e = v as Record<string, unknown>;
-        const action = isActionEvent(e[">"] as string);
+        const action = isActionEvent(e["->"] as string);
         const out = formatEvent(e);
         const items: unknown[] = [];
         if (action && "input" in e) items.push("");
@@ -879,21 +879,21 @@ describe("Actor", () => {
 
     expect(logged).toEqual([
       "",
-      formatEvent({ ">": "Hub::ping", input: { id: "abc" } }),
-      formatEvent({ ">": "Hub::ping.upper", result: "ABC" }),
-      formatEvent({ ">": "Hub::ping", result: "ABC" }),
+      formatEvent({ "->": "Hub::ping", input: { id: "abc" } }),
+      formatEvent({ "->": "Hub::ping.upper", result: "ABC" }),
+      formatEvent({ "->": "Hub::ping", result: "ABC" }),
       "",
       "",
       formatEvent({
-        ">": "Hub::on_new_message",
+        "->": "Hub::on_new_message",
         input: {
           sender: { name: "Alice" },
           content: "hello",
           channel: "general",
         },
       }),
-      formatEvent({ ">": "Hub::on_new_message.excerpt", result: "hel" }),
-      formatEvent({ ">": "Hub::on_new_message", result: "hel" }),
+      formatEvent({ "->": "Hub::on_new_message.excerpt", result: "hel" }),
+      formatEvent({ "->": "Hub::on_new_message", result: "hel" }),
       "",
     ]);
   });
