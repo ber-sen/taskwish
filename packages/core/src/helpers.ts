@@ -302,10 +302,28 @@ type QualifiedActionParts<N extends string> =
   N extends `${infer S}.${infer M}` ? [S, M] :
   never;
 
+type HasQualifiedActionService<N extends string> =
+  [QualifiedActionParts<N>] extends [never]
+    ? false
+    : QualifiedActionParts<N> extends [infer S extends string, string]
+    ? S extends ""
+      ? false
+      : true
+    : false;
+
+type DirectActionName<N extends string> =
+  [QualifiedActionParts<N>] extends [never]
+    ? N
+    : QualifiedActionParts<N> extends ["", infer M extends string]
+      ? M
+      : never;
+
 /** "Slack::post_message" → "slack" */
 export type ActionService<N extends string> =
   QualifiedActionParts<N> extends [infer S extends string, string]
-    ? LowercaseFirst<S>
+    ? S extends ""
+      ? never
+      : LowercaseFirst<S>
     : never;
 
 /** "Slack::post_message" → "postMessage" */
@@ -322,26 +340,24 @@ export type GroupActions<M> =
   {
     [S in {
       [K in keyof M]: ExtractActionName<M[K]> extends infer N extends string
-        ? QualifiedActionParts<N> extends never
-          ? never
-          : ActionService<N>
+        ? HasQualifiedActionService<N> extends true
+          ? ActionService<N>
+          : never
         : never;
     }[keyof M] &
       string]: {
       [K in keyof M as ExtractActionName<M[K]> extends infer N extends string
-        ? QualifiedActionParts<N> extends never
-          ? never
-          : ActionService<N> extends S
+        ? HasQualifiedActionService<N> extends true
+          ? ActionService<N> extends S
             ? ActionMethod<N>
             : never
+          : never
         : never]: M[K];
     };
   } & // Flat names → { name: T } (directly callable)
   {
     [K in keyof M as ExtractActionName<M[K]> extends infer N extends string
-      ? QualifiedActionParts<N> extends never
-        ? N
-        : never
+      ? DirectActionName<N>
       : never]: M[K];
   };
 

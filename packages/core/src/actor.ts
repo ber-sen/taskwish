@@ -121,9 +121,9 @@ interface HttpBody<
 
 // ── Trait method implementation ───────────────────────────────────────────────
 
-/** Extract the method part from a qualified trait-method name: "Logger::log" → "log" */
+/** Extract the method part from a trait-method name: "::log" → "log" */
 type TraitMethodPart<T extends string> =
-  T extends `${string}::${infer M}` ? ToCamelCase<M> : never;
+  T extends `::${infer M}` ? ToCamelCase<M> : never;
 
 /**
  * Pull the first-argument type out of a trait action's handler.
@@ -145,17 +145,17 @@ type TraitActionHandler<I, R> =
 
 /**
  * Extract the qualified action name carried inside a trait action's stream events.
- * e.g. TW.Action<"Storage::read", …> → "Storage::read".
+ * e.g. TW.Action<"::read", …> → "::read".
  */
 type ExtractTraitQualifiedName<A> =
-  ExtractActionName<A> extends `${string}::${string}`
+  ExtractActionName<A> extends `::${string}`
     ? ExtractActionName<A>
     : never;
 
 /**
  * Derive all valid qualified method strings for a trait instance, e.g.
- *   { read: TW.Action<"Storage::read", …>, write: TW.Action<"Storage::write", …> }
- *     → "Storage::read" | "Storage::write"
+ *   { read: TW.Action<"::read", …>, write: TW.Action<"::write", …> }
+ *     → "::read" | "::write"
  */
 type AllTraitMethods<TraitInstance extends Record<string, any>> = {
   [M in keyof TraitInstance & string]:
@@ -163,11 +163,11 @@ type AllTraitMethods<TraitInstance extends Record<string, any>> = {
 }[keyof TraitInstance & string];
 
 /**
- * Returned by `TraitBehavior.on("Storage::read")` — a fluent builder whose
+ * Returned by `TraitBehavior.on("::read")` — a fluent builder whose
  * input type is already fixed by the trait instance. No `.input()` call needed.
  */
 interface TraitMethodFactoryFromTrait<
-  TraitMethod extends `${string}::${string}`,
+  TraitMethod extends `::${string}`,
   Ctx extends Record<any, any>,
   Input,
 > {
@@ -194,7 +194,7 @@ interface TraitMethodFactoryFromTrait<
  */
 type TraitMethodFactoryFor<
   TraitInstance extends Record<string, any>,
-  K extends `${string}::${string}`,
+  K extends `::${string}`,
   Ctx extends Record<any, any>,
 > = TraitMethodPart<K> extends infer M extends keyof TraitInstance
   ? TraitMethodFactoryFromTrait<K, Ctx, ExtractTraitInput<TraitInstance[M]>>
@@ -232,11 +232,11 @@ export interface ActorFactoryFn<Ctx extends Record<any, any>> {
 }
 
 /**
- * Returned by `Behavior.on("Logger::log")` (no trait instance passed) —
+ * Returned by `Behavior.on("::log")` (no trait instance passed) —
  * a fluent builder that requires `.input(schema)` to specify the input type.
  */
 interface TraitMethodFactory<
-  TraitMethod extends `${string}::${string}`,
+  TraitMethod extends `::${string}`,
   Ctx extends Record<any, any>,
 > {
   use(): this;
@@ -424,7 +424,7 @@ export interface Behavior<Ctx extends Record<any, any>> {
     path: string,
   ): HttpBody<Method, BaseScope<Ctx>, Ctx["name"] & string>;
 
-  on<const TraitMethod extends `${string}::${string}`>(
+  on<const TraitMethod extends `::${string}`>(
     traitMethod: TraitMethod extends EventKeys<BaseScope<Ctx>>
       ? never
       : TraitMethod,
@@ -651,15 +651,14 @@ function createBehavior(
       let actionName: string;
       let traitMeta: string | null = null;
 
-      const qualifiedIdx = behavior.indexOf("::");
       const scopedBehavior = initialScope[behavior];
       const isScopedEvent =
         scopedBehavior !== null &&
         typeof scopedBehavior === "object" &&
         "emit" in scopedBehavior;
-      if (qualifiedIdx !== -1 && !isScopedEvent) {
-        // Trait method: "Logger::log" → actionName = "log", traitMeta = "Logger::log"
-        actionName = toCamelCaseName(behavior.slice(qualifiedIdx + 2));
+      if (behavior.startsWith("::") && !isScopedEvent) {
+        // Trait method: "::log" → actionName = "log", traitMeta = "::log"
+        actionName = toCamelCaseName(behavior.slice(2));
         traitMeta = behavior;
       } else if (behavior === "Command") {
         actionName = config!;
