@@ -3,9 +3,10 @@ import type { StandardSchemaV1 } from "@standard-schema/spec";
 export namespace TWProto {
   export type PeerName = string;
 
-  export type Capability =
-    | [type: "$" | "->" | (string & {}), namespace: string, capability: string]
-    | [type: "$" | "->" | (string & {}), capability: string];
+  export type Capability = [
+    type: "$" | "&" | "->" | (string & {}),
+    capability: string,
+  ];
 
   export type Connect<
     Name extends PeerName,
@@ -68,9 +69,9 @@ export namespace TWProto {
     - t0  (initial state)
 
       capabilities ---> [
-        ["$", "sendEmail"],
-        ["$", "generateReport"],
-        ["->", "onUserSignup"]
+        ["$", "send_email"],
+        ["$", "generate_report"],
+        ["->", "Message"]
       ]
 
     - t1  (peer offline)
@@ -85,10 +86,10 @@ export namespace TWProto {
     Peer A ---> Orchestator 
       
       Connect<"PeerA", [
-        ["$", "sendEmail"],
-        ["$", "PeerA", "generateReport"],
+        ["$", "send_email"],
+        ["$", "generate_report"],
         ["&", "Playwright"],
-        ["->", "onUserSignup"]
+        ["->", "Message"]
       ]>
       
     */
@@ -96,7 +97,7 @@ export namespace TWProto {
 
     /* Signal
     
-    Peer A -> Signal<{ "->": "onEmail", subject: "Welcome", text: "Hi" }>
+    Peer A -> Signal<{ "->": "Email", subject: "Welcome", text: "Hi" }>
 
                  +---------+
                  | Peer A  |
@@ -137,9 +138,9 @@ export namespace TWProto {
     /* Run task
 
     Peer A → Task<[
-      { $: "transformData", dataId: "d_001" },    // Peer C
-      { $: "validateData", schemaId: "s_01" },    // Peer A
-      { $: "sendReport", reportId: "r_2026" }     // Peer C
+      { $: "transform_data", dataId: "d_001" },    // Peer C
+      { $: "validate_data", schemaId: "s_01" },    // Peer A
+      { $: "send_report", reportId: "r_2026" }     // Peer C
     ]>
 
       +--------+                  +-------------+              +--------+
@@ -147,13 +148,13 @@ export namespace TWProto {
       +--------+                  +-------------+              +--------+
                   handoff(Task)                                  
           +----------------------------->
-                                            handoff(Task)   +---------------+
-                                        <-----------------> | transformData |
-    +--------------+  handoff(Task, Ctx)                    +---------------+
-    | validateData | <------------------>
-    +--------------+                      handoff(Task, Ctx)  +------------+
-                                        <-------------------> | sendReport |
-                      Result                                  +------------+                          
+                                            handoff(Task)   +----------------+
+                                        <-----------------> | transform_data |
+  +---------------+  handoff(Task, Ctx)                     +----------------+
+  | validate_data | <------------------>
+  +---------------+                      handoff(Task, Ctx)   +-------------+
+                                        <-------------------> | send_report |
+                      Result                                  +-------------+
           <-----------------------------+
                   (Task Completed)
 
