@@ -32,6 +32,7 @@ export const { hello } = Greeter()
   );
 
 const { Credentials } = App("Credentials", {
+  actors: [Greeter],
   "/": Screen(List()),
 });
 
