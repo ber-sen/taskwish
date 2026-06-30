@@ -15,21 +15,23 @@ export const { hello } = Greeter()
     Card(Text, Actions([Button, Button])).as("Lorem"),
 
     Step("greet", function () {
-      return this.reply("Lorem",{
+      return this.reply("Lorem", {
         title: "Order #1234",
-        Text: "Your order has been received!",
-        Actions: [
-          { id: "approve", label: "Approve", style: "primary" },
-          { id: "approve", label: "Approve", style: "primary" },
+        content: [
+          "Your order has been received!",
+          [
+            { id: "approve", label: "Approve", style: "primary" },
+            { id: "approve", label: "Approve", style: "primary" },
+          ],
         ],
-      })
-    ),
+      });
+    }),
   );
 
 const { Credentials } = App("Credentials", {
   "/": Screen(List()),
-})
+});
 
 const app = Credentials({
-	"/": { name: "List", List: { data: [1,2,3] }}
+  "/": { name: "List", content: [{ data: [1, 2, 3] }] },
 });
