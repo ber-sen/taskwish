@@ -20,13 +20,13 @@ export const { hello } = Greeter()
   .input({ name: "string" })
 
   .run(
-    Card("Lorem", Text("Header"), Actions(Button("Primary"), Button)),
+    Card("Lorem", Text("Header"), Actions(Button("Cta"), Button)),
 
     Step("greet", function () {
       return this.reply("Lorem", {
         Header: "Your order has been received!",
-        Primary: { id: "approve", label: "Approve", style: "primary" },
-        Button: { id: "approve", label: "Approve", style: "primary" },
+        Cta: { id: "approve", label: "Approve", style: "primary" },
+        Button: { id: "cancel", label: "Cancel" },
       });
     }),
   );
