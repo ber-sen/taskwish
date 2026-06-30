@@ -6,24 +6,27 @@ export const { Greeter } = Actor("Greeter").def(
   Event("UserWelcomed", { name: "string" }),
 );
 
+const Card = {} as any;
+const Text = {} as any;
+const Actions = {} as any;
+const Button = {} as any;
+const App = {} as any;
+const Screen = {} as any;
+const List = {} as any;
+
 export const { hello } = Greeter()
   .on("Command", "hello")
 
   .input({ name: "string" })
 
   .run(
-    Card(Text, Actions([Button, Button])).as("Lorem"),
+    Card("Lorem", Text("Header"), Actions(Button("Primary"), Button)),
 
     Step("greet", function () {
       return this.reply("Lorem", {
-        title: "Order #1234",
-        content: [
-          "Your order has been received!",
-          [
-            { id: "approve", label: "Approve", style: "primary" },
-            { id: "approve", label: "Approve", style: "primary" },
-          ],
-        ],
+        Header: "Your order has been received!",
+        Primary: { id: "approve", label: "Approve", style: "primary" },
+        Button: { id: "approve", label: "Approve", style: "primary" },
       });
     }),
   );
@@ -33,5 +36,5 @@ const { Credentials } = App("Credentials", {
 });
 
 const app = Credentials({
-  "/": { name: "List", content: [{ data: [1, 2, 3] }] },
+  "/": { name: "List", List: { data: [1, 2, 3] } },
 });
