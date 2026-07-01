@@ -13,6 +13,7 @@ const Button = {} as any;
 const App = {} as any;
 const Screen = {} as any;
 const List = {} as any;
+const Server = {} as any
 
 export const { hello } = Greeter()
   .on("Command", "hello")
@@ -32,10 +33,15 @@ export const { hello } = Greeter()
   );
 
 const { Credentials } = App("Credentials", {
-  actors: [Greeter],
+  use: [Greeter],
   "/": Screen(List()),
 });
 
-const app = Credentials({
+const credentials = Credentials({
   "/": { name: "List", List: { data: [1, 2, 3] } },
 });
+
+const server = Server({
+  services: [import("./greeter")],
+  apps: [credentials]
+})
