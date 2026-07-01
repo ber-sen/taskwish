@@ -14,7 +14,7 @@ export const { hello } = Greeter()
       return this.signal("Greeter::Message", { name: this.input.name });
     }),
 
-    Step("notify", function () {
+    Step("greet", function () {
       return `Hello ${this.input.name}`;
     }),
   );
