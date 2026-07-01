@@ -234,7 +234,9 @@ export function createFetchHandler(
   };
 }
 
-export async function Server(config: ServerConfig = {}): Promise<TaskwishServer> {
+export async function Server(
+  config: ServerConfig = {},
+): Promise<TaskwishServer> {
   const apiKey = config.apiKey ?? generateApiKey();
   const registry = createServiceRegistry(config.services);
   const routes = await createRoutes(registry, {
