@@ -1,0 +1,34 @@
+{
+  "name": "@taskwish/server",
+  "publishConfig": {
+    "access": "public"
+  },
+  "version": "0.0.1",
+  "description": "Bun server adapter for Taskwish services",
+  "license": "Elastic-2.0",
+  "author": "Bersen Pajaziti",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "unbuild",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@taskwish/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.12",
+    "typescript": "^5.9.2"
+  }
+}
