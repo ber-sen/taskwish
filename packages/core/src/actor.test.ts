@@ -146,7 +146,7 @@ describe("Actor", () => {
             content: string;
             channel: string;
           }) => Promise<string>,
-          null
+          { event: "NewMessage" }
         >,
         T
       >
@@ -245,7 +245,7 @@ describe("Actor", () => {
         TW.Action<
           "Biller::on_biller_invoice_paid",
           (input: { invoiceId: string; amount: number }) => Promise<string>,
-          null
+          { event: "Biller::InvoicePaid" }
         >,
         T
       >
@@ -362,7 +362,7 @@ describe("Actor", () => {
             amount: number;
             customer: string;
           }) => Promise<string>,
-          null
+          { event: "Biller::InvoicePaid" }
         >,
         T
       >
@@ -666,7 +666,7 @@ describe("Actor", () => {
             subject: string;
             body: string;
           }) => Promise<string>,
-          null
+          { event: "NewEmail" }
         >,
         T
       >

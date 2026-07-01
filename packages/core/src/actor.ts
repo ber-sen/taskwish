@@ -437,6 +437,7 @@ export interface Behavior<Ctx extends Record<any, any>> {
     {
       name: EventHandlerName<EventName>;
       service: Ctx["name"] & string;
+      meta: { event: EventName };
       scope: {
         input: ExtractEventInput<BaseScope<Ctx>, EventName>;
       } & ExtractEventExtraScope<BaseScope<Ctx>, EventName> &
@@ -660,6 +661,7 @@ function createBehavior(
     on(behavior: string, config?: string, schema?: unknown) {
       let actionName: string;
       let traitMeta: string | null = null;
+      let eventMeta: string | null = null;
 
       const scopedBehavior = initialScope[behavior];
       const isScopedEvent =
@@ -676,6 +678,7 @@ function createBehavior(
         actionName = behavior;
       } else {
         actionName = eventHandlerName(behavior);
+        eventMeta = behavior;
       }
 
       const eventName = qualifyActionName(actorName, actionName);
@@ -715,9 +718,10 @@ function createBehavior(
         }
 
         const resolveMeta = () =>
-          traitMeta !== null || actionMeta !== null
+          traitMeta !== null || eventMeta !== null || actionMeta !== null
             ? {
                 ...(traitMeta !== null ? { trait: traitMeta } : {}),
+                ...(eventMeta !== null ? { event: eventMeta } : {}),
                 ...(actionMeta ?? {}),
               }
             : null;
