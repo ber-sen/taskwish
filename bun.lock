@@ -44,10 +44,33 @@
         "typescript": "^5.9.2",
       },
     },
+    "packages/example": {
+      "name": "@taskwish/example",
+      "version": "0.0.1",
+      "dependencies": {
+        "@taskwish/core": "workspace:*",
+        "@taskwish/server": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.3.12",
+        "typescript": "^5.9.2",
+      },
+    },
     "packages/expr": {
       "name": "@taskwish/expr",
       "version": "0.0.1",
       "devDependencies": {
+        "typescript": "^5.9.2",
+      },
+    },
+    "packages/server": {
+      "name": "@taskwish/server",
+      "version": "0.0.1",
+      "dependencies": {
+        "@taskwish/core": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.3.12",
         "typescript": "^5.9.2",
       },
     },
@@ -183,7 +206,11 @@
 
     "@taskwish/core": ["@taskwish/core@workspace:packages/core"],
 
+    "@taskwish/example": ["@taskwish/example@workspace:packages/example"],
+
     "@taskwish/expr": ["@taskwish/expr@workspace:packages/expr"],
+
+    "@taskwish/server": ["@taskwish/server@workspace:packages/server"],
 
     "@taskwish/slack": ["@taskwish/slack@workspace:packages/slack"],
 
