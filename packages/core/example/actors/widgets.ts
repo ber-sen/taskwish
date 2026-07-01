@@ -32,16 +32,16 @@ export const { hello } = Greeter()
     }),
   );
 
-const { Credentials } = App("Credentials", {
+const { Connections } = App("Connections", {
   use: [Greeter],
   "/": Screen(List()),
-});
+})
 
-const credentials = Credentials({
+const connections = Connections({
   "/": { name: "List", List: { data: [1, 2, 3] } },
 });
 
 const server = Server({
   services: [import("./greeter")],
-  apps: [credentials]
+  apps: [connections],
 })
