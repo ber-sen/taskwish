@@ -1,7 +1,7 @@
 import { Actor, Event, Step } from "@taskwish/core";
 
 export const { Greeter } = Actor("Greeter").def(
-  Event("Message", { content: "string" }),
+  Event("Message", { name: "string" }),
 );
 
 export const { hello } = Greeter()
@@ -10,11 +10,11 @@ export const { hello } = Greeter()
   .input({ name: "string" })
 
   .run(
-    Step("greet", function () {
-      return `Hello ${this.input.name}`;
+    Step("notify", function () {
+      return this.signal("Greeter::Message", { name: this.input.name });
     }),
 
     Step("notify", function () {
-      return this.greet;
+      return `Hello ${this.input.name}`;
     }),
   );

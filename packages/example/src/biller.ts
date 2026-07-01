@@ -9,6 +9,6 @@ export const { onGreeterMessage } = Biller()
 
   .run(function () {
     return {
-      invoice: `Invoice created from greeter message: ${this.input.content}`,
+      invoice: `Invoice created from greeter message: ${this.input.name}`,
     };
   });

@@ -17,6 +17,8 @@ export namespace TW {
 
   export const Type = Symbol.for("TW.Type");
 
+  export const $ = Symbol.for("TW.$");
+
   export interface Contextual<Ctx extends Record<any, any>> {
     [Scope]: Ctx["scope"];
   }
@@ -77,20 +79,23 @@ export namespace TW {
     >(
       type: T,
       data: EventKindData<S, T & string>,
-    ): { "->": EventKindName<S, T & string> } & EventKindData<S, T & string>;
+    ): { [$]: "event"; "->": EventKindName<S, T & string> } & EventKindData<
+      S,
+      T & string
+    >;
     get<T>(Cls: new (...args: any[]) => T): T;
   };
 
   export type Inject<Type> = Type | null;
 
   export type StepEvent<Result = unknown> =
-    | { "->": string; result: Result }
-    | { "->": string; error: unknown };
+    | { [$]: "event"; "->": string; result: Result }
+    | { [$]: "event"; "->": string; error: unknown };
 
   export type ActionEvent<Name extends string, Result = unknown> =
-    | { "->": Name; input: unknown }
-    | { "->": Name; result: Result }
-    | { "->": Name; error: unknown };
+    | { [$]: "event"; "->": Name; input: unknown }
+    | { [$]: "event"; "->": Name; result: Result }
+    | { [$]: "event"; "->": Name; error: unknown };
 
   export type GetEvent<T = unknown> = {
     "->": "get";
@@ -190,6 +195,7 @@ export namespace TW {
   export interface ResourceKind<Name extends string> extends Named<Name> {}
 
   export type Event<Type extends string, Data> = {
+    [$]: "event";
     "->": Type;
   } & Data;
 

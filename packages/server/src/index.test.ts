@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { Actor, Event } from "@taskwish/core";
+import { Actor, Event, Step, TW } from "@taskwish/core";
 import {
   createFetchHandler,
   createRoutes,
@@ -73,9 +73,12 @@ test("serves actor event handlers with POST under /tw/<Actor>::<handler>", async
 
   const { onGreeterMessage } = Biller()
     .on("Greeter::Message")
+
     .run(function () {
       return { received: this.input.content };
     });
+
+  expect(onGreeterMessage[TW.Meta]).toEqual({ event: "Greeter::Message" });
 
   const fetch = createFetchHandler(
     createServiceRegistry([
@@ -125,6 +128,63 @@ test("serves actor event handlers with GET under /tw/<Actor>::<handler>", async 
 
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({ received: "hi" });
+});
+
+test("dispatches stream signal events to registered handlers without waiting", async () => {
+  const { Greeter } = Actor("Greeter").def(
+    Event("Message", { content: "string" }),
+  );
+  const { Biller } = Actor("Biller").use(Greeter);
+
+  let resolveReceived!: (value: string) => void;
+  const received = new Promise<string>((resolve) => {
+    resolveReceived = resolve;
+  });
+  let releaseHandler!: () => void;
+  const handlerCanFinish = new Promise<void>((resolve) => {
+    releaseHandler = resolve;
+  });
+
+  const { hello } = Greeter()
+    .on("Command", "hello")
+    .input({ name: "string" })
+    .run(
+      Step("notify", function () {
+        return this.signal("Greeter::Message", { content: this.input.name });
+      }),
+
+      Step("notify", function () {
+        return `Hello ${this.input.name}`;
+      }),
+    );
+
+  const { onGreeterMessage } = Biller()
+    .on("Greeter::Message")
+    .run(async function () {
+      resolveReceived(this.input.content);
+      await handlerCanFinish;
+      return { received: this.input.content };
+    });
+
+  const fetch = createFetchHandler(
+    createServiceRegistry([
+      Promise.resolve({ Greeter, Biller, hello, onGreeterMessage }),
+    ]),
+    { apiKey },
+  );
+
+  const response = await fetch(
+    new Request("http://localhost/tw/Greeter::hello", {
+      method: "POST",
+      headers: { ...auth, "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Ada" }),
+    }),
+  );
+
+  expect(response.status).toBe(200);
+  expect(await response.text()).toBe("Hello Ada");
+  expect(await received).toBe("Ada");
+  releaseHandler();
 });
 
 test("rejects requests without the configured API key", async () => {

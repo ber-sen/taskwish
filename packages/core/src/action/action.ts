@@ -344,11 +344,17 @@ function actionEvent(obj: Record<string, unknown>) {
   });
 }
 
+function event<T extends Record<string | symbol, unknown>>(
+  obj: T,
+): T & { [TW.$]: "event" } {
+  return { [TW.$]: "event", ...obj };
+}
+
 function commandEvent(input: unknown): TW.Event<"Command", object> {
-  return {
+  return event({
     "->": "Command",
     ...(input !== null && typeof input === "object" ? input : {}),
-  };
+  });
 }
 
 async function* runStep(
@@ -380,11 +386,11 @@ async function* runStep(
     ) {
       yield result;
     }
-    yield { "->": name, result };
+    yield event({ "->": name, result });
 
     return result;
   } catch (error) {
-    yield { "->": name, error };
+    yield event({ "->": name, error });
 
     throw error;
   }
@@ -549,7 +555,7 @@ async function* runHandlerList(
                   .split(".")
                   .reduce((o: any, k) => o?.[k], ctx)
               : itemsGetter;
-      yield { "->": `${currentName}.${loopName}`, items };
+      yield event({ "->": `${currentName}.${loopName}`, items });
       const innerAcc: Record<string, unknown[]> = {};
       let loopLastStepName: string | null = null;
       const loopIterLasts: unknown[] = [];
@@ -716,7 +722,7 @@ export async function* runAction(
 ): AsyncGenerator<unknown, unknown> {
   const ctx: Record<string | symbol, unknown> = { ...scope };
 
-  yield { "->": name, input: scope.input };
+  yield event({ "->": name, input: scope.input });
 
   try {
     const r = yield* runHandlerList(
@@ -728,10 +734,10 @@ export async function* runAction(
       name,
       handlers,
     );
-    yield { "->": name, result: r.last };
+    yield event({ "->": name, result: r.last });
     return r.last;
   } catch (error) {
-    yield { "->": name, error };
+    yield event({ "->": name, error });
     throw error;
   }
 }
@@ -758,12 +764,15 @@ export function buildScope(
     ...extra,
     input: inputMode === "args" ? args : args[0],
     signal(type: string, data: Record<string, unknown>) {
-      const event = { "->": eventNames.get(type) ?? type, ...data };
-      Object.defineProperty(event, SignalTag, {
+      const signalEvent = event({
+        "->": eventNames.get(type) ?? type,
+        ...data,
+      });
+      Object.defineProperty(signalEvent, SignalTag, {
         value: true,
         enumerable: false,
       });
-      return event;
+      return signalEvent;
     },
     get<T>(Cls: abstract new (...a: unknown[]) => T): T {
       if (registry.has(Cls)) return registry.get(Cls) as T;

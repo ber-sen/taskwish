@@ -9,6 +9,18 @@ import { Event } from "./event";
 import { Logger, formatEvent, isActionEvent } from "./use";
 import { Trait } from "./trait";
 
+function markEvents(value: unknown): any {
+  if (Array.isArray(value)) return value.map(markEvents);
+  if (value === null || typeof value !== "object") return value;
+  if (Object.getPrototypeOf(value) !== Object.prototype) return value;
+
+  const entries = Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [key, markEvents(entry)]),
+  );
+
+  return "->" in value ? { [TW.$]: "event", ...entries } : entries;
+}
+
 describe("Actor", () => {
   test("Command — plain handler with input", async () => {
     const { Greeter } = Actor("Greeter");
@@ -106,12 +118,12 @@ describe("Actor", () => {
       yields.push(v);
     }
 
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "Pipeline::run", input: { name: "hello" } },
       { "->": "Pipeline::run.first", result: 5 },
       { "->": "Pipeline::run.second", result: true },
       { "->": "Pipeline::run", result: true },
-    ]);
+    ]));
   });
 
   test("NewMessage — actor name prefixed, input carries message data", async () => {
@@ -134,7 +146,7 @@ describe("Actor", () => {
             content: string;
             channel: string;
           }) => Promise<string>,
-          null
+          { event: "NewMessage" }
         >,
         T
       >
@@ -149,13 +161,13 @@ describe("Actor", () => {
       yields.push(v);
     }
 
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       {
         "->": "Broadcaster::on_new_message",
         input: { sender: { name: "Alice" }, content: "hi", channel: "general" },
       },
       { "->": "Broadcaster::on_new_message", result: "HI" },
-    ]);
+    ]));
   });
 
   test("Command error — yields step error, action error, then rethrows", async () => {
@@ -193,12 +205,12 @@ describe("Actor", () => {
       thrown = e;
     }
 
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "Crasher::failing", input: { name: "World" } },
       { "->": "Crasher::failing.first", result: 1 },
       { "->": "Crasher::failing.bad", error: boom },
       { "->": "Crasher::failing", error: boom },
-    ]);
+    ]));
     expect(thrown).toBe(boom);
   });
 
@@ -233,7 +245,7 @@ describe("Actor", () => {
         TW.Action<
           "Biller::on_biller_invoice_paid",
           (input: { invoiceId: string; amount: number }) => Promise<string>,
-          null
+          { event: "Biller::InvoicePaid" }
         >,
         T
       >
@@ -299,11 +311,11 @@ describe("Actor", () => {
       yields.push(v);
     }
 
-    expect(yields).toContainEqual({
+    expect(yields).toContainEqual(markEvents({
       "->": "Biller::InvoicePaid",
       id: null,
       data: { invoiceId: "inv-1", amount: 100, customer: "alice" },
-    });
+    }));
   });
 
   test("use — imports another actor's event as a trigger", async () => {
@@ -350,7 +362,7 @@ describe("Actor", () => {
             amount: number;
             customer: string;
           }) => Promise<string>,
-          null
+          { event: "Biller::InvoicePaid" }
         >,
         T
       >
@@ -364,11 +376,11 @@ describe("Actor", () => {
       emitted.push(event);
     }
 
-    expect(emitted).toContainEqual({
+    expect(emitted).toContainEqual(markEvents({
       "->": "Biller::InvoicePaid",
       id: null,
       data: { invoiceId: "inv-1", amount: 100, customer: "alice" },
-    });
+    }));
     expect(
       await onBillerInvoicePaid({
         invoiceId: "inv-1",
@@ -567,7 +579,7 @@ describe("Actor", () => {
     for await (const v of getInvoices.stream({ id: "inv-42", page: "2" })) {
       directYields.push(v);
     }
-    expect(directYields).toEqual([
+    expect(directYields).toEqual(markEvents([
       {
         "->": "InvoiceProvider::get_invoices",
         input: { id: "inv-42", page: "2" },
@@ -576,7 +588,7 @@ describe("Actor", () => {
         "->": "InvoiceProvider::get_invoices",
         result: { id: "inv-42", page: "2" },
       },
-    ]);
+    ]));
 
     const fetchYields: any[] = [];
     for await (const v of getInvoices.fetch.stream(
@@ -586,7 +598,7 @@ describe("Actor", () => {
     }
     const fetchStreamJson = await fetchYields[3].result.text();
 
-    expect(fetchYields).toMatchObject([
+    expect(fetchYields).toMatchObject(markEvents([
       {
         "->": "InvoiceProvider::get",
         input: {
@@ -604,7 +616,7 @@ describe("Actor", () => {
         result: { id: "inv-42", page: "2" },
       },
       { "->": "InvoiceProvider::get", result: expect.any(Response) },
-    ]);
+    ]));
     expect(JSON.parse(fetchStreamJson)).toEqual({ id: "inv-42", page: "2" });
 
     const response = await getInvoices.fetch(
@@ -654,7 +666,7 @@ describe("Actor", () => {
             subject: string;
             body: string;
           }) => Promise<string>,
-          null
+          { event: "NewEmail" }
         >,
         T
       >
@@ -692,7 +704,7 @@ describe("Actor", () => {
       yields.push(v);
     }
 
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       {
         "->": "MailAgent::on_new_email",
         input: {
@@ -710,7 +722,7 @@ describe("Actor", () => {
         "->": "MailAgent::on_new_email",
         result: "bob@example.com: Invoice",
       },
-    ]);
+    ]));
   });
 
   test("signal — typed from scope, Step yields event then step result, chained step reads value", async () => {
@@ -741,7 +753,7 @@ describe("Actor", () => {
       yields.push(v);
     }
 
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       {
         "->": "Emitter::emit",
         input: { orderId: "ord-1", amount: 100 },
@@ -753,7 +765,7 @@ describe("Actor", () => {
       },
       { "->": "Emitter::emit.confirm", result: "placed: ord-1" },
       { "->": "Emitter::emit", result: "placed: ord-1" },
-    ]);
+    ]));
   });
 
   test("use(Logger) — logs Action and Step events in order", async () => {

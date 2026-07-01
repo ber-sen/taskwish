@@ -20,6 +20,7 @@ export interface ServerConfig {
 
 export interface ServiceRegistry {
   actions: Map<string, Action>;
+  eventHandlers: Map<string, Action[]>;
 }
 
 export type ServerRoutes = Record<
@@ -73,6 +74,42 @@ function isAction(value: unknown): value is Action {
   );
 }
 
+function toPascalCaseName(name: string): string {
+  return name
+    .split(/[_-\s.]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("");
+}
+
+function candidateEventNames(actionName: string): string[] {
+  const [, methodName] = actionName.split("::");
+  if (!methodName?.startsWith("on_")) return [];
+
+  const parts = methodName.slice(3).split("_").filter(Boolean);
+  const eventNames: string[] = [];
+  for (let i = 1; i < parts.length; i++) {
+    eventNames.push(
+      `${toPascalCaseName(parts.slice(0, i).join("_"))}::${toPascalCaseName(
+        parts.slice(i).join("_"),
+      )}`,
+    );
+  }
+  return eventNames;
+}
+
+function buildEventHandlers(actions: Map<string, Action>): Map<string, Action[]> {
+  const eventHandlers = new Map<string, Action[]>();
+  for (const [actionName, action] of actions) {
+    for (const eventName of candidateEventNames(actionName)) {
+      const handlers = eventHandlers.get(eventName) ?? [];
+      handlers.push(action);
+      eventHandlers.set(eventName, handlers);
+    }
+  }
+  return eventHandlers;
+}
+
 function collectExports(
   value: unknown,
   actions: Map<string, Action>,
@@ -102,7 +139,7 @@ export async function createServiceRegistry(
     collectExports(await service, actions, seen);
   }
 
-  return { actions };
+  return { actions, eventHandlers: buildEventHandlers(actions) };
 }
 
 async function parseInput(request: Request): Promise<unknown[]> {
@@ -146,9 +183,68 @@ function json(status: number, body: unknown): Response {
   });
 }
 
-async function invoke(action: Action, request: Request): Promise<Response> {
+function isTaskwishEvent(
+  value: unknown,
+): value is Record<string | symbol, unknown> & { "->": string } {
+  return (
+    isRecord(value) &&
+    value[TW.$] === "event" &&
+    typeof value["->"] === "string"
+  );
+}
+
+function inputFromEvent(event: Record<string | symbol, unknown>): unknown {
+  if ("data" in event) return event.data;
+
+  const input: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(event)) {
+    if (key !== "->") input[key] = value;
+  }
+  return input;
+}
+
+async function consumeAction(
+  action: Action,
+  args: unknown[],
+  registry: ServiceRegistry,
+): Promise<unknown> {
+  if (!action.stream) return action(...args);
+
+  const stream = action.stream(...args);
+  let result: unknown;
+  let item = await stream.next();
+  while (!item.done) {
+    if (isTaskwishEvent(item.value)) {
+      dispatchEvent(item.value, registry);
+      if (item.value["->"] === action[TW.Name] && "result" in item.value) {
+        result = item.value.result;
+      }
+    }
+    item = await stream.next();
+  }
+  return item.value ?? result;
+}
+
+function dispatchEvent(
+  event: Record<string | symbol, unknown> & { "->": string },
+  registry: ServiceRegistry,
+): void {
+  const handlers = registry.eventHandlers.get(event["->"]) ?? [];
+  const input = inputFromEvent(event);
+  for (const handler of handlers) {
+    void consumeAction(handler, [input], registry).catch((error) => {
+      console.error(error);
+    });
+  }
+}
+
+async function invoke(
+  action: Action,
+  request: Request,
+  registry: ServiceRegistry,
+): Promise<Response> {
   const args = await parseInput(request);
-  return responseFrom(await action(...args));
+  return responseFrom(await consumeAction(action, args, registry));
 }
 
 function authorized(request: Request, apiKey: string): boolean {
@@ -192,7 +288,7 @@ export async function createRoutes(
   for (const [actionName, action] of services.actions) {
     const invokeRoute = async (request: Request) => {
       try {
-        return await invoke(action, request);
+        return await invoke(action, request, services);
       } catch (error) {
         return errorResponse(error);
       }

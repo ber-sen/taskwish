@@ -437,6 +437,7 @@ export interface Behavior<Ctx extends Record<any, any>> {
     {
       name: EventHandlerName<EventName>;
       service: Ctx["name"] & string;
+      meta: { event: EventName };
       scope: {
         input: ExtractEventInput<BaseScope<Ctx>, EventName>;
       } & ExtractEventExtraScope<BaseScope<Ctx>, EventName> &
@@ -565,6 +566,12 @@ function flattenHttpInput(
   return flat;
 }
 
+function event<T extends Record<string | symbol, unknown>>(
+  obj: T,
+): T & { [TW.$]: "event" } {
+  return { [TW.$]: "event", ...obj };
+}
+
 function scopeEventKind(
   actorName: string,
   eventName: string,
@@ -575,9 +582,13 @@ function scopeEventKind(
     ...eventKind,
     [TW.Name]: qualifiedEventName,
     emit: async function* (eventData: unknown) {
-      const event = { "->": qualifiedEventName, id: null, data: eventData };
-      yield event;
-      return event;
+      const emitted = event({
+        "->": qualifiedEventName,
+        id: null,
+        data: eventData,
+      });
+      yield emitted;
+      return emitted;
     },
   };
 }
@@ -650,6 +661,7 @@ function createBehavior(
     on(behavior: string, config?: string, schema?: unknown) {
       let actionName: string;
       let traitMeta: string | null = null;
+      let eventMeta: string | null = null;
 
       const scopedBehavior = initialScope[behavior];
       const isScopedEvent =
@@ -666,6 +678,7 @@ function createBehavior(
         actionName = behavior;
       } else {
         actionName = eventHandlerName(behavior);
+        eventMeta = behavior;
       }
 
       const eventName = qualifyActionName(actorName, actionName);
@@ -705,9 +718,10 @@ function createBehavior(
         }
 
         const resolveMeta = () =>
-          traitMeta !== null || actionMeta !== null
+          traitMeta !== null || eventMeta !== null || actionMeta !== null
             ? {
                 ...(traitMeta !== null ? { trait: traitMeta } : {}),
+                ...(eventMeta !== null ? { event: eventMeta } : {}),
                 ...(actionMeta ?? {}),
               }
             : null;
@@ -791,7 +805,7 @@ function createBehavior(
                   const request = input;
                   const { args: modArgs } = mod([request]);
                   const rawInput = modArgs[0] as Record<string, unknown>;
-                  yield { "->": eventName, input: rawInput };
+                  yield event({ "->": eventName, input: rawInput });
                   const flatInput = flattenHttpInput(rawInput);
                   let result: unknown;
                   try {
@@ -809,10 +823,10 @@ function createBehavior(
                     }
                     result = item.value;
                   } catch (error) {
-                    yield { "->": eventName, error };
+                    yield event({ "->": eventName, error });
                     throw error;
                   }
-                  yield { "->": eventName, result: toResponse(result) };
+                  yield event({ "->": eventName, result: toResponse(result) });
                 }
 
                 function fetchStream(input: Request) {
