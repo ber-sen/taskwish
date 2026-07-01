@@ -568,6 +568,12 @@ function flattenHttpInput(
 
 function event<T extends Record<string | symbol, unknown>>(
   obj: T,
+): T {
+  return obj;
+}
+
+function taskwishEvent<T extends Record<string | symbol, unknown>>(
+  obj: T,
 ): T & { [TW.$]: "event" } {
   return { [TW.$]: "event", ...obj };
 }
@@ -582,7 +588,7 @@ function scopeEventKind(
     ...eventKind,
     [TW.Name]: qualifiedEventName,
     emit: async function* (eventData: unknown) {
-      const emitted = event({
+      const emitted = taskwishEvent({
         "->": qualifiedEventName,
         id: null,
         data: eventData,
@@ -706,7 +712,7 @@ function createBehavior(
           const resolvedInitialScope = await resolveInitialScope();
           const { args: modArgs, scope: behaviorScope } = mod(args);
           const extra = { ...resolvedInitialScope, ...behaviorScope };
-          yield* runAction(
+          return yield* runAction(
             eventName,
             buildScope(inputMode, modArgs, extra),
             handlers,

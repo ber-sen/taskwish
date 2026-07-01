@@ -89,13 +89,13 @@ export namespace TW {
   export type Inject<Type> = Type | null;
 
   export type StepEvent<Result = unknown> =
-    | { [$]: "event"; "->": string; result: Result }
-    | { [$]: "event"; "->": string; error: unknown };
+    | { "->": string; result: Result }
+    | { "->": string; error: unknown };
 
   export type ActionEvent<Name extends string, Result = unknown> =
-    | { [$]: "event"; "->": Name; input: unknown }
-    | { [$]: "event"; "->": Name; result: Result }
-    | { [$]: "event"; "->": Name; error: unknown };
+    | { "->": Name; input: unknown }
+    | { "->": Name; result: Result }
+    | { "->": Name; error: unknown };
 
   export type GetEvent<T = unknown> = {
     "->": "get";

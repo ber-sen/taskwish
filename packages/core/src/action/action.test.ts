@@ -7,18 +7,6 @@ import { TW } from "../core";
 import { Step } from "../steps";
 import { Logger, InferType, formatEvent, isActionEvent } from "../use";
 
-function markEvents(value: unknown): any {
-  if (Array.isArray(value)) return value.map(markEvents);
-  if (value === null || typeof value !== "object") return value;
-  if (Object.getPrototypeOf(value) !== Object.prototype) return value;
-
-  const entries = Object.fromEntries(
-    Object.entries(value).map(([key, entry]) => [key, markEvents(entry)]),
-  );
-
-  return "->" in value ? { [TW.$]: "event", ...entries } : entries;
-}
-
 describe("Action", () => {
   test("no input — plain handler", async () => {
     const { healthz } = Action("healthz").run(function () {
@@ -85,12 +73,12 @@ describe("Action", () => {
       yields.push(v);
     }
 
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "hello", input: { name: "World" } },
       { "->": "hello.fistStep", result: 5 },
       { "->": "hello.secondStep", result: true },
       { "->": "hello", result: true },
-    ]));
+    ]);
   });
 
   test("TypeScript type input", async () => {
@@ -194,7 +182,7 @@ describe("Action", () => {
     for await (const v of mixed.stream({ name: "World" })) {
       yields.push(v);
     }
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "mixed", input: { name: "World" } },
       { "->": "mixed.first", result: 42 },
       "x",
@@ -202,7 +190,7 @@ describe("Action", () => {
       { "->": "mixed.stream", result: "Y" },
       { "->": "mixed.third", result: true },
       { "->": "mixed", result: true },
-    ]));
+    ]);
     expect(await mixed({ name: "World" })).toEqual(true);
   });
 
@@ -237,12 +225,12 @@ describe("Action", () => {
       thrown = e;
     }
 
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "failing", input: { name: "World" } },
       { "->": "failing.first", result: 1 },
       { "->": "failing.bad", error: boom },
       { "->": "failing", error: boom },
-    ]));
+    ]);
     expect(thrown).toBe(boom);
   });
 
@@ -887,11 +875,28 @@ describe("Action", () => {
     for await (const v of greet.stream({ name: "hello" })) {
       values.push(v);
     }
-    expect(values).toEqual(markEvents([
+    expect(values).toEqual([
       { "->": "greet", input: { name: "hello" } },
       "hello",
       "HELLO",
       { "->": "greet", result: undefined },
-    ]));
+    ]);
+  });
+
+  test("stream completion returns the action result", async () => {
+    const { compute } = Action("compute")
+      .input({ value: "number" })
+      
+      .run(
+        Step("double", function () {
+          return this.input.value * 2;
+        }),
+      );
+
+    const stream = compute.stream({ value: 4 });
+    let item = await stream.next();
+    while (!item.done) item = await stream.next();
+
+    expect(item.value).toBe(8);
   });
 });
