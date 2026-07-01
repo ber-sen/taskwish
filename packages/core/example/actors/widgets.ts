@@ -33,11 +33,11 @@ export const { hello } = Greeter()
   );
 
 const { Connections } = App("Connections", {
-  use: [import("./greeter")],
   "/": Screen(List()),
 })
 
 const connections = Connections({
+  use: [import("./greeter")],
   "/": { name: "List", List: { data: [1, 2, 3] } },
 });
 
