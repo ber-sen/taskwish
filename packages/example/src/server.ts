@@ -1,6 +1,6 @@
 import { Server } from "@taskwish/server";
 
-import { startupMessage } from "./help";
+import { startupMessage } from "./helpers";
 
 const server = await Server({
   services: [import("./greeter"), import("./biller")],
