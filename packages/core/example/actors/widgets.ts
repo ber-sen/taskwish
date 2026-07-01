@@ -33,7 +33,7 @@ export const { hello } = Greeter()
   );
 
 const { Connections } = App("Connections", {
-  use: [Greeter],
+  use: [import("./greeter")],
   "/": Screen(List()),
 })
 
