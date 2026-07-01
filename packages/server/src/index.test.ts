@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { Actor, Event, Step, TW } from "@taskwish/core";
+import { Action, Actor, Event, Step, TW } from "@taskwish/core";
 import {
   createFetchHandler,
   createRoutes,

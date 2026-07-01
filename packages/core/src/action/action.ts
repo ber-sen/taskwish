@@ -346,11 +346,17 @@ function actionEvent(obj: Record<string, unknown>) {
 
 function event<T extends Record<string | symbol, unknown>>(
   obj: T,
+): T {
+  return obj;
+}
+
+function taskwishEvent<T extends Record<string | symbol, unknown>>(
+  obj: T,
 ): T & { [TW.$]: "event" } {
   return { [TW.$]: "event", ...obj };
 }
 
-function commandEvent(input: unknown): TW.Event<"Command", object> {
+function commandEvent(input: unknown): { "->": "Command" } & object {
   return event({
     "->": "Command",
     ...(input !== null && typeof input === "object" ? input : {}),
@@ -764,7 +770,7 @@ export function buildScope(
     ...extra,
     input: inputMode === "args" ? args : args[0],
     signal(type: string, data: Record<string, unknown>) {
-      const signalEvent = event({
+      const signalEvent = taskwishEvent({
         "->": eventNames.get(type) ?? type,
         ...data,
       });

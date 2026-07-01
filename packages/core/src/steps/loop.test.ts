@@ -6,18 +6,6 @@ import { Loop, ForEach } from "./loop";
 import { If, Else, ElseIf, Cond } from "./if-else";
 import { TW } from "../core";
 
-function markEvents(value: unknown): any {
-  if (Array.isArray(value)) return value.map(markEvents);
-  if (value === null || typeof value !== "object") return value;
-  if (Object.getPrototypeOf(value) !== Object.prototype) return value;
-
-  const entries = Object.fromEntries(
-    Object.entries(value).map(([key, entry]) => [key, markEvents(entry)]),
-  );
-
-  return "->" in value ? { [TW.$]: "event", ...entries } : entries;
-}
-
 // ─── Runtime ────────────────────────────────────────────────────────────────
 
 describe("Loop", () => {
@@ -40,14 +28,14 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch" },
       { "->": "branch.loop", items: [1, 2, 3] },
       { "->": "branch.loop[0].doubled", result: 2 },
       { "->": "branch.loop[1].doubled", result: 4 },
       { "->": "branch.loop[2].doubled", result: 6 },
       { "->": "branch", result: [2, 4, 6] },
-    ]));
+    ]);
   });
 
   test("maps over input array", async () => {
@@ -72,14 +60,14 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ nums: [1, 2, 3] })) yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch", input: { nums: [1, 2, 3] } },
       { "->": "branch.loop", items: [1, 2, 3] },
       { "->": "branch.loop[0].doubled", result: 2 },
       { "->": "branch.loop[1].doubled", result: 4 },
       { "->": "branch.loop[2].doubled", result: 6 },
       { "->": "branch", result: [2, 4, 6] },
-    ]));
+    ]);
   });
 
   test("exposes index alongside item — named loop variable", async () => {
@@ -101,14 +89,14 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch" },
       { "->": "branch.n", items: [10, 20, 30] },
       { "->": "branch.n[0].tagged", result: "0:10" },
       { "->": "branch.n[1].tagged", result: "1:20" },
       { "->": "branch.n[2].tagged", result: "2:30" },
       { "->": "branch", result: ["0:10", "1:20", "2:30"] },
-    ]));
+    ]);
   });
 
   test("empty array produces empty result", async () => {
@@ -130,11 +118,11 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch" },
       { "->": "branch.loop", items: [] },
       { "->": "branch", result: [] },
-    ]));
+    ]);
   });
 
   test("inner step accesses outer scope", async () => {
@@ -159,14 +147,14 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ factor: 3 })) yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch", input: { factor: 3 } },
       { "->": "branch.loop", items: [10, 20, 30] },
       { "->": "branch.loop[0].scaled", result: 30 },
       { "->": "branch.loop[1].scaled", result: 60 },
       { "->": "branch.loop[2].scaled", result: 90 },
       { "->": "branch", result: [30, 60, 90] },
-    ]));
+    ]);
   });
 
   test("items getter receives outer scope", async () => {
@@ -192,14 +180,14 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch" },
       { "->": "branch.words", result: ["hello", "world"] },
       { "->": "branch.loop", items: ["hello", "world"] },
       { "->": "branch.loop[0].upper", result: "HELLO" },
       { "->": "branch.loop[1].upper", result: "WORLD" },
       { "->": "branch", result: ["HELLO", "WORLD"] },
-    ]));
+    ]);
   });
 
   test("loop variable is not in scope after loop", async () => {
@@ -228,14 +216,14 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2] })) yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch", input: { items: [1, 2] } },
       { "->": "branch.loop", items: [1, 2] },
       { "->": "branch.loop[0].doubled", result: 2 },
       { "->": "branch.loop[1].doubled", result: 4 },
       { "->": "branch.check", result: false },
       { "->": "branch", result: false },
-    ]));
+    ]);
   });
 
   test("accumulated array is available to subsequent steps", async () => {
@@ -264,7 +252,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2, 3] })) yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch", input: { items: [1, 2, 3] } },
       { "->": "branch.loop", items: [1, 2, 3] },
       { "->": "branch.loop[0].doubled", result: 2 },
@@ -272,7 +260,7 @@ describe("Loop", () => {
       { "->": "branch.loop[2].doubled", result: 6 },
       { "->": "branch.sum", result: 12 },
       { "->": "branch", result: 12 },
-    ]));
+    ]);
   });
 
   test("multiple inner steps — all accumulated as arrays in outer scope", async () => {
@@ -311,7 +299,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2, 3] })) yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch", input: { items: [1, 2, 3] } },
       { "->": "branch.loop", items: [1, 2, 3] },
       { "->": "branch.loop[0].doubled", result: 2 },
@@ -322,7 +310,7 @@ describe("Loop", () => {
       { "->": "branch.loop[2].label", result: "3x2=6" },
       { "->": "branch.summary", result: ["1x2=2", "2x2=4", "3x2=6"] },
       { "->": "branch", result: ["1x2=2", "2x2=4", "3x2=6"] },
-    ]));
+    ]);
   });
 
   test("ForEach range generates a numeric sequence", async () => {
@@ -344,7 +332,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch" },
       { "->": "branch.loop", items: [0, 1, 2, 3] },
       { "->": "branch.loop[0].squared", result: 0 },
@@ -352,7 +340,7 @@ describe("Loop", () => {
       { "->": "branch.loop[2].squared", result: 4 },
       { "->": "branch.loop[3].squared", result: 9 },
       { "->": "branch", result: [0, 1, 4, 9] },
-    ]));
+    ]);
   });
 
   test("stream yields one event per iteration", async () => {
@@ -377,13 +365,13 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2] })) yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch", input: { items: [1, 2] } },
       { "->": "branch.loop", items: [1, 2] },
       { "->": "branch.loop[0].val", result: 1 },
       { "->": "branch.loop[1].val", result: 2 },
       { "->": "branch", result: [1, 2] },
-    ]));
+    ]);
   });
 
   // ─── Type tests ─────────────────────────────────────────────────────────
@@ -491,13 +479,13 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2, 3, 4] }))
       yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch", input: { items: [1, 2, 3, 4] } },
       { "->": "branch.loop", items: [1, 2, 3, 4] },
       { "->": "branch.loop[1].if.even", result: 2 },
       { "->": "branch.loop[3].if.even", result: 4 },
       { "->": "branch", result: [2, 4] },
-    ]));
+    ]);
   });
 
   test("If/Else inside loop tags every item", async () => {
@@ -536,14 +524,14 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2, 3] })) yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch", input: { items: [1, 2, 3] } },
       { "->": "branch.loop", items: [1, 2, 3] },
       { "->": "branch.loop[0].if.tag", result: "odd:1" },
       { "->": "branch.loop[1].else.tag", result: "even:2" },
       { "->": "branch.loop[2].if.tag", result: "odd:3" },
       { "->": "branch", result: ["odd:1", "even:2", "odd:3"] },
-    ]));
+    ]);
   });
 
   test("If condition inside loop accesses outer scope", async () => {
@@ -578,13 +566,13 @@ describe("Loop", () => {
       threshold: 3,
     }))
       yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch", input: { items: [1, 2, 3, 4, 5], threshold: 3 } },
       { "->": "branch.loop", items: [1, 2, 3, 4, 5] },
       { "->": "branch.loop[3].if.big", result: 4 },
       { "->": "branch.loop[4].if.big", result: 5 },
       { "->": "branch", result: [4, 5] },
-    ]));
+    ]);
   });
 
   test("ElseIf inside loop — three-way branch per item", async () => {
@@ -635,7 +623,7 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2, 3, 4, 5, 6] }))
       yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch", input: { items: [1, 2, 3, 4, 5, 6] } },
       { "->": "branch.loop", items: [1, 2, 3, 4, 5, 6] },
       { "->": "branch.loop[0].else.tag", result: "other" },
@@ -648,7 +636,7 @@ describe("Loop", () => {
         "->": "branch",
         result: ["other", "buzz", "fizz", "buzz", "other", "fizz"],
       },
-    ]));
+    ]);
   });
 
   test("multi-step If inside loop — inner steps see each other per iteration", async () => {
@@ -681,7 +669,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [2, 4] })) yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch", input: { items: [2, 4] } },
       { "->": "branch.loop", items: [2, 4] },
       { "->": "branch.loop[0].if.doubled", result: 4 },
@@ -689,7 +677,7 @@ describe("Loop", () => {
       { "->": "branch.loop[1].if.doubled", result: 8 },
       { "->": "branch.loop[1].if.label", result: "4*2=8" },
       { "->": "branch", result: ["2*2=4", "4*2=8"] },
-    ]));
+    ]);
   });
 
   // ─── Loop inside Loop ────────────────────────────────────────────────────
@@ -720,7 +708,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch" },
       { "->": "branch.outer", items: [1, 2] },
       { "->": "branch.outer[0].inner", items: [10, 20] },
@@ -736,7 +724,7 @@ describe("Loop", () => {
           [20, 40],
         ],
       },
-    ]));
+    ]);
   });
 
   test("Loop inside Loop — inner accumulated key available after outer", async () => {
@@ -766,7 +754,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch" },
       { "->": "branch.outer", items: ["a", "b"] },
       { "->": "branch.outer[0].inner", items: [1, 2, 3] },
@@ -779,7 +767,7 @@ describe("Loop", () => {
       { "->": "branch.outer[1].inner[2].tagged", result: "b3" },
       { "->": "branch.flat", result: ["a1", "a2", "a3", "b1", "b2", "b3"] },
       { "->": "branch", result: ["a1", "a2", "a3", "b1", "b2", "b3"] },
-    ]));
+    ]);
   });
 
   test("Loop inside Loop — If inside inner loop still filters", async () => {
@@ -816,7 +804,7 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream({ inner: [1, 2, 3, 4] }))
       yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch", input: { inner: [1, 2, 3, 4] } },
       { "->": "branch.outer", items: [2, 3] },
       { "->": "branch.outer[0].inner", items: [1, 2, 3, 4] },
@@ -832,7 +820,7 @@ describe("Loop", () => {
           [6, 12],
         ],
       },
-    ]));
+    ]);
   });
 
   test("Loop > If > Loop — inner loop runs only for matching outer items", async () => {
@@ -868,7 +856,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ inner: [10, 20] })) yields.push(v);
-    expect(yields).toEqual(markEvents([
+    expect(yields).toEqual([
       { "->": "branch", input: { inner: [10, 20] } },
       { "->": "branch.outer", items: [1, 2, 3, 4] },
       { "->": "branch.outer[1].if.inner", items: [10, 20] },
@@ -884,6 +872,6 @@ describe("Loop", () => {
           [40, 80],
         ],
       },
-    ]));
+    ]);
   });
 });

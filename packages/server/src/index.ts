@@ -214,12 +214,15 @@ async function consumeAction(
   let result: unknown;
   let item = await stream.next();
   while (!item.done) {
-    if (isTaskwishEvent(item.value)) {
-      dispatchEvent(item.value, registry);
-      if (item.value["->"] === action[TW.Name] && "result" in item.value) {
-        result = item.value.result;
-      }
+    if (
+      isRecord(item.value) &&
+      typeof item.value["->"] === "string" &&
+      item.value["->"] === action[TW.Name] &&
+      "result" in item.value
+    ) {
+      result = item.value.result;
     }
+    if (isTaskwishEvent(item.value)) dispatchEvent(item.value, registry);
     item = await stream.next();
   }
   return item.value ?? result;
