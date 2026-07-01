@@ -10,11 +10,11 @@ export const { hello } = Greeter()
   .input({ name: "string" })
 
   .run(
-    Step("greet", function () {
-      return `Hello ${this.input.name}`;
+    Step("notify", function () {
+      return this.signal("Greeter::Message", { content: this.input.name });
     }),
 
     Step("notify", function () {
-      return this.greet;
+      return `Hello ${this.input.name}`;
     }),
   );

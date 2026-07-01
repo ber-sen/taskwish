@@ -1,9 +1,22 @@
 import { expect, test, describe } from "bun:test";
 import { Expect, Equal } from "../helpers";
 import { Action } from "../action";
+import { TW } from "../core";
 import { Step } from "./step";
 import { If, Else, ElseIf, Cond } from "./if-else";
 import { Loop, ForEach } from "./loop";
+
+function markEvents(value: unknown): any {
+  if (Array.isArray(value)) return value.map(markEvents);
+  if (value === null || typeof value !== "object") return value;
+  if (Object.getPrototypeOf(value) !== Object.prototype) return value;
+
+  const entries = Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [key, markEvents(entry)]),
+  );
+
+  return "->" in value ? { [TW.$]: "event", ...entries } : entries;
+}
 
 // ─── Runtime ────────────────────────────────────────────────────────────────
 
@@ -44,7 +57,7 @@ describe("If / Else", () => {
       yields.push(v);
     }
 
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "factorial", input: { n: 3 } },
       { "->": "factorial.next", input: { n: 2 } },
       { "->": "factorial.next.next", input: { n: 1 } },
@@ -54,7 +67,7 @@ describe("If / Else", () => {
       { "->": "factorial.next", result: 2 },
       { "->": "factorial.multiply", result: 6 },
       { "->": "factorial", result: 6 },
-    ]);
+    ]));
   });
 
   test("runs if-branch when condition is true", async () => {
@@ -85,11 +98,11 @@ describe("If / Else", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ flag: true })) yields.push(v);
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "branch", input: { flag: true } },
       { "->": "branch.if.result", result: "truthy" },
       { "->": "branch", result: "truthy" },
-    ]);
+    ]));
   });
 
   test("runs else-branch when condition is false", async () => {
@@ -120,11 +133,11 @@ describe("If / Else", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ flag: false })) yields.push(v);
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "branch", input: { flag: false } },
       { "->": "branch.else.result", result: "falsy" },
       { "->": "branch", result: "falsy" },
-    ]);
+    ]));
   });
 
   test("skips branch when condition is false and no Else", async () => {
@@ -157,12 +170,12 @@ describe("If / Else", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ run: false })) yields.push(v);
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "branch", input: { run: false } },
       { "->": "branch.before", result: 1 },
       { "->": "branch.after", result: 1 },
       { "->": "branch", result: 1 },
-    ]);
+    ]));
   });
 
   test("inner step accesses outer scope", async () => {
@@ -191,12 +204,12 @@ describe("If / Else", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ value: 3 })) yields.push(v);
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "branch", input: { value: 3 } },
       { "->": "branch.doubled", result: 6 },
       { "->": "branch.if.result", result: true },
       { "->": "branch", result: true },
-    ]);
+    ]));
   });
 
   test("condition receives scope", async () => {
@@ -228,11 +241,11 @@ describe("If / Else", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ x: 20 })) yields.push(v);
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "branch", input: { x: 20 } },
       { "->": "branch.if.result", result: "big" },
       { "->": "branch", result: "big" },
-    ]);
+    ]));
   });
 
   test("runs else-if step when if is false and else-if is true", async () => {
@@ -273,11 +286,11 @@ describe("If / Else", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ x: 7 })) yields.push(v);
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "branch", input: { x: 7 } },
       { "->": "branch.elseIf.result", result: "medium" },
       { "->": "branch", result: "medium" },
-    ]);
+    ]));
   });
 
   test("multi-step If — inner steps thread context", async () => {
@@ -306,12 +319,12 @@ describe("If / Else", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ x: 5 })) yields.push(v);
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "branch", input: { x: 5 } },
       { "->": "branch.if.doubled", result: 10 },
       { "->": "branch.if.label", result: "val:10" },
       { "->": "branch", result: "val:10" },
-    ]);
+    ]));
   });
 
   test("multi-step Else — inner steps thread context", async () => {
@@ -346,12 +359,12 @@ describe("If / Else", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ x: 4 })) yields.push(v);
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "branch", input: { x: 4 } },
       { "->": "branch.else.doubled", result: 8 },
       { "->": "branch.else.label", result: "val:8" },
       { "->": "branch", result: "val:8" },
-    ]);
+    ]));
   });
 
   test("multi-step ElseIf — inner steps thread context", async () => {
@@ -396,12 +409,12 @@ describe("If / Else", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ x: 5 })) yields.push(v);
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "branch", input: { x: 5 } },
       { "->": "branch.elseIf.doubled", result: 10 },
       { "->": "branch.elseIf.label", result: "medium:10" },
       { "->": "branch", result: "medium:10" },
-    ]);
+    ]));
   });
 
   // ─── Type tests ─────────────────────────────────────────────────────────
@@ -616,14 +629,14 @@ describe("If / Else", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ run: true })) yields.push(v);
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "branch", input: { run: true } },
       { "->": "branch.if.loop", items: [1, 2, 3] },
       { "->": "branch.if.loop[0].val", result: 2 },
       { "->": "branch.if.loop[1].val", result: 4 },
       { "->": "branch.if.loop[2].val", result: 6 },
       { "->": "branch", result: [2, 4, 6] },
-    ]);
+    ]));
   });
 
   test("Loop inside If skipped when condition is false", async () => {
@@ -660,12 +673,12 @@ describe("If / Else", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ run: false })) yields.push(v);
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "branch", input: { run: false } },
       { "->": "branch.before", result: 99 },
       { "->": "branch.after", result: 99 },
       { "->": "branch", result: 99 },
-    ]);
+    ]));
   });
 
   test("Loop inside Else runs when condition is false", async () => {
@@ -700,13 +713,13 @@ describe("If / Else", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ run: false })) yields.push(v);
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "branch", input: { run: false } },
       { "->": "branch.else.loop", items: [10, 20] },
       { "->": "branch.else.loop[0].result", result: 10 },
       { "->": "branch.else.loop[1].result", result: 20 },
       { "->": "branch", result: [10, 20] },
-    ]);
+    ]));
   });
 
   test("Loop accumulated result available after If", async () => {
@@ -739,7 +752,7 @@ describe("If / Else", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ run: true })) yields.push(v);
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "branch", input: { run: true } },
       { "->": "branch.if.loop", items: [1, 2, 3] },
       { "->": "branch.if.loop[0].doubled", result: 2 },
@@ -747,7 +760,7 @@ describe("If / Else", () => {
       { "->": "branch.if.loop[2].doubled", result: 6 },
       { "->": "branch.sum", result: 12 },
       { "->": "branch", result: 12 },
-    ]);
+    ]));
   });
 
   // ─── If inside If ────────────────────────────────────────────────────────
@@ -779,11 +792,11 @@ describe("If / Else", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream({ outer: true, inner: true }))
       yields.push(v);
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "branch", input: { outer: true, inner: true } },
       { "->": "branch.if.if.result", result: "both" },
       { "->": "branch", result: "both" },
-    ]);
+    ]));
   });
 
   test("If inside If — inner false skips inner step", async () => {
@@ -821,12 +834,12 @@ describe("If / Else", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream({ outer: true, inner: false }))
       yields.push(v);
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "branch", input: { outer: true, inner: false } },
       { "->": "branch.before", result: 1 },
       { "->": "branch.after", result: 1 },
       { "->": "branch", result: 1 },
-    ]);
+    ]));
   });
 
   test("If inside If — outer false skips both", async () => {
@@ -864,12 +877,12 @@ describe("If / Else", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream({ outer: false, inner: true }))
       yields.push(v);
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "branch", input: { outer: false, inner: true } },
       { "->": "branch.before", result: 42 },
       { "->": "branch.after", result: 42 },
       { "->": "branch", result: 42 },
-    ]);
+    ]));
   });
 
   test("If inside If — condition receives scope at both levels", async () => {
@@ -911,10 +924,10 @@ describe("If / Else", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ x: 20 })) yields.push(v);
-    expect(yields).toEqual([
+    expect(yields).toEqual(markEvents([
       { "->": "branch", input: { x: 20 } },
       { "->": "branch.if.if.result", result: "big" },
       { "->": "branch", result: "big" },
-    ]);
+    ]));
   });
 });
