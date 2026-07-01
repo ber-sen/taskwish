@@ -712,7 +712,7 @@ function createBehavior(
           const resolvedInitialScope = await resolveInitialScope();
           const { args: modArgs, scope: behaviorScope } = mod(args);
           const extra = { ...resolvedInitialScope, ...behaviorScope };
-          yield* runAction(
+          return yield* runAction(
             eventName,
             buildScope(inputMode, modArgs, extra),
             handlers,

@@ -147,7 +147,9 @@ test("dispatches stream signal events to registered handlers without waiting", a
 
   const { hello } = Greeter()
     .on("Command", "hello")
+
     .input({ name: "string" })
+
     .run(
       Step("notify", function () {
         return this.signal("Greeter::Message", { content: this.input.name });
@@ -160,9 +162,12 @@ test("dispatches stream signal events to registered handlers without waiting", a
 
   const { onGreeterMessage } = Biller()
     .on("Greeter::Message")
+
     .run(async function () {
       resolveReceived(this.input.content);
+
       await handlerCanFinish;
+
       return { received: this.input.content };
     });
 
@@ -185,6 +190,34 @@ test("dispatches stream signal events to registered handlers without waiting", a
   expect(await response.text()).toBe("Hello Ada");
   expect(await received).toBe("Ada");
   releaseHandler();
+});
+
+test("returns the stream final value instead of a yielded result event", async () => {
+  const { Greeter } = Actor("Greeter");
+
+  const { streamed } = Greeter()
+    .on("Command", "streamed")
+
+    .run(async function* () {
+      yield { "->": "Greeter::streamed", result: "yielded result" };
+
+      return "final value";
+    });
+
+  const fetch = createFetchHandler(
+    createServiceRegistry([Promise.resolve({ streamed })]),
+    { apiKey },
+  );
+
+  const response = await fetch(
+    new Request("http://localhost/tw/Greeter::streamed", {
+      method: "POST",
+      headers: auth,
+    }),
+  );
+
+  expect(response.status).toBe(200);
+  expect(await response.text()).toBe("final value");
 });
 
 test("rejects requests without the configured API key", async () => {

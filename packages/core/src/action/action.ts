@@ -931,7 +931,7 @@ export function Action<const Name extends string>(
         event: commandEvent(args[0]),
         ...(await buildExtra()),
       };
-      yield* runAction(
+      return yield* runAction(
         actionName,
         buildScope(inputMode, args, extra),
         handlers,

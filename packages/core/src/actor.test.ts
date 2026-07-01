@@ -112,6 +112,11 @@ describe("Actor", () => {
       { "->": "Pipeline::run.second", result: true },
       { "->": "Pipeline::run", result: true },
     ]);
+
+    const stream = run.stream({ name: "hello" });
+    let item = await stream.next();
+    while (!item.done) item = await stream.next();
+    expect(item.value).toBe(true);
   });
 
   test("NewMessage — actor name prefixed, input carries message data", async () => {

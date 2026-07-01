@@ -882,4 +882,21 @@ describe("Action", () => {
       { "->": "greet", result: undefined },
     ]);
   });
+
+  test("stream completion returns the action result", async () => {
+    const { compute } = Action("compute")
+      .input({ value: "number" })
+      
+      .run(
+        Step("double", function () {
+          return this.input.value * 2;
+        }),
+      );
+
+    const stream = compute.stream({ value: 4 });
+    let item = await stream.next();
+    while (!item.done) item = await stream.next();
+
+    expect(item.value).toBe(8);
+  });
 });
