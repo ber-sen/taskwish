@@ -48,7 +48,7 @@ export function dispatch(target: ConsoleLike): LogFn {
     if (
       event !== null &&
       typeof event === "object" &&
-      (">>" in (event as object) || event instanceof TW.Event)
+      (">>" in (event as object) || "->" in (event as object))
     ) {
       const e = event as Record<string, unknown>;
       const action =

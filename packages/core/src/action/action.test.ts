@@ -886,7 +886,7 @@ describe("Action", () => {
   test("stream completion returns the action result", async () => {
     const { compute } = Action("compute")
       .input({ value: "number" })
-      
+
       .run(
         Step("double", function () {
           return this.input.value * 2;
