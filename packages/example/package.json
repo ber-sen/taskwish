@@ -1,7 +1,7 @@
 {
   "name": "@taskwish/example",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Runnable Taskwish examples",
   "license": "Elastic-2.0",
   "author": "Bersen Pajaziti",
