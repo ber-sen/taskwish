@@ -2,7 +2,7 @@ import { access, mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { chromium, type BrowserContext, type Page } from "playwright-core";
+import { chromium, type BrowserContext } from "playwright-core";
 import { Actor, Step } from "taskwish";
 
 let browserContext: BrowserContext | null = null;
