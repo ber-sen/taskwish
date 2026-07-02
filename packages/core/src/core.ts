@@ -161,7 +161,7 @@ export namespace TW {
     toString: () => string;
   }
 
-  export interface EventKind<Name extends string, Data extends Record<string, unknown>, Scope = {}>
+  export interface EventKind<Name extends string, Data, Scope = {}>
     extends Resource<Name>, Attributable<null> {
     emit(
       data: Data,

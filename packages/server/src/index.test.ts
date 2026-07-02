@@ -9,7 +9,7 @@ import {
 const apiKey = "test-api-key";
 const auth = { Authorization: `Bearer ${apiKey}` };
 
-test("serves command actions with POST under /tw/<Actor>::<method>", async () => {
+test("serves command actions with POST under /tw/<Actor>/<method>", async () => {
   const { Greeter } = Actor("Greeter");
 
   const { hello } = Greeter()
@@ -27,7 +27,7 @@ test("serves command actions with POST under /tw/<Actor>::<method>", async () =>
   );
 
   const response = await fetch(
-    new Request("http://localhost/tw/Greeter::hello", {
+    new Request("http://localhost/tw/Greeter/hello", {
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Ada" }),
@@ -38,7 +38,7 @@ test("serves command actions with POST under /tw/<Actor>::<method>", async () =>
   expect(await response.text()).toBe("Hello Ada");
 });
 
-test("serves command actions with GET under /tw/<Actor>::<method>", async () => {
+test("serves command actions with GET under /tw/<Actor>/<method>", async () => {
   const { Greeter } = Actor("Greeter");
 
   const { hello } = Greeter()
@@ -56,7 +56,7 @@ test("serves command actions with GET under /tw/<Actor>::<method>", async () => 
   );
 
   const response = await fetch(
-    new Request("http://localhost/tw/Greeter::hello?name=Ada", {
+    new Request("http://localhost/tw/Greeter/hello?name=Ada", {
       headers: auth,
     }),
   );
@@ -65,7 +65,7 @@ test("serves command actions with GET under /tw/<Actor>::<method>", async () => 
   expect(await response.text()).toBe("Hello Ada");
 });
 
-test("serves actor event handlers with POST under /tw/<Actor>::<handler>", async () => {
+test("serves actor event handlers with POST under /tw/<Actor>/<handler>", async () => {
   const { Greeter } = Actor("Greeter").def(
     Event("Message", { content: "string" }),
   );
@@ -88,7 +88,7 @@ test("serves actor event handlers with POST under /tw/<Actor>::<handler>", async
   );
 
   const response = await fetch(
-    new Request("http://localhost/tw/Biller::on_greeter_message", {
+    new Request("http://localhost/tw/Biller/on-greeter-message", {
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ content: "hi" }),
@@ -99,7 +99,7 @@ test("serves actor event handlers with POST under /tw/<Actor>::<handler>", async
   expect(await response.json()).toEqual({ received: "hi" });
 });
 
-test("serves actor event handlers with GET under /tw/<Actor>::<handler>", async () => {
+test("serves actor event handlers with GET under /tw/<Actor>/<handler>", async () => {
   const { Greeter } = Actor("Greeter").def(
     Event("Message", { content: "string" }),
   );
@@ -121,7 +121,7 @@ test("serves actor event handlers with GET under /tw/<Actor>::<handler>", async 
   );
 
   const response = await fetch(
-    new Request("http://localhost/tw/Biller::on_greeter_message?content=hi", {
+    new Request("http://localhost/tw/Biller/on-greeter-message?content=hi", {
       headers: auth,
     }),
   );
@@ -179,7 +179,7 @@ test("dispatches stream signal events to registered handlers without waiting", a
   );
 
   const response = await fetch(
-    new Request("http://localhost/tw/Greeter::hello", {
+    new Request("http://localhost/tw/Greeter/hello", {
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Ada" }),
@@ -223,7 +223,7 @@ test("ignores non-Event objects yielded with signal shape", async () => {
   );
 
   const response = await fetch(
-    new Request("http://localhost/tw/Greeter::hello", {
+    new Request("http://localhost/tw/Greeter/hello", {
       method: "POST",
       headers: auth,
     }),
@@ -252,7 +252,7 @@ test("returns the stream final value instead of a yielded result event", async (
   );
 
   const response = await fetch(
-    new Request("http://localhost/tw/Greeter::streamed", {
+    new Request("http://localhost/tw/Greeter/streamed", {
       method: "POST",
       headers: auth,
     }),
@@ -279,7 +279,7 @@ test("rejects requests without the configured API key", async () => {
   );
 
   const response = await fetch(
-    new Request("http://localhost/tw/Greeter::hello", {
+    new Request("http://localhost/tw/Greeter/hello", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Ada" }),
@@ -304,12 +304,12 @@ test("exports Bun.serve routes for service dispatch", async () => {
     { apiKey },
   );
 
-  const route = routes["/tw/Greeter::hello"];
+  const route = routes["/tw/Greeter/hello"];
   expect(route).toBeDefined();
   expect(routes["/tw/:target"]).toBeUndefined();
 
   const response = await route.POST!(
-    new Request("http://localhost/tw/Greeter::hello", {
+    new Request("http://localhost/tw/Greeter/hello", {
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Ada" }),
@@ -338,12 +338,12 @@ test("exports actor event handlers as concrete Bun.serve routes", async () => {
     { apiKey },
   );
 
-  const route = routes["/tw/Biller::on_greeter_message"];
+  const route = routes["/tw/Biller/on-greeter-message"];
   expect(route).toBeDefined();
   expect(routes["/tw/:target"]).toBeUndefined();
 
   const response = await route.POST!(
-    new Request("http://localhost/tw/Biller::on_greeter_message", {
+    new Request("http://localhost/tw/Biller/on-greeter-message", {
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ content: "hi" }),

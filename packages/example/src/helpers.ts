@@ -2,7 +2,7 @@ export const startupMessage = (baseUrl: string, apiKey: string) => `Taskwish exa
 API key: ${apiKey}
 
 Greeter action:
-curl -H "Authorization: Bearer ${apiKey}" "${baseUrl}/tw/Greeter::hello?name=World"
+curl -H "Authorization: Bearer ${apiKey}" "${baseUrl}/tw/Greeter/hello?name=World"
 
 Biller receiving Greeter Message:
-curl -X POST -H "Authorization: Bearer ${apiKey}" -H "Content-Type: application/json" -d '{"content":"hi"}' "${baseUrl}/tw/Biller::on_greeter_message"`;
+curl -X POST -H "Authorization: Bearer ${apiKey}" -H "Content-Type: application/json" -d '{"name":"World"}' "${baseUrl}/tw/Biller/on-greeter-message"`;

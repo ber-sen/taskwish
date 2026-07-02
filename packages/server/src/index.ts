@@ -48,7 +48,7 @@ function normalizePrefix(prefix: string): string {
 }
 
 function routePathForAction(prefix: string, actionName: string): string {
-  return `${prefix}/${actionName}`;
+  return `${prefix}/${actionName.replace("::", "/").replace(/_/g, "-")}`;
 }
 
 function generateApiKey(): string {
