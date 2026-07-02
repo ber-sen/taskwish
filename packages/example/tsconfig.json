@@ -9,7 +9,8 @@
     "strictFunctionTypes": true,
     "strictNullChecks": true,
     "esModuleInterop": true,
-    "customConditions": ["source"]
+    "customConditions": ["source"],
+    "types": ["bun"]
   },
   "include": ["src"]
 }

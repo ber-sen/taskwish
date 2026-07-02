@@ -121,7 +121,8 @@ function collectExports(
   seen.add(value);
 
   if (isAction(value)) {
-    actions.set(value[TW.Name]!, value);
+    const actionName = (value as Action)[TW.Name];
+    if (typeof actionName === "string") actions.set(actionName, value);
     return;
   }
 
@@ -189,7 +190,7 @@ function isTaskwishEvent(
 ): value is TW.Event<string, any> {
   return (
     value instanceof TW.Event &&
-    typeof value["->"] === "string"
+    typeof (value as unknown as Record<string, unknown>)["->"] === "string"
   );
 }
 

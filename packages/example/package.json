@@ -1,15 +1,19 @@
 {
   "name": "@taskwish/example",
-  "private": true,
   "version": "0.0.2",
+  "author": "Bersen Pajaziti",
+  "dependencies": {
+    "playwright-core": "^1.61.1",
+    "taskwish": "^0.0.8"
+  },
   "description": "Runnable Taskwish examples",
   "license": "Elastic-2.0",
-  "author": "Bersen Pajaziti",
-  "type": "module",
+  "private": true,
   "scripts": {
     "start": "bun src/node.ts"
   },
-  "dependencies": {
-    "taskwish": "^0.0.8"
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "^1.3.14"
   }
 }

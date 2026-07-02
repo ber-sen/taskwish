@@ -259,6 +259,36 @@ describe("Action", () => {
     ]);
   });
 
+  test("Logger — formats cyclic objects without recursing forever", async () => {
+    const cyclic: Record<string, unknown> = { name: "cycle" };
+    cyclic.self = cyclic;
+
+    expect(formatEvent({ ">>": "cyclic", result: cyclic })).toBe(
+      '\x1b[2m{\x1b[22m \x1b[2m">>": \x1b[22m"\x1b[1mcyclic\x1b[22m", \x1b[2m"result": \x1b[22m{ "name": "cycle", "self": "[Circular]" } \x1b[2m}\x1b[22m',
+    );
+  });
+
+  test("Logger — uses custom toJSON representations", async () => {
+    const page = {
+      url: "https://example.com",
+      toJSON() {
+        return "page";
+      },
+    };
+
+    expect(formatEvent({ ">>": "page", result: page })).toBe(
+      '\x1b[2m{\x1b[22m \x1b[2m">>": \x1b[22m"\x1b[1mpage\x1b[22m", \x1b[2m"result": \x1b[22m"page" \x1b[2m}\x1b[22m',
+    );
+  });
+
+  test("Logger — limits nested object depth", async () => {
+    const nested = { a: { b: { c: { d: "hidden" } } } };
+
+    expect(formatEvent({ ">>": "nested", result: nested })).toBe(
+      '\x1b[2m{\x1b[22m \x1b[2m">>": \x1b[22m"\x1b[1mnested\x1b[22m", \x1b[2m"result": \x1b[22m{ "a": { "b": { "c": "[Object]" } } } \x1b[2m}\x1b[22m',
+    );
+  });
+
   test("Logger — stream also logs", async () => {
     const logged: unknown[] = [];
     const spy = {
