@@ -37,6 +37,80 @@ export type TaskwishNode = Bun.Server<any> & {
   routes: NodeRoutes;
 };
 
+const shutdownSignals: NodeJS.Signals[] = ["SIGINT", "SIGTERM", "SIGHUP"];
+const activeServers = new Set<Bun.Server<any>>();
+let shutdownHandlersInstalled = false;
+let shutdownInProgress = false;
+
+function exitCodeForSignal(signal: NodeJS.Signals): number {
+  if (signal === "SIGINT") return 130;
+  if (signal === "SIGTERM") return 143;
+  if (signal === "SIGHUP") return 129;
+  return 0;
+}
+
+async function stopActiveServers(): Promise<void> {
+  const servers = Array.from(activeServers);
+  activeServers.clear();
+
+  await Promise.allSettled(servers.map((server) => server.stop(true)));
+}
+
+function installShutdownHandlers(): void {
+  if (shutdownHandlersInstalled) return;
+  shutdownHandlersInstalled = true;
+
+  for (const signal of shutdownSignals) {
+    process.once(signal, () => {
+      if (shutdownInProgress) return;
+      shutdownInProgress = true;
+
+      void stopActiveServers().finally(() => {
+        process.exit(exitCodeForSignal(signal));
+      });
+    });
+  }
+}
+
+function registerServerForShutdown<T extends Bun.Server<any>>(server: T): T {
+  installShutdownHandlers();
+  activeServers.add(server);
+
+  const stop = server.stop.bind(server);
+  server.stop = async (closeActiveConnections?: boolean) => {
+    activeServers.delete(server);
+    return stop(closeActiveConnections);
+  };
+
+  return server;
+}
+
+function isPortUnavailableError(error: unknown): boolean {
+  if (!isRecord(error)) return false;
+
+  const code = error.code;
+  if (code === "EADDRINUSE" || code === "EACCES") return true;
+
+  const message = error.message;
+  return (
+    typeof message === "string" &&
+    /address already in use|port.*in use|failed to start server/i.test(message)
+  );
+}
+
+function serveWithRandomPortFallback(
+  options: Parameters<typeof Bun.serve>[0],
+): Bun.Server<any> {
+  try {
+    return Bun.serve(options);
+  } catch (error) {
+    if (!isPortUnavailableError(error)) throw error;
+    return Bun.serve({ ...options, port: 0 } as Parameters<
+      typeof Bun.serve
+    >[0]);
+  }
+}
+
 const JSON_HEADERS = {
   "Content-Type": "application/json",
 };
@@ -336,15 +410,17 @@ export async function Node(
     apiKey,
   });
 
-  const server = Bun.serve({
-    port: config.port ?? 3000,
-    hostname: config.hostname,
-    development: config.development,
-    routes,
-    fetch() {
-      return json(404, { error: "Not Found" });
-    },
-  } as Parameters<typeof Bun.serve>[0]);
+  const server = registerServerForShutdown(
+    serveWithRandomPortFallback({
+      port: config.port ?? 0,
+      hostname: config.hostname,
+      development: config.development,
+      routes,
+      fetch() {
+        return json(404, { error: "Not Found" });
+      },
+    } as Parameters<typeof Bun.serve>[0]),
+  );
 
   return Object.assign(server, { name, apiKey, routes }) as TaskwishNode;
 }

@@ -1,6 +1,11 @@
 import { expect, test } from "bun:test";
 import { Actor, Event, Step, TW } from "@taskwish/core";
-import { createFetchHandler, createNodeRegistry, createRoutes } from "./index";
+import {
+  Node,
+  createFetchHandler,
+  createNodeRegistry,
+  createRoutes,
+} from "./index";
 
 const apiKey = "test-api-key";
 const auth = { Authorization: `Bearer ${apiKey}` };
@@ -348,4 +353,41 @@ test("exports actor event handlers as concrete Bun.serve routes", async () => {
 
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({ received: "hi" });
+});
+
+test("falls back to a random port when the configured port is unavailable", async () => {
+  const occupied = Bun.serve({
+    port: 0,
+    hostname: "127.0.0.1",
+    fetch() {
+      return new Response("occupied");
+    },
+  });
+
+  const node = await Node("fallback", {
+    port: occupied.port,
+    hostname: "127.0.0.1",
+    apiKey,
+  });
+
+  try {
+    expect(node.port).not.toBe(occupied.port);
+    expect(node.port).toBeGreaterThan(0);
+  } finally {
+    await node.stop(true);
+    await occupied.stop(true);
+  }
+});
+
+test("uses a random port when no port is configured", async () => {
+  const node = await Node("random-default", {
+    hostname: "127.0.0.1",
+    apiKey,
+  });
+
+  try {
+    expect(node.port).toBeGreaterThan(0);
+  } finally {
+    await node.stop(true);
+  }
 });
