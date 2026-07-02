@@ -1,7 +1,15 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "types": ["bun"]
+    "target": "esnext",
+    "module": "esnext",
+    "lib": ["esnext", "DOM"],
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "strict": true,
+    "strictFunctionTypes": true,
+    "strictNullChecks": true,
+    "esModuleInterop": true,
+    "customConditions": ["source"]
   },
   "include": ["src"]
 }

@@ -43,18 +43,19 @@ export namespace TW {
       : never;
   }[keyof S];
 
-  type EventKindData<S, K extends string> =
-    EventKindForName<S, K> extends EventKind<
-      any,
-      infer D extends Record<string, unknown>
-    >
-      ? D
-      : Record<string, unknown>;
+  type EventKindData<S, K extends string> = EventKindForName<
+    S,
+    K
+  > extends EventKind<any, infer D extends Record<string, unknown>>
+    ? D
+    : Record<string, unknown>;
 
-  type EventKindName<S, K extends string> =
-    EventKindForName<S, K> extends EventKind<infer N extends string, any>
-      ? N
-      : K;
+  type EventKindName<S, K extends string> = EventKindForName<
+    S,
+    K
+  > extends EventKind<infer N extends string, any>
+    ? N
+    : K;
 
   type StripEventKinds<S> = {
     [K in keyof S as S[K] extends EventKind<any, any, any> ? never : K]: S[K];
@@ -75,8 +76,7 @@ export namespace TW {
     >(
       type: T,
       data: EventKindData<S, T & string>,
-    ): Event<EventKindName<S, T & string>, EventKindData<S, T & string>> &
-      EventKindData<S, T & string>;
+    ): Event<EventKindName<S, T & string>, EventKindData<S, T & string>>;
     get<T>(Cls: new (...args: any[]) => T): T;
   };
 
@@ -99,16 +99,12 @@ export namespace TW {
   type StreamReturn<
     Name extends string,
     Handler extends (...args: any) => any,
-  > =
-    Awaited<ReturnType<Handler>> extends AsyncGenerator<infer Y, infer R>
-      ? AsyncGenerator<
-          Y | StepEvent | ActionEvent<Name, Awaited<R>>,
-          Awaited<R>
-        >
-      : AsyncGenerator<
-          StepEvent | ActionEvent<Name, Awaited<ReturnType<Handler>>>,
-          Awaited<ReturnType<Handler>>
-        >;
+  > = Awaited<ReturnType<Handler>> extends AsyncGenerator<infer Y, infer R>
+    ? AsyncGenerator<Y | StepEvent | ActionEvent<Name, Awaited<R>>, Awaited<R>>
+    : AsyncGenerator<
+        StepEvent | ActionEvent<Name, Awaited<ReturnType<Handler>>>,
+        Awaited<ReturnType<Handler>>
+      >;
 
   export type Action<
     Name extends string,
@@ -139,7 +135,8 @@ export namespace TW {
   }
 
   export interface Execution<Stream, Return, Deps, Params = null>
-    extends AsyncGenerator<Stream, Return, Deps>, Promise<Return> {
+    extends AsyncGenerator<Stream, Return, Deps>,
+      Promise<Return> {
     id: Inject<UUIDv7String>;
     eventId: Inject<UUIDv7String>;
     params: Params;
@@ -166,7 +163,8 @@ export namespace TW {
   }
 
   export interface EventKind<Name extends string, Data, Scope = {}>
-    extends Resource<Name>, Attributable<null> {
+    extends Resource<Name>,
+      Attributable<null> {
     emit(
       data: Data,
     ): AsyncGenerator<Event<Name, Data>, Event<Name, Data>, unknown>;
@@ -203,14 +201,16 @@ export namespace TW {
     input: Params;
   };
 
-  export type Step<Name extends string, Handler extends (...args: any) => any> =
-    ReturnType<Handler> extends AsyncGenerator<infer Caller, any, any>
-      ? Caller extends ActionInputEvent<infer A, infer P>
-        ? A extends TW.Action<infer ActionName, infer Handler>
-          ? ActionStep<Name, ActionName, P>
-          : ScriptStep<Name, Handler>
+  export type Step<
+    Name extends string,
+    Handler extends (...args: any) => any,
+  > = ReturnType<Handler> extends AsyncGenerator<infer Caller, any, any>
+    ? Caller extends ActionInputEvent<infer A, infer P>
+      ? A extends TW.Action<infer ActionName, infer Handler>
+        ? ActionStep<Name, ActionName, P>
         : ScriptStep<Name, Handler>
-      : ScriptStep<Name, Handler>;
+      : ScriptStep<Name, Handler>
+    : ScriptStep<Name, Handler>;
 
   export interface ScriptStep<
     Name extends string,
