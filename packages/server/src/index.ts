@@ -185,15 +185,14 @@ function json(status: number, body: unknown): Response {
 
 function isTaskwishEvent(
   value: unknown,
-): value is Record<string | symbol, unknown> & { "->": string } {
+): value is TW.Event<string, any> {
   return (
-    isRecord(value) &&
-    value[TW.$] === "event" &&
+    value instanceof TW.Event &&
     typeof value["->"] === "string"
   );
 }
 
-function inputFromEvent(event: Record<string | symbol, unknown>): unknown {
+function inputFromEvent(event: TW.Event<string, any>): unknown {
   if ("data" in event) return event.data;
 
   const input: Record<string, unknown> = {};
@@ -220,7 +219,7 @@ async function consumeAction(
 }
 
 function dispatchEvent(
-  event: Record<string | symbol, unknown> & { "->": string },
+  event: TW.Event<string, any>,
   registry: ServiceRegistry,
 ): void {
   const handlers = registry.eventHandlers.get(event["->"]) ?? [];

@@ -236,10 +236,12 @@ export async function* tapWith(
 export type Scope = {
   input: unknown;
   get<T>(Cls: abstract new (...a: unknown[]) => T): T;
-  signal(type: string, data: Record<string, unknown>): object;
+  signal<T extends string, D extends Record<string, unknown>>(
+    type: T,
+    data: D,
+  ): TW.Event<T, D>;
 };
 
-const SignalTag = Symbol.for("TW.Signal");
 export const ActionEventTag = Symbol.for("TW.ActionEvent");
 
 // ── InferType action-step probe ───────────────────────────────────────────────
@@ -337,28 +339,8 @@ const SelfTag = Symbol.for("TW.SelfCall");
 /** Set on ctx by the self() closure so runHandlerList can promote its name after the step. */
 const SelfCalledTag = Symbol.for("TW.SelfCalled");
 
-function actionEvent(obj: Record<string, unknown>) {
-  return Object.defineProperty(obj, ActionEventTag, {
-    value: true,
-    enumerable: false,
-  });
-}
-
-function event<T extends Record<string | symbol, unknown>>(
-  obj: T,
-): T {
-  return obj;
-}
-
-function taskwishEvent<T extends Record<string | symbol, unknown>>(
-  obj: T,
-): T & { [TW.$]: "event" } {
-  return { [TW.$]: "event", ...obj };
-}
-
 function commandEvent(input: unknown): { "->": "Command" } & object {
-  return event({
-    "->": "Command",
+  return new TW.Event("Command", {
     ...(input !== null && typeof input === "object" ? input : {}),
   });
 }
@@ -385,18 +367,14 @@ async function* runStep(
       }
       result = await ret;
     }
-    if (
-      result !== null &&
-      typeof result === "object" &&
-      SignalTag in (result as object)
-    ) {
+    if (result instanceof TW.Event) {
       yield result;
     }
-    yield event({ "->": name, result });
+    yield { ">>": name, result };
 
     return result;
   } catch (error) {
-    yield event({ "->": name, error });
+    yield { ">>": name, error };
 
     throw error;
   }
@@ -561,7 +539,7 @@ async function* runHandlerList(
                   .split(".")
                   .reduce((o: any, k) => o?.[k], ctx)
               : itemsGetter;
-      yield event({ "->": `${currentName}.${loopName}`, items });
+      yield { ">>": `${currentName}.${loopName}`, items };
       const innerAcc: Record<string, unknown[]> = {};
       let loopLastStepName: string | null = null;
       const loopIterLasts: unknown[] = [];
@@ -707,12 +685,7 @@ async function* runHandlerList(
     } else if (typeof handler === "function") {
       lastCond = null;
       last = await (handler as (this: typeof ctx) => unknown).call(ctx);
-      if (
-        last !== null &&
-        typeof last === "object" &&
-        SignalTag in (last as object)
-      )
-        yield last;
+      if (last instanceof TW.Event) yield last;
     }
   }
 
@@ -728,7 +701,7 @@ export async function* runAction(
 ): AsyncGenerator<unknown, unknown> {
   const ctx: Record<string | symbol, unknown> = { ...scope };
 
-  yield event({ "->": name, input: scope.input });
+  yield { ">>": name, input: scope.input };
 
   try {
     const r = yield* runHandlerList(
@@ -740,10 +713,10 @@ export async function* runAction(
       name,
       handlers,
     );
-    yield event({ "->": name, result: r.last });
+    yield { ">>": name, result: r.last };
     return r.last;
   } catch (error) {
-    yield event({ "->": name, error });
+    yield { ">>": name, error };
     throw error;
   }
 }
@@ -769,16 +742,11 @@ export function buildScope(
   return {
     ...extra,
     input: inputMode === "args" ? args : args[0],
-    signal(type: string, data: Record<string, unknown>) {
-      const signalEvent = taskwishEvent({
-        "->": eventNames.get(type) ?? type,
-        ...data,
-      });
-      Object.defineProperty(signalEvent, SignalTag, {
-        value: true,
-        enumerable: false,
-      });
-      return signalEvent;
+    signal<T extends string, D extends Record<string, unknown>>(
+      type: T,
+      data: D,
+    ) {
+      return new TW.Event((eventNames.get(type) ?? type) as T, data);
     },
     get<T>(Cls: abstract new (...a: unknown[]) => T): T {
       if (registry.has(Cls)) return registry.get(Cls) as T;

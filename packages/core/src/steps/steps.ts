@@ -3,8 +3,10 @@ import {
   DeepWriteable,
   FindInferTypeFilter,
   Pretty,
+  PrettyScope,
   QualifiedActionName,
   ResolveLast,
+  ResolveScope,
 } from "../helpers";
 import type {
   ActionMeta,
@@ -20,6 +22,10 @@ type FirstDefined<T extends readonly unknown[]> =
       ? FirstDefined<Tail>
       : Head
     : never;
+
+type UserScope<Ctx extends Record<any, any>> = TW.Scope<
+  PrettyScope<ResolveScope<Ctx["scope"]>>
+>;
 
 // ── FilterSteps ───────────────────────────────────────────────────────────────
 
@@ -150,8 +156,10 @@ export interface Steps<
             }
           | ((
               this: Ctx extends typeof SubSteps
-                ? SubCtx["scope"]
-                : Ctx["scope"],
+                ? UserScope<SubCtx>
+                : Ctx extends Record<any, any>
+                  ? UserScope<Ctx>
+                  : never,
             ) => A)
       : {
           [TW.Type]: OptionsType;

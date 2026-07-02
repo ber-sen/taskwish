@@ -192,6 +192,48 @@ test("dispatches stream signal events to registered handlers without waiting", a
   releaseHandler();
 });
 
+test("ignores non-Event objects yielded with signal shape", async () => {
+  const { Greeter } = Actor("Greeter").def(
+    Event("Message", { content: "string" }),
+  );
+  const { Biller } = Actor("Biller").use(Greeter);
+  const received: string[] = [];
+
+  const { hello } = Greeter()
+    .on("Command", "hello")
+
+    .run(async function* () {
+      yield { "->": "Greeter::Message", content: "Ada" };
+
+      return "Hello Ada";
+    });
+
+  const { onGreeterMessage } = Biller()
+    .on("Greeter::Message")
+
+    .run(function () {
+      received.push(this.input.content);
+    });
+
+  const fetch = createFetchHandler(
+    createServiceRegistry([
+      Promise.resolve({ Greeter, Biller, hello, onGreeterMessage }),
+    ]),
+    { apiKey },
+  );
+
+  const response = await fetch(
+    new Request("http://localhost/tw/Greeter::hello", {
+      method: "POST",
+      headers: auth,
+    }),
+  );
+
+  expect(response.status).toBe(200);
+  expect(await response.text()).toBe("Hello Ada");
+  expect(received).toEqual([]);
+});
+
 test("returns the stream final value instead of a yielded result event", async () => {
   const { Greeter } = Actor("Greeter");
 
@@ -199,7 +241,7 @@ test("returns the stream final value instead of a yielded result event", async (
     .on("Command", "streamed")
 
     .run(async function* () {
-      yield { "->": "Greeter::streamed", result: "yielded result" };
+      yield { ">>": "Greeter::streamed", result: "yielded result" };
 
       return "final value";
     });

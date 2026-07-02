@@ -107,10 +107,10 @@ describe("Actor", () => {
     }
 
     expect(yields).toEqual([
-      { "->": "Pipeline::run", input: { name: "hello" } },
-      { "->": "Pipeline::run.first", result: 5 },
-      { "->": "Pipeline::run.second", result: true },
-      { "->": "Pipeline::run", result: true },
+      { ">>": "Pipeline::run", input: { name: "hello" } },
+      { ">>": "Pipeline::run.first", result: 5 },
+      { ">>": "Pipeline::run.second", result: true },
+      { ">>": "Pipeline::run", result: true },
     ]);
 
     const stream = run.stream({ name: "hello" });
@@ -156,10 +156,10 @@ describe("Actor", () => {
 
     expect(yields).toEqual([
       {
-        "->": "Broadcaster::on_new_message",
+        ">>": "Broadcaster::on_new_message",
         input: { sender: { name: "Alice" }, content: "hi", channel: "general" },
       },
-      { "->": "Broadcaster::on_new_message", result: "HI" },
+      { ">>": "Broadcaster::on_new_message", result: "HI" },
     ]);
   });
 
@@ -199,10 +199,10 @@ describe("Actor", () => {
     }
 
     expect(yields).toEqual([
-      { "->": "Crasher::failing", input: { name: "World" } },
-      { "->": "Crasher::failing.first", result: 1 },
-      { "->": "Crasher::failing.bad", error: boom },
-      { "->": "Crasher::failing", error: boom },
+      { ">>": "Crasher::failing", input: { name: "World" } },
+      { ">>": "Crasher::failing.first", result: 1 },
+      { ">>": "Crasher::failing.bad", error: boom },
+      { ">>": "Crasher::failing", error: boom },
     ]);
     expect(thrown).toBe(boom);
   });
@@ -304,8 +304,14 @@ describe("Actor", () => {
       yields.push(v);
     }
 
-    expect(yields).toContainEqual({
-      [TW.$]: "event",
+    const emitted = yields.find(
+      (value) =>
+        value instanceof TW.Event &&
+        value["->"] === "Biller::InvoicePaid",
+    ) 
+
+    expect(emitted).toBeInstanceOf(TW.Event);
+    expect(emitted).toMatchObject({
       "->": "Biller::InvoicePaid",
       id: null,
       data: { invoiceId: "inv-1", amount: 100, customer: "alice" },
@@ -370,8 +376,14 @@ describe("Actor", () => {
       emitted.push(event);
     }
 
-    expect(emitted).toContainEqual({
-      [TW.$]: "event",
+    const invoicePaid = emitted.find(
+      (value) =>
+        value instanceof TW.Event &&
+        value["->"] === "Biller::InvoicePaid",
+    ) 
+
+    expect(invoicePaid).toBeInstanceOf(TW.Event);
+    expect(invoicePaid).toMatchObject({
       "->": "Biller::InvoicePaid",
       id: null,
       data: { invoiceId: "inv-1", amount: 100, customer: "alice" },
@@ -576,11 +588,11 @@ describe("Actor", () => {
     }
     expect(directYields).toEqual([
       {
-        "->": "InvoiceProvider::get_invoices",
+        ">>": "InvoiceProvider::get_invoices",
         input: { id: "inv-42", page: "2" },
       },
       {
-        "->": "InvoiceProvider::get_invoices",
+        ">>": "InvoiceProvider::get_invoices",
         result: { id: "inv-42", page: "2" },
       },
     ]);
@@ -595,7 +607,7 @@ describe("Actor", () => {
 
     expect(fetchYields).toMatchObject([
       {
-        "->": "InvoiceProvider::get",
+        ">>": "InvoiceProvider::get",
         input: {
           path: "/invoices/inv-42",
           params: { id: "inv-42" },
@@ -603,14 +615,14 @@ describe("Actor", () => {
         },
       },
       {
-        "->": "InvoiceProvider::get_invoices",
+        ">>": "InvoiceProvider::get_invoices",
         input: { id: "inv-42", page: "2" },
       },
       {
-        "->": "InvoiceProvider::get_invoices",
+        ">>": "InvoiceProvider::get_invoices",
         result: { id: "inv-42", page: "2" },
       },
-      { "->": "InvoiceProvider::get", result: expect.any(Response) },
+      { ">>": "InvoiceProvider::get", result: expect.any(Response) },
     ]);
     expect(JSON.parse(fetchStreamJson)).toEqual({ id: "inv-42", page: "2" });
 
@@ -701,7 +713,7 @@ describe("Actor", () => {
 
     expect(yields).toEqual([
       {
-        "->": "MailAgent::on_new_email",
+        ">>": "MailAgent::on_new_email",
         input: {
           from: "bob@example.com",
           to: "me@co.com",
@@ -710,11 +722,11 @@ describe("Actor", () => {
         },
       },
       {
-        "->": "MailAgent::on_new_email.log",
+        ">>": "MailAgent::on_new_email.log",
         result: "bob@example.com: Invoice",
       },
       {
-        "->": "MailAgent::on_new_email",
+        ">>": "MailAgent::on_new_email",
         result: "bob@example.com: Invoice",
       },
     ]);
@@ -748,28 +760,27 @@ describe("Actor", () => {
       yields.push(v);
     }
 
+    expect(yields[1]).toBeInstanceOf(TW.Event);
     expect(yields).toEqual([
       {
-        "->": "Emitter::emit",
+        ">>": "Emitter::emit",
         input: { orderId: "ord-1", amount: 100 },
       },
-      {
-        [TW.$]: "event",
+      expect.objectContaining({
         "->": "Emitter::OrderPlaced",
         orderId: "ord-1",
         amount: 100,
-      },
+      }),
       {
-        "->": "Emitter::emit.order",
-        result: {
-          [TW.$]: "event",
+        ">>": "Emitter::emit.order",
+        result: expect.objectContaining({
           "->": "Emitter::OrderPlaced",
           orderId: "ord-1",
           amount: 100,
-        },
+        }),
       },
-      { "->": "Emitter::emit.confirm", result: "placed: ord-1" },
-      { "->": "Emitter::emit", result: "placed: ord-1" },
+      { ">>": "Emitter::emit.confirm", result: "placed: ord-1" },
+      { ">>": "Emitter::emit", result: "placed: ord-1" },
     ]);
   });
 
@@ -804,10 +815,10 @@ describe("Actor", () => {
 
     expect(logged).toEqual([
       "",
-      formatEvent({ "->": "Worker::run", input: { value: 5 } }),
-      formatEvent({ "->": "Worker::run.doubled", result: 10 }),
-      formatEvent({ "->": "Worker::run.positive", result: true }),
-      formatEvent({ "->": "Worker::run", result: true }),
+      formatEvent({ ">>": "Worker::run", input: { value: 5 } }),
+      formatEvent({ ">>": "Worker::run.doubled", result: 10 }),
+      formatEvent({ ">>": "Worker::run.positive", result: true }),
+      formatEvent({ ">>": "Worker::run", result: true }),
       "",
     ]);
   });
@@ -845,10 +856,10 @@ describe("Actor", () => {
 
     expect(logged).toEqual(
       yields.flatMap((v) => {
-        if (typeof v !== "object" || v === null || !("->" in (v as object)))
+        if (typeof v !== "object" || v === null || !(">>" in (v as object)))
           return [v];
         const e = v as Record<string, unknown>;
-        const action = isActionEvent(e["->"] as string);
+        const action = isActionEvent(e[">>"] as string);
         const out = formatEvent(e);
         const items: unknown[] = [];
         if (action && "input" in e) items.push("");
@@ -856,6 +867,36 @@ describe("Actor", () => {
         if (action && ("result" in e || "error" in e)) items.push("");
         return items;
       }),
+    );
+  });
+
+  test("use(Logger) — formats signal events without class or symbol metadata", async () => {
+    const logged: unknown[] = [];
+    const spy = {
+      log: logged.push.bind(logged),
+      info: logged.push.bind(logged),
+      error: logged.push.bind(logged),
+    };
+
+    const { Greeter } = Actor("Greeter").def(
+      Event("Message", { content: "string" }),
+    );
+
+    const { hello } = Greeter()
+      .use(Logger(spy))
+
+      .on("Command", "hello")
+
+      .input({ name: "string" })
+
+      .run(function () {
+        return this.signal("Greeter::Message", { content: this.input.name });
+      });
+
+    await hello({ name: "Ada" });
+
+    expect(logged).toContain(
+      formatEvent({ "->": "Greeter::Message", content: "Ada" }),
     );
   });
 
@@ -896,21 +937,21 @@ describe("Actor", () => {
 
     expect(logged).toEqual([
       "",
-      formatEvent({ "->": "Hub::ping", input: { id: "abc" } }),
-      formatEvent({ "->": "Hub::ping.upper", result: "ABC" }),
-      formatEvent({ "->": "Hub::ping", result: "ABC" }),
+      formatEvent({ ">>": "Hub::ping", input: { id: "abc" } }),
+      formatEvent({ ">>": "Hub::ping.upper", result: "ABC" }),
+      formatEvent({ ">>": "Hub::ping", result: "ABC" }),
       "",
       "",
       formatEvent({
-        "->": "Hub::on_new_message",
+        ">>": "Hub::on_new_message",
         input: {
           sender: { name: "Alice" },
           content: "hello",
           channel: "general",
         },
       }),
-      formatEvent({ "->": "Hub::on_new_message.excerpt", result: "hel" }),
-      formatEvent({ "->": "Hub::on_new_message", result: "hel" }),
+      formatEvent({ ">>": "Hub::on_new_message.excerpt", result: "hel" }),
+      formatEvent({ ">>": "Hub::on_new_message", result: "hel" }),
       "",
     ]);
   });

@@ -1,8 +1,4 @@
-import {
-  UUIDv7String,
-  ValidateTrigger,
-  InferTriggerScope,
-} from "./helpers";
+import { UUIDv7String, ValidateTrigger, InferTriggerScope } from "./helpers";
 
 import { Type as ArkType } from "arktype";
 
@@ -16,8 +12,6 @@ export namespace TW {
   export const Scope = Symbol.for("TW.Ctx");
 
   export const Type = Symbol.for("TW.Type");
-
-  export const $ = Symbol.for("TW.$");
 
   export interface Contextual<Ctx extends Record<any, any>> {
     [Scope]: Ctx["scope"];
@@ -38,9 +32,7 @@ export namespace TW {
   }
 
   type EventKindNames<S> = {
-    [K in keyof S]: S[K] extends EventKind<infer Name, any>
-      ? Name
-      : never;
+    [K in keyof S]: S[K] extends EventKind<infer Name, any> ? Name : never;
   }[keyof S];
 
   type EventKindForName<S, Name extends string> = {
@@ -79,23 +71,21 @@ export namespace TW {
     >(
       type: T,
       data: EventKindData<S, T & string>,
-    ): { [$]: "event"; "->": EventKindName<S, T & string> } & EventKindData<
-      S,
-      T & string
-    >;
+    ): Event<EventKindName<S, T & string>, EventKindData<S, T & string>> &
+      EventKindData<S, T & string>;
     get<T>(Cls: new (...args: any[]) => T): T;
   };
 
   export type Inject<Type> = Type | null;
 
   export type StepEvent<Result = unknown> =
-    | { "->": string; result: Result }
-    | { "->": string; error: unknown };
+    | { ">>": string; result: Result }
+    | { ">>": string; error: unknown };
 
   export type ActionEvent<Name extends string, Result = unknown> =
-    | { "->": Name; input: unknown }
-    | { "->": Name; result: Result }
-    | { "->": Name; error: unknown };
+    | { ">>": Name; input: unknown }
+    | { ">>": Name; result: Result }
+    | { ">>": Name; error: unknown };
 
   export type GetEvent<T = unknown> = {
     "->": "get";
@@ -171,7 +161,7 @@ export namespace TW {
     toString: () => string;
   }
 
-  export interface EventKind<Name extends string, Data, Scope = {}>
+  export interface EventKind<Name extends string, Data extends Record<string, unknown>, Scope = {}>
     extends Resource<Name>, Attributable<null> {
     emit(
       data: Data,
@@ -194,10 +184,14 @@ export namespace TW {
 
   export interface ResourceKind<Name extends string> extends Named<Name> {}
 
-  export type Event<Type extends string, Data> = {
-    [$]: "event";
-    "->": Type;
-  } & Data;
+  export class Event<Type extends string, Data> {
+    readonly "->": Type;
+
+    constructor(type: Type, data: Data) {
+      this["->"] = type;
+      Object.assign(this, data);
+    }
+  }
 
   export type ActionInputEvent<Action extends TW.Action<any, any>, Params> = {
     "->": string;
