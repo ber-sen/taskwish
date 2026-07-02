@@ -7,11 +7,10 @@
   "author": "Bersen Pajaziti",
   "type": "module",
   "scripts": {
-    "dev": "bun src/server.ts"
+    "dev": "bun src/node.ts"
   },
   "dependencies": {
-    "@taskwish/core": "workspace:*",
-    "@taskwish/server": "workspace:*"
+    "taskwish": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "^1.3.12",

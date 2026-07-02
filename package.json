@@ -1,5 +1,5 @@
 {
-  "name": "taskwish",
+  "name": "@taskwish/monorepo",
   "private": true,
   "workspaces": [
     "packages/*"

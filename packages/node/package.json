@@ -1,10 +1,10 @@
 {
-  "name": "@taskwish/server",
+  "name": "@taskwish/node",
   "publishConfig": {
     "access": "public"
   },
   "version": "0.0.1",
-  "description": "Bun server adapter for Taskwish services",
+  "description": "Node adapter for Taskwish services",
   "license": "Elastic-2.0",
   "author": "Bersen Pajaziti",
   "exports": {

@@ -1,10 +1,6 @@
 import { expect, test } from "bun:test";
-import { Action, Actor, Event, Step, TW } from "@taskwish/core";
-import {
-  createFetchHandler,
-  createRoutes,
-  createServiceRegistry,
-} from "./index";
+import { Actor, Event, Step, TW } from "@taskwish/core";
+import { createFetchHandler, createNodeRegistry, createRoutes } from "./index";
 
 const apiKey = "test-api-key";
 const auth = { Authorization: `Bearer ${apiKey}` };
@@ -22,7 +18,7 @@ test("serves command actions with POST under /tw/<Actor>/<method>", async () => 
     });
 
   const fetch = createFetchHandler(
-    createServiceRegistry([Promise.resolve({ Greeter, hello })]),
+    createNodeRegistry([Promise.resolve({ Greeter, hello })]),
     { apiKey },
   );
 
@@ -51,7 +47,7 @@ test("serves command actions with GET under /tw/<Actor>/<method>", async () => {
     });
 
   const fetch = createFetchHandler(
-    createServiceRegistry([Promise.resolve({ Greeter, hello })]),
+    createNodeRegistry([Promise.resolve({ Greeter, hello })]),
     { apiKey },
   );
 
@@ -81,7 +77,7 @@ test("serves actor event handlers with POST under /tw/<Actor>/<handler>", async 
   expect(onGreeterMessage[TW.Meta]).toEqual({ event: "Greeter::Message" });
 
   const fetch = createFetchHandler(
-    createServiceRegistry([
+    createNodeRegistry([
       Promise.resolve({ Greeter, Biller, onGreeterMessage }),
     ]),
     { apiKey },
@@ -114,7 +110,7 @@ test("serves actor event handlers with GET under /tw/<Actor>/<handler>", async (
     });
 
   const fetch = createFetchHandler(
-    createServiceRegistry([
+    createNodeRegistry([
       Promise.resolve({ Greeter, Biller, onGreeterMessage }),
     ]),
     { apiKey },
@@ -172,7 +168,7 @@ test("dispatches stream signal events to registered handlers without waiting", a
     });
 
   const fetch = createFetchHandler(
-    createServiceRegistry([
+    createNodeRegistry([
       Promise.resolve({ Greeter, Biller, hello, onGreeterMessage }),
     ]),
     { apiKey },
@@ -216,7 +212,7 @@ test("ignores non-Event objects yielded with signal shape", async () => {
     });
 
   const fetch = createFetchHandler(
-    createServiceRegistry([
+    createNodeRegistry([
       Promise.resolve({ Greeter, Biller, hello, onGreeterMessage }),
     ]),
     { apiKey },
@@ -247,7 +243,7 @@ test("returns the stream final value instead of a yielded result event", async (
     });
 
   const fetch = createFetchHandler(
-    createServiceRegistry([Promise.resolve({ streamed })]),
+    createNodeRegistry([Promise.resolve({ streamed })]),
     { apiKey },
   );
 
@@ -274,7 +270,7 @@ test("rejects requests without the configured API key", async () => {
     });
 
   const fetch = createFetchHandler(
-    createServiceRegistry([Promise.resolve({ Greeter, hello })]),
+    createNodeRegistry([Promise.resolve({ Greeter, hello })]),
     { apiKey },
   );
 
@@ -300,7 +296,7 @@ test("exports Bun.serve routes for service dispatch", async () => {
     });
 
   const routes = await createRoutes(
-    createServiceRegistry([Promise.resolve({ Greeter, hello })]),
+    createNodeRegistry([Promise.resolve({ Greeter, hello })]),
     { apiKey },
   );
 
@@ -332,7 +328,7 @@ test("exports actor event handlers as concrete Bun.serve routes", async () => {
     });
 
   const routes = await createRoutes(
-    createServiceRegistry([
+    createNodeRegistry([
       Promise.resolve({ Greeter, Biller, onGreeterMessage }),
     ]),
     { apiKey },

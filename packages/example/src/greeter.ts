@@ -1,4 +1,4 @@
-import { Actor, Event, Step } from "@taskwish/core";
+import { Actor, Event, Step } from "taskwish";
 
 export const { Greeter } = Actor("Greeter").def(
   Event("Message", { name: "string" }),
