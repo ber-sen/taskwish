@@ -249,7 +249,7 @@ describe("Actor", () => {
     ).toEqual("invoice: inv-1, amount: 99");
   });
 
-  test("def — injects Event scope into behavior handlers", async () => {
+  test("def — does not inject EventKind into behavior handlers", async () => {
     const { Biller } = Actor("Biller").def(
       Event("InvoicePaid", {
         invoiceId: "string",
@@ -264,7 +264,9 @@ describe("Actor", () => {
       .input({ invoiceId: "string" })
 
       .run(function () {
-        expect(typeof this.InvoicePaid.emit).toEqual("function");
+        // @ts-expect-error event kinds are internal metadata, not user scope
+        this.InvoicePaid;
+        expect("InvoicePaid" in this).toEqual(false);
         return `processed: ${this.input.invoiceId}`;
       });
 
@@ -288,7 +290,7 @@ describe("Actor", () => {
       .input({ invoiceId: "string", amount: "number" })
 
       .run(async function* () {
-        yield* this.InvoicePaid.emit({
+        yield this.signal("Biller::InvoicePaid", {
           invoiceId: this.input.invoiceId,
           amount: this.input.amount,
           customer: "alice",
@@ -335,7 +337,7 @@ describe("Actor", () => {
       .input({ invoiceId: "string", amount: "number" })
 
       .run(async function* () {
-        yield* this.InvoicePaid.emit({
+        yield this.signal("Biller::InvoicePaid", {
           invoiceId: this.input.invoiceId,
           amount: this.input.amount,
           customer: "alice",

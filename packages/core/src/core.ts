@@ -56,7 +56,11 @@ export namespace TW {
       ? N
       : K;
 
-  export type Scope<S> = S & {
+  type StripEventKinds<S> = {
+    [K in keyof S as S[K] extends EventKind<any, any, any> ? never : K]: S[K];
+  };
+
+  export type Scope<S> = StripEventKinds<S> & {
     self: <Return = any>(
       input: S extends Record<any, any>
         ? S["input"] extends Record<any, any>

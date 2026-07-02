@@ -728,19 +728,29 @@ export function buildScope(
 ): Scope {
   const registry = new Map<unknown, unknown>();
   const eventNames = new Map<string, string>();
+  const userExtra: Record<string | symbol, unknown> = {};
+
   for (const [key, value] of Object.entries(extra)) {
-    if (
+    const isEventKind =
       value !== null &&
       typeof value === "object" &&
       TW.Name in value &&
-      "emit" in value
-    ) {
+      "emit" in value;
+
+    if (isEventKind) {
       const name = (value as Record<string | symbol, unknown>)[TW.Name];
       if (typeof name === "string") eventNames.set(key, name);
+    } else {
+      userExtra[key] = value;
     }
   }
+
+  for (const key of Object.getOwnPropertySymbols(extra)) {
+    userExtra[key] = extra[key];
+  }
+
   return {
-    ...extra,
+    ...userExtra,
     input: inputMode === "args" ? args : args[0],
     signal<T extends string, D extends Record<string, unknown>>(
       type: T,
