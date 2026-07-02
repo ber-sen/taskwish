@@ -308,15 +308,15 @@ describe("Actor", () => {
 
     const emitted = yields.find(
       (value) =>
-        value instanceof TW.Event &&
-        value["->"] === "Biller::InvoicePaid",
-    ) 
+        value instanceof TW.Event && value["->"] === "Biller::InvoicePaid",
+    );
 
     expect(emitted).toBeInstanceOf(TW.Event);
     expect(emitted).toMatchObject({
       "->": "Biller::InvoicePaid",
-      id: null,
-      data: { invoiceId: "inv-1", amount: 100, customer: "alice" },
+      invoiceId: "inv-1",
+      amount: 100,
+      customer: "alice",
     });
   });
 
@@ -380,15 +380,15 @@ describe("Actor", () => {
 
     const invoicePaid = emitted.find(
       (value) =>
-        value instanceof TW.Event &&
-        value["->"] === "Biller::InvoicePaid",
-    ) 
+        value instanceof TW.Event && value["->"] === "Biller::InvoicePaid",
+    );
 
     expect(invoicePaid).toBeInstanceOf(TW.Event);
     expect(invoicePaid).toMatchObject({
       "->": "Biller::InvoicePaid",
-      id: null,
-      data: { invoiceId: "inv-1", amount: 100, customer: "alice" },
+      invoiceId: "inv-1",
+      amount: 100,
+      customer: "alice",
     });
     expect(
       await onBillerInvoicePaid({
