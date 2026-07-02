@@ -74,10 +74,10 @@ describe("Action", () => {
     }
 
     expect(yields).toEqual([
-      { "->": "hello", input: { name: "World" } },
-      { "->": "hello.fistStep", result: 5 },
-      { "->": "hello.secondStep", result: true },
-      { "->": "hello", result: true },
+      { ">>": "hello", input: { name: "World" } },
+      { ">>": "hello.fistStep", result: 5 },
+      { ">>": "hello.secondStep", result: true },
+      { ">>": "hello", result: true },
     ]);
   });
 
@@ -183,13 +183,13 @@ describe("Action", () => {
       yields.push(v);
     }
     expect(yields).toEqual([
-      { "->": "mixed", input: { name: "World" } },
-      { "->": "mixed.first", result: 42 },
+      { ">>": "mixed", input: { name: "World" } },
+      { ">>": "mixed.first", result: 42 },
       "x",
       "y",
-      { "->": "mixed.stream", result: "Y" },
-      { "->": "mixed.third", result: true },
-      { "->": "mixed", result: true },
+      { ">>": "mixed.stream", result: "Y" },
+      { ">>": "mixed.third", result: true },
+      { ">>": "mixed", result: true },
     ]);
     expect(await mixed({ name: "World" })).toEqual(true);
   });
@@ -226,10 +226,10 @@ describe("Action", () => {
     }
 
     expect(yields).toEqual([
-      { "->": "failing", input: { name: "World" } },
-      { "->": "failing.first", result: 1 },
-      { "->": "failing.bad", error: boom },
-      { "->": "failing", error: boom },
+      { ">>": "failing", input: { name: "World" } },
+      { ">>": "failing.first", result: 1 },
+      { ">>": "failing.bad", error: boom },
+      { ">>": "failing", error: boom },
     ]);
     expect(thrown).toBe(boom);
   });
@@ -253,10 +253,40 @@ describe("Action", () => {
 
     expect(logged).toEqual([
       "",
-      formatEvent({ "->": "healthz", input: undefined }),
-      formatEvent({ "->": "healthz", result: { status: "ok" } }),
+      formatEvent({ ">>": "healthz", input: undefined }),
+      formatEvent({ ">>": "healthz", result: { status: "ok" } }),
       "",
     ]);
+  });
+
+  test("Logger — formats cyclic objects without recursing forever", async () => {
+    const cyclic: Record<string, unknown> = { name: "cycle" };
+    cyclic.self = cyclic;
+
+    expect(formatEvent({ ">>": "cyclic", result: cyclic })).toBe(
+      '\x1b[2m{\x1b[22m \x1b[2m">>": \x1b[22m"\x1b[1mcyclic\x1b[22m", \x1b[2m"result": \x1b[22m{ "name": "cycle", "self": "[Circular]" } \x1b[2m}\x1b[22m',
+    );
+  });
+
+  test("Logger — uses custom toJSON representations", async () => {
+    const page = {
+      url: "https://example.com",
+      toJSON() {
+        return "page";
+      },
+    };
+
+    expect(formatEvent({ ">>": "page", result: page })).toBe(
+      '\x1b[2m{\x1b[22m \x1b[2m">>": \x1b[22m"\x1b[1mpage\x1b[22m", \x1b[2m"result": \x1b[22m"page" \x1b[2m}\x1b[22m',
+    );
+  });
+
+  test("Logger — limits nested object depth", async () => {
+    const nested = { a: { b: { c: { d: "hidden" } } } };
+
+    expect(formatEvent({ ">>": "nested", result: nested })).toBe(
+      '\x1b[2m{\x1b[22m \x1b[2m">>": \x1b[22m"\x1b[1mnested\x1b[22m", \x1b[2m"result": \x1b[22m{ "a": { "b": { "c": "[Object]" } } } \x1b[2m}\x1b[22m',
+    );
   });
 
   test("Logger — stream also logs", async () => {
@@ -284,10 +314,10 @@ describe("Action", () => {
 
     expect(logged).toEqual(
       yields.flatMap((v) => {
-        if (typeof v !== "object" || v === null || !("->" in (v as object)))
+        if (typeof v !== "object" || v === null || !(">>" in (v as object)))
           return [v];
         const e = v as Record<string, unknown>;
-        const action = isActionEvent(e["->"] as string);
+        const action = isActionEvent(e[">>"] as string);
         const out = formatEvent(e);
         const items: unknown[] = [];
         if (action && "input" in e) items.push("");
@@ -325,10 +355,10 @@ describe("Action", () => {
 
     expect(logged).toEqual([
       "",
-      formatEvent({ "->": "compute", input: { value: 3 } }),
-      formatEvent({ "->": "compute.double", result: 6 }),
-      formatEvent({ "->": "compute.positive", result: true }),
-      formatEvent({ "->": "compute", result: true }),
+      formatEvent({ ">>": "compute", input: { value: 3 } }),
+      formatEvent({ ">>": "compute.double", result: 6 }),
+      formatEvent({ ">>": "compute.positive", result: true }),
+      formatEvent({ ">>": "compute", result: true }),
       "",
     ]);
   });
@@ -876,17 +906,17 @@ describe("Action", () => {
       values.push(v);
     }
     expect(values).toEqual([
-      { "->": "greet", input: { name: "hello" } },
+      { ">>": "greet", input: { name: "hello" } },
       "hello",
       "HELLO",
-      { "->": "greet", result: undefined },
+      { ">>": "greet", result: undefined },
     ]);
   });
 
   test("stream completion returns the action result", async () => {
     const { compute } = Action("compute")
       .input({ value: "number" })
-      
+
       .run(
         Step("double", function () {
           return this.input.value * 2;

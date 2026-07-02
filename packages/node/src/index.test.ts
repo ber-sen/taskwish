@@ -1,15 +1,11 @@
 import { expect, test } from "bun:test";
-import { Action, Actor, Event, Step, TW } from "@taskwish/core";
-import {
-  createFetchHandler,
-  createRoutes,
-  createServiceRegistry,
-} from "./index";
+import { Actor, Event, Step, TW } from "@taskwish/core";
+import { createFetchHandler, createNodeRegistry, createRoutes } from "./index";
 
 const apiKey = "test-api-key";
 const auth = { Authorization: `Bearer ${apiKey}` };
 
-test("serves command actions with POST under /tw/<Actor>::<method>", async () => {
+test("serves command actions with POST under /tw/<Actor>/<method>", async () => {
   const { Greeter } = Actor("Greeter");
 
   const { hello } = Greeter()
@@ -22,12 +18,12 @@ test("serves command actions with POST under /tw/<Actor>::<method>", async () =>
     });
 
   const fetch = createFetchHandler(
-    createServiceRegistry([Promise.resolve({ Greeter, hello })]),
+    createNodeRegistry([Promise.resolve({ Greeter, hello })]),
     { apiKey },
   );
 
   const response = await fetch(
-    new Request("http://localhost/tw/Greeter::hello", {
+    new Request("http://localhost/tw/Greeter/hello", {
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Ada" }),
@@ -38,7 +34,7 @@ test("serves command actions with POST under /tw/<Actor>::<method>", async () =>
   expect(await response.text()).toBe("Hello Ada");
 });
 
-test("serves command actions with GET under /tw/<Actor>::<method>", async () => {
+test("serves command actions with GET under /tw/<Actor>/<method>", async () => {
   const { Greeter } = Actor("Greeter");
 
   const { hello } = Greeter()
@@ -51,12 +47,12 @@ test("serves command actions with GET under /tw/<Actor>::<method>", async () => 
     });
 
   const fetch = createFetchHandler(
-    createServiceRegistry([Promise.resolve({ Greeter, hello })]),
+    createNodeRegistry([Promise.resolve({ Greeter, hello })]),
     { apiKey },
   );
 
   const response = await fetch(
-    new Request("http://localhost/tw/Greeter::hello?name=Ada", {
+    new Request("http://localhost/tw/Greeter/hello?name=Ada", {
       headers: auth,
     }),
   );
@@ -65,7 +61,7 @@ test("serves command actions with GET under /tw/<Actor>::<method>", async () => 
   expect(await response.text()).toBe("Hello Ada");
 });
 
-test("serves actor event handlers with POST under /tw/<Actor>::<handler>", async () => {
+test("serves actor event handlers with POST under /tw/<Actor>/<handler>", async () => {
   const { Greeter } = Actor("Greeter").def(
     Event("Message", { content: "string" }),
   );
@@ -81,14 +77,14 @@ test("serves actor event handlers with POST under /tw/<Actor>::<handler>", async
   expect(onGreeterMessage[TW.Meta]).toEqual({ event: "Greeter::Message" });
 
   const fetch = createFetchHandler(
-    createServiceRegistry([
+    createNodeRegistry([
       Promise.resolve({ Greeter, Biller, onGreeterMessage }),
     ]),
     { apiKey },
   );
 
   const response = await fetch(
-    new Request("http://localhost/tw/Biller::on_greeter_message", {
+    new Request("http://localhost/tw/Biller/on-greeter-message", {
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ content: "hi" }),
@@ -99,7 +95,7 @@ test("serves actor event handlers with POST under /tw/<Actor>::<handler>", async
   expect(await response.json()).toEqual({ received: "hi" });
 });
 
-test("serves actor event handlers with GET under /tw/<Actor>::<handler>", async () => {
+test("serves actor event handlers with GET under /tw/<Actor>/<handler>", async () => {
   const { Greeter } = Actor("Greeter").def(
     Event("Message", { content: "string" }),
   );
@@ -114,14 +110,14 @@ test("serves actor event handlers with GET under /tw/<Actor>::<handler>", async 
     });
 
   const fetch = createFetchHandler(
-    createServiceRegistry([
+    createNodeRegistry([
       Promise.resolve({ Greeter, Biller, onGreeterMessage }),
     ]),
     { apiKey },
   );
 
   const response = await fetch(
-    new Request("http://localhost/tw/Biller::on_greeter_message?content=hi", {
+    new Request("http://localhost/tw/Biller/on-greeter-message?content=hi", {
       headers: auth,
     }),
   );
@@ -172,14 +168,14 @@ test("dispatches stream signal events to registered handlers without waiting", a
     });
 
   const fetch = createFetchHandler(
-    createServiceRegistry([
+    createNodeRegistry([
       Promise.resolve({ Greeter, Biller, hello, onGreeterMessage }),
     ]),
     { apiKey },
   );
 
   const response = await fetch(
-    new Request("http://localhost/tw/Greeter::hello", {
+    new Request("http://localhost/tw/Greeter/hello", {
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Ada" }),
@@ -192,6 +188,48 @@ test("dispatches stream signal events to registered handlers without waiting", a
   releaseHandler();
 });
 
+test("ignores non-Event objects yielded with signal shape", async () => {
+  const { Greeter } = Actor("Greeter").def(
+    Event("Message", { content: "string" }),
+  );
+  const { Biller } = Actor("Biller").use(Greeter);
+  const received: string[] = [];
+
+  const { hello } = Greeter()
+    .on("Command", "hello")
+
+    .run(async function* () {
+      yield { "->": "Greeter::Message", content: "Ada" };
+
+      return "Hello Ada";
+    });
+
+  const { onGreeterMessage } = Biller()
+    .on("Greeter::Message")
+
+    .run(function () {
+      received.push(this.input.content);
+    });
+
+  const fetch = createFetchHandler(
+    createNodeRegistry([
+      Promise.resolve({ Greeter, Biller, hello, onGreeterMessage }),
+    ]),
+    { apiKey },
+  );
+
+  const response = await fetch(
+    new Request("http://localhost/tw/Greeter/hello", {
+      method: "POST",
+      headers: auth,
+    }),
+  );
+
+  expect(response.status).toBe(200);
+  expect(await response.text()).toBe("Hello Ada");
+  expect(received).toEqual([]);
+});
+
 test("returns the stream final value instead of a yielded result event", async () => {
   const { Greeter } = Actor("Greeter");
 
@@ -199,18 +237,18 @@ test("returns the stream final value instead of a yielded result event", async (
     .on("Command", "streamed")
 
     .run(async function* () {
-      yield { "->": "Greeter::streamed", result: "yielded result" };
+      yield { ">>": "Greeter::streamed", result: "yielded result" };
 
       return "final value";
     });
 
   const fetch = createFetchHandler(
-    createServiceRegistry([Promise.resolve({ streamed })]),
+    createNodeRegistry([Promise.resolve({ streamed })]),
     { apiKey },
   );
 
   const response = await fetch(
-    new Request("http://localhost/tw/Greeter::streamed", {
+    new Request("http://localhost/tw/Greeter/streamed", {
       method: "POST",
       headers: auth,
     }),
@@ -232,12 +270,12 @@ test("rejects requests without the configured API key", async () => {
     });
 
   const fetch = createFetchHandler(
-    createServiceRegistry([Promise.resolve({ Greeter, hello })]),
+    createNodeRegistry([Promise.resolve({ Greeter, hello })]),
     { apiKey },
   );
 
   const response = await fetch(
-    new Request("http://localhost/tw/Greeter::hello", {
+    new Request("http://localhost/tw/Greeter/hello", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Ada" }),
@@ -258,16 +296,16 @@ test("exports Bun.serve routes for service dispatch", async () => {
     });
 
   const routes = await createRoutes(
-    createServiceRegistry([Promise.resolve({ Greeter, hello })]),
+    createNodeRegistry([Promise.resolve({ Greeter, hello })]),
     { apiKey },
   );
 
-  const route = routes["/tw/Greeter::hello"];
+  const route = routes["/tw/Greeter/hello"];
   expect(route).toBeDefined();
   expect(routes["/tw/:target"]).toBeUndefined();
 
   const response = await route.POST!(
-    new Request("http://localhost/tw/Greeter::hello", {
+    new Request("http://localhost/tw/Greeter/hello", {
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Ada" }),
@@ -290,18 +328,18 @@ test("exports actor event handlers as concrete Bun.serve routes", async () => {
     });
 
   const routes = await createRoutes(
-    createServiceRegistry([
+    createNodeRegistry([
       Promise.resolve({ Greeter, Biller, onGreeterMessage }),
     ]),
     { apiKey },
   );
 
-  const route = routes["/tw/Biller::on_greeter_message"];
+  const route = routes["/tw/Biller/on-greeter-message"];
   expect(route).toBeDefined();
   expect(routes["/tw/:target"]).toBeUndefined();
 
   const response = await route.POST!(
-    new Request("http://localhost/tw/Biller::on_greeter_message", {
+    new Request("http://localhost/tw/Biller/on-greeter-message", {
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ content: "hi" }),

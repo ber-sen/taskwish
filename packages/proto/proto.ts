@@ -1,7 +1,7 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
 export namespace TWProto {
-  export type PeerName = string;
+  export type NodeName = string;
 
   export type Capability = [
     type: "$" | "&" | "->" | (string & {}),
@@ -9,11 +9,11 @@ export namespace TWProto {
   ];
 
   export type Connect<
-    Name extends PeerName,
+    Name extends NodeName,
     Capabilities extends Capability[],
   > = {
     $: "connect";
-    peer: Name;
+    node: Name;
     capabilities: Capabilities;
   };
 
@@ -63,7 +63,7 @@ export namespace TWProto {
     };
   };
 
-  export interface Peer<Name extends PeerName> {
+  export interface Node<Name extends NodeName> {
     /* Capability State Timeline 
     
     - t0  (initial state)
@@ -74,7 +74,7 @@ export namespace TWProto {
         ["->", "Message"]
       ]
 
-    - t1  (peer offline)
+    - t1  (node offline)
 
       capabilities ---> []
       
@@ -83,9 +83,9 @@ export namespace TWProto {
 
     /* Connect
 
-    Peer A ---> Orchestator 
+    Node A ---> Orchestator 
       
-      Connect<"PeerA", [
+      Connect<"NodeA", [
         ["$", "send_email"],
         ["$", "generate_report"],
         ["&", "Playwright"],
@@ -93,14 +93,14 @@ export namespace TWProto {
       ]>
       
     */
-    connect(peer: Peer<any>): Promise<Connect<Name, Capability[]>>;
+    connect(node: Node<any>): Promise<Connect<Name, Capability[]>>;
 
     /* Signal
     
-    Peer A -> Signal<{ "->": "Email", subject: "Welcome", text: "Hi" }>
+    Node A -> Signal<{ "->": "Email", subject: "Welcome", text: "Hi" }>
 
                  +---------+
-                 | Peer A  |
+                 | Node A  |
                  +----+----+
                       |
                     (SIG1)
@@ -115,7 +115,7 @@ export namespace TWProto {
           +-----------+-----------+
           |                       |
      +----v----+             +----v----+
-     | Peer B  |             | Peer C  |
+     | Node B  |             | Node C  |
      +----+----+             +----+----+
           |                       |
     +-----v-----+         +-------v--------+
@@ -137,14 +137,14 @@ export namespace TWProto {
 
     /* Run task
 
-    Peer A → Task<[
-      { $: "transform_data", dataId: "d_001" },    // Peer C
-      { $: "validate_data", schemaId: "s_01" },    // Peer A
-      { $: "send_report", reportId: "r_2026" }     // Peer C
+    Node A → Task<[
+      { $: "transform_data", dataId: "d_001" },    // Node C
+      { $: "validate_data", schemaId: "s_01" },    // Node A
+      { $: "send_report", reportId: "r_2026" }     // Node C
     ]>
 
       +--------+                  +-------------+              +--------+
-      | Peer A |                  | Coordinator |              | Peer C |
+      | Node A |                  | Coordinator |              | Node C |
       +--------+                  +-------------+              +--------+
                   handoff(Task)                                  
           +----------------------------->
@@ -174,7 +174,7 @@ export namespace TWProto {
   /* Fulfillment
     
     Task      : SIG2
-    Sender    : Peer A
+    Sender    : Node A
     State     : executing
 
     ────────── Steps ──────────

@@ -1,13 +1,5 @@
-import {
-  buildScope,
-  runAction,
-  tapWith,
-  type ActionFactory,
-} from "./action";
-import type {
-  ActionMeta,
-  ValidateActionMeta,
-} from "./action/meta";
+import { buildScope, runAction, tapWith, type ActionFactory } from "./action";
+import type { ActionMeta, ValidateActionMeta } from "./action/meta";
 import { Event } from "./event";
 import {
   CamelCase,
@@ -117,13 +109,12 @@ interface HttpBody<
   };
 }
 
-
-
 // ── Trait method implementation ───────────────────────────────────────────────
 
 /** Extract the method part from a trait-method name: "::log" → "log" */
-type TraitMethodPart<T extends string> =
-  T extends `::${infer M}` ? ToCamelCase<M> : never;
+type TraitMethodPart<T extends string> = T extends `::${infer M}`
+  ? ToCamelCase<M>
+  : never;
 
 /**
  * Pull the first-argument type out of a trait action's handler.
@@ -132,25 +123,23 @@ type TraitMethodPart<T extends string> =
  * Uses `Parameters<A>` rather than an `infer I` pattern so that
  * `() => R` correctly yields `void` instead of `unknown`.
  */
-type ExtractTraitInput<A> =
-  A extends (...args: any[]) => any
-    ? Parameters<A> extends []
-      ? void
-      : Parameters<A>[0]
-    : void;
+type ExtractTraitInput<A> = A extends (...args: any[]) => any
+  ? Parameters<A> extends []
+    ? void
+    : Parameters<A>[0]
+  : void;
 
 /** Helper: `(input: I) => Promise<R>` when I is known, `() => Promise<R>` when void. */
-type TraitActionHandler<I, R> =
-  [I] extends [void] ? () => Promise<R> : (input: I) => Promise<R>;
+type TraitActionHandler<I, R> = [I] extends [void]
+  ? () => Promise<R>
+  : (input: I) => Promise<R>;
 
 /**
  * Extract the qualified action name carried inside a trait action's stream events.
  * e.g. TW.Action<"::read", …> → "::read".
  */
 type ExtractTraitQualifiedName<A> =
-  ExtractActionName<A> extends `::${string}`
-    ? ExtractActionName<A>
-    : never;
+  ExtractActionName<A> extends `::${string}` ? ExtractActionName<A> : never;
 
 /**
  * Derive all valid qualified method strings for a trait instance, e.g.
@@ -158,8 +147,9 @@ type ExtractTraitQualifiedName<A> =
  *     → "::read" | "::write"
  */
 type AllTraitMethods<TraitInstance extends Record<string, any>> = {
-  [M in keyof TraitInstance & string]:
-    ExtractTraitQualifiedName<TraitInstance[M]>;
+  [M in keyof TraitInstance & string]: ExtractTraitQualifiedName<
+    TraitInstance[M]
+  >;
 }[keyof TraitInstance & string];
 
 /**
@@ -174,8 +164,10 @@ interface TraitMethodFactoryFromTrait<
   run<
     const H extends (
       this: TW.Scope<
-        Pretty<([Input] extends [void] ? {} : { input: Input }) & BaseScope<Ctx>>
-      >
+        Pretty<
+          ([Input] extends [void] ? {} : { input: Input }) & BaseScope<Ctx>
+        >
+      >,
     ) => any,
   >(
     handler: H,
@@ -196,9 +188,10 @@ type TraitMethodFactoryFor<
   TraitInstance extends Record<string, any>,
   K extends `::${string}`,
   Ctx extends Record<any, any>,
-> = TraitMethodPart<K> extends infer M extends keyof TraitInstance
-  ? TraitMethodFactoryFromTrait<K, Ctx, ExtractTraitInput<TraitInstance[M]>>
-  : never;
+> =
+  TraitMethodPart<K> extends infer M extends keyof TraitInstance
+    ? TraitMethodFactoryFromTrait<K, Ctx, ExtractTraitInput<TraitInstance[M]>>
+    : never;
 
 /**
  * Returned by `Actor("S3Storage")(storage)` — `.on()` is constrained to the
@@ -241,20 +234,14 @@ interface TraitMethodFactory<
 > {
   use(): this;
 
-  input<const Schema>(
-    schema?: Schema,
-  ): TraitMethodFactory<
+  input<const Schema>(schema?: Schema): TraitMethodFactory<
     TraitMethod,
     Omit<Ctx, "scope"> & {
       scope: Pretty<InferTriggerScope<Schema> & BaseScope<Ctx>>;
     }
   >;
 
-  run<
-    const H extends (
-      this: TW.Scope<Pretty<BaseScope<Ctx>>>
-    ) => any,
-  >(
+  run<const H extends (this: TW.Scope<Pretty<BaseScope<Ctx>>>) => any>(
     handler: H,
   ): {
     [K in TraitMethodPart<TraitMethod>]: TW.Action<
@@ -566,18 +553,6 @@ function flattenHttpInput(
   return flat;
 }
 
-function event<T extends Record<string | symbol, unknown>>(
-  obj: T,
-): T {
-  return obj;
-}
-
-function taskwishEvent<T extends Record<string | symbol, unknown>>(
-  obj: T,
-): T & { [TW.$]: "event" } {
-  return { [TW.$]: "event", ...obj };
-}
-
 function scopeEventKind(
   actorName: string,
   eventName: string,
@@ -588,11 +563,11 @@ function scopeEventKind(
     ...eventKind,
     [TW.Name]: qualifiedEventName,
     emit: async function* (eventData: unknown) {
-      const emitted = taskwishEvent({
-        "->": qualifiedEventName,
+      const emitted = new TW.Event(qualifiedEventName, {
         id: null,
         data: eventData,
       });
+
       yield emitted;
       return emitted;
     },
@@ -811,7 +786,7 @@ function createBehavior(
                   const request = input;
                   const { args: modArgs } = mod([request]);
                   const rawInput = modArgs[0] as Record<string, unknown>;
-                  yield event({ "->": eventName, input: rawInput });
+                  yield { ">>": eventName, input: rawInput };
                   const flatInput = flattenHttpInput(rawInput);
                   let result: unknown;
                   try {
@@ -829,10 +804,10 @@ function createBehavior(
                     }
                     result = item.value;
                   } catch (error) {
-                    yield event({ "->": eventName, error });
+                    yield { ">>": eventName, error };
                     throw error;
                   }
-                  yield event({ "->": eventName, result: toResponse(result) });
+                  yield { ">>": eventName, result: toResponse(result) };
                 }
 
                 function fetchStream(input: Request) {
@@ -884,7 +859,6 @@ function createBehavior(
 
   return self as unknown as Behavior<any>;
 }
-
 
 /**
  * The full return type of Actor(), including:
@@ -952,7 +926,9 @@ function collectActions(plugin: unknown): Record<string, unknown> {
   return incoming;
 }
 
-function isEventKind(value: unknown): value is Record<string | symbol, unknown> {
+function isEventKind(
+  value: unknown,
+): value is Record<string | symbol, unknown> {
   return (
     value !== null &&
     typeof value === "object" &&
@@ -1005,7 +981,9 @@ function collectEvents(plugin: unknown): Record<string, unknown> {
   if (plugin === null || typeof plugin !== "object") return {};
 
   const incoming: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(plugin as Record<string, unknown>)) {
+  for (const [key, value] of Object.entries(
+    plugin as Record<string, unknown>,
+  )) {
     if (!isEventKind(value)) continue;
     const eventName = value[TW.Name];
     incoming[key] = value;
@@ -1064,13 +1042,17 @@ function makeActorBuilder(
 
   const getBehavior = () => {
     if (!_behavior)
-      _behavior = createBehavior(actorName, {
-        ...builtInEventScope,
-        ...actorScope,
-      }, async () => ({
-        ...builtInEventScope,
-        ...(await resolveActorScope()),
-      }));
+      _behavior = createBehavior(
+        actorName,
+        {
+          ...builtInEventScope,
+          ...actorScope,
+        },
+        async () => ({
+          ...builtInEventScope,
+          ...(await resolveActorScope()),
+        }),
+      );
     return _behavior;
   };
 
@@ -1143,9 +1125,9 @@ function makeActorBuilder(
     [actorName]: createActorFactory(
       { ...builtInEventScope, ...actorScope },
       async () => ({
-          ...builtInEventScope,
-          ...(await resolveActorScope()),
-        }),
+        ...builtInEventScope,
+        ...(await resolveActorScope()),
+      }),
       () => actorScope,
     ),
   };

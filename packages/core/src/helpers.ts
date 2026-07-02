@@ -286,13 +286,13 @@ export type PascalCase<S extends string> =
 
 /**
  * Extract the action name from a TW.Action by inspecting its `stream` return
- * type.  The only Yield member that carries both `"->"` and `"input"` fields is
+ * type.  The only Yield member that carries both `">>"` and `"input"` fields is
  * the action-input event, so that discriminator reliably extracts the name.
  */
 export type ExtractActionName<T> = T extends {
   stream(...args: any[]): AsyncGenerator<infer Yield, any, any>;
 }
-  ? Yield extends { "->": infer N extends string; input: any }
+  ? Yield extends { ">>": infer N extends string; input: any }
     ? N
     : never
   : never;

@@ -78,12 +78,10 @@ export function Event<
     [TW.Name]: runtimeName,
     [TW.Meta]: null,
     emit: async function* (eventData: unknown) {
-      const event = {
-        [TW.$]: "event",
-        "->": eventKind[TW.Name],
+      const event = new TW.Event(eventKind[TW.Name], {
         id: null,
         data: eventData,
-      };
+      });
       yield event;
       return event;
     },

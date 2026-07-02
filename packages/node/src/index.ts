@@ -8,8 +8,8 @@ type Action = ((...args: unknown[]) => unknown) & {
   [TW.Meta]?: unknown;
 };
 
-export interface ServerConfig {
-  services?: readonly ServiceReference[];
+export interface NodeConfig {
+  workspace?: readonly ServiceReference[];
   apps?: readonly unknown[];
   apiKey?: string;
   port?: number;
@@ -18,12 +18,12 @@ export interface ServerConfig {
   development?: boolean;
 }
 
-export interface ServiceRegistry {
+export interface NodeRegistry {
   actions: Map<string, Action>;
   eventHandlers: Map<string, Action[]>;
 }
 
-export type ServerRoutes = Record<
+export type NodeRoutes = Record<
   string,
   {
     GET?: (request: Request) => Response | Promise<Response>;
@@ -31,9 +31,10 @@ export type ServerRoutes = Record<
   }
 >;
 
-export type TaskwishServer = Bun.Server<any> & {
+export type TaskwishNode = Bun.Server<any> & {
+  name: string;
   apiKey: string;
-  routes: ServerRoutes;
+  routes: NodeRoutes;
 };
 
 const JSON_HEADERS = {
@@ -48,7 +49,7 @@ function normalizePrefix(prefix: string): string {
 }
 
 function routePathForAction(prefix: string, actionName: string): string {
-  return `${prefix}/${actionName}`;
+  return `${prefix}/${actionName.replace("::", "/").replace(/_/g, "-")}`;
 }
 
 function generateApiKey(): string {
@@ -120,7 +121,8 @@ function collectExports(
   seen.add(value);
 
   if (isAction(value)) {
-    actions.set(value[TW.Name]!, value);
+    const actionName = (value as Action)[TW.Name];
+    if (typeof actionName === "string") actions.set(actionName, value);
     return;
   }
 
@@ -129,9 +131,9 @@ function collectExports(
   }
 }
 
-export async function createServiceRegistry(
+export async function createNodeRegistry(
   services: readonly ServiceReference[] = [],
-): Promise<ServiceRegistry> {
+): Promise<NodeRegistry> {
   const actions = new Map<string, Action>();
   const seen = new WeakSet<object>();
 
@@ -185,15 +187,14 @@ function json(status: number, body: unknown): Response {
 
 function isTaskwishEvent(
   value: unknown,
-): value is Record<string | symbol, unknown> & { "->": string } {
+): value is TW.Event<string, any> {
   return (
-    isRecord(value) &&
-    value[TW.$] === "event" &&
-    typeof value["->"] === "string"
+    value instanceof TW.Event &&
+    typeof (value as unknown as Record<string, unknown>)["->"] === "string"
   );
 }
 
-function inputFromEvent(event: Record<string | symbol, unknown>): unknown {
+function inputFromEvent(event: TW.Event<string, any>): unknown {
   if ("data" in event) return event.data;
 
   const input: Record<string, unknown> = {};
@@ -206,7 +207,7 @@ function inputFromEvent(event: Record<string | symbol, unknown>): unknown {
 async function consumeAction(
   action: Action,
   args: unknown[],
-  registry: ServiceRegistry,
+  registry: NodeRegistry,
 ): Promise<unknown> {
   if (!action.stream) return action(...args);
 
@@ -220,8 +221,8 @@ async function consumeAction(
 }
 
 function dispatchEvent(
-  event: Record<string | symbol, unknown> & { "->": string },
-  registry: ServiceRegistry,
+  event: TW.Event<string, any>,
+  registry: NodeRegistry,
 ): void {
   const handlers = registry.eventHandlers.get(event["->"]) ?? [];
   const input = inputFromEvent(event);
@@ -235,7 +236,7 @@ function dispatchEvent(
 async function invoke(
   action: Action,
   request: Request,
-  registry: ServiceRegistry,
+  registry: NodeRegistry,
 ): Promise<Response> {
   const args = await parseInput(request);
   return responseFrom(await consumeAction(action, args, registry));
@@ -272,12 +273,12 @@ function errorResponse(error: unknown): Response {
 }
 
 export async function createRoutes(
-  registry: ServiceRegistry | Promise<ServiceRegistry>,
+  registry: NodeRegistry | Promise<NodeRegistry>,
   options: { prefix?: string; apiKey: string },
-): Promise<ServerRoutes> {
+): Promise<NodeRoutes> {
   const routePrefix = normalizePrefix(options.prefix ?? "/tw");
   const services = await registry;
-  const routes: ServerRoutes = {};
+  const routes: NodeRoutes = {};
 
   for (const [actionName, action] of services.actions) {
     const invokeRoute = async (request: Request) => {
@@ -298,7 +299,7 @@ export async function createRoutes(
 }
 
 export function createFetchHandler(
-  registry: Promise<ServiceRegistry>,
+  registry: Promise<NodeRegistry>,
   options: { prefix?: string; apiKey?: string } = {},
 ): (request: Request) => Promise<Response> {
   const apiKey = options.apiKey ?? generateApiKey();
@@ -324,11 +325,12 @@ export function createFetchHandler(
   };
 }
 
-export async function Server(
-  config: ServerConfig = {},
-): Promise<TaskwishServer> {
+export async function Node(
+  name: string,
+  config: NodeConfig = {},
+): Promise<TaskwishNode> {
   const apiKey = config.apiKey ?? generateApiKey();
-  const registry = createServiceRegistry(config.services);
+  const registry = createNodeRegistry(config.workspace);
   const routes = await createRoutes(registry, {
     prefix: config.prefix,
     apiKey,
@@ -344,5 +346,5 @@ export async function Server(
     },
   } as Parameters<typeof Bun.serve>[0]);
 
-  return Object.assign(server, { apiKey, routes }) as TaskwishServer;
+  return Object.assign(server, { name, apiKey, routes }) as TaskwishNode;
 }
