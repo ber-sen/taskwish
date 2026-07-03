@@ -314,9 +314,11 @@ describe("Actor", () => {
     expect(emitted).toBeInstanceOf(TW.Event);
     expect(emitted).toMatchObject({
       "->": "Biller::InvoicePaid",
-      invoiceId: "inv-1",
-      amount: 100,
-      customer: "alice",
+      data: {
+        invoiceId: "inv-1",
+        amount: 100,
+        customer: "alice",
+      },
     });
   });
 
@@ -386,9 +388,11 @@ describe("Actor", () => {
     expect(invoicePaid).toBeInstanceOf(TW.Event);
     expect(invoicePaid).toMatchObject({
       "->": "Biller::InvoicePaid",
-      invoiceId: "inv-1",
-      amount: 100,
-      customer: "alice",
+      data: {
+        invoiceId: "inv-1",
+        amount: 100,
+        customer: "alice",
+      },
     });
     expect(
       await onBillerInvoicePaid({
@@ -406,7 +410,9 @@ describe("Actor", () => {
       .on("Schedule", "0 9 * * 1-5")
 
       .run(function () {
-        return `${this.input.expression} fired at ${this.input.at.toISOString()}`;
+        return `${
+          this.input.expression
+        } fired at ${this.input.at.toISOString()}`;
       });
 
     type T = typeof onSchedule;
@@ -454,7 +460,7 @@ describe("Actor", () => {
     );
   });
 
-  test("GET — with schema and command, named action takes flat input and fetch returns Response", async () => {
+  test("GET — with schema and command, named action takes flat input and route metadata", async () => {
     const { InvoiceProvider } = Actor("InvoiceProvider").def(
       Event("InvoiceFetched", { id: "string", page: "string" }),
     );
@@ -599,59 +605,7 @@ describe("Actor", () => {
       },
     ]);
 
-    const fetchYields: any[] = [];
-    for await (const v of getInvoices.fetch.stream(
-      new Request("http://localhost/invoices/inv-42?page=2"),
-    )) {
-      fetchYields.push(v);
-    }
-    const fetchStreamJson = await fetchYields[3].result.text();
-
-    expect(fetchYields).toMatchObject([
-      {
-        ">>": "InvoiceProvider::get",
-        input: {
-          path: "/invoices/inv-42",
-          params: { id: "inv-42" },
-          query: { page: "2" },
-        },
-      },
-      {
-        ">>": "InvoiceProvider::get_invoices",
-        input: { id: "inv-42", page: "2" },
-      },
-      {
-        ">>": "InvoiceProvider::get_invoices",
-        result: { id: "inv-42", page: "2" },
-      },
-      { ">>": "InvoiceProvider::get", result: expect.any(Response) },
-    ]);
-    expect(JSON.parse(fetchStreamJson)).toEqual({ id: "inv-42", page: "2" });
-
-    const response = await getInvoices.fetch(
-      new Request("http://localhost/invoices/inv-42?page=2"),
-    );
-    expect(response).toBeInstanceOf(Response);
-    expect(await response.json()).toEqual({ id: "inv-42", page: "2" });
-  });
-
-  test("fetch — object result serialized as application/json", async () => {
-    const { InvoiceProvider } = Actor("InvoiceProvider");
-
-    const { getInvoice } = InvoiceProvider()
-      .on("GET", "/invoices/:id", { params: { id: "string" } })
-
-      .command("getInvoice")
-
-      .run(function () {
-        return { id: this.input.id, status: "paid" };
-      });
-
-    const response = await getInvoice.fetch(
-      new Request("http://localhost/invoices/inv-42"),
-    );
-    expect(response.headers.get("Content-Type")).toEqual("application/json");
-    expect(await response.json()).toEqual({ id: "inv-42", status: "paid" });
+    expect("fetch" in getInvoices).toBe(false);
   });
 
   test("NewEmail — input carries email fields", async () => {
@@ -770,16 +724,17 @@ describe("Actor", () => {
       },
       expect.objectContaining({
         "->": "Emitter::OrderPlaced",
-        orderId: "ord-1",
-        amount: 100,
+        data: {
+          orderId: "ord-1",
+          amount: 100,
+        },
       }),
       {
         ">>": "Emitter::emit.order",
-        result: expect.objectContaining({
-          "->": "Emitter::OrderPlaced",
+        result: {
           orderId: "ord-1",
           amount: 100,
-        }),
+        },
       },
       { ">>": "Emitter::emit.confirm", result: "placed: ord-1" },
       { ">>": "Emitter::emit", result: "placed: ord-1" },
@@ -898,7 +853,7 @@ describe("Actor", () => {
     await hello({ name: "Ada" });
 
     expect(logged).toContain(
-      formatEvent({ "->": "Greeter::Message", content: "Ada" }),
+      formatEvent({ "->": "Greeter::Message", data: { content: "Ada" } }),
     );
   });
 
@@ -1298,10 +1253,9 @@ describe("Actor", () => {
 
       expect(await run()).toEqual("pong");
       // `notAnAction` must NOT appear in actions scope at the type level
-      type actions =
-        typeof run extends TW.Action<any, any>
-          ? never // prevents unused-type-param error
-          : never;
+      type actions = typeof run extends TW.Action<any, any>
+        ? never // prevents unused-type-param error
+        : never;
       type Check = "notAnAction" extends keyof (typeof Caller extends {
         Caller: () => infer B;
       }
@@ -1350,8 +1304,9 @@ describe("Actor", () => {
     });
 
     test("actor implements trait — no-arg method produces no-arg action", async () => {
-      const { S3Logger } =
-        Actor("S3Logger").use(Trait<{ log: () => string }>());
+      const { S3Logger } = Actor("S3Logger").use(
+        Trait<{ log: () => string }>(),
+      );
 
       const { log } = S3Logger()
         .on("::log")

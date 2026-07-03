@@ -532,27 +532,6 @@ function makeBehaviorMod(
   return (args) => ({ args, scope: {} });
 }
 
-function toResponse(result: unknown): Response {
-  if (result instanceof Response) return result;
-  if (typeof result === "string")
-    return new Response(result, { headers: { "Content-Type": "text/plain" } });
-  return new Response(JSON.stringify(result), {
-    headers: { "Content-Type": "application/json" },
-  });
-}
-
-function flattenHttpInput(
-  raw: Record<string, unknown>,
-): Record<string, unknown> {
-  const flat: Record<string, unknown> = {};
-  if (raw.params && typeof raw.params === "object")
-    Object.assign(flat, raw.params);
-  if (raw.query && typeof raw.query === "object")
-    Object.assign(flat, raw.query);
-  if (raw.body && typeof raw.body === "object") Object.assign(flat, raw.body);
-  return flat;
-}
-
 function scopeEventKind(
   actorName: string,
   eventName: string,
@@ -781,46 +760,6 @@ function createBehavior(
                   return item.value;
                 }
 
-                async function* rawFetchStream(input: Request) {
-                  const resolvedInitialScope = await resolveInitialScope();
-                  const request = input;
-                  const { args: modArgs } = mod([request]);
-                  const rawInput = modArgs[0] as Record<string, unknown>;
-                  yield { ">>": eventName, input: rawInput };
-                  const flatInput = flattenHttpInput(rawInput);
-                  let result: unknown;
-                  try {
-                    const inner = runAction(
-                      qualifiedCmdName,
-                      buildScope("first", [flatInput], {
-                        ...resolvedInitialScope,
-                      }),
-                      handlers,
-                    );
-                    let item = await inner.next();
-                    while (!item.done) {
-                      yield item.value;
-                      item = await inner.next();
-                    }
-                    result = item.value;
-                  } catch (error) {
-                    yield { ">>": eventName, error };
-                    throw error;
-                  }
-                  yield { ">>": eventName, result: toResponse(result) };
-                }
-
-                function fetchStream(input: Request) {
-                  return tap(rawFetchStream(input));
-                }
-
-                async function fetchFn(input: Request) {
-                  const gen = tap(rawFetchStream(input));
-                  let last: any;
-                  for await (const event of gen) last = event;
-                  return last.result as Response;
-                }
-
                 const resolveMeta = () => ({
                   route: [
                     behavior,
@@ -835,7 +774,6 @@ function createBehavior(
                   [TW.Name]: qualifiedCmdName,
                   [TW.Meta]: resolveMeta(),
                   stream: cmdStream,
-                  fetch: Object.assign(fetchFn, { stream: fetchStream }),
                 });
                 const result = {
                   [cmdName]: action,

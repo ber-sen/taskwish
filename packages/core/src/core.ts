@@ -76,7 +76,7 @@ export namespace TW {
     >(
       type: T,
       data: EventKindData<S, T & string>,
-    ): Event<EventKindName<S, T & string>, EventKindData<S, T & string>>;
+    ): Event<EventKindName<S, T & string>, EventKindData<S, T & string>>["data"];
     get<T>(Cls: new (...args: any[]) => T): T;
   };
 
@@ -114,14 +114,7 @@ export namespace TW {
     stream: (
       ...args: Parameters<NoInfer<Handler>>
     ) => StreamReturn<Name, Handler>;
-  } & (Meta extends { route: [any, any, any] }
-      ? {
-          fetch: ((input: Request) => Promise<Response>) & {
-            stream(input: Request): StreamReturn<Name, Handler>;
-          };
-        }
-      : {}) &
-    Resource<Name> &
+  } & Resource<Name> &
     Attributable<Meta>;
 
   export class IO {
@@ -188,10 +181,11 @@ export namespace TW {
 
   export class Event<Type extends string, Data> {
     readonly "->": Type;
+    data: Data
 
     constructor(type: Type, data: Data) {
       this["->"] = type;
-      Object.assign(this, data);
+      this.data = data
     }
   }
 

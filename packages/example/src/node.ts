@@ -10,6 +10,7 @@ const node = await Node("example", {
     import("./biller"),
     import("./browser"),
     import("./hackerNews"),
+    import("./streamer"),
   ],
 });
 
