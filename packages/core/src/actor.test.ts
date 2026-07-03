@@ -290,7 +290,7 @@ describe("Actor", () => {
       .input({ invoiceId: "string", amount: "number" })
 
       .run(async function* () {
-        yield this.signal("Biller::InvoicePaid", {
+        yield* this.signal("Biller::InvoicePaid", {
           invoiceId: this.input.invoiceId,
           amount: this.input.amount,
           customer: "alice",
@@ -339,7 +339,7 @@ describe("Actor", () => {
       .input({ invoiceId: "string", amount: "number" })
 
       .run(async function* () {
-        yield this.signal("Biller::InvoicePaid", {
+        yield* this.signal("Biller::InvoicePaid", {
           invoiceId: this.input.invoiceId,
           amount: this.input.amount,
           customer: "alice",
@@ -973,19 +973,24 @@ describe("Actor", () => {
 
         .input({ channel: "string", text: "string" })
 
-        .run(async function () {
-          const response = await this.actions.slack.conversationsList({
-            types: "public_channel",
-          });
-          const selected = response.channels.find(
-            (item) => item.id === this.input.channel,
-          );
+        .run(
+          Step("channels", function () {
+            return this.actions.slack.conversationsList({
+              types: "public_channel",
+            });
+          }),
 
-          return {
-            channel: selected,
-            text: this.input.text,
-          };
-        })
+          Step("message", function () {
+            const selected = this.channels.channels.find(
+              (item) => item.id === this.input.channel,
+            );
+
+            return {
+              channel: selected,
+              text: this.input.text,
+            };
+          }),
+        )
 
         .meta({
           description: "Post a message to a Slack channel",
@@ -1008,8 +1013,11 @@ describe("Actor", () => {
 
       const meta = postMessage[TW.Meta];
       expect(meta.description).toEqual("Post a message to a Slack channel");
+      const channelMeta = meta.input!.channel as {
+        suggestions: unknown;
+      };
       expect(
-        JSON.parse(JSON.stringify(meta.input.channel.suggestions)),
+        JSON.parse(JSON.stringify(channelMeta.suggestions)),
       ).toEqual({
         $: "Slack::conversations_list",
         "*": ["channels.map", ["x"], ["x.name", "x.id"]],
@@ -1044,21 +1052,15 @@ describe("Actor", () => {
 
         .input({ text: "string" })
 
-        .run(function () {
-          // Type-check: this.actions.notifier.notify must be typed as the action
-          type Check = Expect<
-            Equal<
-              typeof this.actions.notifier.notify,
-              TW.Action<
-                "Notifier::notify",
-                (input: { message: string }) => Promise<string>,
-                null
-              >
-            >
-          >;
-          // Runtime: call the injected action from a step
-          return this.actions.notifier.notify({ message: this.input.text });
-        });
+        .run(
+          Step("notify", function () {
+            // Type-check: this.actions.notifier.notify must be typed as the action stream
+            type Check = Expect<
+              Equal<typeof this.actions.notifier.notify, typeof notify.stream>
+            >;
+            return this.actions.notifier.notify({ message: this.input.text });
+          }),
+        );
 
       expect(await run({ text: "hello" })).toEqual("sent: hello");
     });
@@ -1093,15 +1095,23 @@ describe("Actor", () => {
 
         .input({ recipient: "string" })
 
-        .run(async function () {
-          const email = await this.actions.emailer.sendEmail({
-            to: this.input.recipient,
-          });
-          const text = await this.actions.texter.sendText({
-            to: this.input.recipient,
-          });
-          return `${email} | ${text}`;
-        });
+        .run(
+          Step("email", function () {
+            return this.actions.emailer.sendEmail({
+              to: this.input.recipient,
+            });
+          }),
+
+          Step("text", function () {
+            return this.actions.texter.sendText({
+              to: this.input.recipient,
+            });
+          }),
+
+          Step("message", function () {
+            return `${this.email} | ${this.text}`;
+          }),
+        );
 
       expect(await dispatch({ recipient: "alice" })).toEqual(
         "email→alice | text→alice",
@@ -1128,19 +1138,14 @@ describe("Actor", () => {
 
         .input({ text: "string" })
 
-        .run(function () {
-          type Check = Expect<
-            Equal<
-              typeof this.actions.notifier.notify,
-              TW.Action<
-                "Notifier::notify",
-                (input: { message: string }) => Promise<string>,
-                null
-              >
-            >
-          >;
-          return this.actions.notifier.notify({ message: this.input.text });
-        });
+        .run(
+          Step("notify", function () {
+            type Check = Expect<
+              Equal<typeof this.actions.notifier.notify, typeof notify.stream>
+            >;
+            return this.actions.notifier.notify({ message: this.input.text });
+          }),
+        );
 
       expect(await run({ text: "hello" })).toEqual("sent: hello");
     });
@@ -1165,15 +1170,17 @@ describe("Actor", () => {
 
         .input({ text: "string" })
 
-        .run(function () {
-          return this.actions.notifier.notify({ message: this.input.text });
-        });
+        .run(
+          Step("notify", function () {
+            return this.actions.notifier.notify({ message: this.input.text });
+          }),
+        );
 
       expect(await run({ text: "world" })).toEqual("bare: world");
     });
 
     test("bare Action (no Actor) — use(action) injects directly as this.actions.<name>", async () => {
-      // Flat name: TW.Name = "notify" → this.actions.notify (directly callable)
+      // Flat name: TW.Name = "notify" → this.actions.notify stream
       const { notify } = Action("notify")
         .input({ message: "string" })
 
@@ -1188,19 +1195,14 @@ describe("Actor", () => {
 
         .input({ text: "string" })
 
-        .run(function () {
-          type Check = Expect<
-            Equal<
-              typeof this.actions.notify,
-              TW.Action<
-                "notify",
-                (input: { message: string }) => Promise<string>,
-                null
-              >
-            >
-          >;
-          return this.actions.notify({ message: this.input.text });
-        });
+        .run(
+          Step("notify", function () {
+            type Check = Expect<
+              Equal<typeof this.actions.notify, typeof notify.stream>
+            >;
+            return this.actions.notify({ message: this.input.text });
+          }),
+        );
 
       expect(await run({ text: "hello" })).toEqual("sent: hello");
     });
@@ -1220,9 +1222,11 @@ describe("Actor", () => {
 
         .input({ text: "string" })
 
-        .run(function () {
-          return this.actions.notify({ message: this.input.text });
-        });
+        .run(
+          Step("notify", function () {
+            return this.actions.notify({ message: this.input.text });
+          }),
+        );
 
       expect(await run({ text: "world" })).toEqual("sent: world");
     });
@@ -1247,9 +1251,11 @@ describe("Actor", () => {
       const { run } = Caller()
         .on("Command", "run")
 
-        .run(function () {
-          return this.actions.pinger.ping();
-        });
+        .run(
+          Step("ping", function () {
+            return this.actions.pinger.ping();
+          }),
+        );
 
       expect(await run()).toEqual("pong");
       // `notAnAction` must NOT appear in actions scope at the type level
@@ -1340,7 +1346,7 @@ describe("Actor", () => {
         });
 
       type check = Expect<
-        Equal<Awaited<ReturnType<typeof smth>>, typeof Logger.log>
+        Equal<Awaited<ReturnType<typeof smth>>, typeof Logger.log.stream>
       >;
     });
 

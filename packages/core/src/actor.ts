@@ -1,4 +1,10 @@
-import { buildScope, runAction, tapWith, type ActionFactory } from "./action";
+import {
+  RawStreamTag,
+  buildScope,
+  runAction,
+  tapWith,
+  type ActionFactory,
+} from "./action";
 import type { ActionMeta, ValidateActionMeta } from "./action/meta";
 import { Event } from "./event";
 import {
@@ -24,6 +30,13 @@ import { type Steps } from "./steps/steps";
 import { ResultKind } from "./steps/hkt";
 
 type BaseScope<Ctx> = Ctx extends Record<any, any> ? Ctx["scope"] : {};
+
+type RuntimeResult<Result> =
+  Awaited<Result> extends AsyncGenerator<any, infer Return, any>
+    ? Awaited<Return>
+    : Result extends Generator<any, infer Return, any>
+      ? Return
+      : Result;
 
 type EventKeys<Scope> = {
   [K in keyof Scope]: Scope[K] extends TW.EventKind<infer Name, any>
@@ -103,7 +116,7 @@ interface HttpBody<
   ): {
     [key in Method]: TW.Action<
       QualifiedActionName<Service, Method>,
-      (input: Request) => Promise<Awaited<ReturnType<H>>>,
+      (input: Request) => Promise<RuntimeResult<ReturnType<H>>>,
       null
     >;
   };
@@ -174,7 +187,7 @@ interface TraitMethodFactoryFromTrait<
   ): {
     [K in TraitMethodPart<TraitMethod>]: TW.Action<
       QualifiedActionName<Ctx["name"] & string, TraitMethodPart<TraitMethod>>,
-      TraitActionHandler<Input, Awaited<ReturnType<H>>>,
+      TraitActionHandler<Input, RuntimeResult<ReturnType<H>>>,
       { trait: TraitMethod }
     >;
   };
@@ -247,8 +260,10 @@ interface TraitMethodFactory<
     [K in TraitMethodPart<TraitMethod>]: TW.Action<
       QualifiedActionName<Ctx["name"] & string, TraitMethodPart<TraitMethod>>,
       "input" extends keyof BaseScope<Ctx>
-        ? (input: BaseScope<Ctx>["input"]) => Promise<Awaited<ReturnType<H>>>
-        : () => Promise<Awaited<ReturnType<H>>>,
+        ? (input: BaseScope<Ctx>["input"]) => Promise<
+            RuntimeResult<ReturnType<H>>
+          >
+        : () => Promise<RuntimeResult<ReturnType<H>>>,
       { trait: TraitMethod }
     >;
   };
@@ -267,7 +282,7 @@ type CommandResult<
 > = {
   [key in CmdName]: TW.Action<
     QualifiedActionName<Service, CmdName>,
-    (input: FlatIn) => Promise<Awaited<ReturnType<Handler>>>,
+    (input: FlatIn) => Promise<RuntimeResult<ReturnType<Handler>>>,
     {
       route: [
         Method,
@@ -280,13 +295,13 @@ type CommandResult<
   meta<
     const NextMeta extends ActionMeta<
       { scope: Pretty<{ input: FlatIn } & Scope> },
-      Awaited<ReturnType<Handler>>
+      RuntimeResult<ReturnType<Handler>>
     >,
   >(
     meta: ValidateActionMeta<
       NextMeta,
       { scope: Pretty<{ input: FlatIn } & Scope> },
-      Awaited<ReturnType<Handler>>
+      RuntimeResult<ReturnType<Handler>>
     >,
   ): CommandResult<
     CmdName,
@@ -689,6 +704,7 @@ function createBehavior(
           [TW.Name]: eventName,
           stream,
           [TW.Meta]: resolveMeta(),
+          [RawStreamTag]: rawStream,
         });
         const result = {
           [actionName]: action,
@@ -774,6 +790,7 @@ function createBehavior(
                   [TW.Name]: qualifiedCmdName,
                   [TW.Meta]: resolveMeta(),
                   stream: cmdStream,
+                  [RawStreamTag]: rawCmdStream,
                 });
                 const result = {
                   [cmdName]: action,
@@ -817,18 +834,34 @@ export type ActorBuilderResult<
 
 // ── Actor builder runtime ─────────────────────────────────────────────────────
 
+function exposeAction(plugin: unknown) {
+  return typeof plugin === "function" &&
+    RawStreamTag in plugin &&
+    typeof (plugin as { [RawStreamTag]?: unknown })[RawStreamTag] ===
+      "function"
+    ? (plugin as { [RawStreamTag]: (...args: unknown[]) => unknown })[
+        RawStreamTag
+      ]
+    : typeof plugin === "function" &&
+    "stream" in plugin &&
+    typeof (plugin as { stream?: unknown }).stream === "function"
+    ? (plugin as { stream: (...args: unknown[]) => unknown }).stream
+    : plugin;
+}
+
 function collectAction(plugin: unknown): Record<string, unknown> {
   const fullName: unknown = (plugin as any)[TW.Name];
   if (typeof fullName !== "string") return {};
 
   const qualified = splitQualifiedActionName(fullName);
-  if (qualified === null) return { [fullName]: plugin };
+  const exposed = exposeAction(plugin);
+  if (qualified === null) return { [fullName]: exposed };
 
   const service =
     qualified.service.charAt(0).toLowerCase() + qualified.service.slice(1);
   const method = qualified.method;
 
-  return { [service]: { [method]: plugin } };
+  return { [service]: { [method]: exposed } };
 }
 
 function mergeActions(
