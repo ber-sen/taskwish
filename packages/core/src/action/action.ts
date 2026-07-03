@@ -57,10 +57,27 @@ type SignatureOutput<
   Signature,
   Ctx extends Record<any, any>,
 > = Signature extends (...args: any) => any
-  ? Awaited<ReturnType<Signature>>
+  ? RuntimeResult<ReturnType<Signature>>
   : Signature extends TW.Handler
-    ? Awaited<ReturnType<Apply<Signature, Ctx>>>
+    ? RuntimeResult<ReturnType<Apply<Signature, Ctx>>>
     : never;
+
+type RuntimeResult<Result> =
+  Awaited<Result> extends AsyncGenerator<any, infer Return, any>
+    ? Awaited<Return>
+    : Result extends Generator<any, infer Return, any>
+      ? Return
+      : Result;
+
+type RuntimeHandler<Handler extends (...args: any[]) => any> =
+  Awaited<ReturnType<Handler>> extends AsyncGenerator<any, any, any>
+    ? (...args: Parameters<Handler>) => Promise<RuntimeResult<ReturnType<Handler>>>
+    : Handler;
+
+type ActionNameFor<Ctx extends Record<any, any>, Name extends string> =
+  "service" extends keyof Ctx
+    ? QualifiedActionName<Ctx["service"] & string, Name>
+    : Name;
 
 type SignatureMetaContext<Signature, Ctx extends Record<any, any>> = Omit<
   Ctx,
@@ -77,18 +94,14 @@ type SignatureResult<
 > = {
   [key in Name]: Signature extends (...args: any) => any
     ? TW.Action<
-        "service" extends keyof Ctx
-          ? QualifiedActionName<Ctx["service"] & string, Name>
-          : Name,
-        Signature,
+        ActionNameFor<Ctx, Name>,
+        RuntimeHandler<Signature>,
         Meta
       >
     : Signature extends TW.Handler
       ? TW.Action<
-          "service" extends keyof Ctx
-            ? QualifiedActionName<Ctx["service"] & string, Name>
-            : Name,
-          Apply<Signature, Ctx>,
+          ActionNameFor<Ctx, Name>,
+          RuntimeHandler<Apply<Signature, Ctx>>,
           Meta extends null
             ? Record<"handler", Signature>
             : Meta & Record<"handler", Signature>
@@ -220,6 +233,8 @@ export interface ActionFactory<
 
 const AsyncGeneratorFunction = async function* () {}.constructor as Function;
 
+export const RawStreamTag = Symbol.for("TW.RawStream");
+
 export async function* tapWith(
   gen: AsyncGenerator<unknown, unknown>,
   log: LogFn,
@@ -239,7 +254,7 @@ export type Scope = {
   signal<T extends string, D extends Record<string, unknown>>(
     type: T,
     data: D,
-  ): TW.Event<T, D>;
+  ): AsyncGenerator<TW.Event<T, D>, D, unknown>;
 };
 
 export const ActionEventTag = Symbol.for("TW.ActionEvent");
@@ -339,6 +354,20 @@ const SelfTag = Symbol.for("TW.SelfCall");
 /** Set on ctx by the self() closure so runHandlerList can promote its name after the step. */
 const SelfCalledTag = Symbol.for("TW.SelfCalled");
 
+function isAsyncGenerator(value: unknown): value is AsyncGenerator<unknown, unknown> {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    typeof (value as AsyncGenerator<unknown, unknown>)[Symbol.asyncIterator] ===
+      "function" &&
+    typeof (value as AsyncGenerator<unknown, unknown>).next === "function"
+  );
+}
+
+function isSelfCall(value: unknown): value is AsyncGenerator<unknown, unknown> {
+  return value !== null && typeof value === "object" && SelfTag in value;
+}
+
 function commandEvent(input: unknown): { "->": "Command" } & object {
   return new TW.Event("Command", {
     ...(input !== null && typeof input === "object" ? input : {}),
@@ -358,17 +387,20 @@ async function* runStep(
       const ret = handler.call(ctx);
       // If the step returned a self-recursive generator, propagate its events
       // and return its result without emitting a step result event for this step.
-      if (
-        ret !== null &&
-        typeof ret === "object" &&
-        SelfTag in (ret as object)
-      ) {
+      if (isSelfCall(ret)) {
         return yield* ret as AsyncGenerator<unknown, unknown>;
       }
-      result = await ret;
+      const awaited = await ret;
+      if (isSelfCall(awaited)) {
+        return yield* awaited;
+      }
+      result = isAsyncGenerator(awaited)
+        ? yield* awaited
+        : awaited;
     }
     if (result instanceof TW.Event) {
       yield result;
+      result = result.data;
     }
     yield { ">>": name, result };
 
@@ -684,8 +716,12 @@ async function* runHandlerList(
       ).call(ctx);
     } else if (typeof handler === "function") {
       lastCond = null;
-      last = await (handler as (this: typeof ctx) => unknown).call(ctx);
-      if (last instanceof TW.Event) yield last;
+      const ret = await (handler as (this: typeof ctx) => unknown).call(ctx);
+      last = isAsyncGenerator(ret) ? yield* ret : ret;
+      if (last instanceof TW.Event) {
+        yield last;
+        last = last.data;
+      }
     }
   }
 
@@ -752,11 +788,13 @@ export function buildScope(
   return {
     ...userExtra,
     input: inputMode === "args" ? args : args[0],
-    signal<T extends string, D extends Record<string, unknown>>(
+    async *signal<T extends string, D extends Record<string, unknown>>(
       type: T,
       data: D,
     ) {
-      return new TW.Event((eventNames.get(type) ?? type) as T, data);
+      const event = new TW.Event((eventNames.get(type) ?? type) as T, data);
+      yield event;
+      return event.data;
     },
     get<T>(Cls: abstract new (...a: unknown[]) => T): T {
       if (registry.has(Cls)) return registry.get(Cls) as T;
@@ -800,13 +838,29 @@ export function Action<const Name extends string>(
     }
   }
 
+  function exposeAction(plugin: unknown) {
+    return typeof plugin === "function" &&
+      RawStreamTag in plugin &&
+      typeof (plugin as { [RawStreamTag]?: unknown })[RawStreamTag] ===
+        "function"
+      ? (plugin as { [RawStreamTag]: (...args: unknown[]) => unknown })[
+          RawStreamTag
+        ]
+      : typeof plugin === "function" &&
+      "stream" in plugin &&
+      typeof (plugin as { stream?: unknown }).stream === "function"
+      ? (plugin as { stream: (...args: unknown[]) => unknown }).stream
+      : plugin;
+  }
+
   function injectAction(plugin: unknown) {
     const fullName: unknown = (plugin as any)[TW.Name];
     if (typeof fullName !== "string") return;
+    const exposed = exposeAction(plugin);
     const qualified = splitQualifiedActionName(fullName);
     if (qualified === null) {
       // Flat name: store directly — this.actions.notify
-      injectedActions[fullName] = plugin;
+      injectedActions[fullName] = exposed;
     } else {
       // Qualified name: store nested — this.actions.notifier.notify
       const service =
@@ -814,7 +868,7 @@ export function Action<const Name extends string>(
       const method = qualified.method;
       injectedActions[service] = {
         ...(injectedActions[service] as Record<string, unknown> | undefined),
-        [method]: plugin,
+        [method]: exposed,
       };
     }
   }
@@ -924,6 +978,7 @@ export function Action<const Name extends string>(
       [TW.Name]: actionName,
       [TW.Meta]: actionMeta,
       stream,
+      [RawStreamTag]: rawStream,
     });
     const result = {
       [actionName]: action,

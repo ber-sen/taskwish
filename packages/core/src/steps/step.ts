@@ -9,13 +9,11 @@ import { TW } from "../core";
  * - sync function    → ReturnType
  */
 type ResolveReturn<H extends (...args: any) => any> =
-  ReturnType<H> extends AsyncGenerator<any, infer R, any>
+  Awaited<ReturnType<H>> extends AsyncGenerator<any, infer R, any>
     ? Awaited<R>
-    : ReturnType<H> extends Generator<any, infer R, any>
+    : Awaited<ReturnType<H>> extends Generator<any, infer R, any>
       ? R
-      : ReturnType<H> extends Promise<infer A>
-        ? A
-        : ReturnType<H>;
+      : Awaited<ReturnType<H>>;
 
 type UserScope<Ctx extends Record<any, any>> = PrettyScope<
   TW.Scope<ResolveScope<Ctx["scope"]>>

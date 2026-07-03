@@ -76,7 +76,11 @@ export namespace TW {
     >(
       type: T,
       data: EventKindData<S, T & string>,
-    ): Event<EventKindName<S, T & string>, EventKindData<S, T & string>>;
+    ): AsyncGenerator<
+      Event<EventKindName<S, T & string>, EventKindData<S, T & string>>,
+      Event<EventKindName<S, T & string>, EventKindData<S, T & string>>["data"],
+      unknown
+    >;
     get<T>(Cls: new (...args: any[]) => T): T;
   };
 
@@ -86,8 +90,12 @@ export namespace TW {
     | { ">>": string; result: Result }
     | { ">>": string; error: unknown };
 
-  export type ActionEvent<Name extends string, Result = unknown> =
-    | { ">>": Name; input: unknown }
+  export type ActionEvent<
+    Name extends string,
+    Result = unknown,
+    Input = unknown,
+  > =
+    | { ">>": Name; input: Input }
     | { ">>": Name; result: Result }
     | { ">>": Name; error: unknown };
 
@@ -96,15 +104,28 @@ export namespace TW {
     type: abstract new (...args: any[]) => T;
   };
 
+  type StreamInput<Handler extends (...args: any) => any> =
+    Parameters<Handler> extends []
+      ? undefined
+      : Parameters<Handler> extends [infer Input]
+        ? Input
+        : Parameters<Handler>;
+
+  type StreamResult<Handler extends (...args: any) => any> = Awaited<
+    ReturnType<Handler>
+  >;
+
+  type StreamYield<
+    Name extends string,
+    Handler extends (...args: any) => any,
+  > =
+    | ActionInputEvent<Resource<Name>, StreamInput<Handler>>
+    | ActionEvent<Name, StreamResult<Handler>, StreamInput<Handler>>;
+
   type StreamReturn<
     Name extends string,
     Handler extends (...args: any) => any,
-  > = Awaited<ReturnType<Handler>> extends AsyncGenerator<infer Y, infer R>
-    ? AsyncGenerator<Y | StepEvent | ActionEvent<Name, Awaited<R>>, Awaited<R>>
-    : AsyncGenerator<
-        StepEvent | ActionEvent<Name, Awaited<ReturnType<Handler>>>,
-        Awaited<ReturnType<Handler>>
-      >;
+  > = AsyncGenerator<StreamYield<Name, Handler>, StreamResult<Handler>>;
 
   export type Action<
     Name extends string,
@@ -114,14 +135,7 @@ export namespace TW {
     stream: (
       ...args: Parameters<NoInfer<Handler>>
     ) => StreamReturn<Name, Handler>;
-  } & (Meta extends { route: [any, any, any] }
-      ? {
-          fetch: ((input: Request) => Promise<Response>) & {
-            stream(input: Request): StreamReturn<Name, Handler>;
-          };
-        }
-      : {}) &
-    Resource<Name> &
+  } & Resource<Name> &
     Attributable<Meta>;
 
   export class IO {
@@ -188,25 +202,33 @@ export namespace TW {
 
   export class Event<Type extends string, Data> {
     readonly "->": Type;
+    data: Data
 
     constructor(type: Type, data: Data) {
       this["->"] = type;
-      Object.assign(this, data);
+      this.data = data
     }
   }
 
-  export type ActionInputEvent<Action extends TW.Action<any, any>, Params> = {
+  export type ActionInputEvent<Action extends Resource<string>, Params> = {
     "->": string;
     "&": Action;
     input: Params;
   };
 
+  type ActionCaller<Caller> = Extract<
+    Caller,
+    ActionInputEvent<Resource<string>, any>
+  >;
+
   export type Step<
     Name extends string,
     Handler extends (...args: any) => any,
   > = ReturnType<Handler> extends AsyncGenerator<infer Caller, any, any>
-    ? Caller extends ActionInputEvent<infer A, infer P>
-      ? A extends TW.Action<infer ActionName, infer Handler>
+    ? [ActionCaller<Caller>] extends [never]
+      ? ScriptStep<Name, Handler>
+      : ActionCaller<Caller> extends ActionInputEvent<infer A, infer P>
+      ? A extends Resource<infer ActionName>
         ? ActionStep<Name, ActionName, P>
         : ScriptStep<Name, Handler>
       : ScriptStep<Name, Handler>

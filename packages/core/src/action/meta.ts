@@ -1,5 +1,10 @@
 import type { ExtractActionName } from "../helpers";
 
+type ActionOutput<Action extends (...args: any[]) => any> =
+  ReturnType<Action> extends AsyncGenerator<any, infer Return, any>
+    ? Awaited<Return>
+    : Awaited<ReturnType<Action>>;
+
 type ActionSuggestionsObject<
   Name extends string,
   Action extends (...args: any[]) => any,
@@ -10,7 +15,7 @@ type ActionSuggestionsObject<
   "*": {
     toJSON(): unknown
     toFn: (
-      scope: Awaited<ReturnType<Action>>,
+      scope: ActionOutput<Action>,
     ) => Array<[string, string | number]>;
   };
 } & (Parameters<Action> extends []

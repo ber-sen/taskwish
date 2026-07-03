@@ -89,17 +89,14 @@ describe("Action", () => {
         return `Hello ${this.input.name}`;
       });
 
-    type T = typeof tsAction;
+    type CallableResult = ReturnType<typeof tsAction>;
+    type StreamResult = ReturnType<typeof tsAction.stream>;
 
-    type check = Expect<
-      Equal<
-        TW.Action<
-          "tsAction",
-          (input: { name: string }) => Promise<Promise<string>>,
-          null
-        >,
-        T
-      >
+    type checkCallable = Expect<
+      CallableResult extends AsyncGenerator<any, any, any> ? false : true
+    >;
+    type checkStream = Expect<
+      StreamResult extends AsyncGenerator<any, any, any> ? true : false
     >;
 
     expect(await tsAction({ name: "Test" })).toEqual("Hello Test");
@@ -192,6 +189,54 @@ describe("Action", () => {
       { ">>": "mixed", result: true },
     ]);
     expect(await mixed({ name: "World" })).toEqual(true);
+  });
+
+  test("Step delegates returned async generators and promised async generators", async () => {
+    async function* numberStream(value: number) {
+      yield `value:${value}`;
+      return value * 2;
+    }
+
+    const { run } = Action("run")
+      .input({ value: "number" })
+
+      .run(
+        Step("direct", function () {
+          return numberStream(this.input.value);
+        }),
+
+        Step("afterDirect", function () {
+          type Check = Expect<Equal<typeof this.direct, number>>;
+          return this.direct + 1;
+        }),
+
+        Step("promised", async function () {
+          return numberStream(this.afterDirect);
+        }),
+
+        Step("afterPromised", function () {
+          type Check = Expect<Equal<typeof this.promised, number>>;
+          return this.promised + 1;
+        }),
+      );
+
+    expect(await run({ value: 3 })).toEqual(15);
+
+    const yields: unknown[] = [];
+    for await (const value of run.stream({ value: 3 })) {
+      yields.push(value);
+    }
+
+    expect(yields).toEqual([
+      { ">>": "run", input: { value: 3 } },
+      "value:3",
+      { ">>": "run.direct", result: 6 },
+      { ">>": "run.afterDirect", result: 7 },
+      "value:7",
+      { ">>": "run.promised", result: 14 },
+      { ">>": "run.afterPromised", result: 15 },
+      { ">>": "run", result: 15 },
+    ]);
   });
 
   test("step error — yields step error, action error, then rethrows", async () => {
@@ -523,7 +568,7 @@ describe("Action", () => {
   });
 
   test("use(TW.Action) — bare Action (no Actor) injected directly as this.actions.<name>", async () => {
-    // Bare Action — no Actor wrapper; flat name → this.actions.notify (directly callable)
+    // Bare Action — no Actor wrapper; flat name → this.actions.notify stream
     const { notify } = Action("notify")
       .input({ message: "string" })
 
@@ -536,22 +581,19 @@ describe("Action", () => {
 
       .input({ name: "string" })
 
-      .run(async function () {
-        // flat name → this.actions.notify (direct, not nested)
-        type Check = Expect<
-          Equal<
-            typeof this.actions.notify,
-            TW.Action<
-              "notify",
-              (input: { message: string }) => Promise<string>,
-              null
-            >
-          >
-        >;
-        const result = await this.actions.notify({ message: this.input.name });
+      .run(
+        Step("notify", function () {
+          // flat name → this.actions.notify is the action stream
+          type Check = Expect<
+            Equal<typeof this.actions.notify, typeof notify.stream>
+          >;
+          return this.actions.notify({ message: this.input.name });
+        }),
 
-        return `Hello, ${result}`;
-      });
+        Step("message", function () {
+          return `Hello, ${this.notify}`;
+        }),
+      );
 
     expect(await greet({ name: "World" })).toEqual("Hello, sent: World");
   });
@@ -574,23 +616,20 @@ describe("Action", () => {
 
       .input({ name: "string" })
 
-      .run(async function () {
-        type Check = Expect<
-          Equal<
-            typeof this.actions.notifier.notify,
-            TW.Action<
-              "Notifier::notify",
-              (input: { message: string }) => Promise<string>,
-              null
-            >
-          >
-        >;
-        const result = await this.actions.notifier.notify({
-          message: this.input.name,
-        });
+      .run(
+        Step("notify", function () {
+          type Check = Expect<
+            Equal<typeof this.actions.notifier.notify, typeof notify.stream>
+          >;
+          return this.actions.notifier.notify({
+            message: this.input.name,
+          });
+        }),
 
-        return `Hello, ${result}`;
-      });
+        Step("message", function () {
+          return `Hello, ${this.notify}`;
+        }),
+      );
 
     expect(await greet({ name: "World" })).toEqual("Hello, sent: World");
   });
@@ -614,24 +653,19 @@ describe("Action", () => {
 
       .input({ name: "string" })
 
-      .run(async function () {
-        type Check = Expect<
-          Equal<
-            typeof this.actions.notify,
-            TW.Action<
-              "notify",
-              (input: { message: string }) => Promise<string>,
-              null
-            >
-          >
-        >;
-        type HelperIsIgnored = "helper" extends keyof typeof this.actions
-          ? false
-          : true;
-        type HelperCheck = Expect<Equal<HelperIsIgnored, true>>;
+      .run(
+        Step("notify", function () {
+          type Check = Expect<
+            Equal<typeof this.actions.notify, typeof notify.stream>
+          >;
+          type HelperIsIgnored = "helper" extends keyof typeof this.actions
+            ? false
+            : true;
+          type HelperCheck = Expect<Equal<HelperIsIgnored, true>>;
 
-        return this.actions.notify({ message: this.input.name });
-      });
+          return this.actions.notify({ message: this.input.name });
+        }),
+      );
 
     expect(await greet({ name: "World" })).toEqual("sent: World");
   });
@@ -734,19 +768,24 @@ describe("Action", () => {
 
       .input({ channel: "string", text: "string" })
 
-      .run(async function () {
-        const response = await this.actions.conversationsList({
-          types: "public_channel",
-        });
-        const selected = response.channels.find(
-          (item) => item.id === this.input.channel,
-        );
+      .run(
+        Step("channels", function () {
+          return this.actions.conversationsList({
+            types: "public_channel",
+          });
+        }),
 
-        return {
-          channel: selected,
-          text: this.input.text,
-        };
-      })
+        Step("message", function () {
+          const selected = this.channels.channels.find(
+            (item) => item.id === this.input.channel,
+          );
+
+          return {
+            channel: selected,
+            text: this.input.text,
+          };
+        }),
+      )
 
       .meta({
         description: "Post a message to a Slack channel",
@@ -894,14 +933,17 @@ describe("Action", () => {
         ? Y
         : never;
 
-    type check = Expect<
-      Equal<
-        StreamYield,
-        string | TW.StepEvent<unknown> | TW.ActionEvent<"greet", void>
-      >
-    >;
+    type StreamActionNameOf<Yield> =
+      Yield extends TW.ActionEvent<infer N, any, any>
+        ? N
+        : Yield extends TW.ActionInputEvent<TW.Resource<infer N>, any>
+          ? N
+          : never;
+    type StreamActionName = StreamActionNameOf<StreamYield>;
 
-    const values: StreamYield[] = [];
+    type check = Expect<Equal<StreamActionName, "greet">>;
+
+    const values: unknown[] = [];
     for await (const v of greet.stream({ name: "hello" })) {
       values.push(v);
     }

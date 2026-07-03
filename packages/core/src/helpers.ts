@@ -284,18 +284,19 @@ export type PascalCase<S extends string> =
 
 // ── Action grouping type helpers ──────────────────────────────────────────────
 
-/**
- * Extract the action name from a TW.Action by inspecting its `stream` return
- * type.  The only Yield member that carries both `">>"` and `"input"` fields is
- * the action-input event, so that discriminator reliably extracts the name.
- */
-export type ExtractActionName<T> = T extends {
-  stream(...args: any[]): AsyncGenerator<infer Yield, any, any>;
-}
-  ? Yield extends { ">>": infer N extends string; input: any }
+type ExtractActionNameFromYield<Yield> =
+  Yield extends TW.ActionInputEvent<TW.Resource<infer N extends string>, any>
     ? N
-    : never
-  : never;
+    : Yield extends TW.ActionEvent<infer N extends string, any, any>
+      ? N
+      : never;
+
+/** Extract the action name from a TW.Action resource or exposed action stream. */
+export type ExtractActionName<T> = T extends TW.Resource<infer N extends string>
+  ? N
+  : T extends (...args: any[]) => AsyncGenerator<infer Yield, any, any>
+    ? ExtractActionNameFromYield<Yield>
+    : never;
 
 type QualifiedActionParts<N extends string> =
   N extends `${infer S}::${infer M}` ? [S, ToCamelCase<M>] :
@@ -332,9 +333,13 @@ export type ActionMethod<N extends string> =
 
 /**
  * Groups TW.Action exports in two ways:
- *  - Qualified names ("Slack::post_message") → nested `{ slack: { postMessage: T } }`
- *  - Flat names ("notify")                  → direct  `{ notify: T }`
+ *  - Qualified names ("Slack::post_message") → nested `{ slack: { postMessage: T["stream"] } }`
+ *  - Flat names ("notify")                  → direct  `{ notify: T["stream"] }`
  */
+type ExposedAction<T> = T extends { stream: infer Stream extends (...args: any[]) => any }
+  ? Stream
+  : T;
+
 export type GroupActions<M> =
   // Qualified names → { service: { method: T } }
   {
@@ -352,13 +357,13 @@ export type GroupActions<M> =
             ? ActionMethod<N>
             : never
           : never
-        : never]: M[K];
+        : never]: ExposedAction<M[K]>;
     };
   } & // Flat names → { name: T } (directly callable)
   {
     [K in keyof M as ExtractActionName<M[K]> extends infer N extends string
       ? DirectActionName<N>
-      : never]: M[K];
+      : never]: ExposedAction<M[K]>;
   };
 
 /** Extract grouped actions from a plugin (plain object, single TW.Action, or Promise<module>). */

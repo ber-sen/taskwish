@@ -44,13 +44,20 @@ type FilterSteps<S extends readonly any[], Filter extends string> = {
  * produces a `TW.Action` callable.
  */
 type ActionResult<Last> = "last" extends keyof Last
-  ? ResolveLast<Last["last"]>
+  ? RuntimeResult<ResolveLast<Last["last"]>>
   : "steps" extends keyof Last
     ? Last["steps"]
-    : Last;
+    : RuntimeResult<Last>;
+
+type RuntimeResult<Result> =
+  Awaited<Result> extends AsyncGenerator<any, infer Return, any>
+    ? Awaited<Return>
+    : Result extends Generator<any, infer Return, any>
+      ? Return
+      : Result;
 
 type ActionMetadataOutput<Result> =
-  Result extends AsyncGenerator<any, infer Return, any>
+  Awaited<Result> extends AsyncGenerator<any, infer Return, any>
     ? Awaited<Return>
     : Result extends Generator<any, infer Return, any>
       ? Return
