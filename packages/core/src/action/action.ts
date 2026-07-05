@@ -254,7 +254,7 @@ export type Scope = {
   signal<T extends string, D extends Record<string, unknown>>(
     type: T,
     data: D,
-  ): AsyncGenerator<TW.Event<T, D>, D, unknown>;
+  ): AsyncGenerator<TW.Signal<T, D>, TW.Signal<T, D>["data"], unknown>;
 };
 
 export const ActionEventTag = Symbol.for("TW.ActionEvent");
@@ -368,8 +368,8 @@ function isSelfCall(value: unknown): value is AsyncGenerator<unknown, unknown> {
   return value !== null && typeof value === "object" && SelfTag in value;
 }
 
-function commandEvent(input: unknown): { "->": "Command" } & object {
-  return new TW.Event("Command", {
+function commandEvent(input: unknown): TW.Signal<"Command", object> {
+  return new TW.Signal("Command", {
     ...(input !== null && typeof input === "object" ? input : {}),
   });
 }
@@ -398,7 +398,7 @@ async function* runStep(
         ? yield* awaited
         : awaited;
     }
-    if (result instanceof TW.Event) {
+    if (result instanceof TW.Signal) {
       yield result;
       result = result.data;
     }
@@ -718,7 +718,7 @@ async function* runHandlerList(
       lastCond = null;
       const ret = await (handler as (this: typeof ctx) => unknown).call(ctx);
       last = isAsyncGenerator(ret) ? yield* ret : ret;
-      if (last instanceof TW.Event) {
+      if (last instanceof TW.Signal) {
         yield last;
         last = last.data;
       }
@@ -792,9 +792,9 @@ export function buildScope(
       type: T,
       data: D,
     ) {
-      const event = new TW.Event((eventNames.get(type) ?? type) as T, data);
-      yield event;
-      return event.data;
+      const signal = new TW.Signal((eventNames.get(type) ?? type) as T, data);
+      yield signal;
+      return signal.data;
     },
     get<T>(Cls: abstract new (...a: unknown[]) => T): T {
       if (registry.has(Cls)) return registry.get(Cls) as T;

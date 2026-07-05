@@ -54,8 +54,11 @@ function fmt(
 const BOLD_KEYS = new Set(["result", "error", "input"]);
 
 export function formatEvent(event: object): string {
-  const kind = ">>" in event ? ">>" : "->";
-  const e = event as Record<string, unknown>;
+  const e =
+    event instanceof TW.Signal
+      ? event.data
+      : (event as Record<string, unknown>);
+  const kind = ">>" in e ? ">>" : "->";
   const name = e[kind];
   const entries = [
     `\x1b[2m"${kind}": \x1b[22m"\x1b[1m${name}\x1b[22m"`,
@@ -78,16 +81,18 @@ export function isActionEvent(name: string): boolean {
 
 export function dispatch(target: ConsoleLike): LogFn {
   return (event) => {
+    const formattedEvent =
+      event instanceof TW.Signal ? event.data : event;
     if (
-      event !== null &&
-      typeof event === "object" &&
-      (">>" in (event as object) || "->" in (event as object))
+      formattedEvent !== null &&
+      typeof formattedEvent === "object" &&
+      (">>" in (formattedEvent as object) || "->" in (formattedEvent as object))
     ) {
-      const e = event as Record<string, unknown>;
+      const e = formattedEvent as Record<string, unknown>;
       const action =
-        ">>" in (event as object) && isActionEvent(e[">>"] as string);
+        ">>" in (formattedEvent as object) && isActionEvent(e[">>"] as string);
       if (action && "input" in e) target.log("");
-      const out = formatEvent(event as object);
+      const out = formatEvent(formattedEvent as object);
       if ("error" in e) {
         target.error(out);
       } else {

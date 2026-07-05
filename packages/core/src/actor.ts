@@ -557,7 +557,7 @@ function scopeEventKind(
     ...eventKind,
     [TW.Name]: qualifiedEventName,
     emit: async function* (eventData: unknown) {
-      const emitted = new TW.Event(qualifiedEventName, {
+      const emitted = new TW.Signal(qualifiedEventName, {
         id: null,
         data: eventData,
       });

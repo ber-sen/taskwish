@@ -1,4 +1,4 @@
-import { UUIDv7String, ValidateTrigger, InferTriggerScope } from "./helpers";
+import { UUIDv7String, ValidateTrigger, InferTriggerScope, Pretty } from "./helpers";
 
 import { Type as ArkType } from "arktype";
 
@@ -77,8 +77,8 @@ export namespace TW {
       type: T,
       data: EventKindData<S, T & string>,
     ): AsyncGenerator<
-      Event<EventKindName<S, T & string>, EventKindData<S, T & string>>,
-      Event<EventKindName<S, T & string>, EventKindData<S, T & string>>["data"],
+      Signal<EventKindName<S, T & string>, EventKindData<S, T & string>>,
+      Signal<EventKindName<S, T & string>, EventKindData<S, T & string>>["data"],
       unknown
     >;
     get<T>(Cls: new (...args: any[]) => T): T;
@@ -181,7 +181,7 @@ export namespace TW {
       Attributable<null> {
     emit(
       data: Data,
-    ): AsyncGenerator<Event<Name, Data>, Event<Name, Data>, unknown>;
+    ): AsyncGenerator<Signal<Name, Data>, Signal<Name, Data>, unknown>;
     scopeOf?: (input: Data) => Scope;
   }
 
@@ -200,13 +200,12 @@ export namespace TW {
 
   export interface ResourceKind<Name extends string> extends Named<Name> {}
 
-  export class Event<Type extends string, Data> {
-    readonly "->": Type;
-    data: Data
+  export class Signal<const Type extends string, const Data> {
+    readonly event = "TW::Signal";
+    data: Pretty<{ "->": Type } & Data>;
 
     constructor(type: Type, data: Data) {
-      this["->"] = type;
-      this.data = data
+      this.data = Object.assign({ "->": type }, data);
     }
   }
 

@@ -1,22 +1,15 @@
 import { TW } from "@taskwish/core";
-import { flattenRouteInput, parseActionInput, routeInputFromRequest } from "./request";
+import {
+  flattenRouteInput,
+  parseActionInput,
+  routeInputFromRequest,
+} from "./request";
 import { responseFrom } from "./response";
 import type { Action, NodeRegistry, RouteMeta } from "./types";
 
-function isTaskwishEvent(
-  value: unknown,
-): value is TW.Event<string, any> {
-  return (
-    value instanceof TW.Event &&
-    typeof (value as unknown as Record<string, unknown>)["->"] === "string"
-  );
-}
-
-function inputFromEvent(event: TW.Event<string, any>): unknown {
-  if ("data" in event) return event.data;
-
+function inputFromSignal(signal: TW.Signal<string, any>): unknown {
   const input: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(event)) {
+  for (const [key, value] of Object.entries(signal.data)) {
     if (key !== "->") input[key] = value;
   }
   return input;
@@ -32,18 +25,18 @@ async function consumeAction(
   const stream = action.stream(...args);
   let item = await stream.next();
   while (!item.done) {
-    if (isTaskwishEvent(item.value)) dispatchEvent(item.value, registry);
+    if (item.value instanceof TW.Signal) dispatchSignal(item.value, registry);
     item = await stream.next();
   }
   return item.value;
 }
 
-function dispatchEvent(
-  event: TW.Event<string, any>,
+function dispatchSignal(
+  signal: TW.Signal<string, any>,
   registry: NodeRegistry,
 ): void {
-  const handlers = registry.eventHandlers.get(event["->"]) ?? [];
-  const input = inputFromEvent(event);
+  const handlers = registry.eventHandlers.get(signal.data["->"]) ?? [];
+  const input = inputFromSignal(signal);
   for (const handler of handlers) {
     void consumeAction(handler, [input], registry).catch((error) => {
       console.error(error);

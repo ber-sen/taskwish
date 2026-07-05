@@ -209,8 +209,8 @@ export type InferSchema<Schema, Scope = {}> =
 export type ValidateTrigger<Schema> =
   Schema extends TW.EventKind<any, infer Input>
     ? TW.EventKind<any, Input>
-    : Schema extends TW.Event<any, infer Input>
-      ? TW.Event<any, Input>
+    : Schema extends TW.Signal<any, infer Input>
+      ? TW.Signal<any, Input>
       : Schema extends StandardSchemaV1<any>
         ? Schema
         : Schema extends object
@@ -226,24 +226,24 @@ type HasOnlyNeverValues<T> = keyof T extends infer K
   : never;
 
 export type InferTriggerScope<Schema> =
-  Schema extends TW.Event<infer Name, infer Input>
+  Schema extends TW.Signal<infer Name, infer Input>
     ? {
         input: Input;
-        event: TW.Event<Name, Input>;
+        event: TW.Signal<Name, Input>;
       }
     : Schema extends TW.EventKind<infer Name, infer Input>
       ? {
           input: Input;
-          event: TW.Event<Name, Input>;
+          event: TW.Signal<Name, Input>;
         }
       : HasOnlyNeverValues<type.instantiate<Schema>["infer"]> extends false
         ? {
             input: type.instantiate<Schema>["infer"];
-            event: TW.Event<"Command", type.instantiate<Schema>["infer"]>;
+            event: TW.Signal<"Command", type.instantiate<Schema>["infer"]>;
           }
         : {
             input: Schema;
-            event: TW.Event<"Command", Schema>;
+            event: TW.Signal<"Command", Schema>;
           };
 
 export type Apply<
