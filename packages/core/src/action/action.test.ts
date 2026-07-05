@@ -524,12 +524,11 @@ describe("Action", () => {
         }),
       );
 
-    type InferScope<A> =
-      A extends TW.ScriptStep<any, infer H>
-        ? H extends (this: infer U, ...args: any[]) => any
-          ? U
-          : never
-        : never;
+    type InferScope<A> = A extends TW.ScriptStep<any, infer H>
+      ? H extends (this: infer U, ...args: any[]) => any
+        ? U
+        : never
+      : never;
 
     type ExactOmit<T, K extends keyof T> = {
       [P in keyof T as P extends K ? never : P]: T[P];
@@ -928,17 +927,22 @@ describe("Action", () => {
         yield this.input.name.toUpperCase();
       });
 
-    type StreamYield =
-      ReturnType<typeof greet.stream> extends AsyncGenerator<infer Y, any>
-        ? Y
-        : never;
+    type StreamYield = ReturnType<typeof greet.stream> extends AsyncGenerator<
+      infer Y,
+      any
+    >
+      ? Y
+      : never;
 
-    type StreamActionNameOf<Yield> =
-      Yield extends TW.ActionEvent<infer N, any, any>
-        ? N
-        : Yield extends TW.ActionInputEvent<TW.Resource<infer N>, any>
-          ? N
-          : never;
+    type StreamActionNameOf<Yield> = Yield extends TW.ActionEvent<
+      infer N,
+      any,
+      any
+    >
+      ? N
+      : Yield extends TW.ActionInputEvent<TW.Resource<infer N>, any>
+      ? N
+      : never;
     type StreamActionName = StreamActionNameOf<StreamYield>;
 
     type check = Expect<Equal<StreamActionName, "greet">>;

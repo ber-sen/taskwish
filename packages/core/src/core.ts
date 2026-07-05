@@ -87,17 +87,17 @@ export namespace TW {
   export type Inject<Type> = Type | null;
 
   export type StepEvent<Result = unknown> =
-    | { ">>": string; result: Result }
-    | { ">>": string; error: unknown };
+    | Trace<string, { result: Result }>
+    | Trace<string, { error: unknown }>;
 
   export type ActionEvent<
     Name extends string,
     Result = unknown,
     Input = unknown,
   > =
-    | { ">>": Name; input: Input }
-    | { ">>": Name; result: Result }
-    | { ">>": Name; error: unknown };
+    | Trace<Name, { input: Input }>
+    | Trace<Name, { result: Result }>
+    | Trace<Name, { error: unknown }>;
 
   export type GetEvent<T = unknown> = {
     "->": "get";
@@ -206,6 +206,30 @@ export namespace TW {
 
     constructor(type: Type, data: Data) {
       this.data = Object.assign({ "->": type }, data);
+    }
+  }
+
+  export class Trace<const Type extends string, const Data extends object> {
+    readonly event!: "TW::Trace";
+    readonly data!: Pretty<{ ">>": Type } & Data>;
+
+    static [Symbol.hasInstance](value: unknown): boolean {
+      return (
+        value !== null &&
+        typeof value === "object" &&
+        (value as { event?: unknown }).event === "TW::Trace"
+      );
+    }
+
+    constructor(type: Type, data: Data) {
+      const trace = Object.assign({ ">>": type }, data) as Pretty<
+        { ">>": Type } & Data
+      >;
+      Object.defineProperties(trace, {
+        event: { value: "TW::Trace" },
+        data: { value: trace },
+      });
+      return trace as unknown as Trace<Type, Data>;
     }
   }
 

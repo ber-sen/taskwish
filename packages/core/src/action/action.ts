@@ -402,11 +402,11 @@ async function* runStep(
       yield result;
       result = result.data;
     }
-    yield { ">>": name, result };
+    yield new TW.Trace(name, { result });
 
     return result;
   } catch (error) {
-    yield { ">>": name, error };
+    yield new TW.Trace(name, { error });
 
     throw error;
   }
@@ -571,7 +571,7 @@ async function* runHandlerList(
                   .split(".")
                   .reduce((o: any, k) => o?.[k], ctx)
               : itemsGetter;
-      yield { ">>": `${currentName}.${loopName}`, items };
+      yield new TW.Trace(`${currentName}.${loopName}`, { items });
       const innerAcc: Record<string, unknown[]> = {};
       let loopLastStepName: string | null = null;
       const loopIterLasts: unknown[] = [];
@@ -737,7 +737,7 @@ export async function* runAction(
 ): AsyncGenerator<unknown, unknown> {
   const ctx: Record<string | symbol, unknown> = { ...scope };
 
-  yield { ">>": name, input: scope.input };
+  yield new TW.Trace(name, { input: scope.input });
 
   try {
     const r = yield* runHandlerList(
@@ -749,10 +749,10 @@ export async function* runAction(
       name,
       handlers,
     );
-    yield { ">>": name, result: r.last };
+    yield new TW.Trace(name, { result: r.last });
     return r.last;
   } catch (error) {
-    yield { ">>": name, error };
+    yield new TW.Trace(name, { error });
     throw error;
   }
 }

@@ -55,7 +55,7 @@ const BOLD_KEYS = new Set(["result", "error", "input"]);
 
 export function formatEvent(event: object): string {
   const e =
-    event instanceof TW.Signal
+    event instanceof TW.Signal || event instanceof TW.Trace
       ? event.data
       : (event as Record<string, unknown>);
   const kind = ">>" in e ? ">>" : "->";
@@ -82,7 +82,9 @@ export function isActionEvent(name: string): boolean {
 export function dispatch(target: ConsoleLike): LogFn {
   return (event) => {
     const formattedEvent =
-      event instanceof TW.Signal ? event.data : event;
+      event instanceof TW.Signal || event instanceof TW.Trace
+        ? event.data
+        : event;
     if (
       formattedEvent !== null &&
       typeof formattedEvent === "object" &&
