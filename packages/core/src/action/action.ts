@@ -364,6 +364,19 @@ function isAsyncGenerator(value: unknown): value is AsyncGenerator<unknown, unkn
   );
 }
 
+async function* transformUserEvents(
+  gen: AsyncGenerator<unknown, unknown>,
+): AsyncGenerator<unknown, unknown> {
+  let sent: unknown;
+
+  while (true) {
+    const next = await gen.next(sent);
+    if (next.done) return next.value;
+
+    sent = next.value instanceof TW.Trace ? undefined : yield next.value;
+  }
+}
+
 function isSelfCall(value: unknown): value is AsyncGenerator<unknown, unknown> {
   return value !== null && typeof value === "object" && SelfTag in value;
 }
@@ -374,6 +387,25 @@ function commandEvent(input: unknown): TW.Signal<"Command", object> {
   });
 }
 
+function isStepHandler(handler: unknown): boolean {
+  return handler !== null && handler !== undefined && TW.Name in Object(handler);
+}
+
+function isRawFunctionHandler(handler: unknown): boolean {
+  return typeof handler === "function" && !isStepHandler(handler);
+}
+
+function validateRunHandlers(handlers: unknown[]) {
+  if (!isStepHandler(handlers[0])) return;
+
+  const mixedIndex = handlers.slice(1).findIndex(isRawFunctionHandler);
+  if (mixedIndex !== -1) {
+    throw new Error(
+      "Action.run cannot mix Step(...) handlers with raw function handlers",
+    );
+  }
+}
+
 async function* runStep(
   name: string,
   handler: (...a: unknown[]) => unknown,
@@ -382,7 +414,9 @@ async function* runStep(
   try {
     let result: unknown;
     if (handler instanceof AsyncGeneratorFunction) {
-      result = yield* handler.call(ctx) as AsyncGenerator<unknown, unknown>;
+      result = yield* transformUserEvents(
+        handler.call(ctx) as AsyncGenerator<unknown, unknown>,
+      );
     } else {
       const ret = handler.call(ctx);
       // If the step returned a self-recursive generator, propagate its events
@@ -395,7 +429,7 @@ async function* runStep(
         return yield* awaited;
       }
       result = isAsyncGenerator(awaited)
-        ? yield* awaited
+        ? yield* transformUserEvents(awaited)
         : awaited;
     }
     if (result instanceof TW.Signal) {
@@ -711,13 +745,15 @@ async function* runHandlerList(
       }
     } else if (handler instanceof AsyncGeneratorFunction) {
       lastCond = null;
-      last = yield* (
-        handler as (this: typeof ctx) => AsyncGenerator<unknown, unknown>
-      ).call(ctx);
+      last = yield* transformUserEvents(
+        (
+          handler as (this: typeof ctx) => AsyncGenerator<unknown, unknown>
+        ).call(ctx),
+      );
     } else if (typeof handler === "function") {
       lastCond = null;
       const ret = await (handler as (this: typeof ctx) => unknown).call(ctx);
-      last = isAsyncGenerator(ret) ? yield* ret : ret;
+      last = isAsyncGenerator(ret) ? yield* transformUserEvents(ret) : ret;
       if (last instanceof TW.Signal) {
         yield last;
         last = last.data;
@@ -911,6 +947,8 @@ export function Action<const Name extends string>(
   }
 
   function createAction(inputMode: "first" | "args", handlers: unknown[]) {
+    validateRunHandlers(handlers);
+
     if (inferType) {
       const steps: Array<Record<string, unknown>> = [];
       for (const handler of handlers) {

@@ -196,6 +196,81 @@ describe("Action", () => {
     expect(await mixed({ name: "World" })).toEqual(true);
   });
 
+  test("TW.Trace yielded from step is ignored", async () => {
+    const { traced } = Action("traced")
+      .input({ name: "string" })
+
+      .run(
+        Step("first", async function* () {
+          yield new TW.Trace("user.step", { message: "ignored" });
+          yield "visible-step";
+
+          return 1;
+        }),
+
+        Step("second", function () {
+          return 2;
+        }),
+      );
+
+    const yields: unknown[] = [];
+    for await (const v of traced.stream({ name: "World" })) {
+      yields.push(v);
+    }
+
+    expect(eventDataList(yields)).toEqual([
+      { ">>": "traced", input: { name: "World" } },
+      "visible-step",
+      { ">>": "traced.first", result: 1 },
+      { ">>": "traced.second", result: 2 },
+      { ">>": "traced", result: 2 },
+    ]);
+    expect(await traced({ name: "World" })).toEqual(2);
+  });
+
+  test("TW.Trace yielded from action function is ignored", async () => {
+    const { traced } = Action("traced")
+      .input({ name: "string" })
+
+      .run(async function* () {
+        yield new TW.Trace("user.function", { message: "ignored" });
+        yield "visible-function";
+
+        return 2;
+      });
+
+    const yields: unknown[] = [];
+    for await (const v of traced.stream({ name: "World" })) {
+      yields.push(v);
+    }
+
+    expect(eventDataList(yields)).toEqual([
+      { ">>": "traced", input: { name: "World" } },
+      "visible-function",
+      { ">>": "traced", result: 2 },
+    ]);
+    expect(await traced({ name: "World" })).toEqual(2);
+  });
+
+  test("Action.run disallows raw function after Step", () => {
+    expect(() =>
+      Action("mixed")
+        .input({ name: "string" })
+
+        .run(
+          Step("first", function () {
+            return 1;
+          }),
+
+          // @ts-ignore intentional invalid run shape covered by runtime guard
+          async function* () {
+            yield "raw";
+            return 2;
+          },
+        ),
+    ).toThrow("Action.run cannot mix Step(...) handlers with raw function handlers");
+  });
+
   test("Step delegates returned async generators and promised async generators", async () => {
     async function* numberStream(value: number) {
       yield `value:${value}`;
