@@ -9,6 +9,11 @@ import { Event } from "./event";
 import { Logger, formatEvent, isActionEvent } from "./use";
 import { Trait } from "./trait";
 
+const eventData = (value: unknown) =>
+  value instanceof TW.Trace || value instanceof TW.Signal ? value.data : value;
+
+const eventDataList = (values: unknown[]) => values.map(eventData);
+
 describe("Actor", () => {
   test("Command — plain handler with input", async () => {
     const { Greeter } = Actor("Greeter");
@@ -106,7 +111,7 @@ describe("Actor", () => {
       yields.push(v);
     }
 
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "Pipeline::run", input: { name: "hello" } },
       { ">>": "Pipeline::run.first", result: 5 },
       { ">>": "Pipeline::run.second", result: true },
@@ -154,7 +159,7 @@ describe("Actor", () => {
       yields.push(v);
     }
 
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       {
         ">>": "Broadcaster::on_new_message",
         input: { sender: { name: "Alice" }, content: "hi", channel: "general" },
@@ -198,7 +203,7 @@ describe("Actor", () => {
       thrown = e;
     }
 
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "Crasher::failing", input: { name: "World" } },
       { ">>": "Crasher::failing.first", result: 1 },
       { ">>": "Crasher::failing.bad", error: boom },
@@ -598,7 +603,7 @@ describe("Actor", () => {
     for await (const v of getInvoices.stream({ id: "inv-42", page: "2" })) {
       directYields.push(v);
     }
-    expect(directYields).toEqual([
+    expect(eventDataList(directYields)).toEqual([
       {
         ">>": "InvoiceProvider::get_invoices",
         input: { id: "inv-42", page: "2" },
@@ -671,7 +676,7 @@ describe("Actor", () => {
       yields.push(v);
     }
 
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       {
         ">>": "MailAgent::on_new_email",
         input: {
@@ -721,18 +726,16 @@ describe("Actor", () => {
     }
 
     expect(yields[1]).toBeInstanceOf(TW.Signal);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       {
         ">>": "Emitter::emit",
         input: { orderId: "ord-1", amount: 100 },
       },
-      expect.objectContaining({
-        data: {
-          "->": "Emitter::OrderPlaced",
-          orderId: "ord-1",
-          amount: 100,
-        },
-      }),
+      {
+        "->": "Emitter::OrderPlaced",
+        orderId: "ord-1",
+        amount: 100,
+      },
       {
         ">>": "Emitter::emit.order",
         result: {
@@ -817,7 +820,7 @@ describe("Actor", () => {
     }
 
     expect(logged).toEqual(
-      yields.flatMap((v) => {
+      eventDataList(yields).flatMap((v) => {
         if (typeof v !== "object" || v === null || !(">>" in (v as object)))
           return [v];
         const e = v as Record<string, unknown>;

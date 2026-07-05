@@ -1,4 +1,9 @@
-import { UUIDv7String, ValidateTrigger, InferTriggerScope, Pretty } from "./helpers";
+import {
+  UUIDv7String,
+  ValidateTrigger,
+  InferTriggerScope,
+  Pretty,
+} from "./helpers";
 
 import { Type as ArkType } from "arktype";
 
@@ -78,7 +83,10 @@ export namespace TW {
       data: EventKindData<S, T & string>,
     ): AsyncGenerator<
       Signal<EventKindName<S, T & string>, EventKindData<S, T & string>>,
-      Signal<EventKindName<S, T & string>, EventKindData<S, T & string>>["data"],
+      Signal<
+        EventKindName<S, T & string>,
+        EventKindData<S, T & string>
+      >["data"],
       unknown
     >;
     get<T>(Cls: new (...args: any[]) => T): T;
@@ -108,8 +116,8 @@ export namespace TW {
     Parameters<Handler> extends []
       ? undefined
       : Parameters<Handler> extends [infer Input]
-        ? Input
-        : Parameters<Handler>;
+      ? Input
+      : Parameters<Handler>;
 
   type StreamResult<Handler extends (...args: any) => any> = Awaited<
     ReturnType<Handler>
@@ -210,26 +218,11 @@ export namespace TW {
   }
 
   export class Trace<const Type extends string, const Data extends object> {
-    readonly event!: "TW::Trace";
-    readonly data!: Pretty<{ ">>": Type } & Data>;
-
-    static [Symbol.hasInstance](value: unknown): boolean {
-      return (
-        value !== null &&
-        typeof value === "object" &&
-        (value as { event?: unknown }).event === "TW::Trace"
-      );
-    }
+    readonly event = "TW::Trace";
+    data: Pretty<{ ">>": Type } & Data>;
 
     constructor(type: Type, data: Data) {
-      const trace = Object.assign({ ">>": type }, data) as Pretty<
-        { ">>": Type } & Data
-      >;
-      Object.defineProperties(trace, {
-        event: { value: "TW::Trace" },
-        data: { value: trace },
-      });
-      return trace as unknown as Trace<Type, Data>;
+      this.data = Object.assign({ ">>": type }, data);
     }
   }
 

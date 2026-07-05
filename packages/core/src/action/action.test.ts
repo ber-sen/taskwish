@@ -7,6 +7,11 @@ import { TW } from "../core";
 import { Step } from "../steps";
 import { Logger, InferType, formatEvent, isActionEvent } from "../use";
 
+const eventData = (value: unknown) =>
+  value instanceof TW.Trace || value instanceof TW.Signal ? value.data : value;
+
+const eventDataList = (values: unknown[]) => values.map(eventData);
+
 describe("Action", () => {
   test("no input — plain handler", async () => {
     const { healthz } = Action("healthz").run(function () {
@@ -73,7 +78,7 @@ describe("Action", () => {
       yields.push(v);
     }
 
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "hello", input: { name: "World" } },
       { ">>": "hello.fistStep", result: 5 },
       { ">>": "hello.secondStep", result: true },
@@ -179,7 +184,7 @@ describe("Action", () => {
     for await (const v of mixed.stream({ name: "World" })) {
       yields.push(v);
     }
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "mixed", input: { name: "World" } },
       { ">>": "mixed.first", result: 42 },
       "x",
@@ -227,7 +232,7 @@ describe("Action", () => {
       yields.push(value);
     }
 
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "run", input: { value: 3 } },
       "value:3",
       { ">>": "run.direct", result: 6 },
@@ -270,7 +275,7 @@ describe("Action", () => {
       thrown = e;
     }
 
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "failing", input: { name: "World" } },
       { ">>": "failing.first", result: 1 },
       { ">>": "failing.bad", error: boom },
@@ -358,7 +363,7 @@ describe("Action", () => {
     }
 
     expect(logged).toEqual(
-      yields.flatMap((v) => {
+      eventDataList(yields).flatMap((v) => {
         if (typeof v !== "object" || v === null || !(">>" in (v as object)))
           return [v];
         const e = v as Record<string, unknown>;
@@ -951,7 +956,7 @@ describe("Action", () => {
     for await (const v of greet.stream({ name: "hello" })) {
       values.push(v);
     }
-    expect(values).toEqual([
+    expect(eventDataList(values)).toEqual([
       { ">>": "greet", input: { name: "hello" } },
       "hello",
       "HELLO",
