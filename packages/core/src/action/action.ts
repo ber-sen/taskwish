@@ -180,15 +180,9 @@ export interface ActionFactory<
           model: "gpt5";
           prompt: string;
         }) => AsyncGenerator<
-          TW.ActionInputEvent<
-            TW.Action<
-              "generateText",
-              (params: { model: "gpt5"; prompt: string }) => string
-            >,
-            {
-              model: "gpt5";
-              prompt: string;
-            }
+          TW.Trace<
+            "generateText",
+            { input: { model: "gpt5"; prompt: string } }
           >,
           Promise<string>,
           unknown
@@ -256,8 +250,6 @@ export type Scope = {
     data: D,
   ): AsyncGenerator<TW.Signal<T, D>, TW.Signal<T, D>["data"], unknown>;
 };
-
-export const ActionEventTag = Symbol.for("TW.ActionEvent");
 
 // ── InferType action-step probe ───────────────────────────────────────────────
 

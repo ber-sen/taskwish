@@ -1020,8 +1020,6 @@ describe("Action", () => {
       any
     >
       ? N
-      : Yield extends TW.ActionInputEvent<TW.Resource<infer N>, any>
-      ? N
       : never;
     type StreamActionName = StreamActionNameOf<StreamYield>;
 
