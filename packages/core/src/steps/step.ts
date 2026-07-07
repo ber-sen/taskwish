@@ -33,7 +33,7 @@ export function Step<
     : string | readonly [string, "|>", string],
   const Handler extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
-    : (this: UserScope<Ctx>, source: AsyncGenerator<ResolveScope<Ctx["scope"]>[NameParm[0]]>) => any,
+    : (this: UserScope<Ctx>, source: AsyncIterable<ResolveScope<Ctx["scope"]>[NameParm[0]]>) => any,
   const Params extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
     : never,
