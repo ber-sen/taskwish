@@ -128,8 +128,9 @@ export type Append<Items, Item> = Items extends readonly any[]
 
 // ── Scope operator machinery ──────────────────────────────────────────────────
 
-export type RawEntry<R, Ops extends string[] = []> = {
+export type RawEntry<R, Ops extends string[] = [], Yields = never> = {
   result: R;
+  yields: Yields;
   operator: Ops;
 };
 

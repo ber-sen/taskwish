@@ -1,6 +1,6 @@
 import { expect, test, describe } from "bun:test";
 import { $ } from "@taskwish/expr";
-import { Expect, Equal } from "../helpers";
+import { Expect, Equal, RawEntry } from "../helpers";
 import { Action } from "./action";
 import { Actor } from "../actor";
 import { TW } from "../core";
@@ -317,6 +317,31 @@ describe("Action", () => {
       { ">>": "run.afterPromised", result: 15 },
       { ">>": "run", result: 15 },
     ]);
+  });
+
+  test("type — RawEntry keeps async generator yields", () => {
+    type Ctx = {
+      name: "typed";
+      step: { name: string; map: {} };
+      steps: [];
+      scope: {};
+      plugins: [];
+    };
+
+    const handler = async function* () {
+      yield "chunk" as const;
+      return 1 as const;
+    };
+
+    const streamed = Step<Ctx, "streamed", typeof handler, never, "streamed">(
+      "streamed",
+      handler,
+    );
+
+    type Output = ReturnType<(typeof streamed)[typeof TW.Step]>;
+    type Entry = Output["scope"]["streamed"];
+
+    type check = Expect<Equal<Entry, RawEntry<1, [], "chunk">>>;
   });
 
   test("step error — yields step error, action error, then rethrows", async () => {
