@@ -1,4 +1,10 @@
-import { Append, FindInferTypeFilter, PrettyScope, RawEntry, ResolveScope } from "../helpers";
+import {
+  Append,
+  FindInferTypeFilter,
+  PrettyScope,
+  RawEntry,
+  ResolveScope,
+} from "../helpers";
 import { TW } from "../core";
 
 /**
@@ -8,12 +14,13 @@ import { TW } from "../core";
  * - async function   → Awaited<ReturnType>
  * - sync function    → ReturnType
  */
-type ResolveReturn<H extends (...args: any) => any> =
-  Awaited<ReturnType<H>> extends AsyncGenerator<any, infer R, any>
-    ? Awaited<R>
-    : Awaited<ReturnType<H>> extends Generator<any, infer R, any>
-      ? R
-      : Awaited<ReturnType<H>>;
+type ResolveReturn<H extends (...args: any) => any> = Awaited<
+  ReturnType<H>
+> extends AsyncGenerator<any, infer R, any>
+  ? Awaited<R>
+  : Awaited<ReturnType<H>> extends Generator<any, infer R, any>
+  ? R
+  : Awaited<ReturnType<H>>;
 
 type UserScope<Ctx extends Record<any, any>> = PrettyScope<
   TW.Scope<ResolveScope<Ctx["scope"]>>
@@ -21,17 +28,24 @@ type UserScope<Ctx extends Record<any, any>> = PrettyScope<
 
 export function Step<
   Ctx extends Record<any, any>,
-  const Name extends "name" extends keyof Ctx["step"]
+  const NameParm extends "name" extends keyof Ctx["step"]
     ? Ctx["step"]["name"]
-    : string,
+    : string | readonly [string, "|>", string],
   const Handler extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
-    : (this: UserScope<Ctx>) => any,
+    : (this: UserScope<Ctx>, source: AsyncGenerator<ResolveScope<Ctx["scope"]>[NameParm[0]]>) => any,
   const Params extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
     : never,
+  const Name extends string = NameParm extends readonly [
+    string,
+    "|>",
+    infer PipeName,
+  ]
+    ? PipeName
+    : NameParm,
 >(
-  name: Name,
+  name: NameParm,
   handler: Name extends keyof Ctx["step"]["map"] ? Params : Handler,
 ): {
   [TW.Step]: (ctx: Ctx) => {
@@ -47,16 +61,16 @@ export function Step<
                 ? [Filter] extends [never]
                   ? () => ReturnType<Handler>
                   : Filter extends string
-                    ? Filter extends Name
-                      ? Handler
-                      : () => ReturnType<Handler>
-                    : Handler
+                  ? Filter extends Name
+                    ? Handler
+                    : () => ReturnType<Handler>
+                  : Handler
                 : () => ReturnType<Handler>
             >,
           ]
       : Name extends keyof Ctx["step"]["map"]
-        ? []
-        : [TW.Step<Name, () => ReturnType<Handler>>];
+      ? []
+      : [TW.Step<Name, () => ReturnType<Handler>>];
     [TW.Step]: Ctx["step"];
     scope: Record<
       Name,

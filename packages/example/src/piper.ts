@@ -13,8 +13,11 @@ export const { count } = Piper()
         yield count;
         await Bun.sleep(100);
       }
+
+      return 1;
     }),
-    Step("count", "|>", "double", async function* (source) {
+
+    Step(["count", "|>", "double"], async function* (source) {
       for await (const chunk of source) {
         yield chunk * 2;
       }
