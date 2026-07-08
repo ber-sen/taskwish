@@ -38,7 +38,7 @@ function isIterator(value: unknown): value is IteratorLike {
   );
 }
 
-async function streamChunk(chunk: unknown): Promise<Uint8Array> {
+export async function streamChunk(chunk: unknown): Promise<Uint8Array> {
   if (chunk instanceof Uint8Array) return chunk;
   if (chunk instanceof ArrayBuffer) return new Uint8Array(chunk);
   if (ArrayBuffer.isView(chunk)) {

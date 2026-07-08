@@ -6,7 +6,7 @@ import { Action } from "./action";
 import { TW } from "./core";
 import { Step } from "./steps";
 import { Event } from "./event";
-import { Logger, formatEvent, isActionEvent } from "./use";
+import { Logger, formatEvent } from "./use";
 import { Trait } from "./trait";
 
 const eventData = (value: unknown) =>
@@ -779,12 +779,10 @@ describe("Actor", () => {
     await run({ value: 5 });
 
     expect(logged).toEqual([
-      "",
       formatEvent({ ">>": "Worker::run", input: { value: 5 } }),
       formatEvent({ ">>": "Worker::run.doubled", result: 10 }),
       formatEvent({ ">>": "Worker::run.positive", result: true }),
       formatEvent({ ">>": "Worker::run", result: true }),
-      "",
     ]);
   });
 
@@ -824,12 +822,9 @@ describe("Actor", () => {
         if (typeof v !== "object" || v === null || !(">>" in (v as object)))
           return [v];
         const e = v as Record<string, unknown>;
-        const action = isActionEvent(e[">>"] as string);
         const out = formatEvent(e);
         const items: unknown[] = [];
-        if (action && "input" in e) items.push("");
         items.push(out);
-        if (action && ("result" in e || "error" in e)) items.push("");
         return items;
       }),
     );
@@ -901,12 +896,9 @@ describe("Actor", () => {
     });
 
     expect(logged).toEqual([
-      "",
       formatEvent({ ">>": "Hub::ping", input: { id: "abc" } }),
       formatEvent({ ">>": "Hub::ping.upper", result: "ABC" }),
       formatEvent({ ">>": "Hub::ping", result: "ABC" }),
-      "",
-      "",
       formatEvent({
         ">>": "Hub::on_new_message",
         input: {
@@ -917,7 +909,6 @@ describe("Actor", () => {
       }),
       formatEvent({ ">>": "Hub::on_new_message.excerpt", result: "hel" }),
       formatEvent({ ">>": "Hub::on_new_message", result: "hel" }),
-      "",
     ]);
   });
 

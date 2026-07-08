@@ -10,7 +10,10 @@ curl -H "Authorization: Bearer ${apiKey}" "${baseUrl}/tw/Browser/browse?url=http
 Open first Hacker News story:
 curl -H "Authorization: Bearer ${apiKey}" "${baseUrl}/tw/HackerNews/open-first-page"
 
-Open first Hacker News story:
-curl -H "Authorization: Bearer ${apiKey}" "${baseUrl}/tw/Streamer/count?total=100";
+Stream:
+curl -H "Authorization: Bearer ${apiKey}" "${baseUrl}/tw/Streamer/count?total=100"
+
+Pipe:
+curl -H "Authorization: Bearer ${apiKey}" "${baseUrl}/tw/Piper/count?total=1000000"
 `;
 

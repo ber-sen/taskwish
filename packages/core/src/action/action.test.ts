@@ -5,7 +5,7 @@ import { Action } from "./action";
 import { Actor } from "../actor";
 import { TW } from "../core";
 import { Step } from "../steps";
-import { Logger, InferType, formatEvent, isActionEvent } from "../use";
+import { Logger, InferType, formatEvent } from "../use";
 
 const eventData = (value: unknown) =>
   value instanceof TW.Trace || value instanceof TW.Signal ? value.data : value;
@@ -319,6 +319,40 @@ describe("Action", () => {
     ]);
   });
 
+  test("Step pipe receives previous async generator without eagerly yielding it", async () => {
+    const { count } = Action("count")
+      .input({ total: "number" })
+
+      .run(
+        Step("count", async function* () {
+          for (let count = 1; count <= this.input.total; count++) {
+            yield count;
+          }
+        }),
+
+        Step(["|>", "double"], async function* (source) {
+          for await (const chunk of source) {
+            yield chunk * 2;
+          }
+        }),
+      );
+
+    const yields: unknown[] = [];
+    for await (const value of count.stream({ total: 3 })) {
+      yields.push(value);
+    }
+
+    expect(eventDataList(yields)).toEqual([
+      { ">>": "count", input: { total: 3 } },
+      2,
+      4,
+      6,
+      { ">>": "count.double", result: undefined },
+      { ">>": "count", result: undefined },
+    ]);
+    expect(await count({ total: 3 })).toBeUndefined();
+  });
+
   test("type — RawEntry keeps async generator yields", () => {
     type Ctx = {
       name: "typed";
@@ -402,10 +436,8 @@ describe("Action", () => {
     await healthz();
 
     expect(logged).toEqual([
-      "",
       formatEvent({ ">>": "healthz", input: undefined }),
       formatEvent({ ">>": "healthz", result: { status: "ok" } }),
-      "",
     ]);
   });
 
@@ -467,12 +499,9 @@ describe("Action", () => {
         if (typeof v !== "object" || v === null || !(">>" in (v as object)))
           return [v];
         const e = v as Record<string, unknown>;
-        const action = isActionEvent(e[">>"] as string);
         const out = formatEvent(e);
         const items: unknown[] = [];
-        if (action && "input" in e) items.push("");
         items.push(out);
-        if (action && ("result" in e || "error" in e)) items.push("");
         return items;
       }),
     );
@@ -504,12 +533,10 @@ describe("Action", () => {
     await compute({ value: 3 });
 
     expect(logged).toEqual([
-      "",
       formatEvent({ ">>": "compute", input: { value: 3 } }),
       formatEvent({ ">>": "compute.double", result: 6 }),
       formatEvent({ ">>": "compute.positive", result: true }),
       formatEvent({ ">>": "compute", result: true }),
-      "",
     ]);
   });
 

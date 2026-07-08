@@ -209,6 +209,12 @@ export namespace TW {
     }
   }
 
+  export class Stream<const Data> {
+    readonly event = "TW::Stream";
+
+    constructor(public data: Data) {}
+  }
+
   export type Step<
     Name extends string,
     Handler extends (...args: any) => any,

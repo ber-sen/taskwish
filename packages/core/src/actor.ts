@@ -3,6 +3,7 @@ import {
   buildScope,
   runAction,
   tapWith,
+  unwrapStreamEvents,
   type ActionFactory,
 } from "./action";
 import type { ActionMeta, ValidateActionMeta } from "./action/meta";
@@ -666,10 +667,12 @@ function createBehavior(
           const { args: modArgs, scope: behaviorScope } = mod(args);
           const extra = { ...resolvedInitialScope, ...behaviorScope };
           const gen = tap(
-            runAction(
-              eventName,
-              buildScope(inputMode, modArgs, extra),
-              handlers,
+            unwrapStreamEvents(
+              runAction(
+                eventName,
+                buildScope(inputMode, modArgs, extra),
+                handlers,
+              ),
             ),
           );
           let item = await gen.next();
@@ -689,7 +692,7 @@ function createBehavior(
         }
 
         function stream(...args: unknown[]) {
-          return tap(rawStream(...args));
+          return tap(unwrapStreamEvents(rawStream(...args)));
         }
 
         const resolveMeta = () =>
@@ -766,11 +769,11 @@ function createBehavior(
                 }
 
                 function cmdStream(flatInput: unknown) {
-                  return tap(rawCmdStream(flatInput));
+                  return tap(unwrapStreamEvents(rawCmdStream(flatInput)));
                 }
 
                 async function cmdConsume(flatInput: unknown) {
-                  const gen = tap(rawCmdStream(flatInput));
+                  const gen = tap(unwrapStreamEvents(rawCmdStream(flatInput)));
                   let item = await gen.next();
                   while (!item.done) item = await gen.next();
                   return item.value;

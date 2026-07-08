@@ -91,16 +91,12 @@ export function dispatch(target: ConsoleLike): LogFn {
       (">>" in (formattedEvent as object) || "->" in (formattedEvent as object))
     ) {
       const e = formattedEvent as Record<string, unknown>;
-      const action =
-        ">>" in (formattedEvent as object) && isActionEvent(e[">>"] as string);
-      if (action && "input" in e) target.log("");
       const out = formatEvent(formattedEvent as object);
       if ("error" in e) {
         target.error(out);
       } else {
         target.info(out);
       }
-      if (action && ("result" in e || "error" in e)) target.log("");
     } else {
       target.log(event);
     }
