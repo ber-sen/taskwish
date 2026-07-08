@@ -15,7 +15,7 @@ export const { count } = Piper()
       }
     }),
 
-    Step(["count", "|>", "double"], async function* (source) {
+    Step(["|>", "double"], async function* (source) {
       for await (const chunk of source) {
         yield chunk * 2;
       }

@@ -7,13 +7,6 @@ import {
 } from "../helpers";
 import { TW } from "../core";
 
-/**
- * Resolve the "value" type of a step handler:
- * - async generator  → TReturn (the generator's return value, not the iterator)
- * - sync generator   → TReturn
- * - async function   → Awaited<ReturnType>
- * - sync function    → ReturnType
- */
 type ResolveReturn<H extends (...args: any) => any> = Awaited<
   ReturnType<H>
 > extends AsyncGenerator<any, infer R, any>
@@ -38,38 +31,28 @@ type UserScope<Ctx extends Record<any, any>> = PrettyScope<
   TW.Scope<ResolveScope<Ctx["scope"]>>
 >;
 
-type YieldingScopeKey<Scope extends Record<any, any>> = {
-  [K in keyof Scope]: Scope[K] extends { yields: infer Y }
-    ? [Y] extends [never]
-      ? never
-      : K
-    : never;
-}[keyof Scope];
-
 export function Step<
   Ctx extends Record<any, any>,
   const NameParm extends "name" extends keyof Ctx["step"]
     ? Ctx["step"]["name"]
-    : string | readonly [YieldingScopeKey<Ctx["scope"]>, "|>", string],
+    : string | readonly ["|>", string],
   const Handler extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
     : (
         this: UserScope<Ctx>,
-        source: AsyncIterable<Ctx["scope"][NameParm[0]]["yields"]>
+        source: Ctx["last"]["yields"] extends never
+          ? Ctx["last"]["result"]
+          : AsyncIterable<Ctx["last"]["yields"]>,
       ) => any,
   const Params extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
     : never,
-  const Name extends string = NameParm extends readonly [
-    YieldingScopeKey<Ctx["scope"]>,
-    "|>",
-    infer PipeName
-  ]
+  const Name extends string = NameParm extends readonly ["|>", infer PipeName]
     ? PipeName
-    : NameParm
+    : NameParm,
 >(
   name: NameParm,
-  handler: Name extends keyof Ctx["step"]["map"] ? Params : Handler
+  handler: Name extends keyof Ctx["step"]["map"] ? Params : Handler,
 ): {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
@@ -89,7 +72,7 @@ export function Step<
                     : () => ReturnType<Handler>
                   : Handler
                 : () => ReturnType<Handler>
-            >
+            >,
           ]
       : Name extends keyof Ctx["step"]["map"]
       ? []
@@ -120,7 +103,7 @@ export function Step<
   const Params extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
     : never,
-  A
+  A,
 >(
   name: Name,
   handler: [
@@ -128,9 +111,9 @@ export function Step<
     (
       res: Name extends keyof Ctx["step"]["map"]
         ? string
-        : ResolveReturn<Handler>
-    ) => A
-  ]
+        : ResolveReturn<Handler>,
+    ) => A,
+  ],
 ): {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
@@ -156,7 +139,7 @@ export function Step<
     ? Ctx["step"]["map"][Name]
     : never,
   A,
-  B
+  B,
 >(
   name: Name,
   handler: [
@@ -164,10 +147,10 @@ export function Step<
     (
       res: Name extends keyof Ctx["step"]["map"]
         ? string
-        : ResolveReturn<Handler>
+        : ResolveReturn<Handler>,
     ) => A,
-    (input: A) => B
-  ]
+    (input: A) => B,
+  ],
 ): {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
