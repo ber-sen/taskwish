@@ -228,6 +228,7 @@ export interface ActionFactory<
 const AsyncGeneratorFunction = async function* () {}.constructor as Function;
 
 export const RawStreamTag = Symbol.for("TW.RawStream");
+export const RawLoggedStreamTag = Symbol.for("TW.RawLoggedStream");
 
 export async function* tapWith(
   gen: AsyncGenerator<unknown, unknown>,
@@ -236,6 +237,19 @@ export async function* tapWith(
   let next = await gen.next();
   while (!next.done) {
     log(next.value);
+    yield next.value;
+    next = await gen.next();
+  }
+  return next.value;
+}
+
+export async function* tapRawStreamWith(
+  gen: AsyncGenerator<unknown, unknown>,
+  log: LogFn,
+): AsyncGenerator<unknown, unknown> {
+  let next = await gen.next();
+  while (!next.done) {
+    log(next.value instanceof TW.Stream ? next.value.data : next.value);
     yield next.value;
     next = await gen.next();
   }
@@ -1192,11 +1206,16 @@ export function Action<const Name extends string>(
       return tap(unwrapStreamEvents(rawStream(...args)));
     }
 
+    function loggedRawStream(...args: unknown[]) {
+      return tapRawStreamWith(rawStream(...args), dispatch(logger));
+    }
+
     const action = Object.assign(consume, {
       [TW.Name]: actionName,
       [TW.Meta]: actionMeta,
       stream,
       [RawStreamTag]: rawStream,
+      [RawLoggedStreamTag]: loggedRawStream,
     });
     const result = {
       [actionName]: action,

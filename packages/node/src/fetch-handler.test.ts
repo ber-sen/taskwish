@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { Actor, Event, Step, TW } from "@taskwish/core";
+import { Actor, Event, formatEvent, Logger, Step, TW } from "@taskwish/core";
 import { createFetchHandler, createNodeRegistry } from "./index";
 import { apiKey, auth } from "./test-helpers";
 
@@ -127,6 +127,53 @@ test("streams Step pipe chunks from command actions", async () => {
   expect(new TextDecoder().decode(second.value)).toBe("4\n");
 
   expect(await reader.read()).toEqual({ done: true, value: undefined });
+});
+
+test("logs traces when invoking command actions through fetch handlers", async () => {
+  const logged: unknown[] = [];
+  const spy = {
+    log: logged.push.bind(logged),
+    info: logged.push.bind(logged),
+    error: logged.push.bind(logged),
+  };
+  const { Greeter } = Actor("Greeter");
+
+  const { hello } = Greeter()
+    .use(Logger(spy))
+    
+    .on("Command", "hello")
+
+    .input({ name: "string" })
+
+    .run(
+      Step("prepare", function () {
+        return this.input.name.toUpperCase();
+      }),
+
+      Step("greet", function () {
+        return `Hello ${this.prepare}`;
+      }),
+    );
+
+  const fetch = createFetchHandler(
+    createNodeRegistry([Promise.resolve({ Greeter, hello })]),
+    { apiKey },
+  );
+
+  const response = await fetch(
+    new Request("http://localhost/tw/Greeter/hello?name=Ada", {
+      headers: auth,
+    }),
+  );
+
+  expect(response.status).toBe(200);
+  expect(await response.text()).toBe("Hello ADA");
+  expect(logged).toEqual([
+    formatEvent({ ">>": "Greeter::hello", input: { name: "Ada" } }),
+    formatEvent({ ">>": "Greeter::hello.prepare", result: "ADA" }),
+    formatEvent({ ">>": "Greeter::hello.greet", result: "Hello ADA" }),
+    formatEvent({ ">>": "Greeter::hello", result: "Hello ADA" }),
+  ]);
 });
 
 test("serves actor event handlers with POST under /tw/<Actor>/<handler>", async () => {

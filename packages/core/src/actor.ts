@@ -1,7 +1,9 @@
 import {
+  RawLoggedStreamTag,
   RawStreamTag,
   buildScope,
   runAction,
+  tapRawStreamWith,
   tapWith,
   unwrapStreamEvents,
   type ActionFactory,
@@ -695,6 +697,10 @@ function createBehavior(
           return tap(unwrapStreamEvents(rawStream(...args)));
         }
 
+        function loggedRawStream(...args: unknown[]) {
+          return tapRawStreamWith(rawStream(...args), dispatch(logger));
+        }
+
         const resolveMeta = () =>
           traitMeta !== null || eventMeta !== null || actionMeta !== null
             ? {
@@ -708,6 +714,7 @@ function createBehavior(
           stream,
           [TW.Meta]: resolveMeta(),
           [RawStreamTag]: rawStream,
+          [RawLoggedStreamTag]: loggedRawStream,
         });
         const result = {
           [actionName]: action,
@@ -772,6 +779,13 @@ function createBehavior(
                   return tap(unwrapStreamEvents(rawCmdStream(flatInput)));
                 }
 
+                function loggedRawCmdStream(flatInput: unknown) {
+                  return tapRawStreamWith(
+                    rawCmdStream(flatInput),
+                    dispatch(logger),
+                  );
+                }
+
                 async function cmdConsume(flatInput: unknown) {
                   const gen = tap(unwrapStreamEvents(rawCmdStream(flatInput)));
                   let item = await gen.next();
@@ -794,6 +808,7 @@ function createBehavior(
                   [TW.Meta]: resolveMeta(),
                   stream: cmdStream,
                   [RawStreamTag]: rawCmdStream,
+                  [RawLoggedStreamTag]: loggedRawCmdStream,
                 });
                 const result = {
                   [cmdName]: action,

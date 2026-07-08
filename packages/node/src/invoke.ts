@@ -1,4 +1,4 @@
-import { RawStreamTag, TW } from "@taskwish/core";
+import { RawLoggedStreamTag, RawStreamTag, TW } from "@taskwish/core";
 import {
   flattenRouteInput,
   parseActionInput,
@@ -36,6 +36,11 @@ function rawActionStream(
   args: unknown[],
 ): AsyncGenerator<unknown, unknown, unknown> | null {
   const raw =
+    (action as unknown as {
+      [RawLoggedStreamTag]?: (
+        ...args: unknown[]
+      ) => AsyncGenerator<unknown, unknown>;
+    })[RawLoggedStreamTag] ??
     (action as unknown as {
       [RawStreamTag]?: (...args: unknown[]) => AsyncGenerator<unknown, unknown>;
     })[RawStreamTag] ?? action.stream;
