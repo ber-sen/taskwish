@@ -107,14 +107,14 @@ test("ignores non-Event objects yielded with signal shape", async () => {
   expect(received).toEqual([]);
 });
 
-test("returns the stream final value instead of a yielded result event", async () => {
+test("returns the stream final value instead of a yielded value", async () => {
   const { Greeter } = Actor("Greeter");
 
   const { streamed } = Greeter()
     .on("Command", "streamed")
 
     .run(async function* () {
-      yield { ">>": "Greeter::streamed", result: "yielded result" };
+      yield "yielded result";
 
       return "final value";
     });

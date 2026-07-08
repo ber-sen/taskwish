@@ -1,4 +1,11 @@
-import { UUIDv7String, ValidateTrigger, InferTriggerScope } from "./helpers";
+import {
+  UUIDv7String,
+  ValidateTrigger,
+  InferTriggerScope,
+  Pretty,
+  StreamResult,
+  StreamInput,
+} from "./helpers";
 
 import { Type as ArkType } from "arktype";
 
@@ -77,8 +84,11 @@ export namespace TW {
       type: T,
       data: EventKindData<S, T & string>,
     ): AsyncGenerator<
-      Event<EventKindName<S, T & string>, EventKindData<S, T & string>>,
-      Event<EventKindName<S, T & string>, EventKindData<S, T & string>>["data"],
+      Signal<EventKindName<S, T & string>, EventKindData<S, T & string>>,
+      Signal<
+        EventKindName<S, T & string>,
+        EventKindData<S, T & string>
+      >["data"],
       unknown
     >;
     get<T>(Cls: new (...args: any[]) => T): T;
@@ -87,45 +97,23 @@ export namespace TW {
   export type Inject<Type> = Type | null;
 
   export type StepEvent<Result = unknown> =
-    | { ">>": string; result: Result }
-    | { ">>": string; error: unknown };
+    | Trace<string, { result: Result }>
+    | Trace<string, { error: unknown }>;
 
   export type ActionEvent<
     Name extends string,
     Result = unknown,
     Input = unknown,
   > =
-    | { ">>": Name; input: Input }
-    | { ">>": Name; result: Result }
-    | { ">>": Name; error: unknown };
+    | Trace<Name, { input: Input }>
+    | Trace<Name, { result: Result }>
+    | Trace<Name, { error: unknown }>;
 
   export type GetEvent<T = unknown> = {
     "->": "get";
     type: abstract new (...args: any[]) => T;
   };
 
-  type StreamInput<Handler extends (...args: any) => any> =
-    Parameters<Handler> extends []
-      ? undefined
-      : Parameters<Handler> extends [infer Input]
-        ? Input
-        : Parameters<Handler>;
-
-  type StreamResult<Handler extends (...args: any) => any> = Awaited<
-    ReturnType<Handler>
-  >;
-
-  type StreamYield<
-    Name extends string,
-    Handler extends (...args: any) => any,
-  > =
-    | ActionInputEvent<Resource<Name>, StreamInput<Handler>>
-    | ActionEvent<Name, StreamResult<Handler>, StreamInput<Handler>>;
-
-  type StreamReturn<
-    Name extends string,
-    Handler extends (...args: any) => any,
-  > = AsyncGenerator<StreamYield<Name, Handler>, StreamResult<Handler>>;
 
   export type Action<
     Name extends string,
@@ -134,7 +122,10 @@ export namespace TW {
   > = NoInfer<Handler> & {
     stream: (
       ...args: Parameters<NoInfer<Handler>>
-    ) => StreamReturn<Name, Handler>;
+    ) => AsyncGenerator<
+      ActionEvent<Name, StreamResult<Handler>, StreamInput<Handler>>,
+      StreamResult<Handler>
+    >;
   } & Resource<Name> &
     Attributable<Meta>;
 
@@ -181,7 +172,7 @@ export namespace TW {
       Attributable<null> {
     emit(
       data: Data,
-    ): AsyncGenerator<Event<Name, Data>, Event<Name, Data>, unknown>;
+    ): AsyncGenerator<Signal<Name, Data>, Signal<Name, Data>, unknown>;
     scopeOf?: (input: Data) => Scope;
   }
 
@@ -200,37 +191,41 @@ export namespace TW {
 
   export interface ResourceKind<Name extends string> extends Named<Name> {}
 
-  export class Event<Type extends string, Data> {
-    readonly "->": Type;
-    data: Data
+  export class Signal<const Type extends string, const Data> {
+    readonly event = "TW::Signal";
+    data: Pretty<{ "->": Type } & Data>;
 
     constructor(type: Type, data: Data) {
-      this["->"] = type;
-      this.data = data
+      this.data = Object.assign({ "->": type }, data);
     }
   }
 
-  export type ActionInputEvent<Action extends Resource<string>, Params> = {
-    "->": string;
-    "&": Action;
-    input: Params;
-  };
+  export class Trace<const Type extends string, const Data extends object> {
+    readonly event = "TW::Trace";
+    data: Pretty<{ ">>": Type } & Data>;
 
-  type ActionCaller<Caller> = Extract<
-    Caller,
-    ActionInputEvent<Resource<string>, any>
-  >;
+    constructor(type: Type, data: Data) {
+      this.data = Object.assign({ ">>": type }, data);
+    }
+  }
+
+  export class Stream<const Data> {
+    readonly event = "TW::Stream";
+
+    constructor(public data: Data) {}
+  }
 
   export type Step<
     Name extends string,
     Handler extends (...args: any) => any,
   > = ReturnType<Handler> extends AsyncGenerator<infer Caller, any, any>
-    ? [ActionCaller<Caller>] extends [never]
+    ? [Extract<Caller, Trace<string, { input: any }>>] extends [never]
       ? ScriptStep<Name, Handler>
-      : ActionCaller<Caller> extends ActionInputEvent<infer A, infer P>
-      ? A extends Resource<infer ActionName>
-        ? ActionStep<Name, ActionName, P>
-        : ScriptStep<Name, Handler>
+      : Extract<Caller, Trace<string, { input: any }>> extends Trace<
+          infer ActionName,
+          { input: infer P }
+        >
+      ? ActionStep<Name, ActionName, P>
       : ScriptStep<Name, Handler>
     : ScriptStep<Name, Handler>;
 

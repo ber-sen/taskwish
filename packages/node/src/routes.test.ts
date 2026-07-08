@@ -5,9 +5,12 @@ import { apiKey, auth } from "./test-helpers";
 
 test("exports Bun.serve routes for service dispatch", async () => {
   const { Greeter } = Actor("Greeter");
+  
   const { hello } = Greeter()
     .on("Command", "hello")
+
     .input({ name: "string" })
+
     .run(function () {
       return `Hello ${this.input.name}`;
     });

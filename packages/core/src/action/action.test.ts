@@ -1,11 +1,16 @@
 import { expect, test, describe } from "bun:test";
 import { $ } from "@taskwish/expr";
-import { Expect, Equal } from "../helpers";
+import { Expect, Equal, RawEntry } from "../helpers";
 import { Action } from "./action";
 import { Actor } from "../actor";
 import { TW } from "../core";
 import { Step } from "../steps";
-import { Logger, InferType, formatEvent, isActionEvent } from "../use";
+import { Logger, InferType, formatEvent } from "../use";
+
+const eventData = (value: unknown) =>
+  value instanceof TW.Trace || value instanceof TW.Signal ? value.data : value;
+
+const eventDataList = (values: unknown[]) => values.map(eventData);
 
 describe("Action", () => {
   test("no input — plain handler", async () => {
@@ -73,7 +78,7 @@ describe("Action", () => {
       yields.push(v);
     }
 
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "hello", input: { name: "World" } },
       { ">>": "hello.fistStep", result: 5 },
       { ">>": "hello.secondStep", result: true },
@@ -179,7 +184,7 @@ describe("Action", () => {
     for await (const v of mixed.stream({ name: "World" })) {
       yields.push(v);
     }
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "mixed", input: { name: "World" } },
       { ">>": "mixed.first", result: 42 },
       "x",
@@ -189,6 +194,81 @@ describe("Action", () => {
       { ">>": "mixed", result: true },
     ]);
     expect(await mixed({ name: "World" })).toEqual(true);
+  });
+
+  test("TW.Trace yielded from step is ignored", async () => {
+    const { traced } = Action("traced")
+      .input({ name: "string" })
+
+      .run(
+        Step("first", async function* () {
+          yield new TW.Trace("user.step", { message: "ignored" });
+          yield "visible-step";
+
+          return 1;
+        }),
+
+        Step("second", function () {
+          return 2;
+        }),
+      );
+
+    const yields: unknown[] = [];
+    for await (const v of traced.stream({ name: "World" })) {
+      yields.push(v);
+    }
+
+    expect(eventDataList(yields)).toEqual([
+      { ">>": "traced", input: { name: "World" } },
+      "visible-step",
+      { ">>": "traced.first", result: 1 },
+      { ">>": "traced.second", result: 2 },
+      { ">>": "traced", result: 2 },
+    ]);
+    expect(await traced({ name: "World" })).toEqual(2);
+  });
+
+  test("TW.Trace yielded from action function is ignored", async () => {
+    const { traced } = Action("traced")
+      .input({ name: "string" })
+
+      .run(async function* () {
+        yield new TW.Trace("user.function", { message: "ignored" });
+        yield "visible-function";
+
+        return 2;
+      });
+
+    const yields: unknown[] = [];
+    for await (const v of traced.stream({ name: "World" })) {
+      yields.push(v);
+    }
+
+    expect(eventDataList(yields)).toEqual([
+      { ">>": "traced", input: { name: "World" } },
+      "visible-function",
+      { ">>": "traced", result: 2 },
+    ]);
+    expect(await traced({ name: "World" })).toEqual(2);
+  });
+
+  test("Action.run disallows raw function after Step", () => {
+    expect(() =>
+      Action("mixed")
+        .input({ name: "string" })
+
+        .run(
+          Step("first", function () {
+            return 1;
+          }),
+
+          // @ts-ignore intentional invalid run shape covered by runtime guard
+          async function* () {
+            yield "raw";
+            return 2;
+          },
+        ),
+    ).toThrow("Action.run cannot mix Step(...) handlers with raw function handlers");
   });
 
   test("Step delegates returned async generators and promised async generators", async () => {
@@ -227,7 +307,7 @@ describe("Action", () => {
       yields.push(value);
     }
 
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "run", input: { value: 3 } },
       "value:3",
       { ">>": "run.direct", result: 6 },
@@ -237,6 +317,65 @@ describe("Action", () => {
       { ">>": "run.afterPromised", result: 15 },
       { ">>": "run", result: 15 },
     ]);
+  });
+
+  test("Step pipe receives previous async generator without eagerly yielding it", async () => {
+    const { count } = Action("count")
+      .input({ total: "number" })
+
+      .run(
+        Step("count", async function* () {
+          for (let count = 1; count <= this.input.total; count++) {
+            yield count;
+          }
+        }),
+
+        Step(["|>", "double"], async function* (source) {
+          for await (const chunk of source) {
+            yield chunk * 2;
+          }
+        }),
+      );
+
+    const yields: unknown[] = [];
+    for await (const value of count.stream({ total: 3 })) {
+      yields.push(value);
+    }
+
+    expect(eventDataList(yields)).toEqual([
+      { ">>": "count", input: { total: 3 } },
+      2,
+      4,
+      6,
+      { ">>": "count.double", result: undefined },
+      { ">>": "count", result: undefined },
+    ]);
+    expect(await count({ total: 3 })).toBeUndefined();
+  });
+
+  test("type — RawEntry keeps async generator yields", () => {
+    type Ctx = {
+      name: "typed";
+      step: { name: string; map: {} };
+      steps: [];
+      scope: {};
+      plugins: [];
+    };
+
+    const handler = async function* () {
+      yield "chunk" as const;
+      return 1 as const;
+    };
+
+    const streamed = Step<Ctx, "streamed", typeof handler, never, "streamed">(
+      "streamed",
+      handler,
+    );
+
+    type Output = ReturnType<(typeof streamed)[typeof TW.Step]>;
+    type Entry = Output["scope"]["streamed"];
+
+    type check = Expect<Equal<Entry, RawEntry<1, [], "chunk">>>;
   });
 
   test("step error — yields step error, action error, then rethrows", async () => {
@@ -270,7 +409,7 @@ describe("Action", () => {
       thrown = e;
     }
 
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "failing", input: { name: "World" } },
       { ">>": "failing.first", result: 1 },
       { ">>": "failing.bad", error: boom },
@@ -297,10 +436,8 @@ describe("Action", () => {
     await healthz();
 
     expect(logged).toEqual([
-      "",
       formatEvent({ ">>": "healthz", input: undefined }),
       formatEvent({ ">>": "healthz", result: { status: "ok" } }),
-      "",
     ]);
   });
 
@@ -358,16 +495,13 @@ describe("Action", () => {
     }
 
     expect(logged).toEqual(
-      yields.flatMap((v) => {
+      eventDataList(yields).flatMap((v) => {
         if (typeof v !== "object" || v === null || !(">>" in (v as object)))
           return [v];
         const e = v as Record<string, unknown>;
-        const action = isActionEvent(e[">>"] as string);
         const out = formatEvent(e);
         const items: unknown[] = [];
-        if (action && "input" in e) items.push("");
         items.push(out);
-        if (action && ("result" in e || "error" in e)) items.push("");
         return items;
       }),
     );
@@ -399,12 +533,10 @@ describe("Action", () => {
     await compute({ value: 3 });
 
     expect(logged).toEqual([
-      "",
       formatEvent({ ">>": "compute", input: { value: 3 } }),
       formatEvent({ ">>": "compute.double", result: 6 }),
       formatEvent({ ">>": "compute.positive", result: true }),
       formatEvent({ ">>": "compute", result: true }),
-      "",
     ]);
   });
 
@@ -524,12 +656,11 @@ describe("Action", () => {
         }),
       );
 
-    type InferScope<A> =
-      A extends TW.ScriptStep<any, infer H>
-        ? H extends (this: infer U, ...args: any[]) => any
-          ? U
-          : never
-        : never;
+    type InferScope<A> = A extends TW.ScriptStep<any, infer H>
+      ? H extends (this: infer U, ...args: any[]) => any
+        ? U
+        : never
+      : never;
 
     type ExactOmit<T, K extends keyof T> = {
       [P in keyof T as P extends K ? never : P]: T[P];
@@ -928,17 +1059,20 @@ describe("Action", () => {
         yield this.input.name.toUpperCase();
       });
 
-    type StreamYield =
-      ReturnType<typeof greet.stream> extends AsyncGenerator<infer Y, any>
-        ? Y
-        : never;
+    type StreamYield = ReturnType<typeof greet.stream> extends AsyncGenerator<
+      infer Y,
+      any
+    >
+      ? Y
+      : never;
 
-    type StreamActionNameOf<Yield> =
-      Yield extends TW.ActionEvent<infer N, any, any>
-        ? N
-        : Yield extends TW.ActionInputEvent<TW.Resource<infer N>, any>
-          ? N
-          : never;
+    type StreamActionNameOf<Yield> = Yield extends TW.ActionEvent<
+      infer N,
+      any,
+      any
+    >
+      ? N
+      : never;
     type StreamActionName = StreamActionNameOf<StreamYield>;
 
     type check = Expect<Equal<StreamActionName, "greet">>;
@@ -947,7 +1081,7 @@ describe("Action", () => {
     for await (const v of greet.stream({ name: "hello" })) {
       values.push(v);
     }
-    expect(values).toEqual([
+    expect(eventDataList(values)).toEqual([
       { ">>": "greet", input: { name: "hello" } },
       "hello",
       "HELLO",

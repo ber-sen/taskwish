@@ -6,6 +6,11 @@ import { Loop, ForEach } from "./loop";
 import { If, Else, ElseIf, Cond } from "./if-else";
 import { TW } from "../core";
 
+const eventData = (value: unknown) =>
+  value instanceof TW.Trace || value instanceof TW.Signal ? value.data : value;
+
+const eventDataList = (values: unknown[]) => values.map(eventData);
+
 // ─── Runtime ────────────────────────────────────────────────────────────────
 
 describe("Loop", () => {
@@ -28,7 +33,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch" },
       { ">>": "branch.loop", items: [1, 2, 3] },
       { ">>": "branch.loop[0].doubled", result: 2 },
@@ -60,7 +65,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ nums: [1, 2, 3] })) yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch", input: { nums: [1, 2, 3] } },
       { ">>": "branch.loop", items: [1, 2, 3] },
       { ">>": "branch.loop[0].doubled", result: 2 },
@@ -89,7 +94,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch" },
       { ">>": "branch.n", items: [10, 20, 30] },
       { ">>": "branch.n[0].tagged", result: "0:10" },
@@ -118,7 +123,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch" },
       { ">>": "branch.loop", items: [] },
       { ">>": "branch", result: [] },
@@ -147,7 +152,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ factor: 3 })) yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch", input: { factor: 3 } },
       { ">>": "branch.loop", items: [10, 20, 30] },
       { ">>": "branch.loop[0].scaled", result: 30 },
@@ -180,7 +185,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch" },
       { ">>": "branch.words", result: ["hello", "world"] },
       { ">>": "branch.loop", items: ["hello", "world"] },
@@ -216,7 +221,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2] })) yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch", input: { items: [1, 2] } },
       { ">>": "branch.loop", items: [1, 2] },
       { ">>": "branch.loop[0].doubled", result: 2 },
@@ -252,7 +257,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2, 3] })) yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch", input: { items: [1, 2, 3] } },
       { ">>": "branch.loop", items: [1, 2, 3] },
       { ">>": "branch.loop[0].doubled", result: 2 },
@@ -299,7 +304,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2, 3] })) yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch", input: { items: [1, 2, 3] } },
       { ">>": "branch.loop", items: [1, 2, 3] },
       { ">>": "branch.loop[0].doubled", result: 2 },
@@ -332,7 +337,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch" },
       { ">>": "branch.loop", items: [0, 1, 2, 3] },
       { ">>": "branch.loop[0].squared", result: 0 },
@@ -365,7 +370,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2] })) yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch", input: { items: [1, 2] } },
       { ">>": "branch.loop", items: [1, 2] },
       { ">>": "branch.loop[0].val", result: 1 },
@@ -479,7 +484,7 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2, 3, 4] }))
       yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch", input: { items: [1, 2, 3, 4] } },
       { ">>": "branch.loop", items: [1, 2, 3, 4] },
       { ">>": "branch.loop[1].if.even", result: 2 },
@@ -524,7 +529,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2, 3] })) yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch", input: { items: [1, 2, 3] } },
       { ">>": "branch.loop", items: [1, 2, 3] },
       { ">>": "branch.loop[0].if.tag", result: "odd:1" },
@@ -566,7 +571,7 @@ describe("Loop", () => {
       threshold: 3,
     }))
       yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch", input: { items: [1, 2, 3, 4, 5], threshold: 3 } },
       { ">>": "branch.loop", items: [1, 2, 3, 4, 5] },
       { ">>": "branch.loop[3].if.big", result: 4 },
@@ -623,7 +628,7 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [1, 2, 3, 4, 5, 6] }))
       yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch", input: { items: [1, 2, 3, 4, 5, 6] } },
       { ">>": "branch.loop", items: [1, 2, 3, 4, 5, 6] },
       { ">>": "branch.loop[0].else.tag", result: "other" },
@@ -669,7 +674,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ items: [2, 4] })) yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch", input: { items: [2, 4] } },
       { ">>": "branch.loop", items: [2, 4] },
       { ">>": "branch.loop[0].if.doubled", result: 4 },
@@ -708,7 +713,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch" },
       { ">>": "branch.outer", items: [1, 2] },
       { ">>": "branch.outer[0].inner", items: [10, 20] },
@@ -754,7 +759,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream()) yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch" },
       { ">>": "branch.outer", items: ["a", "b"] },
       { ">>": "branch.outer[0].inner", items: [1, 2, 3] },
@@ -804,7 +809,7 @@ describe("Loop", () => {
     const yields: unknown[] = [];
     for await (const v of branch.stream({ inner: [1, 2, 3, 4] }))
       yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch", input: { inner: [1, 2, 3, 4] } },
       { ">>": "branch.outer", items: [2, 3] },
       { ">>": "branch.outer[0].inner", items: [1, 2, 3, 4] },
@@ -856,7 +861,7 @@ describe("Loop", () => {
 
     const yields: unknown[] = [];
     for await (const v of branch.stream({ inner: [10, 20] })) yields.push(v);
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "branch", input: { inner: [10, 20] } },
       { ">>": "branch.outer", items: [1, 2, 3, 4] },
       { ">>": "branch.outer[1].if.inner", items: [10, 20] },

@@ -6,8 +6,13 @@ import { Action } from "./action";
 import { TW } from "./core";
 import { Step } from "./steps";
 import { Event } from "./event";
-import { Logger, formatEvent, isActionEvent } from "./use";
+import { Logger, formatEvent } from "./use";
 import { Trait } from "./trait";
+
+const eventData = (value: unknown) =>
+  value instanceof TW.Trace || value instanceof TW.Signal ? value.data : value;
+
+const eventDataList = (values: unknown[]) => values.map(eventData);
 
 describe("Actor", () => {
   test("Command — plain handler with input", async () => {
@@ -106,7 +111,7 @@ describe("Actor", () => {
       yields.push(v);
     }
 
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "Pipeline::run", input: { name: "hello" } },
       { ">>": "Pipeline::run.first", result: 5 },
       { ">>": "Pipeline::run.second", result: true },
@@ -154,7 +159,7 @@ describe("Actor", () => {
       yields.push(v);
     }
 
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       {
         ">>": "Broadcaster::on_new_message",
         input: { sender: { name: "Alice" }, content: "hi", channel: "general" },
@@ -198,7 +203,7 @@ describe("Actor", () => {
       thrown = e;
     }
 
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       { ">>": "Crasher::failing", input: { name: "World" } },
       { ">>": "Crasher::failing.first", result: 1 },
       { ">>": "Crasher::failing.bad", error: boom },
@@ -264,7 +269,7 @@ describe("Actor", () => {
       .input({ invoiceId: "string" })
 
       .run(function () {
-        // @ts-expect-error event kinds are internal metadata, not user scope
+        // @ts-expect-error signal kinds are internal metadata, not user scope
         this.InvoicePaid;
         expect("InvoicePaid" in this).toEqual(false);
         return `processed: ${this.input.invoiceId}`;
@@ -275,7 +280,7 @@ describe("Actor", () => {
     );
   });
 
-  test("def — Event emit yields event data", async () => {
+  test("def — Signal emit yields signal data", async () => {
     const { Biller } = Actor("Biller").def(
       Event("InvoicePaid", {
         invoiceId: "string",
@@ -289,14 +294,15 @@ describe("Actor", () => {
 
       .input({ invoiceId: "string", amount: "number" })
 
-      .run(async function* () {
-        yield* this.signal("Biller::InvoicePaid", {
-          invoiceId: this.input.invoiceId,
-          amount: this.input.amount,
-          customer: "alice",
-        });
-        return "done";
-      });
+      .run(
+        Step("invoicePaid", function () {
+          return this.signal("Biller::InvoicePaid", {
+            invoiceId: this.input.invoiceId,
+            amount: this.input.amount,
+            customer: "alice",
+          });
+        }),
+      );
 
     const yields: unknown[] = [];
     for await (const v of chargeCustomer.stream({
@@ -308,13 +314,14 @@ describe("Actor", () => {
 
     const emitted = yields.find(
       (value) =>
-        value instanceof TW.Event && value["->"] === "Biller::InvoicePaid",
+        value instanceof TW.Signal &&
+        value.data["->"] === "Biller::InvoicePaid",
     );
 
-    expect(emitted).toBeInstanceOf(TW.Event);
+    expect(emitted).toBeInstanceOf(TW.Signal);
     expect(emitted).toMatchObject({
-      "->": "Biller::InvoicePaid",
       data: {
+        "->": "Biller::InvoicePaid",
         invoiceId: "inv-1",
         amount: 100,
         customer: "alice",
@@ -338,14 +345,15 @@ describe("Actor", () => {
 
       .input({ invoiceId: "string", amount: "number" })
 
-      .run(async function* () {
-        yield* this.signal("Biller::InvoicePaid", {
-          invoiceId: this.input.invoiceId,
-          amount: this.input.amount,
-          customer: "alice",
-        });
-        return "done";
-      });
+      .run(
+        Step("invoicePaid", function () {
+          return this.signal("Biller::InvoicePaid", {
+            invoiceId: this.input.invoiceId,
+            amount: this.input.amount,
+            customer: "alice",
+          });
+        }),
+      );
 
     const { Listener } = Actor("Listener").use(Biller);
 
@@ -382,13 +390,14 @@ describe("Actor", () => {
 
     const invoicePaid = emitted.find(
       (value) =>
-        value instanceof TW.Event && value["->"] === "Biller::InvoicePaid",
+        value instanceof TW.Signal &&
+        value.data["->"] === "Biller::InvoicePaid",
     );
 
-    expect(invoicePaid).toBeInstanceOf(TW.Event);
+    expect(invoicePaid).toBeInstanceOf(TW.Signal);
     expect(invoicePaid).toMatchObject({
-      "->": "Biller::InvoicePaid",
       data: {
+        "->": "Biller::InvoicePaid",
         invoiceId: "inv-1",
         amount: 100,
         customer: "alice",
@@ -594,7 +603,7 @@ describe("Actor", () => {
     for await (const v of getInvoices.stream({ id: "inv-42", page: "2" })) {
       directYields.push(v);
     }
-    expect(directYields).toEqual([
+    expect(eventDataList(directYields)).toEqual([
       {
         ">>": "InvoiceProvider::get_invoices",
         input: { id: "inv-42", page: "2" },
@@ -667,7 +676,7 @@ describe("Actor", () => {
       yields.push(v);
     }
 
-    expect(yields).toEqual([
+    expect(eventDataList(yields)).toEqual([
       {
         ">>": "MailAgent::on_new_email",
         input: {
@@ -716,22 +725,21 @@ describe("Actor", () => {
       yields.push(v);
     }
 
-    expect(yields[1]).toBeInstanceOf(TW.Event);
-    expect(yields).toEqual([
+    expect(yields[1]).toBeInstanceOf(TW.Signal);
+    expect(eventDataList(yields)).toEqual([
       {
         ">>": "Emitter::emit",
         input: { orderId: "ord-1", amount: 100 },
       },
-      expect.objectContaining({
+      {
         "->": "Emitter::OrderPlaced",
-        data: {
-          orderId: "ord-1",
-          amount: 100,
-        },
-      }),
+        orderId: "ord-1",
+        amount: 100,
+      },
       {
         ">>": "Emitter::emit.order",
         result: {
+          "->": "Emitter::OrderPlaced",
           orderId: "ord-1",
           amount: 100,
         },
@@ -771,12 +779,10 @@ describe("Actor", () => {
     await run({ value: 5 });
 
     expect(logged).toEqual([
-      "",
       formatEvent({ ">>": "Worker::run", input: { value: 5 } }),
       formatEvent({ ">>": "Worker::run.doubled", result: 10 }),
       formatEvent({ ">>": "Worker::run.positive", result: true }),
       formatEvent({ ">>": "Worker::run", result: true }),
-      "",
     ]);
   });
 
@@ -812,16 +818,13 @@ describe("Actor", () => {
     }
 
     expect(logged).toEqual(
-      yields.flatMap((v) => {
+      eventDataList(yields).flatMap((v) => {
         if (typeof v !== "object" || v === null || !(">>" in (v as object)))
           return [v];
         const e = v as Record<string, unknown>;
-        const action = isActionEvent(e[">>"] as string);
         const out = formatEvent(e);
         const items: unknown[] = [];
-        if (action && "input" in e) items.push("");
         items.push(out);
-        if (action && ("result" in e || "error" in e)) items.push("");
         return items;
       }),
     );
@@ -853,7 +856,7 @@ describe("Actor", () => {
     await hello({ name: "Ada" });
 
     expect(logged).toContain(
-      formatEvent({ "->": "Greeter::Message", data: { content: "Ada" } }),
+      formatEvent({ "->": "Greeter::Message", content: "Ada" }),
     );
   });
 
@@ -893,12 +896,9 @@ describe("Actor", () => {
     });
 
     expect(logged).toEqual([
-      "",
       formatEvent({ ">>": "Hub::ping", input: { id: "abc" } }),
       formatEvent({ ">>": "Hub::ping.upper", result: "ABC" }),
       formatEvent({ ">>": "Hub::ping", result: "ABC" }),
-      "",
-      "",
       formatEvent({
         ">>": "Hub::on_new_message",
         input: {
@@ -909,7 +909,6 @@ describe("Actor", () => {
       }),
       formatEvent({ ">>": "Hub::on_new_message.excerpt", result: "hel" }),
       formatEvent({ ">>": "Hub::on_new_message", result: "hel" }),
-      "",
     ]);
   });
 
@@ -1016,9 +1015,7 @@ describe("Actor", () => {
       const channelMeta = meta.input!.channel as {
         suggestions: unknown;
       };
-      expect(
-        JSON.parse(JSON.stringify(channelMeta.suggestions)),
-      ).toEqual({
+      expect(JSON.parse(JSON.stringify(channelMeta.suggestions))).toEqual({
         $: "Slack::conversations_list",
         "*": ["channels.map", ["x"], ["x.name", "x.id"]],
         types: "public_channel",

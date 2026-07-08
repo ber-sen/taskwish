@@ -12,27 +12,31 @@ type LoopScope<
 > = Base & {
   [K in keyof Added as K extends keyof Base
     ? never
-    : K]: Added[K] extends RawEntry<infer R, infer Ops extends string[]>
-    ? RawEntry<R, [":loop", ...Ops]>
-    : RawEntry<Added[K], [":loop"]>;
+    : K]: Added[K] extends RawEntry<
+    infer R,
+    infer Ops extends string[],
+    infer Y
+  >
+    ? RawEntry<R, [":loop", ...Ops], Y>
+    : RawEntry<Added[K], [":loop"], never>;
 };
 
 // Extract just the raw result type from a RawEntry, ignoring operators.
 // Used by LoopResult so that ":if" on the inner last (from an If without Else)
 // is never promoted to `| undefined` — the loop filters those at runtime.
 // Genuine `undefined` in a step's return type lives inside `R` and is preserved.
-type LoopItemType<T> = T extends RawEntry<infer R, any> ? R : ResolveLast<T>;
+type LoopItemType<T> = T extends RawEntry<infer R, any, any>
+  ? R
+  : ResolveLast<T>;
+type LoopYields<T> = T extends RawEntry<any, any, infer Y> ? Y : never;
 
-type LoopResult<
-  Ctx extends Record<any, any>,
-  A extends Record<any, any>,
-> = {
+type LoopResult<Ctx extends Record<any, any>, A extends Record<any, any>> = {
   [TW.Type]: "Loop";
   [TW.Step]: (input: Ctx) => {
     name: A["name"];
     steps: A["steps"];
     scope: LoopScope<Ctx["scope"], A["scope"]>;
-    last: RawEntry<LoopItemType<A["last"]>[], []>;
+    last: RawEntry<LoopItemType<A["last"]>[], [], LoopYields<A["last"]>>;
   };
 };
 

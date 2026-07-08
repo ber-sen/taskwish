@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { Actor, Event, TW } from "@taskwish/core";
+import { Actor, Event, Step, TW } from "@taskwish/core";
 import { createFetchHandler, createNodeRegistry } from "./index";
 import { apiKey, auth } from "./test-helpers";
 
@@ -57,6 +57,76 @@ test("serves command actions with GET under /tw/<Actor>/<method>", async () => {
 
   expect(response.status).toBe(200);
   expect(await response.text()).toBe("Hello Ada");
+});
+
+test("streams Step pipe chunks from command actions", async () => {
+  const { Piper } = Actor("Piper");
+  let releaseSecondChunk!: () => void;
+  const waitForRelease = new Promise<void>((resolve) => {
+    releaseSecondChunk = resolve;
+  });
+
+  const { count } = Piper()
+    .on("Command", "count")
+
+    .input({ total: "number" })
+
+    .run(
+      Step("count", async function* () {
+        yield "1\n";
+        await waitForRelease;
+        yield "2\n";
+      }),
+
+      Step(["|>", "double"], async function* (source) {
+        for await (const chunk of source) {
+          yield `${Number(chunk) * 2}\n`;
+        }
+      }),
+    );
+
+  const fetch = createFetchHandler(
+    createNodeRegistry([Promise.resolve({ Piper, count })]),
+    { apiKey },
+  );
+
+  const responseOrTimeout = await Promise.race([
+    fetch(
+      new Request("http://localhost/tw/Piper/count?total=2", {
+        headers: auth,
+      }),
+    ),
+    Bun.sleep(50).then(() => "timeout" as const),
+  ]);
+
+  if (responseOrTimeout === "timeout") {
+    releaseSecondChunk();
+    throw new Error("Piper response did not start streaming");
+  }
+
+  const response = responseOrTimeout;
+  expect(response.status).toBe(200);
+  const reader = response.body!.getReader();
+  const firstOrTimeout = await Promise.race([
+    reader.read(),
+    Bun.sleep(50).then(() => "timeout" as const),
+  ]);
+
+  if (firstOrTimeout === "timeout") {
+    releaseSecondChunk();
+    throw new Error("Piper response did not produce the first chunk");
+  }
+
+  expect(firstOrTimeout.done).toBe(false);
+  expect(new TextDecoder().decode(firstOrTimeout.value)).toBe("2\n");
+
+  releaseSecondChunk();
+
+  const second = await reader.read();
+  expect(second.done).toBe(false);
+  expect(new TextDecoder().decode(second.value)).toBe("4\n");
+
+  expect(await reader.read()).toEqual({ done: true, value: undefined });
 });
 
 test("serves actor event handlers with POST under /tw/<Actor>/<handler>", async () => {

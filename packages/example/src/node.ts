@@ -11,6 +11,7 @@ const node = await Node("example", {
     import("./browser"),
     import("./hackerNews"),
     import("./streamer"),
+    import("./piper"),
   ],
 });
 

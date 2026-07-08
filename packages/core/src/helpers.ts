@@ -23,10 +23,11 @@ export type DeepWriteable<T> = {
   -readonly [P in keyof T]: DeepWriteable<T[P]>;
 } & {};
 
-export type Equal<X, Y> =
-  (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
-    ? true
-    : false;
+export type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
+  T,
+>() => T extends Y ? 1 : 2
+  ? true
+  : false;
 
 export type CamelCaseHelper<T extends string> =
   T extends `${infer Left}${infer Delimiter}${infer Right}`
@@ -47,18 +48,17 @@ export type ToCapitalCase<T extends string> = UppercaseFirst<
   CamelCaseHelper<T>
 >;
 
-type SnakeCaseTail<T extends string> =
-  T extends `${infer First}${infer Rest}`
-    ? First extends Lowercase<First>
-      ? `${First}${SnakeCaseTail<Rest>}`
-      : `_${Lowercase<First>}${SnakeCaseTail<Rest>}`
-    : T;
+type SnakeCaseTail<T extends string> = T extends `${infer First}${infer Rest}`
+  ? First extends Lowercase<First>
+    ? `${First}${SnakeCaseTail<Rest>}`
+    : `_${Lowercase<First>}${SnakeCaseTail<Rest>}`
+  : T;
 
-export type ToSnakeCase<T extends string> =
-  T extends Uppercase<T> ? Lowercase<T> :
-  T extends `${infer First}${infer Rest}`
-    ? `${Lowercase<First>}${SnakeCaseTail<Rest>}`
-    : T;
+export type ToSnakeCase<T extends string> = T extends Uppercase<T>
+  ? Lowercase<T>
+  : T extends `${infer First}${infer Rest}`
+  ? `${Lowercase<First>}${SnakeCaseTail<Rest>}`
+  : T;
 
 export type QualifiedActionName<
   Service extends string,
@@ -116,8 +116,8 @@ export type PrettyScope<T> = {
   [K in keyof T as 0 extends 1 & T[K]
     ? Extract<K, string>
     : T[K] extends Type<any>
-      ? Extract<K, string>
-      : Extract<K, string>]: T[K];
+    ? Extract<K, string>
+    : Extract<K, string>]: T[K];
 } & {};
 
 export type Pretty<T> = { [K in keyof T]: T[K] } & {};
@@ -128,16 +128,17 @@ export type Append<Items, Item> = Items extends readonly any[]
 
 // ── Scope operator machinery ──────────────────────────────────────────────────
 
-export type RawEntry<R, Ops extends string[] = []> = {
+export type RawEntry<R, Ops extends string[] = [], Yields = never> = {
   result: R;
+  yields: Yields;
   operator: Ops;
 };
 
 type AddOp<Op extends string, T> = T extends string[]
   ? [Op, ...T]
   : T extends object
-    ? { [K in keyof T]: AddOp<Op, T[K]> }
-    : T;
+  ? { [K in keyof T]: AddOp<Op, T[K]> }
+  : T;
 
 type RemoveEndOps<
   T extends readonly string[],
@@ -155,8 +156,8 @@ type ApplyOps<O extends readonly string[], R> = O extends [
   ? Last extends ":loop"
     ? ApplyOps<Rest, R[]>
     : Last extends ":if"
-      ? ApplyOps<Rest, R | undefined>
-      : ApplyOps<Rest, R>
+    ? ApplyOps<Rest, R | undefined>
+    : ApplyOps<Rest, R>
   : R;
 
 export type ResolveScope<T> = Pretty<{
@@ -198,24 +199,31 @@ export type UUIDv7String = `${string}-${string}-7${string}-${string}-${string}`;
 
 export type UUIDv5String = `${string}-${string}-5${string}-${string}-${string}`;
 
-export type ValidateSchema<Schema, Scope = {}> =
-  Schema extends StandardSchemaV1<any> ? Schema : type.validate<Schema, Scope>;
+export type ValidateSchema<
+  Schema,
+  Scope = {},
+> = Schema extends StandardSchemaV1<any>
+  ? Schema
+  : type.validate<Schema, Scope>;
 
-export type InferSchema<Schema, Scope = {}> =
-  Schema extends StandardSchemaV1<infer Input>
-    ? Input
-    : type.instantiate<Schema, Scope>["infer"];
+export type InferSchema<Schema, Scope = {}> = Schema extends StandardSchemaV1<
+  infer Input
+>
+  ? Input
+  : type.instantiate<Schema, Scope>["infer"];
 
-export type ValidateTrigger<Schema> =
-  Schema extends TW.EventKind<any, infer Input>
-    ? TW.EventKind<any, Input>
-    : Schema extends TW.Event<any, infer Input>
-      ? TW.Event<any, Input>
-      : Schema extends StandardSchemaV1<any>
-        ? Schema
-        : Schema extends object
-          ? type.validate<Schema>
-          : object;
+export type ValidateTrigger<Schema> = Schema extends TW.EventKind<
+  any,
+  infer Input
+>
+  ? TW.EventKind<any, Input>
+  : Schema extends TW.Signal<any, infer Input>
+  ? TW.Signal<any, Input>
+  : Schema extends StandardSchemaV1<any>
+  ? Schema
+  : Schema extends object
+  ? type.validate<Schema>
+  : object;
 
 type HasOnlyNeverValues<T> = keyof T extends infer K
   ? K extends keyof T
@@ -225,26 +233,28 @@ type HasOnlyNeverValues<T> = keyof T extends infer K
     : never
   : never;
 
-export type InferTriggerScope<Schema> =
-  Schema extends TW.Event<infer Name, infer Input>
-    ? {
-        input: Input;
-        event: TW.Event<Name, Input>;
-      }
-    : Schema extends TW.EventKind<infer Name, infer Input>
-      ? {
-          input: Input;
-          event: TW.Event<Name, Input>;
-        }
-      : HasOnlyNeverValues<type.instantiate<Schema>["infer"]> extends false
-        ? {
-            input: type.instantiate<Schema>["infer"];
-            event: TW.Event<"Command", type.instantiate<Schema>["infer"]>;
-          }
-        : {
-            input: Schema;
-            event: TW.Event<"Command", Schema>;
-          };
+export type InferTriggerScope<Schema> = Schema extends TW.Signal<
+  infer Name,
+  infer Input
+>
+  ? {
+      input: Input;
+      event: TW.Signal<Name, Input>;
+    }
+  : Schema extends TW.EventKind<infer Name, infer Input>
+  ? {
+      input: Input;
+      event: TW.Signal<Name, Input>;
+    }
+  : HasOnlyNeverValues<type.instantiate<Schema>["infer"]> extends false
+  ? {
+      input: type.instantiate<Schema>["infer"];
+      event: TW.Signal<"Command", type.instantiate<Schema>["infer"]>;
+    }
+  : {
+      input: Schema;
+      event: TW.Signal<"Command", Schema>;
+    };
 
 export type Apply<
   F extends TW.Handler,
@@ -265,78 +275,90 @@ type HasSeparator<S extends string> = S extends `${string}${Separator}${string}`
   ? true
   : false;
 
-type CamelCaseError<S extends string> =
-  HasSeparator<S> extends true
-    ? ["Expected camelCase string", "Remove separators from:", S]
-    : S extends Uncapitalize<S>
-      ? never
-      : ["Expected camelCase string", "String must start with lowercase:", S];
+type CamelCaseError<S extends string> = HasSeparator<S> extends true
+  ? ["Expected camelCase string", "Remove separators from:", S]
+  : S extends Uncapitalize<S>
+  ? never
+  : ["Expected camelCase string", "String must start with lowercase:", S];
 
-export type CamelCase<S extends string> =
-  CamelCaseError<S> extends never ? S : CamelCaseError<S>;
+export type CamelCase<S extends string> = CamelCaseError<S> extends never
+  ? S
+  : CamelCaseError<S>;
 
-export type PascalCase<S extends string> =
-  HasSeparator<S> extends true
-    ? Fail<`Expected PascalCase string, got separator in "${S}"`>
-    : S extends Capitalize<S>
-      ? S
-      : Fail<`Expected PascalCase string, "${S}" must start with uppercase`>;
+export type PascalCase<S extends string> = HasSeparator<S> extends true
+  ? Fail<`Expected PascalCase string, got separator in "${S}"`>
+  : S extends Capitalize<S>
+  ? S
+  : Fail<`Expected PascalCase string, "${S}" must start with uppercase`>;
 
 // ── Action grouping type helpers ──────────────────────────────────────────────
 
-type ExtractActionNameFromYield<Yield> =
-  Yield extends TW.ActionInputEvent<TW.Resource<infer N extends string>, any>
-    ? N
-    : Yield extends TW.ActionEvent<infer N extends string, any, any>
-      ? N
-      : never;
+type ExtractActionNameFromYield<Yield> = Yield extends TW.Trace<
+  infer N extends string,
+  { input: any }
+>
+  ? N
+  : Yield extends TW.ActionEvent<infer N extends string, any, any>
+  ? N
+  : never;
 
 /** Extract the action name from a TW.Action resource or exposed action stream. */
 export type ExtractActionName<T> = T extends TW.Resource<infer N extends string>
   ? N
   : T extends (...args: any[]) => AsyncGenerator<infer Yield, any, any>
-    ? ExtractActionNameFromYield<Yield>
-    : never;
+  ? ExtractActionNameFromYield<Yield>
+  : never;
 
-type QualifiedActionParts<N extends string> =
-  N extends `${infer S}::${infer M}` ? [S, ToCamelCase<M>] :
-  N extends `${infer S}.${infer M}` ? [S, M] :
-  never;
+type QualifiedActionParts<N extends string> = N extends `${infer S}::${infer M}`
+  ? [S, ToCamelCase<M>]
+  : N extends `${infer S}.${infer M}`
+  ? [S, M]
+  : never;
 
-type HasQualifiedActionService<N extends string> =
-  [QualifiedActionParts<N>] extends [never]
+type HasQualifiedActionService<N extends string> = [
+  QualifiedActionParts<N>,
+] extends [never]
+  ? false
+  : QualifiedActionParts<N> extends [infer S extends string, string]
+  ? S extends ""
     ? false
-    : QualifiedActionParts<N> extends [infer S extends string, string]
-    ? S extends ""
-      ? false
-      : true
-    : false;
+    : true
+  : false;
 
-type DirectActionName<N extends string> =
-  [QualifiedActionParts<N>] extends [never]
-    ? N
-    : QualifiedActionParts<N> extends ["", infer M extends string]
-      ? M
-      : never;
+type DirectActionName<N extends string> = [QualifiedActionParts<N>] extends [
+  never,
+]
+  ? N
+  : QualifiedActionParts<N> extends ["", infer M extends string]
+  ? M
+  : never;
 
 /** "Slack::post_message" → "slack" */
-export type ActionService<N extends string> =
-  QualifiedActionParts<N> extends [infer S extends string, string]
-    ? S extends ""
-      ? never
-      : LowercaseFirst<S>
-    : never;
+export type ActionService<N extends string> = QualifiedActionParts<N> extends [
+  infer S extends string,
+  string,
+]
+  ? S extends ""
+    ? never
+    : LowercaseFirst<S>
+  : never;
 
 /** "Slack::post_message" → "postMessage" */
-export type ActionMethod<N extends string> =
-  QualifiedActionParts<N> extends [string, infer M extends string] ? M : N;
+export type ActionMethod<N extends string> = QualifiedActionParts<N> extends [
+  string,
+  infer M extends string,
+]
+  ? M
+  : N;
 
 /**
  * Groups TW.Action exports in two ways:
  *  - Qualified names ("Slack::post_message") → nested `{ slack: { postMessage: T["stream"] } }`
  *  - Flat names ("notify")                  → direct  `{ notify: T["stream"] }`
  */
-type ExposedAction<T> = T extends { stream: infer Stream extends (...args: any[]) => any }
+type ExposedAction<T> = T extends {
+  stream: infer Stream extends (...args: any[]) => any;
+}
   ? Stream
   : T;
 
@@ -359,33 +381,28 @@ export type GroupActions<M> =
           : never
         : never]: ExposedAction<M[K]>;
     };
-  } & // Flat names → { name: T } (directly callable)
-  {
+  } & { // Flat names → { name: T } (directly callable)
     [K in keyof M as ExtractActionName<M[K]> extends infer N extends string
       ? DirectActionName<N>
       : never]: ExposedAction<M[K]>;
   };
 
 /** Extract grouped actions from a plugin (plain object, single TW.Action, or Promise<module>). */
-export type ActionsFromPlugin<U> =
-  U extends Promise<infer M>
-    ? GroupActions<M>
-    : U extends (...args: any[]) => any
-      ? GroupActions<Record<"_", U>>
-      : GroupActions<U>;
+export type ActionsFromPlugin<U> = U extends Promise<infer M>
+  ? GroupActions<M>
+  : U extends (...args: any[]) => any
+  ? GroupActions<Record<"_", U>>
+  : GroupActions<U>;
 
-export type EventsFromPlugin<U> =
-  U extends Promise<infer M>
-    ? EventsFromPlugin<M>
-    : U extends { events: infer E }
-      ? EventsFromPlugin<E>
-    : U extends (...args: any[]) => any
-      ? {}
-      : {
-          [K in keyof U as U[K] extends TW.EventKind<any, any>
-            ? K
-            : never]: U[K];
-        };
+export type EventsFromPlugin<U> = U extends Promise<infer M>
+  ? EventsFromPlugin<M>
+  : U extends { events: infer E }
+  ? EventsFromPlugin<E>
+  : U extends (...args: any[]) => any
+  ? {}
+  : {
+      [K in keyof U as U[K] extends TW.EventKind<any, any> ? K : never]: U[K];
+    };
 
 /** Merge actions from a plugin into Ctx["scope"]["actions"]. */
 export type AddActionsToCtx<Ctx extends Record<any, any>, U> = {
@@ -400,3 +417,14 @@ export type AddActionsToCtx<Ctx extends Record<any, any>, U> = {
       } & EventsFromPlugin<U>
     : Ctx[K];
 };
+
+export type StreamInput<Handler extends (...args: any) => any> =
+  Parameters<Handler> extends []
+    ? undefined
+    : Parameters<Handler> extends [infer Input]
+    ? Input
+    : Parameters<Handler>;
+
+export type StreamResult<Handler extends (...args: any) => any> = Awaited<
+  ReturnType<Handler>
+>;

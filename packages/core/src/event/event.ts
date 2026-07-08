@@ -77,13 +77,10 @@ export function Event<
   const eventKind: any = {
     [TW.Name]: runtimeName,
     [TW.Meta]: null,
-    emit: async function* (eventData: unknown) {
-      const event = new TW.Event(eventKind[TW.Name], {
-        id: null,
-        data: eventData,
-      });
-      yield event;
-      return event;
+    emit: async function* (signalData: unknown) {
+      const signal = new TW.Signal(eventKind[TW.Name], signalData);
+      yield signal;
+      return signal;
     },
   };
   if (scopeOf) eventKind.scopeOf = scopeOf;

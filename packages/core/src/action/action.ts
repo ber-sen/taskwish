@@ -180,15 +180,9 @@ export interface ActionFactory<
           model: "gpt5";
           prompt: string;
         }) => AsyncGenerator<
-          TW.ActionInputEvent<
-            TW.Action<
-              "generateText",
-              (params: { model: "gpt5"; prompt: string }) => string
-            >,
-            {
-              model: "gpt5";
-              prompt: string;
-            }
+          TW.Trace<
+            "generateText",
+            { input: { model: "gpt5"; prompt: string } }
           >,
           Promise<string>,
           unknown
@@ -248,16 +242,29 @@ export async function* tapWith(
   return next.value;
 }
 
+export async function* unwrapStreamEvents(
+  gen: AsyncGenerator<unknown, unknown>,
+): AsyncGenerator<unknown, unknown> {
+  let sent: unknown;
+
+  while (true) {
+    const next = await gen.next(sent);
+    if (next.done) return next.value;
+
+    const value =
+      next.value instanceof TW.Stream ? next.value.data : next.value;
+    sent = yield value;
+  }
+}
+
 export type Scope = {
   input: unknown;
   get<T>(Cls: abstract new (...a: unknown[]) => T): T;
   signal<T extends string, D extends Record<string, unknown>>(
     type: T,
     data: D,
-  ): AsyncGenerator<TW.Event<T, D>, D, unknown>;
+  ): AsyncGenerator<TW.Signal<T, D>, TW.Signal<T, D>["data"], unknown>;
 };
-
-export const ActionEventTag = Symbol.for("TW.ActionEvent");
 
 // ── InferType action-step probe ───────────────────────────────────────────────
 
@@ -364,27 +371,184 @@ function isAsyncGenerator(value: unknown): value is AsyncGenerator<unknown, unkn
   );
 }
 
+async function* transformUserEvents(
+  gen: AsyncGenerator<unknown, unknown>,
+  streamChunks: boolean = false,
+): AsyncGenerator<unknown, unknown> {
+  let sent: unknown;
+
+  while (true) {
+    const next = await gen.next(sent);
+    if (next.done) return next.value;
+
+    if (next.value instanceof TW.Trace) {
+      sent = undefined;
+    } else {
+      const value =
+        streamChunks &&
+        !(next.value instanceof TW.Signal) &&
+        !(next.value instanceof TW.Stream)
+          ? new TW.Stream(next.value)
+          : next.value;
+      sent = yield value;
+    }
+  }
+}
+
 function isSelfCall(value: unknown): value is AsyncGenerator<unknown, unknown> {
   return value !== null && typeof value === "object" && SelfTag in value;
 }
 
-function commandEvent(input: unknown): { "->": "Command" } & object {
-  return new TW.Event("Command", {
+async function* transformUserEventsFromFirst(
+  gen: AsyncGenerator<unknown, unknown>,
+  first: IteratorResult<unknown, unknown>,
+): AsyncGenerator<unknown, unknown> {
+  let sent: unknown;
+  let next = first;
+
+  while (true) {
+    if (next.done) return next.value;
+
+    sent = next.value instanceof TW.Trace ? undefined : yield next.value;
+    next = await gen.next(sent);
+  }
+}
+
+function prependAsyncGenerator(
+  first: IteratorYieldResult<unknown>,
+  gen: AsyncGenerator<unknown, unknown>,
+): AsyncGenerator<unknown, unknown> {
+  return (async function* () {
+    yield first.value;
+    return yield* gen;
+  })();
+}
+
+const DeferredStepTag = Symbol.for("TW.DeferredStep");
+
+type DeferredStep = {
+  [DeferredStepTag]: true;
+  name: string;
+  gen: AsyncGenerator<unknown, unknown>;
+  done: boolean;
+  traced: boolean;
+  result: unknown;
+};
+
+function isDeferredStep(value: unknown): value is DeferredStep {
+  return value !== null && typeof value === "object" && DeferredStepTag in value;
+}
+
+function deferStep(
+  name: string,
+  gen: AsyncGenerator<unknown, unknown>,
+): DeferredStep {
+  const deferred: DeferredStep = {
+    [DeferredStepTag]: true,
+    name,
+    gen: undefined as unknown as AsyncGenerator<unknown, unknown>,
+    done: false,
+    traced: false,
+    result: undefined,
+  };
+
+  deferred.gen = (async function* () {
+    deferred.result = yield* transformUserEvents(gen, true);
+    deferred.done = true;
+    return deferred.result;
+  })();
+
+  return deferred;
+}
+
+async function* drainDeferredStep(
+  deferred: DeferredStep,
+): AsyncGenerator<unknown, unknown> {
+  try {
+    const result = deferred.done ? deferred.result : yield* deferred.gen;
+    let finalResult = result;
+
+    if (finalResult instanceof TW.Signal) {
+      yield finalResult;
+      finalResult = finalResult.data;
+    }
+
+    if (!deferred.traced) {
+      yield new TW.Trace(deferred.name, { result: finalResult });
+      deferred.traced = true;
+    }
+
+    deferred.result = finalResult;
+    deferred.done = true;
+    return finalResult;
+  } catch (error) {
+    if (!deferred.traced) {
+      yield new TW.Trace(deferred.name, { error });
+      deferred.traced = true;
+    }
+
+    throw error;
+  }
+}
+
+function rawStepName(handler: unknown): unknown {
+  if (handler === null || handler === undefined) return undefined;
+  return (handler as any)[TW.Name];
+}
+
+function isPipeStep(handler: unknown): boolean {
+  const name = rawStepName(handler);
+  return Array.isArray(name) && name[0] === "|>";
+}
+
+function stepRuntimeName(handler: unknown): string {
+  const name = rawStepName(handler);
+  return Array.isArray(name) && name[0] === "|>"
+    ? String(name[1])
+    : String(name);
+}
+
+function commandEvent(input: unknown): TW.Signal<"Command", object> {
+  return new TW.Signal("Command", {
     ...(input !== null && typeof input === "object" ? input : {}),
   });
+}
+
+function isStepHandler(handler: unknown): boolean {
+  return handler !== null && handler !== undefined && TW.Name in Object(handler);
+}
+
+function isRawFunctionHandler(handler: unknown): boolean {
+  return typeof handler === "function" && !isStepHandler(handler);
+}
+
+function validateRunHandlers(handlers: unknown[]) {
+  if (!isStepHandler(handlers[0])) return;
+
+  const mixedIndex = handlers.slice(1).findIndex(isRawFunctionHandler);
+  if (mixedIndex !== -1) {
+    throw new Error(
+      "Action.run cannot mix Step(...) handlers with raw function handlers",
+    );
+  }
 }
 
 async function* runStep(
   name: string,
   handler: (...a: unknown[]) => unknown,
   ctx: Record<string | symbol, unknown>,
+  args: unknown[] = [],
+  deferAsyncGenerator: boolean = false,
 ): AsyncGenerator<unknown, unknown> {
   try {
     let result: unknown;
     if (handler instanceof AsyncGeneratorFunction) {
-      result = yield* handler.call(ctx) as AsyncGenerator<unknown, unknown>;
+      const gen = handler.call(ctx, ...args) as AsyncGenerator<unknown, unknown>;
+      result = deferAsyncGenerator
+        ? deferStep(name, gen)
+        : yield* transformUserEvents(gen, true);
     } else {
-      const ret = handler.call(ctx);
+      const ret = handler.call(ctx, ...args);
       // If the step returned a self-recursive generator, propagate its events
       // and return its result without emitting a step result event for this step.
       if (isSelfCall(ret)) {
@@ -395,18 +559,21 @@ async function* runStep(
         return yield* awaited;
       }
       result = isAsyncGenerator(awaited)
-        ? yield* awaited
+        ? deferAsyncGenerator
+          ? deferStep(name, awaited)
+          : yield* transformUserEvents(awaited, true)
         : awaited;
     }
-    if (result instanceof TW.Event) {
+    if (isDeferredStep(result)) return result;
+    if (result instanceof TW.Signal) {
       yield result;
       result = result.data;
     }
-    yield { ">>": name, result };
+    yield new TW.Trace(name, { result });
 
     return result;
   } catch (error) {
-    yield { ">>": name, error };
+    yield new TW.Trace(name, { error });
 
     throw error;
   }
@@ -477,8 +644,27 @@ async function* runHandlerList(
     if (r.lastStepName) lastStepName = r.lastStepName;
   };
 
-  for (const handler of handlers) {
+  const settleDeferredLast = async function* () {
+    if (!isDeferredStep(last)) return last;
+
+    const stepResult = yield* drainDeferredStep(last);
+    if (lastStepName !== null) {
+      recordStep(lastStepName, stepResult);
+    } else {
+      last = stepResult;
+    }
+    return stepResult;
+  };
+
+  for (let handlerIndex = 0; handlerIndex < handlers.length; handlerIndex++) {
+    const handler = handlers[handlerIndex];
+    const nextHandler = handlers[handlerIndex + 1];
     const type = twType(handler);
+    const pipeStep = isPipeStep(handler);
+
+    if (!pipeStep) {
+      yield* settleDeferredLast();
+    }
 
     if (type === "If") {
       const { condition, steps } = handler as IfEntry;
@@ -571,7 +757,7 @@ async function* runHandlerList(
                   .split(".")
                   .reduce((o: any, k) => o?.[k], ctx)
               : itemsGetter;
-      yield { ">>": `${currentName}.${loopName}`, items };
+      yield new TW.Trace(`${currentName}.${loopName}`, { items });
       const innerAcc: Record<string, unknown[]> = {};
       let loopLastStepName: string | null = null;
       const loopIterLasts: unknown[] = [];
@@ -674,10 +860,14 @@ async function* runHandlerList(
       TW.Name in Object(handler)
     ) {
       lastCond = null;
-      const stepName = (handler as any)[TW.Name] as string;
+      const stepName = stepRuntimeName(handler);
       const fn = Array.isArray(handler)
         ? ((handler as unknown[])[0] as (...a: unknown[]) => unknown)
         : (handler as (...a: unknown[]) => unknown);
+      const stepArgs = pipeStep
+        ? [isDeferredStep(last) ? unwrapStreamEvents(last.gen) : last]
+        : [];
+      const deferAsyncGenerator = pipeStep || isPipeStep(nextHandler);
 
       // Inject `this.self` so the step can recursively re-invoke the action.
       // The self-call name is `actionName.stepName` (e.g. "factorial.next"),
@@ -699,7 +889,13 @@ async function* runHandlerList(
 
       recordStep(
         stepName,
-        yield* runStep(`${currentName}.${stepName}`, fn, ctx),
+        yield* runStep(
+          `${currentName}.${stepName}`,
+          fn,
+          ctx,
+          stepArgs,
+          deferAsyncGenerator,
+        ),
       );
 
       // If this step called self, promote currentName back to actionName so that
@@ -711,19 +907,37 @@ async function* runHandlerList(
       }
     } else if (handler instanceof AsyncGeneratorFunction) {
       lastCond = null;
-      last = yield* (
-        handler as (this: typeof ctx) => AsyncGenerator<unknown, unknown>
-      ).call(ctx);
+      last = yield* transformUserEvents(
+        (
+          handler as (this: typeof ctx) => AsyncGenerator<unknown, unknown>
+        ).call(ctx),
+      );
     } else if (typeof handler === "function") {
       lastCond = null;
       const ret = await (handler as (this: typeof ctx) => unknown).call(ctx);
-      last = isAsyncGenerator(ret) ? yield* ret : ret;
-      if (last instanceof TW.Event) {
+      if (isAsyncGenerator(ret)) {
+        const first = await ret.next();
+        if (first.done) {
+          last = first.value;
+        } else if (
+          first.value instanceof TW.Signal ||
+          first.value instanceof TW.Trace
+        ) {
+          last = yield* transformUserEventsFromFirst(ret, first);
+        } else {
+          last = prependAsyncGenerator(first, ret);
+        }
+      } else {
+        last = ret;
+      }
+      if (last instanceof TW.Signal) {
         yield last;
         last = last.data;
       }
     }
   }
+
+  yield* settleDeferredLast();
 
   return { last, lastStepName, lastCond };
 }
@@ -737,7 +951,7 @@ export async function* runAction(
 ): AsyncGenerator<unknown, unknown> {
   const ctx: Record<string | symbol, unknown> = { ...scope };
 
-  yield { ">>": name, input: scope.input };
+  yield new TW.Trace(name, { input: scope.input });
 
   try {
     const r = yield* runHandlerList(
@@ -749,10 +963,10 @@ export async function* runAction(
       name,
       handlers,
     );
-    yield { ">>": name, result: r.last };
+    yield new TW.Trace(name, { result: r.last });
     return r.last;
   } catch (error) {
-    yield { ">>": name, error };
+    yield new TW.Trace(name, { error });
     throw error;
   }
 }
@@ -792,9 +1006,9 @@ export function buildScope(
       type: T,
       data: D,
     ) {
-      const event = new TW.Event((eventNames.get(type) ?? type) as T, data);
-      yield event;
-      return event.data;
+      const signal = new TW.Signal((eventNames.get(type) ?? type) as T, data);
+      yield signal;
+      return signal.data;
     },
     get<T>(Cls: abstract new (...a: unknown[]) => T): T {
       if (registry.has(Cls)) return registry.get(Cls) as T;
@@ -911,6 +1125,8 @@ export function Action<const Name extends string>(
   }
 
   function createAction(inputMode: "first" | "args", handlers: unknown[]) {
+    validateRunHandlers(handlers);
+
     if (inferType) {
       const steps: Array<Record<string, unknown>> = [];
       for (const handler of handlers) {
@@ -951,7 +1167,9 @@ export function Action<const Name extends string>(
         ...(await buildExtra()),
       };
       const gen = tap(
-        runAction(actionName, buildScope(inputMode, args, extra), handlers),
+        unwrapStreamEvents(
+          runAction(actionName, buildScope(inputMode, args, extra), handlers),
+        ),
       );
       let item = await gen.next();
       while (!item.done) item = await gen.next();
@@ -971,7 +1189,7 @@ export function Action<const Name extends string>(
     }
 
     function stream(...args: unknown[]) {
-      return tap(rawStream(...args));
+      return tap(unwrapStreamEvents(rawStream(...args)));
     }
 
     const action = Object.assign(consume, {

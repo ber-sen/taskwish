@@ -13,18 +13,19 @@ type IfScope<Base extends Record<any, any>, Added extends Record<any, any>> = {
     ? K extends keyof Added
       ? Base[K] extends RawEntry<
           infer BR,
-          [":if", ...infer RestOps extends string[]]
+          [":if", ...infer RestOps extends string[]],
+          infer BY
         >
-        ? Added[K] extends RawEntry<infer AR, any>
-          ? RawEntry<BR | AR, [":if", ...RestOps]>
+        ? Added[K] extends RawEntry<infer AR, any, infer AY>
+          ? RawEntry<BR | AR, [":if", ...RestOps], BY | AY>
           : Base[K]
         : Base[K]
       : Base[K]
     : K extends keyof Added
-      ? Added[K] extends RawEntry<infer R, infer Ops extends string[]>
-        ? RawEntry<R, [":if", ...Ops]>
-        : RawEntry<Added[K], [":if"]>
-      : never;
+    ? Added[K] extends RawEntry<infer R, infer Ops extends string[], infer Y>
+      ? RawEntry<R, [":if", ...Ops], Y>
+      : RawEntry<Added[K], [":if"], never>
+    : never;
 };
 
 // ElseScope: for keys present in both branches, resolves the ":if" by unioning.
@@ -38,23 +39,29 @@ type ElseScope<
     ? K extends keyof ElseAdded
       ? IfCtxScope[K] extends RawEntry<
           infer IfR,
-          [":if", ...infer RestOps extends string[]]
+          [":if", ...infer RestOps extends string[]],
+          infer IfY
         >
         ? ElseAdded[K] extends RawEntry<
             infer ElseR,
-            infer ElseOps extends string[]
+            infer ElseOps extends string[],
+            infer ElseY
           >
           ? ElseOps extends [":if", ...string[]]
-            ? RawEntry<IfR | ElseR, [":if", ...RestOps]>
-            : RawEntry<IfR | ElseR, RestOps>
+            ? RawEntry<IfR | ElseR, [":if", ...RestOps], IfY | ElseY>
+            : RawEntry<IfR | ElseR, RestOps, IfY | ElseY>
           : IfCtxScope[K]
         : IfCtxScope[K]
       : IfCtxScope[K]
     : K extends keyof ElseAdded
-      ? ElseAdded[K] extends RawEntry<infer R, infer Ops extends string[]>
-        ? RawEntry<R, [":if", ...Ops]>
-        : RawEntry<ElseAdded[K], [":if"]>
-      : never;
+    ? ElseAdded[K] extends RawEntry<
+        infer R,
+        infer Ops extends string[],
+        infer Y
+      >
+      ? RawEntry<R, [":if", ...Ops], Y>
+      : RawEntry<ElseAdded[K], [":if"], never>
+    : never;
 };
 
 // If didn't run → previous last preserved; if ran → branch last.
@@ -62,16 +69,20 @@ type ElseScope<
 // value is guaranteed to exist).  When there is no prior last, we add ":if" so the
 // result is marked as potentially undefined — mirrors IfScope for new keys.
 type IfLast<Ctx, A> = "last" extends keyof A
-  ? A["last"] extends RawEntry<infer AR, infer AOps extends string[]>
+  ? A["last"] extends RawEntry<infer AR, infer AOps extends string[], infer AY>
     ? "last" extends keyof Ctx
-      ? Ctx["last"] extends RawEntry<infer CR, infer COps extends string[]>
-        ? RawEntry<CR | AR, COps> // prior last exists: union, keep its ops
-        : RawEntry<AR, [":if", ...AOps]>
-      : RawEntry<AR, [":if", ...AOps]> // no prior last: mark conditional
+      ? Ctx["last"] extends RawEntry<
+          infer CR,
+          infer COps extends string[],
+          infer CY
+        >
+        ? RawEntry<CR | AR, COps, CY | AY> // prior last exists: union, keep its ops
+        : RawEntry<AR, [":if", ...AOps], AY>
+      : RawEntry<AR, [":if", ...AOps], AY> // no prior last: mark conditional
     : never
   : "last" extends keyof Ctx
-    ? Ctx["last"]
-    : RawEntry<never, []>;
+  ? Ctx["last"]
+  : RawEntry<never, [], never>;
 
 // Else always runs one branch → resolves the ":if" — mirrors ElseScope.
 // When Ctx["last"] carries ":if" (no prior step before the If), strip it on merge.
@@ -79,25 +90,34 @@ type IfLast<Ctx, A> = "last" extends keyof A
 type ElseLast<Ctx, A> = "last" extends keyof Ctx
   ? Ctx["last"] extends RawEntry<
       infer CR,
-      [":if", ...infer RestOps extends string[]]
+      [":if", ...infer RestOps extends string[]],
+      infer CY
     >
     ? "last" extends keyof A
-      ? A["last"] extends RawEntry<infer AR, infer AOps extends string[]>
+      ? A["last"] extends RawEntry<
+          infer AR,
+          infer AOps extends string[],
+          infer AY
+        >
         ? AOps extends [":if", ...string[]]
-          ? RawEntry<CR | AR, [":if", ...RestOps]>
-          : RawEntry<CR | AR, RestOps>
-        : RawEntry<CR, [":if", ...RestOps]>
-      : RawEntry<CR, [":if", ...RestOps]>
-    : Ctx["last"] extends RawEntry<infer CR, infer COps extends string[]>
-      ? "last" extends keyof A
-        ? A["last"] extends RawEntry<infer AR, any>
-          ? RawEntry<CR | AR, COps>
-          : Ctx["last"]
+          ? RawEntry<CR | AR, [":if", ...RestOps], CY | AY>
+          : RawEntry<CR | AR, RestOps, CY | AY>
+        : RawEntry<CR, [":if", ...RestOps], CY>
+      : RawEntry<CR, [":if", ...RestOps], CY>
+    : Ctx["last"] extends RawEntry<
+        infer CR,
+        infer COps extends string[],
+        infer CY
+      >
+    ? "last" extends keyof A
+      ? A["last"] extends RawEntry<infer AR, any, infer AY>
+        ? RawEntry<CR | AR, COps, CY | AY>
         : Ctx["last"]
       : Ctx["last"]
+    : Ctx["last"]
   : "last" extends keyof A
-    ? A["last"]
-    : RawEntry<never, []>;
+  ? A["last"]
+  : RawEntry<never, [], never>;
 
 // ── Result types ──────────────────────────────────────────────────────────────
 
