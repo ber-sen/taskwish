@@ -13,7 +13,7 @@ const Button = {} as any;
 const App = {} as any;
 const Screen = {} as any;
 const List = {} as any;
-const Server = {} as any
+const Node = {} as any;
 
 export const { hello } = Greeter()
   .on("Command", "hello")
@@ -41,7 +41,6 @@ const connections = Connections({
   "/": { name: "List", List: { data: [1, 2, 3] } },
 });
 
-const server = Server({
-  services: [import("./greeter")],
-  apps: [connections],
-})
+const node = Node({
+  workspace: [import("./greeter"), connections],
+});
