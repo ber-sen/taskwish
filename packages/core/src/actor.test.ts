@@ -1062,6 +1062,102 @@ describe("Actor", () => {
       expect(await run({ text: "hello" })).toEqual("sent: hello");
     });
 
+    test("same actor command can be injected with .use() on a second command", async () => {
+      const { Slack } = Actor("Slack");
+
+      const { conversationsList } = Slack()
+        .on("Command", "conversationsList")
+
+        .input({ types: "string" })
+
+        .run(function () {
+          return {
+            channels:
+              this.input.types === "public_channel"
+                ? [{ id: "C123", name: "general" }]
+                : [],
+          };
+        });
+
+      const { postMessage } = Slack()
+        .on("Command", "postMessage")
+
+        .use(conversationsList)
+
+        .input({ channel: "string", text: "string" })
+
+        .run(
+          Step("channels", async function () {
+            type Check = Expect<
+              Equal<
+                typeof this.actions.slack.conversationsList,
+                typeof conversationsList.stream
+              >
+            >;
+            return await this.actions.slack.conversationsList({
+              types: "public_channel",
+            });
+          }),
+
+          Step("message", function () {
+            const selected = this.channels.channels.find(
+              (item) => item.id === this.input.channel,
+            );
+            return {
+              channel: selected,
+              text: this.input.text,
+            };
+          }),
+        );
+
+      expect(await postMessage({ channel: "C123", text: "hello" })).toEqual({
+        channel: { id: "C123", name: "general" },
+        text: "hello",
+      });
+    });
+
+    test("same actor command can be injected with .use() on the actor instance", async () => {
+      const { Slack } = Actor("Slack");
+
+      const { conversationsList } = Slack()
+        .on("Command", "conversationsList")
+
+        .input({ types: "string" })
+
+        .run(function () {
+          return [`channels:${this.input.types}`];
+        });
+
+      const { postMessage } = Slack()
+        .use(conversationsList)
+
+        .on("Command", "postMessage")
+
+        .input({ text: "string" })
+
+        .run(
+          Step("channels", function () {
+            type Check = Expect<
+              Equal<
+                typeof this.actions.slack.conversationsList,
+                typeof conversationsList.stream
+              >
+            >;
+            return this.actions.slack.conversationsList({
+              types: "public_channel",
+            });
+          }),
+
+          Step("message", function () {
+            return `${this.input.text} via ${this.channels[0]}`;
+          }),
+        );
+
+      expect(await postMessage({ text: "hello" })).toEqual(
+        "hello via channels:public_channel",
+      );
+    });
+
     test("merges actions from multiple .use() calls preserving prior services", async () => {
       const { Emailer } = Actor("Emailer");
 

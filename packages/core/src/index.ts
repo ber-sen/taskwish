@@ -15,3 +15,4 @@ export * from "./steps";
 export * from "./actor";
 export * from "./trait";
 export * from "./use";
+export * from "./input";
