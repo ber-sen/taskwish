@@ -13,12 +13,14 @@ import {
   DrawerTitle,
 } from "./components/ui/drawer";
 import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
 import { Textarea } from "./components/ui/textarea";
 import { cn } from "./lib/utils";
 import type {
   CommandCenterAction,
   CommandCenterConfig,
+  CommandCenterJsonSchema,
   CommandCenterInputField,
 } from "./types";
 
@@ -27,14 +29,17 @@ type LoadState =
   | { status: "ready"; config: CommandCenterConfig }
   | { status: "error"; message: string };
 
-const defaultFields: CommandCenterInputField[] = [
-  { name: "input", description: "JSON input passed to the action." },
-];
+type ActionRunResult = {
+  status: number;
+  ok: boolean;
+  contentType: string;
+  body: unknown;
+};
 
 function splitActionName(
   id: string,
 ): Pick<CommandCenterAction, "actor" | "action" | "label"> {
-  const [actor = "Taskwish", action = id] = id.split("::");
+  const [actor = "TaskWish", action = id] = id.split("::");
   const label = action
     .replace(/[_-]+/g, " ")
     .replace(/([a-z])([A-Z])/g, "$1 $2")
@@ -42,6 +47,14 @@ function splitActionName(
     .trim();
 
   return { actor, action, label: label || action };
+}
+
+function uppercaseFirst(value: string): string {
+  return value ? `${value[0]!.toUpperCase()}${value.slice(1)}` : value;
+}
+
+function isVisibleAction(action: CommandCenterAction): boolean {
+  return !action.action.toLowerCase().startsWith("on");
 }
 
 function hashColor(value: string): string {
@@ -64,10 +77,12 @@ function hashColor(value: string): string {
 
 function normalizeAction(raw: CommandCenterAction): CommandCenterAction {
   const parsed = splitActionName(raw.id);
+  const label = uppercaseFirst(raw.label || parsed.label || parsed.action);
   return {
     ...parsed,
     ...raw,
-    input: raw.input.length ? raw.input : defaultFields,
+    label,
+    input: raw.input,
     color: raw.color || hashColor(raw.actor || parsed.actor),
   };
 }
@@ -80,7 +95,7 @@ async function loadConfig(): Promise<CommandCenterConfig> {
   const config = (await response.json()) as CommandCenterConfig;
   return {
     ...config,
-    actions: config.actions.map(normalizeAction),
+    actions: config.actions.map(normalizeAction).filter(isVisibleAction),
   };
 }
 
@@ -93,7 +108,7 @@ function actionTitle(action: CommandCenterAction) {
 }
 
 function actionDescription(action: CommandCenterAction) {
-  return action.description || `${action.actor} action`;
+  return action.description || action.actor;
 }
 
 function ActionIcon({ action }: { action: CommandCenterAction }) {
@@ -108,6 +123,48 @@ function ActionIcon({ action }: { action: CommandCenterAction }) {
         <Play className="h-4 w-4 fill-current" />
       )}
     </span>
+  );
+}
+
+function TaskWishLogo() {
+  return (
+    <svg
+      width="40"
+      viewBox="0 0 48 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="text-primary md:group-hover:invisible"
+      aria-hidden="true"
+    >
+      <g clipPath="url(#clip0_953_316)">
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M47.3282 4.08451L32.2327 20L22.748 10L26.4885 6.05634L32.2327 11.9718L43.5877 0L47.3282 4.08451Z"
+          fill="#00FFAF"
+        />
+        <path
+          d="M9.64672 20L25 4.08451L21.1956 0L9.64672 11.9718L3.80434 6.05634L0 10L9.64672 20Z"
+          fill="url(#paint0_linear_953_316)"
+        />
+      </g>
+      <defs>
+        <linearGradient
+          id="paint0_linear_953_316"
+          x1="4.16667"
+          y1="-5.90909"
+          x2="24.5859"
+          y2="16.737"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#00249C" />
+          <stop offset="1" stopColor="#00FFAF" />
+        </linearGradient>
+        <clipPath id="clip0_953_316">
+          <rect width="48" height="20" fill="white" />
+        </clipPath>
+      </defs>
+    </svg>
   );
 }
 
@@ -137,6 +194,11 @@ function ActionCommandItem({
         <span className="break-words font-semibold leading-tight text-foreground sm:text-lg">
           {actionTitle(action)}
         </span>
+        {action.description ? (
+          <span className="overflow-hidden text-xs leading-snug text-muted-foreground [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box]">
+            {action.description}
+          </span>
+        ) : null}
       </div>
 
       <div className="mt-auto flex min-w-0 items-end justify-between gap-2 pt-3">
@@ -159,7 +221,30 @@ function fieldDefaultValue(field: CommandCenterInputField): string {
   return JSON.stringify(field.example, null, 2);
 }
 
-function parseFieldValue(value: string): unknown {
+function schemaType(
+  schema: CommandCenterJsonSchema | undefined,
+): string | undefined {
+  if (Array.isArray(schema?.type)) {
+    return schema.type.find((value) => value !== "null");
+  }
+  return schema?.type;
+}
+
+function isJsonField(field: CommandCenterInputField): boolean {
+  const type = schemaType(field.schema);
+  return type === "object" || type === "array" || !type;
+}
+
+function fieldPlaceholder(field: CommandCenterInputField): string {
+  const type = schemaType(field.schema);
+  if (field.description) return field.description;
+  if (type === "number" || type === "integer") return "0";
+  if (type === "boolean") return "";
+  if (type === "string") return field.name;
+  return "JSON";
+}
+
+function parseJsonValue(value: string): unknown {
   const trimmed = value.trim();
   if (!trimmed) return undefined;
   try {
@@ -169,20 +254,215 @@ function parseFieldValue(value: string): unknown {
   }
 }
 
+function parseFieldValue(
+  field: CommandCenterInputField,
+  value: FormDataEntryValue | null,
+): unknown {
+  const type = schemaType(field.schema);
+  const raw = String(value ?? "");
+  const trimmed = raw.trim();
+  const enumValues = field.schema?.enum;
+
+  if (type === "boolean") return value !== null;
+  if (!trimmed) return undefined;
+
+  if (Array.isArray(enumValues)) {
+    const enumValueMatch = enumValues.find((item) => enumValue(item) === raw);
+    if (enumValueMatch !== undefined) return enumValueMatch;
+  }
+
+  if (type === "number" || type === "integer") {
+    const parsed = Number(trimmed);
+    if (Number.isNaN(parsed)) {
+      throw new Error(`${field.name} must be a number`);
+    }
+    return parsed;
+  }
+
+  if (type === "string") return raw;
+
+  if (isJsonField(field)) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      throw new Error(`${field.name} must be valid JSON`);
+    }
+  }
+
+  return parseJsonValue(raw);
+}
+
 function buildPayload(form: HTMLFormElement, fields: CommandCenterInputField[]) {
   if (fields.length === 1 && fields[0]?.name === "input") {
-    const value = String(new FormData(form).get("input") ?? "");
-    const parsed = parseFieldValue(value);
+    const parsed = parseFieldValue(fields[0], new FormData(form).get("input"));
     return parsed === undefined ? {} : parsed;
   }
 
   const data = new FormData(form);
   const payload: Record<string, unknown> = {};
   for (const field of fields) {
-    const parsed = parseFieldValue(String(data.get(field.name) ?? ""));
+    const parsed = parseFieldValue(field, data.get(field.name));
     if (parsed !== undefined) payload[field.name] = parsed;
   }
   return payload;
+}
+
+async function parseActionResponse(response: Response): Promise<ActionRunResult> {
+  const contentType = response.headers.get("Content-Type") ?? "";
+  const body =
+    response.status === 204
+      ? null
+      : contentType.includes("application/json")
+        ? await response.json()
+        : await response.text();
+
+  return {
+    status: response.status,
+    ok: response.ok,
+    contentType,
+    body,
+  };
+}
+
+function formatActionResultBody(body: unknown): string {
+  if (body === null) return "null";
+  if (body === undefined) return "";
+  if (typeof body === "string") return body;
+  return JSON.stringify(body, null, 2);
+}
+
+function enumValue(value: unknown): string {
+  return typeof value === "string"
+    ? value
+    : JSON.stringify(value) ?? String(value);
+}
+
+function FieldDescription({ field }: { field: CommandCenterInputField }) {
+  if (!field.description) return null;
+  return <p className="text-xs text-muted-foreground">{field.description}</p>;
+}
+
+function ActionInputField({
+  field,
+  disabled,
+}: {
+  field: CommandCenterInputField;
+  disabled: boolean;
+}) {
+  const id = `command-${field.name}`;
+  const type = schemaType(field.schema);
+  const enumValues = field.schema?.enum;
+  const defaultValue = fieldDefaultValue(field);
+  const label = (
+    <Label htmlFor={id} className="flex items-center gap-1">
+      {field.name}
+      {field.required ? <span className="text-muted-foreground">*</span> : null}
+    </Label>
+  );
+
+  if (Array.isArray(enumValues)) {
+    return (
+      <div className="space-y-2">
+        {label}
+        <select
+          id={id}
+          name={field.name}
+          defaultValue={defaultValue}
+          disabled={disabled}
+          className="flex h-[38px] w-full rounded-md border border-input bg-transparent px-2 py-1 text-base transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {!field.required ? <option value="">Select...</option> : null}
+          {enumValues.map((value) => (
+            <option key={enumValue(value)} value={enumValue(value)}>
+              {enumValue(value)}
+            </option>
+          ))}
+        </select>
+        <FieldDescription field={field} />
+      </div>
+    );
+  }
+
+  if (type === "boolean") {
+    return (
+      <div className="space-y-2">
+        <label
+          htmlFor={id}
+          className="flex items-center gap-2 text-sm font-medium"
+        >
+          <input
+            id={id}
+            name={field.name}
+            type="checkbox"
+            defaultChecked={field.example === true}
+            disabled={disabled}
+            className="h-4 w-4 rounded border border-input accent-primary disabled:cursor-not-allowed disabled:opacity-50"
+          />
+          <span>
+            {field.name}
+            {field.required ? (
+              <span className="ml-1 text-muted-foreground">*</span>
+            ) : null}
+          </span>
+        </label>
+        <FieldDescription field={field} />
+      </div>
+    );
+  }
+
+  if (type === "string" || type === "number" || type === "integer") {
+    return (
+      <div className="space-y-2">
+        {label}
+        <Input
+          id={id}
+          name={field.name}
+          type={type === "string" ? "text" : "number"}
+          step={type === "integer" ? "1" : "any"}
+          defaultValue={defaultValue}
+          placeholder={fieldPlaceholder(field)}
+          disabled={disabled}
+        />
+        <FieldDescription field={field} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {label}
+      <Textarea
+        id={id}
+        name={field.name}
+        defaultValue={defaultValue}
+        placeholder={fieldPlaceholder(field)}
+        className="min-h-[110px] resize-none"
+        disabled={disabled}
+      />
+      <FieldDescription field={field} />
+    </div>
+  );
+}
+
+function ActionResult({ result }: { result: ActionRunResult }) {
+  return (
+    <div className="space-y-2 rounded-md border border-border bg-muted/30 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold text-foreground">Result</h3>
+        <span
+          className={cn(
+            "text-xs font-semibold",
+            result.ok ? "text-muted-foreground" : "text-destructive",
+          )}
+        >
+          {result.status}
+        </span>
+      </div>
+      <pre className="max-h-[260px] overflow-auto whitespace-pre-wrap break-words rounded-md bg-background p-3 text-xs text-foreground">
+        {formatActionResultBody(result.body)}
+      </pre>
+    </div>
+  );
 }
 
 function ActionDrawerHeader({
@@ -244,21 +524,28 @@ function ActionDrawerHeader({
 function ActionForm({
   action,
   config,
-  onComplete,
 }: {
   action: CommandCenterAction;
   config: CommandCenterConfig;
-  onComplete: () => void;
 }) {
   const [isRunning, setIsRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<ActionRunResult | null>(null);
+
+  useEffect(() => {
+    setError(null);
+    setResult(null);
+  }, [action.id]);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsRunning(true);
+    setError(null);
+    setResult(null);
 
     try {
       const payload = buildPayload(event.currentTarget, action.input);
-      await fetch(action.route, {
+      const response = await fetch(action.route, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${config.apiKey}`,
@@ -266,7 +553,9 @@ function ActionForm({
         },
         body: JSON.stringify(payload),
       });
-      onComplete();
+      setResult(await parseActionResponse(response));
+    } catch (error) {
+      setError(error instanceof Error ? error.message : String(error));
     } finally {
       setIsRunning(false);
     }
@@ -275,18 +564,14 @@ function ActionForm({
   return (
     <form id="command-center-action-form" className="space-y-4" onSubmit={submit}>
       {action.input.map((field) => (
-        <div key={field.name} className="space-y-2">
-          <Label htmlFor={`command-${field.name}`}>{field.name}</Label>
-          <Textarea
-            id={`command-${field.name}`}
-            name={field.name}
-            defaultValue={fieldDefaultValue(field)}
-            placeholder={field.description || "JSON or text"}
-            className="min-h-[110px] resize-none"
-            disabled={isRunning}
-          />
-        </div>
+        <ActionInputField key={field.name} field={field} disabled={isRunning} />
       ))}
+      {error ? (
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+      {result ? <ActionResult result={result} /> : null}
       <input type="submit" hidden disabled={isRunning} />
     </form>
   );
@@ -417,7 +702,15 @@ export function CommandCenter() {
   };
 
   return (
-    <main className="min-h-screen bg-background px-4 pb-16 pt-16 text-foreground">
+    <main className="relative min-h-screen bg-background px-4 pb-16 pt-16 text-foreground">
+      <a
+        href="/"
+        aria-label="TaskWish"
+        className="absolute left-4 top-4 z-40 flex items-center"
+      >
+        <TaskWishLogo />
+      </a>
+
       <CommandPrimitive
         ref={commandRef}
         label="Command Center"
@@ -493,7 +786,6 @@ export function CommandCenter() {
                 <ActionForm
                   action={selectedAction}
                   config={loadState.config}
-                  onComplete={() => setSelectedAction(null)}
                 />
               </div>
 

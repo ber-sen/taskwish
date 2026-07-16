@@ -4,7 +4,7 @@
     "access": "public"
   },
   "version": "0.0.1",
-  "description": "Command Center UI for Taskwish nodes",
+  "description": "Command Center UI for TaskWish nodes",
   "license": "Elastic-2.0",
   "author": "Bersen Pajaziti",
   "exports": {
@@ -16,7 +16,7 @@
     },
     "./types": {
       "source": "./src/types.ts",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/types.d.ts"
     },
     "./index.html": {
       "source": "./src/index.html",
@@ -40,6 +40,7 @@
     "@base-ui/react": "^1.6.0",
     "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-slot": "^1.2.4",
+    "arktype": "^2.1.29",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

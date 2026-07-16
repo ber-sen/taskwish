@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { Actor, Event } from "@taskwish/core";
+import { CommandCenter } from "@taskwish/command-center";
 import { createNodeRegistry, createRoutes } from "./index";
 import { apiKey, auth } from "./test-helpers";
 import type { NodeRouteMap, NodeRoutes } from "./types";
@@ -81,8 +82,19 @@ test("exports actor event handlers as concrete Bun.serve routes", async () => {
   expect(await response.json()).toEqual({ received: "hi" });
 });
 
-test("exports command center config for registered actions", async () => {
-  const { Greeter } = Actor("Greeter");
+test("does not export command center routes by default", async () => {
+  const routes = await createRoutes(createNodeRegistry([]), { apiKey });
+
+  expect(routes["/"]).toBeUndefined();
+  expect(routes["/*"]).toBeUndefined();
+  expect(routes["/tw/command-center/config"]).toBeUndefined();
+});
+
+test("exports command center config when the app is installed", async () => {
+  const { Greeter } = Actor("Greeter").def(
+    Event("Message", { content: "string" }),
+  );
+  const { Biller } = Actor("Biller").use(Greeter);
 
   const { hello } = Greeter()
     .on("Command", "hello")
@@ -91,11 +103,19 @@ test("exports command center config for registered actions", async () => {
 
     .run(function () {
       return `Hello ${this.input.name}`;
+    })
+    .meta({ description: "Greet a person by name" });
+  const { onGreeterMessage } = Biller()
+    .on("Greeter::Message")
+    .run(function () {
+      return { received: this.input.content };
     });
 
   const routes = await createRoutes(
-    createNodeRegistry([Promise.resolve({ Greeter, hello })]),
-    { apiKey, nodeName: "test-node" },
+    createNodeRegistry([
+      Promise.resolve({ Greeter, Biller, hello, onGreeterMessage }),
+    ]),
+    { apiKey, nodeName: "test-node", apps: [CommandCenter()] },
   );
 
   const route = routeMap(routes, "/tw/command-center/config");
@@ -114,12 +134,33 @@ test("exports command center config for registered actions", async () => {
         id: "Greeter::hello",
         actor: "Greeter",
         action: "hello",
-        label: "hello",
+        label: "Hello",
+        description: "Greet a person by name",
         color: "#0e7490",
         route: "/tw/Greeter/hello",
         source: "local",
-        input: [],
-        meta: {},
+        input: [
+          {
+            name: "name",
+            required: true,
+            schema: {
+              type: "string",
+            },
+          },
+        ],
+        inputSchema: {
+          $schema: "https://json-schema.org/draft/2020-12/schema",
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+            },
+          },
+          required: ["name"],
+        },
+        meta: {
+          description: "Greet a person by name",
+        },
       },
     ],
   });

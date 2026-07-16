@@ -14,6 +14,8 @@ export namespace TW {
 
   export const Meta = Symbol.for("TW.Meta");
 
+  export const InputSchema = Symbol.for("TW.InputSchema");
+
   export const Step = Symbol.for("TW.Step");
 
   export const Scope = Symbol.for("TW.Ctx");

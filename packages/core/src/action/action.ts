@@ -1138,7 +1138,11 @@ export function Action<const Name extends string>(
       : {};
   }
 
-  function createAction(inputMode: "first" | "args", handlers: unknown[]) {
+  function createAction(
+    inputMode: "first" | "args",
+    handlers: unknown[],
+    inputSchema?: unknown,
+  ) {
     validateRunHandlers(handlers);
 
     if (inferType) {
@@ -1213,6 +1217,7 @@ export function Action<const Name extends string>(
     const action = Object.assign(consume, {
       [TW.Name]: actionName,
       [TW.Meta]: actionMeta,
+      [TW.InputSchema]: inputSchema,
       stream,
       [RawStreamTag]: rawStream,
       [RawLoggedStreamTag]: loggedRawStream,
@@ -1234,13 +1239,13 @@ export function Action<const Name extends string>(
     return result;
   }
 
-  const makeBody = (inputMode: "first" | "args") => ({
+  const makeBody = (inputMode: "first" | "args", inputSchema?: unknown) => ({
     use(config: unknown) {
       usePlugin(config);
       return this;
     },
     run(...handlers: unknown[]) {
-      return createAction(inputMode, handlers);
+      return createAction(inputMode, handlers, inputSchema);
     },
   });
 
@@ -1248,8 +1253,8 @@ export function Action<const Name extends string>(
     sig() {
       return makeBody("args");
     },
-    input(_schema?: unknown) {
-      return makeBody("first");
+    input(schema?: unknown) {
+      return makeBody("first", schema);
     },
     use(config: unknown) {
       usePlugin(config);

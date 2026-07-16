@@ -4,7 +4,7 @@
     "access": "public"
   },
   "version": "0.0.2",
-  "description": "Slack actor and commands for Taskwish",
+  "description": "Slack actor and commands for TaskWish",
   "license": "Elastic-2.0",
   "author": "Bersen Pajaziti",
   "exports": {

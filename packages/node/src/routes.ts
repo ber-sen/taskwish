@@ -1,5 +1,4 @@
 import { TW } from "@taskwish/core";
-import { createCommandCenterRoutes } from "./command-center";
 import { invoke, invokeRouteAction } from "./invoke";
 import { matchPathParams } from "./request";
 import { errorResponse, json } from "./response";
@@ -10,6 +9,7 @@ import type {
   NodeRouteMap,
   NodeRouteHandler,
   NodeRoutes,
+  NodeApp,
   RouteMeta,
 } from "./types";
 import { generateApiKey, isRecord } from "./utils";
@@ -22,7 +22,7 @@ export const HTTP_METHODS = new Set<HttpMethod>([
   "PATCH",
 ]);
 
-function normalizePrefix(prefix: string): string {
+export function normalizePrefix(prefix: string): string {
   const normalized = prefix.startsWith("/") ? prefix : `/${prefix}`;
   return normalized.endsWith("/") && normalized.length > 1
     ? normalized.slice(0, -1)
@@ -92,15 +92,29 @@ function isRouteMap(route: NodeRoutes[string]): route is NodeRouteMap {
 
 export async function createRoutes(
   registry: NodeRegistry | Promise<NodeRegistry>,
-  options: { prefix?: string; apiKey: string; nodeName?: string },
+  options: {
+    prefix?: string;
+    apiKey: string;
+    nodeName?: string;
+    apps?: readonly NodeApp[];
+  },
 ): Promise<NodeRoutes> {
   const routePrefix = normalizePrefix(options.prefix ?? "/tw");
+  const nodeName = options.nodeName ?? "TaskWish";
   const services = await registry;
-  const routes: NodeRoutes = createCommandCenterRoutes(services, {
-    nodeName: options.nodeName ?? "Taskwish",
-    apiKey: options.apiKey,
-    prefix: routePrefix,
-  });
+  const routes: NodeRoutes = {};
+
+  for (const app of options.apps ?? []) {
+    Object.assign(
+      routes,
+      await app.routes?.({
+        registry: services,
+        nodeName,
+        apiKey: options.apiKey,
+        prefix: routePrefix,
+      }),
+    );
+  }
 
   for (const [actionName, action] of services.actions) {
     const invokeActionRoute = async (request: Request) => {
@@ -139,13 +153,19 @@ export async function createRoutes(
 
 export function createFetchHandler(
   registry: Promise<NodeRegistry>,
-  options: { prefix?: string; apiKey?: string; nodeName?: string } = {},
+  options: {
+    prefix?: string;
+    apiKey?: string;
+    nodeName?: string;
+    apps?: readonly NodeApp[];
+  } = {},
 ): (request: Request) => Promise<Response> {
   const apiKey = options.apiKey ?? generateApiKey();
   const routes = createRoutes(registry, {
     prefix: options.prefix,
     apiKey,
     nodeName: options.nodeName,
+    apps: options.apps,
   });
   const routePrefix = normalizePrefix(options.prefix ?? "/tw");
 

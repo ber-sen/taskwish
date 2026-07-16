@@ -733,7 +733,11 @@ function createBehavior(
         );
       }
 
-      function createAction(inputMode: "first" | "args", handlers: unknown[]) {
+      function createAction(
+        inputMode: "first" | "args",
+        handlers: unknown[],
+        inputSchema?: unknown,
+      ) {
         async function consume(...args: unknown[]) {
           const resolvedInitialScope = await resolveActionScope();
           const { args: modArgs, scope: behaviorScope } = mod(args);
@@ -783,6 +787,7 @@ function createBehavior(
           [TW.Name]: eventName,
           stream,
           [TW.Meta]: resolveMeta(),
+          [TW.InputSchema]: inputSchema,
           [RawStreamTag]: rawStream,
           [RawLoggedStreamTag]: loggedRawStream,
         });
@@ -798,13 +803,13 @@ function createBehavior(
         return result;
       }
 
-      const makeBody = (inputMode: "first" | "args") => ({
+      const makeBody = (inputMode: "first" | "args", inputSchema?: unknown) => ({
         use(plugin?: unknown) {
           if (arguments.length > 0) useActionPlugin(plugin);
           return this;
         },
         run(...handlers: unknown[]) {
-          return createAction(inputMode, handlers);
+          return createAction(inputMode, handlers, inputSchema);
         },
       });
 
@@ -812,8 +817,8 @@ function createBehavior(
         sig() {
           return makeBody("args");
         },
-        input(_schema?: unknown) {
-          return makeBody("first");
+        input(inputSchema?: unknown) {
+          return makeBody("first", inputSchema);
         },
         use(plugin?: unknown) {
           if (arguments.length > 0) useActionPlugin(plugin);
@@ -879,6 +884,7 @@ function createBehavior(
                 const action = Object.assign(cmdConsume, {
                   [TW.Name]: qualifiedCmdName,
                   [TW.Meta]: resolveMeta(),
+                  [TW.InputSchema]: schema,
                   stream: cmdStream,
                   [RawStreamTag]: rawCmdStream,
                   [RawLoggedStreamTag]: loggedRawCmdStream,

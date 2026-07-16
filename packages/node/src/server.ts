@@ -1,8 +1,8 @@
-import { createInterface } from "node:readline/promises";
 import { createNodeRegistry } from "./registry";
 import { json } from "./response";
+import { normalizePrefix } from "./routes";
 import { createRoutes } from "./routes";
-import type { NodeConfig, TaskwishNode } from "./types";
+import type { NodeAppReadyContext, NodeConfig, TaskWishNode } from "./types";
 import { generateApiKey, isRecord } from "./utils";
 
 const shutdownSignals: NodeJS.Signals[] = ["SIGINT", "SIGTERM", "SIGHUP"];
@@ -96,69 +96,26 @@ ${name} running on ${server.url.origin}
 API key: ${apiKey}`);
 }
 
-function isInteractiveTerminal(): boolean {
-  return Boolean(process.stdin.isTTY && process.stdout.isTTY);
-}
-
-async function shouldOpenBrowser(
-  openBrowser: NodeConfig["openBrowser"],
-): Promise<boolean> {
-  if (openBrowser === true) return true;
-  if (openBrowser === false) return false;
-  if (!isInteractiveTerminal()) return false;
-
-  const prompt = createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  try {
-    const answer = await prompt.question("Open Command Center in browser? (Y/n) ");
-    return !/^(n|no)$/i.test(answer.trim());
-  } finally {
-    prompt.close();
-  }
-}
-
-function browserOpenCommand(url: string): string[] {
-  if (process.platform === "darwin") return ["open", url];
-  if (process.platform === "win32") return ["cmd", "/c", "start", "", url];
-  return ["xdg-open", url];
-}
-
-async function openBrowser(url: string): Promise<void> {
-  const command = browserOpenCommand(url);
-  const subprocess = Bun.spawn(command, {
-    stdout: "ignore",
-    stderr: "ignore",
-  });
-  await subprocess.exited;
-}
-
-async function maybeOpenBrowser(
-  url: string,
-  openBrowserConfig: NodeConfig["openBrowser"],
+async function notifyAppsReady(
+  apps: NodeConfig["apps"],
+  context: NodeAppReadyContext,
 ): Promise<void> {
-  if (await shouldOpenBrowser(openBrowserConfig ?? "ask")) {
-    await openBrowser(url);
-  }
-}
-
-function handleOpenBrowserError(error: unknown): void {
-  const message = error instanceof Error ? error.message : String(error);
-  console.warn(`Could not open browser: ${message}`);
+  await Promise.allSettled(apps?.map((app) => app.ready?.(context)) ?? []);
 }
 
 export async function Node(
   name: string,
   config: NodeConfig = {},
-): Promise<TaskwishNode> {
+): Promise<TaskWishNode> {
   const apiKey = config.apiKey ?? generateApiKey();
   const registry = createNodeRegistry(config.workspace);
+  const services = await registry;
+  const routePrefix = normalizePrefix(config.prefix ?? "/tw");
   const routes = await createRoutes(registry, {
-    prefix: config.prefix,
+    prefix: routePrefix,
     apiKey,
     nodeName: name,
+    apps: config.apps,
   });
 
   const server = registerServerForShutdown(
@@ -174,9 +131,13 @@ export async function Node(
   );
 
   printStartupMessage(server, name, apiKey);
-  void maybeOpenBrowser(server.url.origin, config.openBrowser).catch(
-    handleOpenBrowserError,
-  );
+  void notifyAppsReady(config.apps, {
+    registry: services,
+    nodeName: name,
+    apiKey,
+    prefix: routePrefix,
+    server,
+  });
 
-  return Object.assign(server, { name, apiKey, routes }) as TaskwishNode;
+  return Object.assign(server, { name, apiKey, routes }) as TaskWishNode;
 }
