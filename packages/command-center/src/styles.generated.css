@@ -289,8 +289,8 @@
   .h-\[38px\] {
     height: 38px;
   }
-  .h-full {
-    height: 100%;
+  .h-\[164px\] {
+    height: 164px;
   }
   .max-h-\[260px\] {
     max-height: 260px;
@@ -303,9 +303,6 @@
   }
   .min-h-\[110px\] {
     min-height: 110px;
-  }
-  .min-h-\[130px\] {
-    min-height: 130px;
   }
   .min-h-screen {
     min-height: 100vh;
@@ -544,6 +541,9 @@
   .pr-2 {
     padding-right: calc(var(--spacing) * 2);
   }
+  .pr-3 {
+    padding-right: calc(var(--spacing) * 3);
+  }
   .pb-2 {
     padding-bottom: calc(var(--spacing) * 2);
   }
@@ -552,6 +552,9 @@
   }
   .pb-16 {
     padding-bottom: calc(var(--spacing) * 16);
+  }
+  .pl-0 {
+    padding-left: 0px;
   }
   .pl-9 {
     padding-left: calc(var(--spacing) * 9);
@@ -613,6 +616,9 @@
   .break-words {
     overflow-wrap: break-word;
   }
+  .whitespace-normal {
+    white-space: normal;
+  }
   .whitespace-pre-wrap {
     white-space: pre-wrap;
   }
@@ -655,9 +661,6 @@
   .ring {
     --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
-  }
-  .ring-offset-background {
-    --tw-ring-offset-color: hsl(var(--background));
   }
   .outline {
     outline-style: var(--tw-outline-style);
@@ -821,16 +824,8 @@
     --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   }
-  .focus-visible\:ring-2:focus-visible {
-    --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
-    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
-  }
   .focus-visible\:ring-ring:focus-visible {
     --tw-ring-color: hsl(var(--ring));
-  }
-  .focus-visible\:ring-offset-2:focus-visible {
-    --tw-ring-offset-width: 2px;
-    --tw-ring-offset-shadow: var(--tw-ring-inset,) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
   }
   .focus-visible\:outline-none:focus-visible {
     --tw-outline-style: none;
@@ -1009,8 +1004,8 @@
     }
   }
   @media (width >= 48rem) {
-    .md\:min-h-\[150px\] {
-      min-height: 150px;
+    .md\:h-\[176px\] {
+      height: 176px;
     }
     @media (hover: hover) {
       .md\:group-hover\:invisible:is(:where(.group):hover *) {

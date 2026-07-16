@@ -7,6 +7,7 @@ import type {
   CommandCenterJsonSchema,
   CommandCenterInputField,
 } from "./types";
+import { actorColor } from "./lib/actor-color";
 
 const TW_META = Symbol.for("TW.Meta");
 const TW_INPUT_SCHEMA = Symbol.for("TW.InputSchema");
@@ -60,24 +61,6 @@ function json(status: number, body: unknown): Response {
 
 function routePathForAction(prefix: string, actionName: string): string {
   return `${prefix}/${actionName.replace("::", "/").replace(/_/g, "-")}`;
-}
-
-function actorColor(actor: string): string {
-  const colors = [
-    "#0f766e",
-    "#2563eb",
-    "#7c3aed",
-    "#be123c",
-    "#c2410c",
-    "#4d7c0f",
-    "#0e7490",
-    "#a16207",
-  ];
-  let hash = 0;
-  for (let index = 0; index < actor.length; index += 1) {
-    hash = (hash * 31 + actor.charCodeAt(index)) >>> 0;
-  }
-  return colors[hash % colors.length]!;
 }
 
 function humanize(value: string): string {

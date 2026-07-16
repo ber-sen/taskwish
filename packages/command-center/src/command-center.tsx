@@ -16,6 +16,7 @@ import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
 import { Textarea } from "./components/ui/textarea";
+import { actorColor } from "./lib/actor-color";
 import { cn } from "./lib/utils";
 import type {
   CommandCenterAction,
@@ -53,26 +54,20 @@ function uppercaseFirst(value: string): string {
   return value ? `${value[0]!.toUpperCase()}${value.slice(1)}` : value;
 }
 
-function isVisibleAction(action: CommandCenterAction): boolean {
-  return !action.action.toLowerCase().startsWith("on");
+function sentenceFromIdentifier(value: string): string {
+  const sentence = value
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+
+  return uppercaseFirst(sentence || value);
 }
 
-function hashColor(value: string): string {
-  const colors = [
-    "#f59e0b",
-    "#10b981",
-    "#6366f1",
-    "#ec4899",
-    "#3b82f6",
-    "#8b5cf6",
-    "#ef4444",
-    "#14b8a6",
-  ];
-  let hash = 0;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
-  }
-  return colors[hash % colors.length]!;
+function isVisibleAction(action: CommandCenterAction): boolean {
+  return !action.action.toLowerCase().startsWith("on");
 }
 
 function normalizeAction(raw: CommandCenterAction): CommandCenterAction {
@@ -83,7 +78,7 @@ function normalizeAction(raw: CommandCenterAction): CommandCenterAction {
     ...raw,
     label,
     input: raw.input,
-    color: raw.color || hashColor(raw.actor || parsed.actor),
+    color: raw.color || actorColor(raw.actor || parsed.actor),
   };
 }
 
@@ -186,12 +181,12 @@ function ActionCommandItem({
       ]}
       onSelect={() => onSelect(action)}
       className={cn(
-        "group flex h-full min-h-[130px] w-full cursor-pointer flex-col rounded-2xl border border-border bg-action/70 p-4 text-left transition-[background-color,border-color,box-shadow] duration-100 hover:bg-action data-[selected=true]:border-transparent data-[selected=true]:ring-2 data-[selected=true]:ring-landing-primary md:min-h-[150px]",
+        "group flex h-[164px] w-full cursor-pointer flex-col rounded-2xl border border-border bg-action/70 p-4 text-left transition-[background-color,border-color,box-shadow] duration-100 hover:bg-action data-[selected=true]:border-transparent data-[selected=true]:ring-2 data-[selected=true]:ring-landing-primary md:h-[176px]",
         "outline-none",
       )}
     >
       <div className="flex flex-col gap-2">
-        <span className="break-words font-semibold leading-tight text-foreground sm:text-lg">
+        <span className="overflow-hidden break-words font-semibold leading-tight text-foreground [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] sm:text-lg">
           {actionTitle(action)}
         </span>
         {action.description ? (
@@ -246,7 +241,7 @@ function fieldPlaceholder(field: CommandCenterInputField): string {
   }
   if (type === "number" || type === "integer") return "0";
   if (type === "boolean") return "";
-  if (type === "string") return uppercaseFirst(field.name);
+  if (type === "string") return sentenceFromIdentifier(field.name);
   return "JSON";
 }
 
@@ -361,9 +356,10 @@ function ActionInputField({
   const type = schemaType(field.schema);
   const enumValues = field.schema?.enum;
   const defaultValue = fieldDefaultValue(field);
+  const fieldLabel = sentenceFromIdentifier(field.name);
   const label = (
     <Label htmlFor={id} className="flex items-center gap-1">
-      {uppercaseFirst(field.name)}
+      {fieldLabel}
       {field.required ? <span className="text-muted-foreground">*</span> : null}
     </Label>
   );
@@ -409,7 +405,7 @@ function ActionInputField({
             className="h-4 w-4 rounded border border-input accent-primary disabled:cursor-not-allowed disabled:opacity-50"
           />
           <span>
-            {uppercaseFirst(field.name)}
+            {fieldLabel}
             {field.required ? (
               <span className="ml-1 text-muted-foreground">*</span>
             ) : null}
@@ -524,7 +520,7 @@ function ActionDrawerHeader({
         )}
         <div className="flex min-w-0 flex-col gap-0.5">
           <DrawerTitle className="truncate">{actionTitle(action)}</DrawerTitle>
-          <DrawerDescription className="truncate">
+          <DrawerDescription className="whitespace-normal break-words">
             {collapsed ? action.actor : actionDescription(action)}
           </DrawerDescription>
         </div>
@@ -597,7 +593,7 @@ function ActionForm({
         <Button
           type="button"
           variant="ghost"
-          className="h-9 px-3 hover:bg-transparent hover:text-inherit focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
+          className="h-9 pl-0 pr-3 hover:bg-transparent hover:text-inherit focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
           disabled={isRunning}
           onClick={() => setShowOptionalFields((value) => !value)}
         >
