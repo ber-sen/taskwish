@@ -55,18 +55,21 @@ type MetaField =
       example?: unknown;
     };
 
+type MetaInputField = {
+  description?: string;
+  example?: unknown;
+};
+
 export type ActionMeta<Ctx extends Record<any, any>, Output> = {
   description?: string;
   input?: {
     [K in keyof ActionInput<Ctx>]?:
       | string
-      | {
-          description?: string;
-          example?: unknown;
+      | (MetaInputField & {
           suggestions?: ActionSuggestionsReference<
             Ctx["scope"] extends { actions: infer Actions } ? Actions : {}
           >;
-        };
+        });
   };
   output?: Output extends readonly unknown[]
     ? MetaField

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Command as CommandPrimitive } from "cmdk";
-import { Copy, Play, Search, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Play, Search, X } from "lucide-react";
 
 import ActorArtwork from "./components/console/actor-artwork";
 import {
@@ -216,9 +216,9 @@ function ActionCommandItem({
 }
 
 function fieldDefaultValue(field: CommandCenterInputField): string {
-  if (field.example === undefined) return "";
-  if (typeof field.example === "string") return field.example;
-  return JSON.stringify(field.example, null, 2);
+  if (field.defaultValue === undefined) return "";
+  if (typeof field.defaultValue === "string") return field.defaultValue;
+  return JSON.stringify(field.defaultValue, null, 2);
 }
 
 function schemaType(
@@ -237,10 +237,16 @@ function isJsonField(field: CommandCenterInputField): boolean {
 
 function fieldPlaceholder(field: CommandCenterInputField): string {
   const type = schemaType(field.schema);
-  if (field.description) return field.description;
+  if (field.example !== undefined) {
+    const placeholder =
+      typeof field.example === "string"
+        ? field.example
+        : (JSON.stringify(field.example) ?? String(field.example));
+    return uppercaseFirst(placeholder);
+  }
   if (type === "number" || type === "integer") return "0";
   if (type === "boolean") return "";
-  if (type === "string") return field.name;
+  if (type === "string") return uppercaseFirst(field.name);
   return "JSON";
 }
 
@@ -345,9 +351,11 @@ function FieldDescription({ field }: { field: CommandCenterInputField }) {
 function ActionInputField({
   field,
   disabled,
+  autoFocus,
 }: {
   field: CommandCenterInputField;
   disabled: boolean;
+  autoFocus?: boolean;
 }) {
   const id = `command-${field.name}`;
   const type = schemaType(field.schema);
@@ -355,7 +363,7 @@ function ActionInputField({
   const defaultValue = fieldDefaultValue(field);
   const label = (
     <Label htmlFor={id} className="flex items-center gap-1">
-      {field.name}
+      {uppercaseFirst(field.name)}
       {field.required ? <span className="text-muted-foreground">*</span> : null}
     </Label>
   );
@@ -369,6 +377,7 @@ function ActionInputField({
           name={field.name}
           defaultValue={defaultValue}
           disabled={disabled}
+          autoFocus={autoFocus}
           className="flex h-[38px] w-full rounded-md border border-input bg-transparent px-2 py-1 text-base transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
         >
           {!field.required ? <option value="">Select...</option> : null}
@@ -396,10 +405,11 @@ function ActionInputField({
             type="checkbox"
             defaultChecked={field.example === true}
             disabled={disabled}
+            autoFocus={autoFocus}
             className="h-4 w-4 rounded border border-input accent-primary disabled:cursor-not-allowed disabled:opacity-50"
           />
           <span>
-            {field.name}
+            {uppercaseFirst(field.name)}
             {field.required ? (
               <span className="ml-1 text-muted-foreground">*</span>
             ) : null}
@@ -422,6 +432,7 @@ function ActionInputField({
           defaultValue={defaultValue}
           placeholder={fieldPlaceholder(field)}
           disabled={disabled}
+          autoFocus={autoFocus}
         />
         <FieldDescription field={field} />
       </div>
@@ -438,6 +449,7 @@ function ActionInputField({
         placeholder={fieldPlaceholder(field)}
         className="min-h-[110px] resize-none"
         disabled={disabled}
+        autoFocus={autoFocus}
       />
       <FieldDescription field={field} />
     </div>
@@ -531,11 +543,21 @@ function ActionForm({
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ActionRunResult | null>(null);
+  const [showOptionalFields, setShowOptionalFields] = useState(false);
 
   useEffect(() => {
     setError(null);
     setResult(null);
+    setShowOptionalFields(false);
   }, [action.id]);
+
+  const requiredFields = action.input.filter((field) => field.required);
+  const optionalFields = action.input.filter((field) => !field.required);
+  const visibleFields = showOptionalFields
+    ? action.input
+    : requiredFields.length
+      ? requiredFields
+      : [];
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -544,7 +566,7 @@ function ActionForm({
     setResult(null);
 
     try {
-      const payload = buildPayload(event.currentTarget, action.input);
+      const payload = buildPayload(event.currentTarget, visibleFields);
       const response = await fetch(action.route, {
         method: "POST",
         headers: {
@@ -563,9 +585,30 @@ function ActionForm({
 
   return (
     <form id="command-center-action-form" className="space-y-4" onSubmit={submit}>
-      {action.input.map((field) => (
-        <ActionInputField key={field.name} field={field} disabled={isRunning} />
+      {visibleFields.map((field, index) => (
+        <ActionInputField
+          key={field.name}
+          field={field}
+          disabled={isRunning}
+          autoFocus={index === 0}
+        />
       ))}
+      {optionalFields.length ? (
+        <Button
+          type="button"
+          variant="ghost"
+          className="h-9 px-3 hover:bg-transparent hover:text-inherit focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
+          disabled={isRunning}
+          onClick={() => setShowOptionalFields((value) => !value)}
+        >
+          {showOptionalFields ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )}
+          {showOptionalFields ? "Hide options" : "Show more options"}
+        </Button>
+      ) : null}
       {error ? (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}

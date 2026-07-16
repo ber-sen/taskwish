@@ -16,6 +16,7 @@ export type CommandCenterInputField = {
   name: string;
   description?: string;
   example?: unknown;
+  defaultValue?: unknown;
   required?: boolean;
   schema?: CommandCenterJsonSchema;
   metadata?: Record<string, unknown>;

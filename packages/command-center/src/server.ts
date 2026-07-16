@@ -144,8 +144,13 @@ function fieldExample(
   metadata: Record<string, unknown> | undefined,
 ): unknown {
   if (metadata && "example" in metadata) return metadata.example;
-  if (schema && "default" in schema) return schema.default;
   return schema?.examples?.[0];
+}
+
+function fieldDefaultValue(
+  schema: CommandCenterJsonSchema | undefined,
+): unknown {
+  return schema && "default" in schema ? schema.default : undefined;
 }
 
 function fieldDescription(
@@ -177,6 +182,7 @@ function fieldFromMeta(
     name,
     description: fieldDescription(schema, meta, metadata),
     example: fieldExample(schema, metadata),
+    defaultValue: fieldDefaultValue(schema),
     schema,
     metadata,
   };
@@ -194,6 +200,7 @@ function fieldsFromJsonSchema(
         name: "input",
         description: fieldDescription(schema, metadata.input, undefined),
         example: fieldExample(schema, undefined),
+        defaultValue: fieldDefaultValue(schema),
         required: true,
         schema,
       },
@@ -207,6 +214,7 @@ function fieldsFromJsonSchema(
       name,
       description: fieldDescription(property, fieldMeta, fieldMetadata),
       example: fieldExample(property, fieldMetadata),
+      defaultValue: fieldDefaultValue(property),
       required: schema.required?.includes(name),
       schema: property,
       metadata: fieldMetadata,
