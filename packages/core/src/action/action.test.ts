@@ -94,14 +94,17 @@ describe("Action", () => {
         return `Hello ${this.input.name}`;
       });
 
-    type CallableResult = ReturnType<typeof tsAction>;
-    type StreamResult = ReturnType<typeof tsAction.stream>;
-
     type checkCallable = Expect<
-      CallableResult extends AsyncGenerator<any, any, any> ? false : true
+      typeof tsAction extends (...args: any[]) => AsyncGenerator<any, any, any>
+        ? false
+        : true
     >;
     type checkStream = Expect<
-      StreamResult extends AsyncGenerator<any, any, any> ? true : false
+      typeof tsAction.stream extends (
+        input: { name: string },
+      ) => AsyncGenerator<any, any, any>
+        ? true
+        : false
     >;
 
     expect(await tsAction({ name: "Test" })).toEqual("Hello Test");
@@ -1059,23 +1062,15 @@ describe("Action", () => {
         yield this.input.name.toUpperCase();
       });
 
-    type StreamYield = ReturnType<typeof greet.stream> extends AsyncGenerator<
-      infer Y,
-      any
-    >
-      ? Y
-      : never;
-
-    type StreamActionNameOf<Yield> = Yield extends TW.ActionEvent<
-      infer N,
-      any,
-      any
-    >
-      ? N
-      : never;
-    type StreamActionName = StreamActionNameOf<StreamYield>;
-
-    type check = Expect<Equal<StreamActionName, "greet">>;
+    type check = Expect<
+      typeof greet extends TW.Action<
+        "greet",
+        (input: { name: string }) => Promise<void>,
+        null
+      >
+        ? true
+        : false
+    >;
 
     const values: unknown[] = [];
     for await (const v of greet.stream({ name: "hello" })) {

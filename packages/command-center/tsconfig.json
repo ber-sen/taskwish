@@ -1,9 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "jsx": "react-jsx",
-    "lib": ["esnext", "WebWorker"],
-    "types": ["bun"]
+    "jsx": "react-jsx"
   },
   "include": ["src"]
 }

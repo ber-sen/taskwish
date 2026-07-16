@@ -1,3 +1,4 @@
+import { createInterface } from "node:readline/promises";
 import { createNodeRegistry } from "./registry";
 import { json } from "./response";
 import { createRoutes } from "./routes";
@@ -8,6 +9,12 @@ const shutdownSignals: NodeJS.Signals[] = ["SIGINT", "SIGTERM", "SIGHUP"];
 const activeServers = new Set<Bun.Server<any>>();
 let shutdownHandlersInstalled = false;
 let shutdownInProgress = false;
+
+const TASKWISH_BANNER = `
+ ▗▄▄▄▖▗▞▀▜▌ ▄▄▄ █  ▄ ▄   ▄ ▄  ▄▄▄ ▐▌
+   █  ▝▚▄▟▌▀▄▄  █▄▀  █ ▄ █ ▄ ▀▄▄  ▐▌
+   █       ▄▄▄▀ █ ▀▄ █▄█▄█ █ ▄▄▄▀ ▐▛▀▚▖
+   █            █  █       █      ▐▌ ▐▌`;
 
 function exitCodeForSignal(signal: NodeJS.Signals): number {
   if (signal === "SIGINT") return 130;
@@ -78,6 +85,70 @@ function serveWithRandomPortFallback(
   }
 }
 
+function printStartupMessage(
+  server: Bun.Server<any>,
+  name: string,
+  apiKey: string,
+): void {
+  console.log(`${TASKWISH_BANNER}
+
+${name} running on ${server.url.origin}
+API key: ${apiKey}`);
+}
+
+function isInteractiveTerminal(): boolean {
+  return Boolean(process.stdin.isTTY && process.stdout.isTTY);
+}
+
+async function shouldOpenBrowser(
+  openBrowser: NodeConfig["openBrowser"],
+): Promise<boolean> {
+  if (openBrowser === true) return true;
+  if (openBrowser === false) return false;
+  if (!isInteractiveTerminal()) return false;
+
+  const prompt = createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  try {
+    const answer = await prompt.question("Open Command Center in browser? (Y/n) ");
+    return !/^(n|no)$/i.test(answer.trim());
+  } finally {
+    prompt.close();
+  }
+}
+
+function browserOpenCommand(url: string): string[] {
+  if (process.platform === "darwin") return ["open", url];
+  if (process.platform === "win32") return ["cmd", "/c", "start", "", url];
+  return ["xdg-open", url];
+}
+
+async function openBrowser(url: string): Promise<void> {
+  const command = browserOpenCommand(url);
+  const subprocess = Bun.spawn(command, {
+    stdout: "ignore",
+    stderr: "ignore",
+  });
+  await subprocess.exited;
+}
+
+async function maybeOpenBrowser(
+  url: string,
+  openBrowserConfig: NodeConfig["openBrowser"],
+): Promise<void> {
+  if (await shouldOpenBrowser(openBrowserConfig ?? "ask")) {
+    await openBrowser(url);
+  }
+}
+
+function handleOpenBrowserError(error: unknown): void {
+  const message = error instanceof Error ? error.message : String(error);
+  console.warn(`Could not open browser: ${message}`);
+}
+
 export async function Node(
   name: string,
   config: NodeConfig = {},
@@ -87,6 +158,7 @@ export async function Node(
   const routes = await createRoutes(registry, {
     prefix: config.prefix,
     apiKey,
+    nodeName: name,
   });
 
   const server = registerServerForShutdown(
@@ -99,6 +171,11 @@ export async function Node(
         return json(404, { error: "Not Found" });
       },
     } as Parameters<typeof Bun.serve>[0]),
+  );
+
+  printStartupMessage(server, name, apiKey);
+  void maybeOpenBrowser(server.url.origin, config.openBrowser).catch(
+    handleOpenBrowserError,
   );
 
   return Object.assign(server, { name, apiKey, routes }) as TaskwishNode;

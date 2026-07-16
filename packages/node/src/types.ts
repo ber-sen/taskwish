@@ -25,6 +25,7 @@ export interface NodeConfig {
   hostname?: string;
   prefix?: string;
   development?: boolean;
+  openBrowser?: boolean | "ask";
 }
 
 export interface NodeRegistry {
@@ -36,10 +37,11 @@ export type NodeRouteHandler = (
   request: Request,
 ) => Response | Promise<Response>;
 
-export type NodeRoutes = Record<
-  string,
-  Partial<Record<HttpMethod, NodeRouteHandler>>
->;
+export type NodeRouteMap = Partial<Record<HttpMethod, NodeRouteHandler>>;
+
+export type NodeStaticRoute = Response | Bun.HTMLBundle;
+
+export type NodeRoutes = Record<string, NodeRouteMap | NodeStaticRoute>;
 
 export type TaskwishNode = Bun.Server<any> & {
   name: string;

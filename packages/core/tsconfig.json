@@ -9,6 +9,8 @@
     "strictFunctionTypes": true,
     "strictNullChecks": true,
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "types": ["bun"]
-  }
+  },
+  "include": ["src"]
 }

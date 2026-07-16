@@ -998,7 +998,7 @@ describe("Actor", () => {
               description: "Channel receiving the message",
               example: "#general",
               suggestions: {
-                $: "Slack::conversations_list",
+                $: "slack.conversationsList",
                 "*": $("channels").map(["x"], ["x.name", "x.id"]),
                 types: "public_channel",
               },
@@ -1016,7 +1016,7 @@ describe("Actor", () => {
         suggestions: unknown;
       };
       expect(JSON.parse(JSON.stringify(channelMeta.suggestions))).toEqual({
-        $: "Slack::conversations_list",
+        $: "slack.conversationsList",
         "*": ["channels.map", ["x"], ["x.name", "x.id"]],
         types: "public_channel",
       });

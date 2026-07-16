@@ -26,6 +26,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@taskwish/command-center": "^0.0.1",
     "@taskwish/core": "^0.0.6"
   },
   "devDependencies": {
