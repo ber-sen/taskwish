@@ -95,7 +95,7 @@ describe("Action", () => {
           return this.input.total * 0.1;
         }),
 
-        Truth("total × 0.1 ≤ 10", ({ total }) => {
+        Truth("total * 0.1 ≤ 10", ({ total }) => {
           return total * 0.1 <= 10;
         }),
 
@@ -115,7 +115,7 @@ describe("Action", () => {
     expect(eventDataList(yields)).toEqual([
       { ">>": "charge", input: { total: 100 } },
       { ">>": "charge.fee", result: 10 },
-      { "==": "total × 0.1 ≤ 10", result: true },
+      { "==": "total * 0.1 ≤ 10", result: true },
       { ">>": "charge.receipt", result: { total: 100, fee: 10 } },
       { ">>": "charge", result: { total: 100, fee: 10 } },
     ]);
@@ -126,7 +126,7 @@ describe("Action", () => {
       .input({ total: "number" })
 
       .run(
-        Truth("total × 0.1 ≤ 10", ({ total }) => total * 0.1 <= 10),
+        Truth("total * 0.1 ≤ 10", ({ total }) => total * 0.1 <= 10),
 
         Step("receipt", function () {
           return this.input.total;
@@ -142,7 +142,7 @@ describe("Action", () => {
 
     expect(thrown).toBeInstanceOf(TruthAssertionError);
     expect((thrown as TruthAssertionError).description).toBe(
-      "total × 0.1 ≤ 10",
+      "total * 0.1 ≤ 10",
     );
   });
 
@@ -582,7 +582,7 @@ describe("Action", () => {
           return this.input.total * 0.1;
         }),
 
-        Truth("total × 0.1 ≤ 10", ({ total }) => total * 0.1 <= 10),
+        Truth("total * 0.1 ≤ 10", ({ total }) => total * 0.1 <= 10),
 
         Step("done", function () {
           return this.fee;
@@ -594,7 +594,7 @@ describe("Action", () => {
     expect(logged).toEqual([
       formatEvent({ ">>": "charge", input: { total: 100 } }),
       formatEvent({ ">>": "charge.fee", result: 10 }),
-      formatEvent({ "==": "total × 0.1 ≤ 10", result: true }),
+      formatEvent({ "==": "total * 0.1 ≤ 10", result: true }),
       formatEvent({ ">>": "charge.done", result: 10 }),
       formatEvent({ ">>": "charge", result: 10 }),
     ]);
