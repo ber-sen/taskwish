@@ -6,8 +6,10 @@ import type {
   Action,
   HttpMethod,
   NodeRegistry,
+  NodeRouteMap,
   NodeRouteHandler,
   NodeRoutes,
+  NodeApp,
   RouteMeta,
 } from "./types";
 import { generateApiKey, isRecord } from "./utils";
@@ -20,7 +22,7 @@ export const HTTP_METHODS = new Set<HttpMethod>([
   "PATCH",
 ]);
 
-function normalizePrefix(prefix: string): string {
+export function normalizePrefix(prefix: string): string {
   const normalized = prefix.startsWith("/") ? prefix : `/${prefix}`;
   return normalized.endsWith("/") && normalized.length > 1
     ? normalized.slice(0, -1)
@@ -72,7 +74,11 @@ function routeForPath(routes: NodeRoutes, pathname: string): NodeRoutes[string] 
   if (exact) return exact;
 
   for (const [routePath, route] of Object.entries(routes)) {
-    if (routePath.includes(":") && matchPathParams(routePath, decodedPath)) {
+    if (
+      routePath.includes(":") &&
+      !(route instanceof Response) &&
+      matchPathParams(routePath, decodedPath)
+    ) {
       return route;
     }
   }
@@ -80,13 +86,35 @@ function routeForPath(routes: NodeRoutes, pathname: string): NodeRoutes[string] 
   return null;
 }
 
+function isRouteMap(route: NodeRoutes[string]): route is NodeRouteMap {
+  return !(route instanceof Response) && !("index" in route);
+}
+
 export async function createRoutes(
   registry: NodeRegistry | Promise<NodeRegistry>,
-  options: { prefix?: string; apiKey: string },
+  options: {
+    prefix?: string;
+    apiKey: string;
+    nodeName?: string;
+    apps?: readonly NodeApp[];
+  },
 ): Promise<NodeRoutes> {
   const routePrefix = normalizePrefix(options.prefix ?? "/tw");
+  const nodeName = options.nodeName ?? "TaskWish";
   const services = await registry;
   const routes: NodeRoutes = {};
+
+  for (const app of options.apps ?? []) {
+    Object.assign(
+      routes,
+      await app.routes?.({
+        registry: services,
+        nodeName,
+        apiKey: options.apiKey,
+        prefix: routePrefix,
+      }),
+    );
+  }
 
   for (const [actionName, action] of services.actions) {
     const invokeActionRoute = async (request: Request) => {
@@ -125,12 +153,19 @@ export async function createRoutes(
 
 export function createFetchHandler(
   registry: Promise<NodeRegistry>,
-  options: { prefix?: string; apiKey?: string } = {},
+  options: {
+    prefix?: string;
+    apiKey?: string;
+    nodeName?: string;
+    apps?: readonly NodeApp[];
+  } = {},
 ): (request: Request) => Promise<Response> {
   const apiKey = options.apiKey ?? generateApiKey();
   const routes = createRoutes(registry, {
     prefix: options.prefix,
     apiKey,
+    nodeName: options.nodeName,
+    apps: options.apps,
   });
   const routePrefix = normalizePrefix(options.prefix ?? "/tw");
 
@@ -144,6 +179,11 @@ export function createFetchHandler(
     }
 
     if (!route) return json(404, { error: "Not Found" });
+
+    if (!isRouteMap(route)) {
+      if (route instanceof Response) return route;
+      return json(404, { error: "Not Found" });
+    }
 
     if (HTTP_METHODS.has(request.method as HttpMethod)) {
       const handler = route[request.method as HttpMethod];

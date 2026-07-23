@@ -4,7 +4,7 @@ import { Expect, Equal, RawEntry } from "../helpers";
 import { Action } from "./action";
 import { Actor } from "../actor";
 import { TW } from "../core";
-import { Step } from "../steps";
+import { Step, Truth, TruthAssertionError } from "../steps";
 import { Logger, InferType, formatEvent } from "../use";
 
 const eventData = (value: unknown) =>
@@ -86,6 +86,94 @@ describe("Action", () => {
     ]);
   });
 
+  test("Truth — asserts against runtime input between steps", async () => {
+    const { charge } = Action("charge")
+      .input({ total: "number" })
+
+      .run(
+        Step("fee", function () {
+          return this.input.total * 0.1;
+        }),
+
+        Truth("total × 0.1 ≤ 10", ({ total }) => {
+          return total * 0.1 <= 10;
+        }),
+
+        Step("receipt", function () {
+          return { total: this.input.total, fee: this.fee };
+        }),
+      );
+
+    expect(await charge({ total: 100 })).toEqual({ total: 100, fee: 10 });
+
+    const yields: unknown[] = [];
+
+    for await (const v of charge.stream({ total: 100 })) {
+      yields.push(v);
+    }
+
+    expect(eventDataList(yields)).toEqual([
+      { ">>": "charge", input: { total: 100 } },
+      { ">>": "charge.fee", result: 10 },
+      { "==": "total × 0.1 ≤ 10", result: true },
+      { ">>": "charge.receipt", result: { total: 100, fee: 10 } },
+      { ">>": "charge", result: { total: 100, fee: 10 } },
+    ]);
+  });
+
+  test("Truth — throws when assertion is false", async () => {
+    const { charge } = Action("charge")
+      .input({ total: "number" })
+
+      .run(
+        Truth("total × 0.1 ≤ 10", ({ total }) => total * 0.1 <= 10),
+
+        Step("receipt", function () {
+          return this.input.total;
+        }),
+      );
+
+    let thrown: unknown;
+    try {
+      await charge({ total: 101 });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(TruthAssertionError);
+    expect((thrown as TruthAssertionError).description).toBe(
+      "total × 0.1 ≤ 10",
+    );
+  });
+
+  test("Truth — preserves previous last value", async () => {
+    const { compute } = Action("compute")
+      .input({ total: "number" })
+
+      .run(
+        Step("fee", function () {
+          return this.input.total * 0.1;
+        }),
+
+        Truth("fee <= 10", async ({ fee }) => fee <= 10),
+      );
+
+    type T = typeof compute;
+
+    type check = Expect<
+      Equal<
+        TW.Action<
+          "compute",
+          (input: { total: number }) => Promise<number>,
+          null
+        >,
+        T
+      >
+    >;
+
+    expect(await compute({ total: 100 })).toBe(10);
+  });
+
   test("TypeScript type input", async () => {
     const { tsAction } = Action("tsAction")
       .input<{ name: string }>()
@@ -94,14 +182,17 @@ describe("Action", () => {
         return `Hello ${this.input.name}`;
       });
 
-    type CallableResult = ReturnType<typeof tsAction>;
-    type StreamResult = ReturnType<typeof tsAction.stream>;
-
     type checkCallable = Expect<
-      CallableResult extends AsyncGenerator<any, any, any> ? false : true
+      typeof tsAction extends (...args: any[]) => AsyncGenerator<any, any, any>
+        ? false
+        : true
     >;
     type checkStream = Expect<
-      StreamResult extends AsyncGenerator<any, any, any> ? true : false
+      typeof tsAction.stream extends (input: {
+        name: string;
+      }) => AsyncGenerator<any, any, any>
+        ? true
+        : false
     >;
 
     expect(await tsAction({ name: "Test" })).toEqual("Hello Test");
@@ -268,7 +359,9 @@ describe("Action", () => {
             return 2;
           },
         ),
-    ).toThrow("Action.run cannot mix Step(...) handlers with raw function handlers");
+    ).toThrow(
+      "Action.run cannot mix Step(...) handlers with raw function handlers",
+    );
   });
 
   test("Step delegates returned async generators and promised async generators", async () => {
@@ -471,6 +564,42 @@ describe("Action", () => {
     );
   });
 
+  test("Logger — logs Truth events", async () => {
+    const logged: unknown[] = [];
+    const spy = {
+      log: logged.push.bind(logged),
+      info: logged.push.bind(logged),
+      error: logged.push.bind(logged),
+    };
+
+    const { charge } = Action("charge")
+      .use(Logger(spy))
+
+      .input({ total: "number" })
+
+      .run(
+        Step("fee", function () {
+          return this.input.total * 0.1;
+        }),
+
+        Truth("total × 0.1 ≤ 10", ({ total }) => total * 0.1 <= 10),
+
+        Step("done", function () {
+          return this.fee;
+        }),
+      );
+
+    await charge({ total: 100 });
+
+    expect(logged).toEqual([
+      formatEvent({ ">>": "charge", input: { total: 100 } }),
+      formatEvent({ ">>": "charge.fee", result: 10 }),
+      formatEvent({ "==": "total × 0.1 ≤ 10", result: true }),
+      formatEvent({ ">>": "charge.done", result: 10 }),
+      formatEvent({ ">>": "charge", result: 10 }),
+    ]);
+  });
+
   test("Logger — stream also logs", async () => {
     const logged: unknown[] = [];
     const spy = {
@@ -496,7 +625,11 @@ describe("Action", () => {
 
     expect(logged).toEqual(
       eventDataList(yields).flatMap((v) => {
-        if (typeof v !== "object" || v === null || !(">>" in (v as object)))
+        if (
+          typeof v !== "object" ||
+          v === null ||
+          !(">>" in (v as object) || "==" in (v as object))
+        )
           return [v];
         const e = v as Record<string, unknown>;
         const out = formatEvent(e);
@@ -1059,23 +1192,15 @@ describe("Action", () => {
         yield this.input.name.toUpperCase();
       });
 
-    type StreamYield = ReturnType<typeof greet.stream> extends AsyncGenerator<
-      infer Y,
-      any
-    >
-      ? Y
-      : never;
-
-    type StreamActionNameOf<Yield> = Yield extends TW.ActionEvent<
-      infer N,
-      any,
-      any
-    >
-      ? N
-      : never;
-    type StreamActionName = StreamActionNameOf<StreamYield>;
-
-    type check = Expect<Equal<StreamActionName, "greet">>;
+    type check = Expect<
+      typeof greet extends TW.Action<
+        "greet",
+        (input: { name: string }) => Promise<void>,
+        null
+      >
+        ? true
+        : false
+    >;
 
     const values: unknown[] = [];
     for await (const v of greet.stream({ name: "hello" })) {

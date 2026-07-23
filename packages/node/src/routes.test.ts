@@ -1,7 +1,21 @@
 import { expect, test } from "bun:test";
 import { Actor, Event } from "@taskwish/core";
+import { CommandCenter } from "@taskwish/command-center";
 import { createNodeRegistry, createRoutes } from "./index";
 import { apiKey, auth } from "./test-helpers";
+import type { NodeRouteMap, NodeRoutes } from "./types";
+
+function routeMap(
+  routes: NodeRoutes,
+  path: string,
+): NodeRouteMap {
+  const route = routes[path];
+  expect(route).toBeDefined();
+  if (!route || route instanceof Response || "index" in route) {
+    throw new Error(`Expected route handlers for ${path}`);
+  }
+  return route;
+}
 
 test("exports Bun.serve routes for service dispatch", async () => {
   const { Greeter } = Actor("Greeter");
@@ -20,8 +34,7 @@ test("exports Bun.serve routes for service dispatch", async () => {
     { apiKey },
   );
 
-  const route = routes["/tw/Greeter/hello"];
-  expect(route).toBeDefined();
+  const route = routeMap(routes, "/tw/Greeter/hello");
   expect(routes["/tw/:target"]).toBeUndefined();
 
   const response = await route.POST!(
@@ -54,8 +67,7 @@ test("exports actor event handlers as concrete Bun.serve routes", async () => {
     { apiKey },
   );
 
-  const route = routes["/tw/Biller/on-greeter-message"];
-  expect(route).toBeDefined();
+  const route = routeMap(routes, "/tw/Biller/on-greeter-message");
   expect(routes["/tw/:target"]).toBeUndefined();
 
   const response = await route.POST!(
@@ -68,4 +80,88 @@ test("exports actor event handlers as concrete Bun.serve routes", async () => {
 
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({ received: "hi" });
+});
+
+test("does not export command center routes by default", async () => {
+  const routes = await createRoutes(createNodeRegistry([]), { apiKey });
+
+  expect(routes["/"]).toBeUndefined();
+  expect(routes["/*"]).toBeUndefined();
+  expect(routes["/tw/command-center/config"]).toBeUndefined();
+});
+
+test("exports command center config when the app is installed", async () => {
+  const { Greeter } = Actor("Greeter").def(
+    Event("Message", { content: "string" }),
+  );
+  const { Biller } = Actor("Biller").use(Greeter);
+
+  const { hello } = Greeter()
+    .on("Command", "hello")
+
+    .input({ name: "string" })
+
+    .run(function () {
+      return `Hello ${this.input.name}`;
+    })
+    .meta({ description: "Greet a person by name" });
+  const { onGreeterMessage } = Biller()
+    .on("Greeter::Message")
+    .run(function () {
+      return { received: this.input.content };
+    });
+
+  const routes = await createRoutes(
+    createNodeRegistry([
+      Promise.resolve({ Greeter, Biller, hello, onGreeterMessage }),
+    ]),
+    { apiKey, nodeName: "test-node", apps: [CommandCenter()] },
+  );
+
+  const route = routeMap(routes, "/tw/command-center/config");
+
+  const response = await route.GET!(
+    new Request("http://localhost/tw/command-center/config"),
+  );
+
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({
+    nodeName: "test-node",
+    apiKey,
+    apiPrefix: "/tw",
+    actions: [
+      {
+        id: "Greeter::hello",
+        actor: "Greeter",
+        action: "hello",
+        label: "Hello",
+        description: "Greet a person by name",
+        color: "#0e7490",
+        route: "/tw/Greeter/hello",
+        source: "local",
+        input: [
+          {
+            name: "name",
+            required: true,
+            schema: {
+              type: "string",
+            },
+          },
+        ],
+        inputSchema: {
+          $schema: "https://json-schema.org/draft/2020-12/schema",
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+            },
+          },
+          required: ["name"],
+        },
+        meta: {
+          description: "Greet a person by name",
+        },
+      },
+    ],
+  });
 });

@@ -4,7 +4,7 @@ export type {
   NodeRoutes,
   ServiceModule,
   ServiceReference,
-  TaskwishNode,
+  TaskWishNode,
 } from "./types";
 
 export { createNodeRegistry } from "./registry";

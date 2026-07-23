@@ -17,9 +17,26 @@ export type RouteMeta = readonly [
   schema: Record<string, unknown>,
 ];
 
+export interface NodeAppContext {
+  registry: NodeRegistry;
+  nodeName: string;
+  apiKey: string;
+  prefix: string;
+}
+
+export interface NodeAppReadyContext extends NodeAppContext {
+  server: Bun.Server<any>;
+}
+
+export interface NodeApp {
+  name?: string;
+  routes?: (context: NodeAppContext) => NodeRoutes | Promise<NodeRoutes>;
+  ready?: (context: NodeAppReadyContext) => void | Promise<void>;
+}
+
 export interface NodeConfig {
   workspace?: readonly ServiceReference[];
-  apps?: readonly unknown[];
+  apps?: readonly NodeApp[];
   apiKey?: string;
   port?: number;
   hostname?: string;
@@ -36,12 +53,13 @@ export type NodeRouteHandler = (
   request: Request,
 ) => Response | Promise<Response>;
 
-export type NodeRoutes = Record<
-  string,
-  Partial<Record<HttpMethod, NodeRouteHandler>>
->;
+export type NodeRouteMap = Partial<Record<HttpMethod, NodeRouteHandler>>;
 
-export type TaskwishNode = Bun.Server<any> & {
+export type NodeStaticRoute = Response | Bun.HTMLBundle;
+
+export type NodeRoutes = Record<string, NodeRouteMap | NodeStaticRoute>;
+
+export type TaskWishNode = Bun.Server<any> & {
   name: string;
   apiKey: string;
   routes: NodeRoutes;

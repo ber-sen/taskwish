@@ -4,7 +4,7 @@
     "access": "public"
   },
   "version": "0.0.2",
-  "description": "AI agents and tools for Taskwish",
+  "description": "AI agents and tools for TaskWish",
   "license": "Elastic-2.0",
   "author": "Bersen Pajaziti",
   "exports": {

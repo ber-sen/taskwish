@@ -14,6 +14,8 @@ export namespace TW {
 
   export const Meta = Symbol.for("TW.Meta");
 
+  export const InputSchema = Symbol.for("TW.InputSchema");
+
   export const Step = Symbol.for("TW.Step");
 
   export const Scope = Symbol.for("TW.Ctx");
@@ -114,18 +116,18 @@ export namespace TW {
     type: abstract new (...args: any[]) => T;
   };
 
-
   export type Action<
     Name extends string,
     Handler extends (...args: any) => any,
     Meta = null,
   > = NoInfer<Handler> & {
-    stream: (
+    stream: ((
       ...args: Parameters<NoInfer<Handler>>
     ) => AsyncGenerator<
       ActionEvent<Name, StreamResult<Handler>, StreamInput<Handler>>,
       StreamResult<Handler>
-    >;
+    >) &
+      NoInfer<Handler>;
   } & Resource<Name> &
     Attributable<Meta>;
 
@@ -206,6 +208,10 @@ export namespace TW {
 
     constructor(type: Type, data: Data) {
       this.data = Object.assign({ ">>": type }, data);
+    }
+
+    toJSON(): Pretty<{ ">>": Type } & Data> {
+      return this.data;
     }
   }
 

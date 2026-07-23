@@ -1,13 +1,20 @@
 import { createNodeRegistry } from "./registry";
 import { json } from "./response";
+import { normalizePrefix } from "./routes";
 import { createRoutes } from "./routes";
-import type { NodeConfig, TaskwishNode } from "./types";
+import type { NodeAppReadyContext, NodeConfig, TaskWishNode } from "./types";
 import { generateApiKey, isRecord } from "./utils";
 
 const shutdownSignals: NodeJS.Signals[] = ["SIGINT", "SIGTERM", "SIGHUP"];
 const activeServers = new Set<Bun.Server<any>>();
 let shutdownHandlersInstalled = false;
 let shutdownInProgress = false;
+
+const TASKWISH_BANNER = `
+ ▗▄▄▄▖▗▞▀▜▌ ▄▄▄ █  ▄ ▄   ▄ ▄  ▄▄▄ ▐▌
+   █  ▝▚▄▟▌▀▄▄  █▄▀  █ ▄ █ ▄ ▀▄▄  ▐▌
+   █       ▄▄▄▀ █ ▀▄ █▄█▄█ █ ▄▄▄▀ ▐▛▀▚▖
+   █            █  █       █      ▐▌ ▐▌`;
 
 function exitCodeForSignal(signal: NodeJS.Signals): number {
   if (signal === "SIGINT") return 130;
@@ -78,15 +85,37 @@ function serveWithRandomPortFallback(
   }
 }
 
+function printStartupMessage(
+  server: Bun.Server<any>,
+  name: string,
+  apiKey: string,
+): void {
+  console.log(`${TASKWISH_BANNER}
+
+${name} running on ${server.url.origin}
+API key: ${apiKey}`);
+}
+
+async function notifyAppsReady(
+  apps: NodeConfig["apps"],
+  context: NodeAppReadyContext,
+): Promise<void> {
+  await Promise.allSettled(apps?.map((app) => app.ready?.(context)) ?? []);
+}
+
 export async function Node(
   name: string,
   config: NodeConfig = {},
-): Promise<TaskwishNode> {
+): Promise<TaskWishNode> {
   const apiKey = config.apiKey ?? generateApiKey();
   const registry = createNodeRegistry(config.workspace);
+  const services = await registry;
+  const routePrefix = normalizePrefix(config.prefix ?? "/tw");
   const routes = await createRoutes(registry, {
-    prefix: config.prefix,
+    prefix: routePrefix,
     apiKey,
+    nodeName: name,
+    apps: config.apps,
   });
 
   const server = registerServerForShutdown(
@@ -101,5 +130,14 @@ export async function Node(
     } as Parameters<typeof Bun.serve>[0]),
   );
 
-  return Object.assign(server, { name, apiKey, routes }) as TaskwishNode;
+  printStartupMessage(server, name, apiKey);
+  void notifyAppsReady(config.apps, {
+    registry: services,
+    nodeName: name,
+    apiKey,
+    prefix: routePrefix,
+    server,
+  });
+
+  return Object.assign(server, { name, apiKey, routes }) as TaskWishNode;
 }

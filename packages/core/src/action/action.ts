@@ -11,6 +11,7 @@ import {
   splitQualifiedActionName,
 } from "../helpers";
 import type { Steps, ActionResultKind } from "../steps";
+import { TruthAssertionError } from "../steps/truth";
 import { TW } from "../core";
 import {
   dispatch,
@@ -50,8 +51,8 @@ type SignatureInput<
 > = Signature extends (...args: any) => any
   ? Parameters<Signature>
   : Signature extends TW.Handler
-    ? Parameters<Apply<Signature, Ctx>>
-    : never;
+  ? Parameters<Apply<Signature, Ctx>>
+  : never;
 
 type SignatureOutput<
   Signature,
@@ -59,25 +60,33 @@ type SignatureOutput<
 > = Signature extends (...args: any) => any
   ? RuntimeResult<ReturnType<Signature>>
   : Signature extends TW.Handler
-    ? RuntimeResult<ReturnType<Apply<Signature, Ctx>>>
-    : never;
+  ? RuntimeResult<ReturnType<Apply<Signature, Ctx>>>
+  : never;
 
-type RuntimeResult<Result> =
-  Awaited<Result> extends AsyncGenerator<any, infer Return, any>
-    ? Awaited<Return>
-    : Result extends Generator<any, infer Return, any>
-      ? Return
-      : Result;
+type RuntimeResult<Result> = Awaited<Result> extends AsyncGenerator<
+  any,
+  infer Return,
+  any
+>
+  ? Awaited<Return>
+  : Result extends Generator<any, infer Return, any>
+  ? Return
+  : Result;
 
-type RuntimeHandler<Handler extends (...args: any[]) => any> =
-  Awaited<ReturnType<Handler>> extends AsyncGenerator<any, any, any>
-    ? (...args: Parameters<Handler>) => Promise<RuntimeResult<ReturnType<Handler>>>
-    : Handler;
+type RuntimeHandler<Handler extends (...args: any[]) => any> = Awaited<
+  ReturnType<Handler>
+> extends AsyncGenerator<any, any, any>
+  ? (
+      ...args: Parameters<Handler>
+    ) => Promise<RuntimeResult<ReturnType<Handler>>>
+  : Handler;
 
-type ActionNameFor<Ctx extends Record<any, any>, Name extends string> =
-  "service" extends keyof Ctx
-    ? QualifiedActionName<Ctx["service"] & string, Name>
-    : Name;
+type ActionNameFor<
+  Ctx extends Record<any, any>,
+  Name extends string,
+> = "service" extends keyof Ctx
+  ? QualifiedActionName<Ctx["service"] & string, Name>
+  : Name;
 
 type SignatureMetaContext<Signature, Ctx extends Record<any, any>> = Omit<
   Ctx,
@@ -93,20 +102,16 @@ type SignatureResult<
   Meta = null,
 > = {
   [key in Name]: Signature extends (...args: any) => any
+    ? TW.Action<ActionNameFor<Ctx, Name>, RuntimeHandler<Signature>, Meta>
+    : Signature extends TW.Handler
     ? TW.Action<
         ActionNameFor<Ctx, Name>,
-        RuntimeHandler<Signature>,
-        Meta
+        RuntimeHandler<Apply<Signature, Ctx>>,
+        Meta extends null
+          ? Record<"handler", Signature>
+          : Meta & Record<"handler", Signature>
       >
-    : Signature extends TW.Handler
-      ? TW.Action<
-          ActionNameFor<Ctx, Name>,
-          RuntimeHandler<Apply<Signature, Ctx>>,
-          Meta extends null
-            ? Record<"handler", Signature>
-            : Meta & Record<"handler", Signature>
-        >
-      : never;
+    : never;
 } & {
   meta<
     const NextMeta extends ActionMeta<
@@ -145,8 +150,8 @@ type SignatureBody<
             Signature extends (...args: any) => any
               ? Parameters<Signature>
               : Signature extends TW.Handler
-                ? Parameters<Apply<Signature, Ctx>>
-                : never
+              ? Parameters<Apply<Signature, Ctx>>
+              : never
           > &
             Ctx["scope"]
         >
@@ -154,8 +159,8 @@ type SignatureBody<
     ) => Signature extends (...args: any) => any
       ? ReturnType<Signature>
       : Signature extends TW.Handler
-        ? ReturnType<Apply<Signature, Ctx>>
-        : never,
+      ? ReturnType<Apply<Signature, Ctx>>
+      : never,
   >(
     run: Handler,
   ): SignatureResult<Name, Ctx, Signature>;
@@ -375,7 +380,9 @@ const SelfTag = Symbol.for("TW.SelfCall");
 /** Set on ctx by the self() closure so runHandlerList can promote its name after the step. */
 const SelfCalledTag = Symbol.for("TW.SelfCalled");
 
-function isAsyncGenerator(value: unknown): value is AsyncGenerator<unknown, unknown> {
+function isAsyncGenerator(
+  value: unknown,
+): value is AsyncGenerator<unknown, unknown> {
   return (
     value !== null &&
     typeof value === "object" &&
@@ -450,7 +457,9 @@ type DeferredStep = {
 };
 
 function isDeferredStep(value: unknown): value is DeferredStep {
-  return value !== null && typeof value === "object" && DeferredStepTag in value;
+  return (
+    value !== null && typeof value === "object" && DeferredStepTag in value
+  );
 }
 
 function deferStep(
@@ -529,7 +538,9 @@ function commandEvent(input: unknown): TW.Signal<"Command", object> {
 }
 
 function isStepHandler(handler: unknown): boolean {
-  return handler !== null && handler !== undefined && TW.Name in Object(handler);
+  return (
+    handler !== null && handler !== undefined && TW.Name in Object(handler)
+  );
 }
 
 function isRawFunctionHandler(handler: unknown): boolean {
@@ -557,7 +568,10 @@ async function* runStep(
   try {
     let result: unknown;
     if (handler instanceof AsyncGeneratorFunction) {
-      const gen = handler.call(ctx, ...args) as AsyncGenerator<unknown, unknown>;
+      const gen = handler.call(ctx, ...args) as AsyncGenerator<
+        unknown,
+        unknown
+      >;
       result = deferAsyncGenerator
         ? deferStep(name, gen)
         : yield* transformUserEvents(gen, true);
@@ -597,10 +611,11 @@ type IfEntry = { condition: unknown; steps: unknown[] };
 type ElseEntry = { steps: unknown[] };
 type LoopEntry = { name: string; items: unknown; steps: unknown[] };
 type ParallelEntry = { steps: unknown[] };
+type TruthEntry = { description: string; fn: unknown };
 
 function twType(handler: unknown): string | null {
   return handler !== null && typeof handler === "object"
-    ? (((handler as any)[TW.Type] as string | undefined) ?? null)
+    ? ((handler as any)[TW.Type] as string | undefined) ?? null
     : null;
 }
 
@@ -612,12 +627,39 @@ async function evalCond(
     typeof condition === "function"
       ? await (condition as (scope: unknown) => unknown).call(ctx, ctx)
       : twType(condition) === "Cond"
-        ? await ((condition as any).fn as (scope: unknown) => unknown).call(
-            ctx,
-            ctx,
-          )
-        : condition;
+      ? await ((condition as any).fn as (scope: unknown) => unknown).call(
+          ctx,
+          ctx,
+        )
+      : condition;
   return Boolean(val);
+}
+
+function truthScope(
+  ctx: Record<string | symbol, unknown>,
+): Record<string | symbol, unknown> {
+  return ctx.input !== null &&
+    typeof ctx.input === "object" &&
+    !Array.isArray(ctx.input)
+    ? { ...(ctx.input as Record<string, unknown>), ...ctx }
+    : ctx;
+}
+
+async function evalTruth(
+  assertion: TruthEntry,
+  ctx: Record<string | symbol, unknown>,
+): Promise<unknown> {
+  const scope = truthScope(ctx);
+  const result =
+    typeof assertion.fn === "function"
+      ? await (assertion.fn as (scope: unknown) => unknown).call(scope, scope)
+      : assertion.fn;
+
+  if (!result) {
+    throw new TruthAssertionError(assertion.description, result);
+  }
+
+  return result;
 }
 
 async function* runHandlerList(
@@ -752,6 +794,19 @@ async function* runHandlerList(
         );
       }
       lastCond = null;
+    } else if (type === "Truth") {
+      lastCond = null;
+      const assertion = handler as TruthEntry;
+
+      try {
+        yield {
+          "==": assertion.description,
+          result: Boolean(await evalTruth(assertion, ctx)),
+        };
+      } catch (error) {
+        yield { "==": assertion.description, error };
+        throw error;
+      }
     } else if (type === "Loop") {
       lastCond = null;
       const {
@@ -763,14 +818,15 @@ async function* runHandlerList(
         typeof itemsGetter === "function"
           ? await (itemsGetter as (scope: unknown) => unknown).call(ctx, ctx)
           : twType(itemsGetter) === "ForEach"
-            ? await (
-                (itemsGetter as any).fn as (scope: unknown) => unknown
-              ).call(ctx, ctx)
-            : typeof itemsGetter === "string"
-              ? (itemsGetter as string)
-                  .split(".")
-                  .reduce((o: any, k) => o?.[k], ctx)
-              : itemsGetter;
+          ? await ((itemsGetter as any).fn as (scope: unknown) => unknown).call(
+              ctx,
+              ctx,
+            )
+          : typeof itemsGetter === "string"
+          ? (itemsGetter as string)
+              .split(".")
+              .reduce((o: any, k) => o?.[k], ctx)
+          : itemsGetter;
       yield new TW.Trace(`${currentName}.${loopName}`, { items });
       const innerAcc: Record<string, unknown[]> = {};
       let loopLastStepName: string | null = null;
@@ -1075,8 +1131,8 @@ export function Action<const Name extends string>(
           RawStreamTag
         ]
       : typeof plugin === "function" &&
-      "stream" in plugin &&
-      typeof (plugin as { stream?: unknown }).stream === "function"
+        "stream" in plugin &&
+        typeof (plugin as { stream?: unknown }).stream === "function"
       ? (plugin as { stream: (...args: unknown[]) => unknown }).stream
       : plugin;
   }
@@ -1138,7 +1194,11 @@ export function Action<const Name extends string>(
       : {};
   }
 
-  function createAction(inputMode: "first" | "args", handlers: unknown[]) {
+  function createAction(
+    inputMode: "first" | "args",
+    handlers: unknown[],
+    inputSchema?: unknown,
+  ) {
     validateRunHandlers(handlers);
 
     if (inferType) {
@@ -1213,6 +1273,7 @@ export function Action<const Name extends string>(
     const action = Object.assign(consume, {
       [TW.Name]: actionName,
       [TW.Meta]: actionMeta,
+      [TW.InputSchema]: inputSchema,
       stream,
       [RawStreamTag]: rawStream,
       [RawLoggedStreamTag]: loggedRawStream,
@@ -1234,13 +1295,13 @@ export function Action<const Name extends string>(
     return result;
   }
 
-  const makeBody = (inputMode: "first" | "args") => ({
+  const makeBody = (inputMode: "first" | "args", inputSchema?: unknown) => ({
     use(config: unknown) {
       usePlugin(config);
       return this;
     },
     run(...handlers: unknown[]) {
-      return createAction(inputMode, handlers);
+      return createAction(inputMode, handlers, inputSchema);
     },
   });
 
@@ -1248,8 +1309,8 @@ export function Action<const Name extends string>(
     sig() {
       return makeBody("args");
     },
-    input(_schema?: unknown) {
-      return makeBody("first");
+    input(schema?: unknown) {
+      return makeBody("first", schema);
     },
     use(config: unknown) {
       usePlugin(config);

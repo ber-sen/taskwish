@@ -374,6 +374,7 @@ const builtInEventScope: Record<string, unknown> = {
 
 export interface Behavior<Ctx extends Record<any, any>> {
   use(config: LoggerConfig): this;
+  use<const U>(plugin: U): Behavior<AddActionsToCtx<Ctx, U>>;
 
   on<Name extends string>(
     behavior: "Command",
@@ -626,22 +627,67 @@ function createBehavior(
     initialScope,
 ): Behavior<any> {
   let logger: ConsoleLike = console;
+  let behaviorScope: Record<string, unknown> = {};
+  const pendingBehaviorScopes: Promise<Record<string, unknown>>[] = [];
 
   function tap<G extends AsyncGenerator<unknown, unknown>>(gen: G): G {
     return tapWith(gen, dispatch(logger)) as G;
   }
 
+  const currentInitialScope = () => mergeActorScope(initialScope, behaviorScope);
+
+  async function resolveBehaviorScope() {
+    let resolved = await resolveInitialScope();
+    if (Object.keys(behaviorScope).length > 0) {
+      resolved = mergeActorScope(resolved, behaviorScope);
+    }
+    if (pendingBehaviorScopes.length > 0) {
+      const scopes = await Promise.all(pendingBehaviorScopes);
+      resolved = scopes.reduce(mergeActorScope, resolved);
+    }
+    return resolved;
+  }
+
+  function applyScopedUse(
+    plugin: unknown,
+    applyScope: (scope: Record<string, unknown>) => void,
+    applyPendingScope: (scope: Promise<Record<string, unknown>>) => void,
+  ) {
+    if (isLoggerConfig(plugin)) {
+      logger = plugin.target;
+      return;
+    }
+    if (isPromiseLike(plugin)) {
+      applyPendingScope(Promise.resolve(plugin).then(collectPluginScope));
+      return;
+    }
+
+    const incoming = collectPluginScope(plugin);
+    if (Object.keys(incoming).length > 0) applyScope(incoming);
+  }
+
   const self = {
-    use(config: LoggerConfig) {
-      logger = config.target;
+    use(plugin: unknown) {
+      applyScopedUse(
+        plugin,
+        (incoming) => {
+          behaviorScope = mergeActorScope(behaviorScope, incoming);
+        },
+        (incoming) => {
+          pendingBehaviorScopes.push(incoming);
+        },
+      );
       return self;
     },
     on(behavior: string, config?: string, schema?: unknown) {
       let actionName: string;
       let traitMeta: string | null = null;
       let eventMeta: string | null = null;
+      let actionScope: Record<string, unknown> = {};
+      const pendingActionScopes: Promise<Record<string, unknown>>[] = [];
 
-      const scopedBehavior = initialScope[behavior];
+      const initialScopeAtOn = currentInitialScope();
+      const scopedBehavior = initialScopeAtOn[behavior];
       const isScopedEvent =
         scopedBehavior !== null &&
         typeof scopedBehavior === "object" &&
@@ -660,12 +706,40 @@ function createBehavior(
       }
 
       const eventName = qualifyActionName(actorName, actionName);
-      const mod = makeBehaviorMod(behavior, config, schema, initialScope);
+      const mod = makeBehaviorMod(behavior, config, schema, initialScopeAtOn);
       let actionMeta: Record<string, unknown> | null = null;
 
-      function createAction(inputMode: "first" | "args", handlers: unknown[]) {
+      async function resolveActionScope() {
+        let resolved = await resolveBehaviorScope();
+        if (Object.keys(actionScope).length > 0) {
+          resolved = mergeActorScope(resolved, actionScope);
+        }
+        if (pendingActionScopes.length > 0) {
+          const scopes = await Promise.all(pendingActionScopes);
+          resolved = scopes.reduce(mergeActorScope, resolved);
+        }
+        return resolved;
+      }
+
+      function useActionPlugin(plugin: unknown) {
+        applyScopedUse(
+          plugin,
+          (incoming) => {
+            actionScope = mergeActorScope(actionScope, incoming);
+          },
+          (incoming) => {
+            pendingActionScopes.push(incoming);
+          },
+        );
+      }
+
+      function createAction(
+        inputMode: "first" | "args",
+        handlers: unknown[],
+        inputSchema?: unknown,
+      ) {
         async function consume(...args: unknown[]) {
-          const resolvedInitialScope = await resolveInitialScope();
+          const resolvedInitialScope = await resolveActionScope();
           const { args: modArgs, scope: behaviorScope } = mod(args);
           const extra = { ...resolvedInitialScope, ...behaviorScope };
           const gen = tap(
@@ -683,7 +757,7 @@ function createBehavior(
         }
 
         async function* rawStream(...args: unknown[]) {
-          const resolvedInitialScope = await resolveInitialScope();
+          const resolvedInitialScope = await resolveActionScope();
           const { args: modArgs, scope: behaviorScope } = mod(args);
           const extra = { ...resolvedInitialScope, ...behaviorScope };
           return yield* runAction(
@@ -713,6 +787,7 @@ function createBehavior(
           [TW.Name]: eventName,
           stream,
           [TW.Meta]: resolveMeta(),
+          [TW.InputSchema]: inputSchema,
           [RawStreamTag]: rawStream,
           [RawLoggedStreamTag]: loggedRawStream,
         });
@@ -728,12 +803,13 @@ function createBehavior(
         return result;
       }
 
-      const makeBody = (inputMode: "first" | "args") => ({
-        use() {
+      const makeBody = (inputMode: "first" | "args", inputSchema?: unknown) => ({
+        use(plugin?: unknown) {
+          if (arguments.length > 0) useActionPlugin(plugin);
           return this;
         },
         run(...handlers: unknown[]) {
-          return createAction(inputMode, handlers);
+          return createAction(inputMode, handlers, inputSchema);
         },
       });
 
@@ -741,10 +817,11 @@ function createBehavior(
         sig() {
           return makeBody("args");
         },
-        input(_schema?: unknown) {
-          return makeBody("first");
+        input(inputSchema?: unknown) {
+          return makeBody("first", inputSchema);
         },
-        use() {
+        use(plugin?: unknown) {
+          if (arguments.length > 0) useActionPlugin(plugin);
           return this;
         },
         run(...handlers: unknown[]) {
@@ -758,14 +835,15 @@ function createBehavior(
           command(cmdName: string) {
             let commandMeta: Record<string, unknown> = {};
             return {
-              use() {
+              use(plugin?: unknown) {
+                if (arguments.length > 0) useActionPlugin(plugin);
                 return this;
               },
               run(...handlers: unknown[]) {
                 const qualifiedCmdName = qualifyActionName(actorName, cmdName);
 
                 async function* rawCmdStream(flatInput: unknown) {
-                  const resolvedInitialScope = await resolveInitialScope();
+                  const resolvedInitialScope = await resolveActionScope();
                   return yield* runAction(
                     qualifiedCmdName,
                     buildScope("first", [flatInput], {
@@ -806,6 +884,7 @@ function createBehavior(
                 const action = Object.assign(cmdConsume, {
                   [TW.Name]: qualifiedCmdName,
                   [TW.Meta]: resolveMeta(),
+                  [TW.InputSchema]: schema,
                   stream: cmdStream,
                   [RawStreamTag]: rawCmdStream,
                   [RawLoggedStreamTag]: loggedRawCmdStream,
@@ -851,6 +930,24 @@ export type ActorBuilderResult<
 } & Omit<Behavior<Ctx>, "use">;
 
 // ── Actor builder runtime ─────────────────────────────────────────────────────
+
+function isLoggerConfig(value: unknown): value is LoggerConfig {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    (value as Record<string | symbol, unknown>)[TW.Type] === "Logger" &&
+    "target" in value
+  );
+}
+
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "then" in value &&
+    typeof (value as { then?: unknown }).then === "function"
+  );
+}
 
 function exposeAction(plugin: unknown) {
   return typeof plugin === "function" &&
