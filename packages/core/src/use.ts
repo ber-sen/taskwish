@@ -58,7 +58,7 @@ export function formatEvent(event: object): string {
     event instanceof TW.Signal || event instanceof TW.Trace
       ? event.data
       : (event as Record<string, unknown>);
-  const kind = ">>" in e ? ">>" : "->";
+  const kind = "==" in e ? "==" : ">>" in e ? ">>" : "->";
   const name = e[kind];
   const entries = [
     `\x1b[2m"${kind}": \x1b[22m"\x1b[1m${name}\x1b[22m"`,
@@ -67,7 +67,9 @@ export function formatEvent(event: object): string {
       .filter(([, v]) => v !== undefined)
       .map(
         ([k, v]) =>
-          `${BOLD_KEYS.has(k) ? `\x1b[2m"${k}": \x1b[22m` : `"${k}": `}${fmt(v)}`,
+          `${BOLD_KEYS.has(k) ? `\x1b[2m"${k}": \x1b[22m` : `"${k}": `}${fmt(
+            v,
+          )}`,
       ),
   ];
   return `\x1b[2m{\x1b[22m ${entries.join(", ")} \x1b[2m}\x1b[22m`;
@@ -88,7 +90,9 @@ export function dispatch(target: ConsoleLike): LogFn {
     if (
       formattedEvent !== null &&
       typeof formattedEvent === "object" &&
-      (">>" in (formattedEvent as object) || "->" in (formattedEvent as object))
+      ("==" in (formattedEvent as object) ||
+        ">>" in (formattedEvent as object) ||
+        "->" in (formattedEvent as object))
     ) {
       const e = formattedEvent as Record<string, unknown>;
       const out = formatEvent(formattedEvent as object);
