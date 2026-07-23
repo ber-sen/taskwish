@@ -17,18 +17,18 @@ type RuleScope<Ctx extends Record<any, any>> = Pretty<
   InputFields<Ctx> & UserScope<Ctx>
 >;
 
-export function ruleDescription(fn: unknown): string {
-  if (typeof fn !== "function") return String(fn);
+export function ruleDescription(name: string, fn: unknown): string {
+  if (typeof fn !== "function") return `${name} = ${String(fn)}`;
 
   const source = fn.toString().trim();
   const arrowIndex = source.indexOf("=>");
-  if (arrowIndex === -1) return source;
+  if (arrowIndex === -1) return `${name} = ${source}`;
 
   const body = source.slice(arrowIndex + 2).trim();
   const returnMatch = body.match(/^\{\s*return\s+([\s\S]*?);?\s*\}$/);
   const expression = returnMatch ? returnMatch[1].trim() : body;
 
-  return expression.replace(/;$/, "");
+  return `${name} = ${expression.replace(/;$/, "")}`;
 }
 
 export type RuleNode<
@@ -51,7 +51,7 @@ export function Rule(name: string, fn: unknown): never {
   return {
     [TW.Type]: "Rule",
     name,
-    description: ruleDescription(fn),
+    description: ruleDescription(name, fn),
     fn,
   } as never;
 }

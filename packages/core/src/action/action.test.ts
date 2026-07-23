@@ -113,7 +113,11 @@ describe("Action", () => {
     expect(eventDataList(yields)).toEqual([
       { ">>": "charge", input: { total: 100 } },
       { ">>": "charge.fee", result: 10 },
-      { ">>": "charge.feeLimit", "==": "total * 0.1", result: 10 },
+      {
+        ">>": "charge.feeLimit",
+        "==": "feeLimit = total * 0.1",
+        result: 10,
+      },
       { ">>": "charge.receipt", result: { total: 100, fee: 10 } },
       { ">>": "charge", result: { total: 100, fee: 10 } },
     ]);
@@ -141,7 +145,11 @@ describe("Action", () => {
 
     expect(eventDataList(yields)).toEqual([
       { ">>": "charge", input: { total: 0 } },
-      { ">>": "charge.feeLimit", "==": "total * 0.1", result: 0 },
+      {
+        ">>": "charge.feeLimit",
+        "==": "feeLimit = total * 0.1",
+        result: 0,
+      },
       { ">>": "charge.receipt", result: 0 },
       { ">>": "charge", result: 0 },
     ]);
@@ -612,7 +620,7 @@ describe("Action", () => {
       formatEvent({ ">>": "charge.fee", result: 10 }),
       formatEvent({
         ">>": "charge.feeLimit",
-        "==": "total * 0.1",
+        "==": "feeLimit = total * 0.1",
         result: 10,
       }),
       formatEvent({ ">>": "charge.done", result: 10 }),
