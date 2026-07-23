@@ -11,7 +11,6 @@ import {
   splitQualifiedActionName,
 } from "../helpers";
 import type { Steps, ActionResultKind } from "../steps";
-import { TruthAssertionError } from "../steps/truth";
 import { TW } from "../core";
 import {
   dispatch,
@@ -611,7 +610,7 @@ type IfEntry = { condition: unknown; steps: unknown[] };
 type ElseEntry = { steps: unknown[] };
 type LoopEntry = { name: string; items: unknown; steps: unknown[] };
 type ParallelEntry = { steps: unknown[] };
-type TruthEntry = { description: string; fn: unknown };
+type RuleEntry = { name: string; description: string; fn: unknown };
 
 function twType(handler: unknown): string | null {
   return handler !== null && typeof handler === "object"
@@ -635,7 +634,7 @@ async function evalCond(
   return Boolean(val);
 }
 
-function truthScope(
+function ruleScope(
   ctx: Record<string | symbol, unknown>,
 ): Record<string | symbol, unknown> {
   return ctx.input !== null &&
@@ -645,21 +644,15 @@ function truthScope(
     : ctx;
 }
 
-async function evalTruth(
-  assertion: TruthEntry,
+async function evalRule(
+  rule: RuleEntry,
   ctx: Record<string | symbol, unknown>,
 ): Promise<unknown> {
-  const scope = truthScope(ctx);
-  const result =
-    typeof assertion.fn === "function"
-      ? await (assertion.fn as (scope: unknown) => unknown).call(scope, scope)
-      : assertion.fn;
+  const scope = ruleScope(ctx);
 
-  if (!result) {
-    throw new TruthAssertionError(assertion.description, result);
-  }
-
-  return result;
+  return typeof rule.fn === "function"
+    ? await (rule.fn as (scope: unknown) => unknown).call(scope, scope)
+    : rule.fn;
 }
 
 async function* runHandlerList(
@@ -794,17 +787,21 @@ async function* runHandlerList(
         );
       }
       lastCond = null;
-    } else if (type === "Truth") {
+    } else if (type === "Rule") {
       lastCond = null;
-      const assertion = handler as TruthEntry;
+      const rule = handler as RuleEntry;
 
       try {
-        yield {
-          "==": assertion.description,
-          result: Boolean(await evalTruth(assertion, ctx)),
-        };
+        const result = await evalRule(rule, ctx);
+        yield new TW.Trace(`${currentName}.${rule.name}`, {
+          "==": rule.description,
+          result,
+        });
       } catch (error) {
-        yield { "==": assertion.description, error };
+        yield new TW.Trace(`${currentName}.${rule.name}`, {
+          "==": rule.description,
+          error,
+        });
         throw error;
       }
     } else if (type === "Loop") {

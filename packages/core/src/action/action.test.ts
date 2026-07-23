@@ -4,7 +4,7 @@ import { Expect, Equal, RawEntry } from "../helpers";
 import { Action } from "./action";
 import { Actor } from "../actor";
 import { TW } from "../core";
-import { Step, Truth, TruthAssertionError } from "../steps";
+import { Rule, Step } from "../steps";
 import { Logger, InferType, formatEvent } from "../use";
 
 const eventData = (value: unknown) =>
@@ -86,7 +86,7 @@ describe("Action", () => {
     ]);
   });
 
-  test("Truth — asserts against runtime input between steps", async () => {
+  test("Rule — emits merged step and expression result", async () => {
     const { charge } = Action("charge")
       .input({ total: "number" })
 
@@ -95,9 +95,7 @@ describe("Action", () => {
           return this.input.total * 0.1;
         }),
 
-        Truth("total * 0.1 ≤ 10", ({ total }) => {
-          return total * 0.1 <= 10;
-        }),
+        Rule("feeLimit", ({ total }) => total * 0.1),
 
         Step("receipt", function () {
           return { total: this.input.total, fee: this.fee };
@@ -115,38 +113,41 @@ describe("Action", () => {
     expect(eventDataList(yields)).toEqual([
       { ">>": "charge", input: { total: 100 } },
       { ">>": "charge.fee", result: 10 },
-      { "==": "total * 0.1 ≤ 10", result: true },
+      { ">>": "charge.feeLimit", "==": "total * 0.1", result: 10 },
       { ">>": "charge.receipt", result: { total: 100, fee: 10 } },
       { ">>": "charge", result: { total: 100, fee: 10 } },
     ]);
   });
 
-  test("Truth — throws when assertion is false", async () => {
+  test("Rule — preserves falsy raw result", async () => {
     const { charge } = Action("charge")
       .input({ total: "number" })
 
       .run(
-        Truth("total * 0.1 ≤ 10", ({ total }) => total * 0.1 <= 10),
+        Rule("feeLimit", ({ total }) => total * 0.1),
 
         Step("receipt", function () {
           return this.input.total;
         }),
       );
 
-    let thrown: unknown;
-    try {
-      await charge({ total: 101 });
-    } catch (error) {
-      thrown = error;
+    expect(await charge({ total: 0 })).toBe(0);
+
+    const yields: unknown[] = [];
+
+    for await (const v of charge.stream({ total: 0 })) {
+      yields.push(v);
     }
 
-    expect(thrown).toBeInstanceOf(TruthAssertionError);
-    expect((thrown as TruthAssertionError).description).toBe(
-      "total * 0.1 ≤ 10",
-    );
+    expect(eventDataList(yields)).toEqual([
+      { ">>": "charge", input: { total: 0 } },
+      { ">>": "charge.feeLimit", "==": "total * 0.1", result: 0 },
+      { ">>": "charge.receipt", result: 0 },
+      { ">>": "charge", result: 0 },
+    ]);
   });
 
-  test("Truth — preserves previous last value", async () => {
+  test("Rule — preserves previous last value", async () => {
     const { compute } = Action("compute")
       .input({ total: "number" })
 
@@ -155,7 +156,7 @@ describe("Action", () => {
           return this.input.total * 0.1;
         }),
 
-        Truth("fee <= 10", async ({ fee }) => fee <= 10),
+        Rule("feeLimit", async ({ fee }) => fee),
       );
 
     type T = typeof compute;
@@ -172,6 +173,21 @@ describe("Action", () => {
     >;
 
     expect(await compute({ total: 100 })).toBe(10);
+  });
+
+  test("Rule — allows raw function handlers after it", async () => {
+    const { charge } = Action("charge")
+      .input({ total: "number" })
+
+      .run(
+        Rule("feeLimit", ({ total }) => total * 0.1),
+
+        function () {
+          return this.input.total;
+        },
+      );
+
+    expect(await charge({ total: 100 })).toBe(100);
   });
 
   test("TypeScript type input", async () => {
@@ -564,7 +580,7 @@ describe("Action", () => {
     );
   });
 
-  test("Logger — logs Truth events", async () => {
+  test("Logger — logs Rule events", async () => {
     const logged: unknown[] = [];
     const spy = {
       log: logged.push.bind(logged),
@@ -582,7 +598,7 @@ describe("Action", () => {
           return this.input.total * 0.1;
         }),
 
-        Truth("total * 0.1 ≤ 10", ({ total }) => total * 0.1 <= 10),
+        Rule("feeLimit", ({ total }) => total * 0.1),
 
         Step("done", function () {
           return this.fee;
@@ -594,7 +610,11 @@ describe("Action", () => {
     expect(logged).toEqual([
       formatEvent({ ">>": "charge", input: { total: 100 } }),
       formatEvent({ ">>": "charge.fee", result: 10 }),
-      formatEvent({ "==": "total * 0.1 ≤ 10", result: true }),
+      formatEvent({
+        ">>": "charge.feeLimit",
+        "==": "total * 0.1",
+        result: 10,
+      }),
       formatEvent({ ">>": "charge.done", result: 10 }),
       formatEvent({ ">>": "charge", result: 10 }),
     ]);

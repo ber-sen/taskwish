@@ -58,7 +58,7 @@ export function formatEvent(event: object): string {
     event instanceof TW.Signal || event instanceof TW.Trace
       ? event.data
       : (event as Record<string, unknown>);
-  const kind = "==" in e ? "==" : ">>" in e ? ">>" : "->";
+  const kind = ">>" in e ? ">>" : "==" in e ? "==" : "->";
   const name = e[kind];
   const entries = [
     `\x1b[2m"${kind}": \x1b[22m"\x1b[1m${name}\x1b[22m"`,
