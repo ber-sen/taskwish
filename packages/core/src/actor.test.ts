@@ -442,33 +442,6 @@ describe("Actor", () => {
     );
   });
 
-  test("GET — no schema, input and request are the Request object", async () => {
-    const { InvoiceProvider } = Actor("InvoiceProvider");
-
-    const { GET } = InvoiceProvider()
-      .on("GET", "/invoices/:id")
-
-      .run(function () {
-        return `${this.request.method} ${new URL(this.request.url).pathname}`;
-      });
-
-    type T = typeof GET;
-    type check = Expect<
-      Equal<
-        TW.Action<
-          "InvoiceProvider::get",
-          (input: Request) => Promise<string>,
-          null
-        >,
-        T
-      >
-    >;
-
-    expect(await GET(new Request("http://localhost/invoices/inv-42"))).toEqual(
-      "GET /invoices/inv-42",
-    );
-  });
-
   test("GET — with schema and command, named action takes flat input and route metadata", async () => {
     const { InvoiceProvider } = Actor("InvoiceProvider").def(
       Event("InvoiceFetched", { id: "string", page: "string" }),

@@ -104,27 +104,6 @@ type FlatInput<Schema> = Pretty<
     (Schema extends { body: infer B } ? InferSchema<B> : {})
 >;
 
-interface HttpBody<
-  Method extends string,
-  Scope extends Record<any, any>,
-  Service extends string = string,
-> {
-  use(): this;
-  run<
-    H extends (
-      this: TW.Scope<Pretty<{ input: Request; request: Request } & Scope>>,
-    ) => any,
-  >(
-    handler: H,
-  ): {
-    [key in Method]: TW.Action<
-      QualifiedActionName<Service, Method>,
-      (input: Request) => Promise<RuntimeResult<ReturnType<H>>>,
-      null
-    >;
-  };
-}
-
 // ── Trait method implementation ───────────────────────────────────────────────
 
 /** Extract the method part from a trait-method name: "::log" → "log" */
@@ -424,11 +403,6 @@ export interface Behavior<Ctx extends Record<any, any>> {
       Ctx["name"]
     >;
   };
-
-  on<const Method extends "GET" | "POST" | "PUT" | "DELETE" | "PATCH">(
-    behavior: Method,
-    path: string,
-  ): HttpBody<Method, BaseScope<Ctx>, Ctx["name"] & string>;
 
   on<const TraitMethod extends `::${string}`>(
     traitMethod: TraitMethod extends EventKeys<BaseScope<Ctx>>
