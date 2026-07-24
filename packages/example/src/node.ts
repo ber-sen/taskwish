@@ -13,5 +13,6 @@ await Node("example", {
     import("./streamer"),
     import("./piper"),
     import("./solver"),
+    import("./pipe-solver"),
   ],
 });
