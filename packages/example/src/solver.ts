@@ -17,6 +17,6 @@ export const { solve } = Solver()
     ),
 
     Step("result", function () {
-      return this.system;
+      return this.system.model;
     }),
   );

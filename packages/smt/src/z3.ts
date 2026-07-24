@@ -32,6 +32,20 @@ export async function solveScript<T>(
   };
 }
 
+export async function expectSatScript<T>(
+  smtScript: string,
+  declarations: readonly SmtDeclaration[],
+): Promise<T> {
+  const result = await solveScript<T>(smtScript, declarations);
+
+  if (result.status === "sat") return result.model;
+  if (result.status === "unknown") {
+    throw new Error(`Expected sat, got unknown: ${result.reason}`);
+  }
+
+  throw new Error("Expected sat, got unsat");
+}
+
 export async function* solveAllScripts<T>(
   smtScript: string,
   declarations: readonly SmtDeclaration[],

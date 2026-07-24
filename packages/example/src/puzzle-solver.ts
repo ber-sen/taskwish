@@ -9,7 +9,7 @@ export const { solvePuzzle } = PuzzleSolver()
   .run(
     Int("square", "circle", "triangle"),
 
-    Solve(
+    Solve.ExpectSat(
       "puzzle",
 
       ({ square, circle }) => square * square + circle == 16,
@@ -18,14 +18,6 @@ export const { solvePuzzle } = PuzzleSolver()
     ),
 
     Step("res", function () {
-      if (!this.puzzle.model) {
-        return;
-      }
-
-      return (
-        this.puzzle.model.square *
-        this.puzzle.model.circle *
-        this.puzzle.model.triangle
-      );
+      return this.puzzle.square * this.puzzle.circle * this.puzzle.triangle;
     }),
   );

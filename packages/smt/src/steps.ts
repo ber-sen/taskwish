@@ -4,26 +4,29 @@ import { collectDeclarations, declareSort } from "./declarations";
 import { constraintToSmt } from "./expression";
 import { buildSmtScript } from "./script";
 import type {
-  AddNumberScope,
+  AddSmtScope,
   Constraint,
   SmtDeclarations,
+  SmtModelScope,
   SolveResult,
   StepResult,
   UserScope,
 } from "./types";
-import { solveAllScripts, solveScript } from "./z3";
+import { expectSatScript, solveAllScripts, solveScript } from "./z3";
 
 export function Int<
   Ctx extends Record<string, any>,
   const Names extends readonly [string, ...string[]],
->(...names: Names): StepResult<Ctx, AddNumberScope<Names>, SmtDeclarations> {
+>(...names: Names): StepResult<Ctx, AddSmtScope<"Int", Names>, SmtDeclarations> {
   return declareSort("Int", names) as never;
 }
 
 export function Real<
   Ctx extends Record<string, any>,
   const Names extends readonly [string, ...string[]],
->(...names: Names): StepResult<Ctx, AddNumberScope<Names>, SmtDeclarations> {
+>(
+  ...names: Names
+): StepResult<Ctx, AddSmtScope<"Real", Names>, SmtDeclarations> {
   return declareSort("Real", names) as never;
 }
 
@@ -32,7 +35,7 @@ export function Bool<
   const Names extends readonly [string, ...string[]],
 >(
   ...names: Names
-): StepResult<Ctx, { [Name in Names[number]]: boolean }, SmtDeclarations> {
+): StepResult<Ctx, AddSmtScope<"Bool", Names>, SmtDeclarations> {
   return declareSort("Bool", names) as never;
 }
 
@@ -45,13 +48,24 @@ export function Solve<
   ...constraints: Constraints
 ): StepResult<
   Ctx,
-  Record<Name, SolveResult<UserScope<Ctx>>>,
-  SolveResult<UserScope<Ctx>>
+  Record<Name, SolveResult<SmtModelScope<Ctx>>>,
+  SolveResult<SmtModelScope<Ctx>>
 > {
   return createSolveStep(name, constraints, solveScript) as never;
 }
 
 export namespace Solve {
+  export function ExpectSat<
+    const Name extends string,
+    Ctx extends Record<string, any>,
+    const Constraints extends readonly Constraint<UserScope<Ctx>>[],
+  >(
+    name: Name,
+    ...constraints: Constraints
+  ): StepResult<Ctx, Record<Name, SmtModelScope<Ctx>>, SmtModelScope<Ctx>> {
+    return createSolveStep(name, constraints, expectSatScript) as never;
+  }
+
   export function All<
     const Name extends string,
     Ctx extends Record<string, any>,
@@ -63,7 +77,7 @@ export namespace Solve {
     Ctx,
     Record<Name, void>,
     void,
-    SolveResult<UserScope<Ctx>>
+    SolveResult<SmtModelScope<Ctx>>
   > {
     return createSolveStep(name, constraints, solveAllScripts) as never;
   }

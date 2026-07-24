@@ -2,7 +2,9 @@ import { describe, expect, test } from "bun:test";
 
 import { Actor, Step, TW } from "@taskwish/core";
 
-import { Int, Real, Solve, buildSmtScript, constraintToSmt } from ".";
+import { constraintToSmt } from "./expression";
+import { buildSmtScript } from "./script";
+import { Int, Real, Solve } from "./steps";
 
 const eventData = (value: unknown) =>
   value instanceof TW.Trace || value instanceof TW.Signal ? value.data : value;
@@ -91,6 +93,44 @@ describe("SMT", () => {
     expect("solutions" in result).toBe(false);
     expect("smtScript" in result).toBe(false);
     expect("output" in result).toBe(false);
+  });
+
+  test("Solve.ExpectSat returns the model directly", async () => {
+    const { Solver } = Actor("Solver");
+
+    const { solve } = Solver()
+      .on("Command", "solve")
+
+      .run(
+        Int("x"),
+
+        Solve.ExpectSat("system", ({ x }) => x == 4),
+
+        Step("result", function () {
+          return this.system;
+        }),
+      );
+
+    await expect(solve()).resolves.toEqual({ x: 4 });
+  });
+
+  test("Solve.ExpectSat throws when the constraints are not sat", async () => {
+    const { Solver } = Actor("Solver");
+
+    const { solve } = Solver()
+      .on("Command", "solve")
+
+      .run(
+        Int("x"),
+
+        Solve.ExpectSat(
+          "system",
+          ({ x }) => x == 1,
+          ({ x }) => x == 2,
+        ),
+      );
+
+    await expect(solve()).rejects.toThrow("Expected sat, got unsat");
   });
 
   test("Solve.All yields each model as a pipeable async generator", async () => {
