@@ -12,5 +12,6 @@ await Node("example", {
     import("./hackerNews"),
     import("./streamer"),
     import("./piper"),
+    import("./solver"),
   ],
 });
