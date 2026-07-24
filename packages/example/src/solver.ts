@@ -1,4 +1,4 @@
-import { Real, Solve } from "@taskwish/smt";
+import { Int, Solve } from "@taskwish/smt";
 import { Actor, Step } from "taskwish";
 
 const { Solver } = Actor("Solver");
@@ -7,7 +7,7 @@ export const { solve } = Solver()
   .on("Command", "solve")
 
   .run(
-    Real("x"),
+    Int("x"),
 
     Solve(
       "system",
