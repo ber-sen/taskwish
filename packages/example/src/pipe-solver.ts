@@ -9,7 +9,7 @@ export const { solveAll } = PipeSolver()
   .run(
     Int("x"),
 
-    Solve.All(
+    Solve.all(
       "system",
 
       ({ x }) => x < 100000000,

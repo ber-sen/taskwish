@@ -66,7 +66,7 @@ export namespace Solve {
     return createSolveStep(name, constraints, orElseThrowScript) as never;
   }
 
-  export function All<
+  export function all<
     const Name extends string,
     Ctx extends Record<string, any>,
     const Constraints extends readonly Constraint<UserScope<Ctx>>[],

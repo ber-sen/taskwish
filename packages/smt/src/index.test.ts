@@ -133,7 +133,7 @@ describe("SMT", () => {
     await expect(solve()).rejects.toThrow("Expected sat, got unsat");
   });
 
-  test("Solve.All yields each model as a pipeable async generator", async () => {
+  test("Solve.all yields each model as a pipeable async generator", async () => {
     const { Solver } = Actor("Solver");
 
     const { solve } = Solver()
@@ -142,7 +142,7 @@ describe("SMT", () => {
       .run(
         Int("x"),
 
-        Solve.All(
+        Solve.all(
           "solutions",
 
           ({ x }) => x > 0,
