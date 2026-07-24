@@ -1,4 +1,4 @@
-import { Actor, DefResultKind, Steps, TW } from "../../src";
+import { Actor, TW } from "../../src";
 import { PrettyScope, ResolveScope } from "../../src/helpers";
 
 type UserScope<Ctx extends Record<any, any>> = PrettyScope<
@@ -25,8 +25,10 @@ export function Int<
   return {} as never;
 }
 
-interface Given {
-  <Ctx extends Record<string, any>>(const1: (scope: UserScope<Ctx>) => any): {
+interface Solve {
+  <Ctx extends Record<string, any>>(
+    const1: (scope: UserScope<Ctx>) => number | boolean,
+  ): {
     [TW.Step]: (ctx: Ctx) => {
       name: Ctx["name"];
       steps: Ctx["steps"];
@@ -37,8 +39,8 @@ interface Given {
     };
   };
   <Ctx extends Record<string, any>>(
-    const1: (scope: UserScope<Ctx>) => any,
-    const2: (scope: UserScope<Ctx>) => any,
+    const1: (scope: UserScope<Ctx>) => number | boolean,
+    const2: (scope: UserScope<Ctx>) => number | boolean,
   ): {
     [TW.Step]: (ctx: Ctx) => {
       name: Ctx["name"];
@@ -51,9 +53,7 @@ interface Given {
   };
 }
 
-export const Given: Given = {} as never;
-
-export const Solve: Steps<{}, DefResultKind> = {} as never;
+export const Solve: Solve = {} as never;
 
 export const { Solver } = Actor("Solver");
 
@@ -63,12 +63,10 @@ export const { solve } = Solver()
   .input({ name: "string" })
 
   .run(
-    Solve(
-      Int("x", "y"),
+    Int("x", "y"),
 
-      Given(
-        ({ x, y }) => x + y == 10,
-        ({ x, y }) => x + 3 >= y - 4,
-      ),
+    Solve(
+      ({ x, y }) => x + y == 10,
+      ({ x, y }) => x + 3 >= y - 4,
     ),
   );
