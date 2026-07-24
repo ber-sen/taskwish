@@ -5,6 +5,7 @@
   "dependencies": {
     "@taskwish/command-center": "^0.0.1",
     "@taskwish/node": "^0.0.3",
+    "@taskwish/smt": "^0.0.1",
     "playwright-core": "^1.61.1",
     "taskwish": "^0.0.8"
   },
