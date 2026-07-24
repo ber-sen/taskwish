@@ -190,9 +190,9 @@ describe("Action", () => {
       .run(
         Rule("feeLimit", ({ total }) => total * 0.1),
 
-        function () {
+        Step("return", function () {
           return this.input.total;
-        },
+        }),
       );
 
     expect(await charge({ total: 100 })).toBe(100);
