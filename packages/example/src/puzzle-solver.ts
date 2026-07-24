@@ -9,7 +9,7 @@ export const { solvePuzzle } = PuzzleSolver()
   .run(
     Int("square", "circle", "triangle"),
 
-    Solve.ExpectSat(
+    Solve.orElseThrow(
       "puzzle",
 
       ({ square, circle }) => square * square + circle == 16,

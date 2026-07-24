@@ -95,7 +95,7 @@ describe("SMT", () => {
     expect("output" in result).toBe(false);
   });
 
-  test("Solve.ExpectSat returns the model directly", async () => {
+  test("Solve.orElseThrow returns the model directly", async () => {
     const { Solver } = Actor("Solver");
 
     const { solve } = Solver()
@@ -104,7 +104,7 @@ describe("SMT", () => {
       .run(
         Int("x"),
 
-        Solve.ExpectSat("system", ({ x }) => x == 4),
+        Solve.orElseThrow("system", ({ x }) => x == 4),
 
         Step("result", function () {
           return this.system;
@@ -114,7 +114,7 @@ describe("SMT", () => {
     await expect(solve()).resolves.toEqual({ x: 4 });
   });
 
-  test("Solve.ExpectSat throws when the constraints are not sat", async () => {
+  test("Solve.orElseThrow throws when the constraints are not sat", async () => {
     const { Solver } = Actor("Solver");
 
     const { solve } = Solver()
@@ -123,7 +123,7 @@ describe("SMT", () => {
       .run(
         Int("x"),
 
-        Solve.ExpectSat(
+        Solve.orElseThrow(
           "system",
           ({ x }) => x == 1,
           ({ x }) => x == 2,

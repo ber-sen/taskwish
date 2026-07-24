@@ -32,7 +32,7 @@ export async function solveScript<T>(
   };
 }
 
-export async function expectSatScript<T>(
+export async function orElseThrowScript<T>(
   smtScript: string,
   declarations: readonly SmtDeclaration[],
 ): Promise<T> {

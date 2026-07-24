@@ -12,7 +12,7 @@ import type {
   StepResult,
   UserScope,
 } from "./types";
-import { expectSatScript, solveAllScripts, solveScript } from "./z3";
+import { orElseThrowScript, solveAllScripts, solveScript } from "./z3";
 
 export function Int<
   Ctx extends Record<string, any>,
@@ -55,7 +55,7 @@ export function Solve<
 }
 
 export namespace Solve {
-  export function ExpectSat<
+  export function orElseThrow<
     const Name extends string,
     Ctx extends Record<string, any>,
     const Constraints extends readonly Constraint<UserScope<Ctx>>[],
@@ -63,7 +63,7 @@ export namespace Solve {
     name: Name,
     ...constraints: Constraints
   ): StepResult<Ctx, Record<Name, SmtModelScope<Ctx>>, SmtModelScope<Ctx>> {
-    return createSolveStep(name, constraints, expectSatScript) as never;
+    return createSolveStep(name, constraints, orElseThrowScript) as never;
   }
 
   export function All<
