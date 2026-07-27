@@ -1,21 +1,18 @@
-import { Actor, Desc, Step, TW } from "../../src";
+import { Actor, Step } from "../../src";
 
-const { MyActor } = Actor("My actor");
+const { MyActor } = Actor("MyActor");
 
 export const { runSteps } = MyActor()
-  .on("Command", "Run steps")
+  .on("Command", "runSteps")
 
-  .input({ message: ["string", Desc`Slack message`] })
+  .input({ message: "string" })
 
   .run(
-    Step("first step", function () {
-      return this.actions.slack.sendMessage({
-        channel: "#general",
-        message: this.input.message[0],
-      });
+    Step("firstStep", function () {
+      return "step 1";
     }),
 
-    Step("last step", function () {
+    Step("lastStep", function () {
       return this.firstStep.length;
     }),
   );

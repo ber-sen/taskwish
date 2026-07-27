@@ -1,0 +1,21 @@
+{
+  "name": "@taskwish/morph-example",
+  "version": "0.0.1",
+  "author": "Bersen Pajaziti",
+  "description": "Runnable TaskWish morph example",
+  "license": "Elastic-2.0",
+  "private": true,
+  "scripts": {
+    "check": "tsc --noEmit",
+    "morph": "bun src/morph.ts"
+  },
+  "type": "module",
+  "dependencies": {
+    "@taskwish/morph": "workspace:*",
+    "taskwish": "^0.0.8"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "typescript": "^5.9.2"
+  }
+}
