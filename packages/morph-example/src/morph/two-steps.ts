@@ -4,8 +4,8 @@ function normalizeName(name: string) {
 
 class LoremRunSteps {
   public input: { name: string; };
-  public firstStep!: string;
-  public lastStep!: number;
+  declare public firstStep: string;
+  declare public lastStep: number;
 
   constructor(input: { name: string; }) {
     this.input = input;

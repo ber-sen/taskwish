@@ -26,8 +26,8 @@ export const { runSteps } = MyActor()
 
     expect(morph(source)).toBe(`class MyActorRunSteps {
   public input: { message: string; };
-  public firstStep!: string;
-  public lastStep!: number;
+  declare public firstStep: string;
+  declare public lastStep: number;
 
   constructor(input: { message: string; }) {
     this.input = input;
@@ -85,8 +85,8 @@ export const { runSteps } = MyActor()
 
 class MyActorRunSteps {
   public input: { message: string; };
-  public firstStep!: string;
-  public lastStep!: number;
+  declare public firstStep: string;
+  declare public lastStep: number;
 
   constructor(input: { message: string; }) {
     this.input = input;
@@ -136,8 +136,8 @@ export const { runSteps } = MyActor()
 
     expect(morph(source)).toBe(`class MyActorRunSteps {
   public input: { name: string; };
-  public firstStep!: string;
-  public lastStep!: string;
+  declare public firstStep: string;
+  declare public lastStep: string;
 
   constructor(input: { name: string; }) {
     this.input = input;
@@ -183,7 +183,7 @@ export const { runSteps } = MyActor()
 
     expect(morph(source)).toBe(`class MyActorRunSteps {
   public input: { name: string; tags: string[]; age?: number | undefined; };
-  public firstStep!: number;
+  declare public firstStep: number;
 
   constructor(input: { name: string; tags: string[]; age?: number | undefined; }) {
     this.input = input;

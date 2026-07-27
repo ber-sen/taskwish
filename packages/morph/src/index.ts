@@ -431,7 +431,7 @@ function printAction(action: ActionSpec): string {
   }
 
   for (const step of action.steps) {
-    lines.push(`  public ${step.name}!: ${step.propertyType};`);
+    lines.push(`  declare public ${step.name}: ${step.propertyType};`);
   }
 
   if (action.inputType) {
