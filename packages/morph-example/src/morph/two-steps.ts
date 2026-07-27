@@ -11,18 +11,18 @@ class LoremRunSteps {
     this.input = input;
   }
 
-  async #firstStep() {
+  #firstStep() {
     return `Hello ${normalizeName(this.input.name)}`;
   }
 
-  async #lastStep() {
+  #lastStep() {
     return this.firstStep.length;
   }
 
   async run() {
-    this.firstStep = await this.#firstStep();
+    this.firstStep = this.#firstStep();
 
-    this.lastStep = await this.#lastStep();
+    this.lastStep = this.#lastStep();
 
     return this.lastStep;
   }

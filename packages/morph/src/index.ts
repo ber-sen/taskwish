@@ -30,6 +30,12 @@ type StepSpec = {
   name: string;
   propertyType: string;
   methodText: string;
+  shouldAwait: boolean;
+};
+
+type FunctionReturnInfo = {
+  propertyType: string;
+  shouldAwait: boolean;
 };
 
 export function morph(sourceText: string, options: MorphOptions = {}): string {
@@ -258,22 +264,22 @@ function parseStep(node: Node): StepSpec | null {
 
   const name = nameArg.getLiteralText();
   const bodyText = normalizeBlock(handler.getBodyText() ?? "");
+  const returnInfo = inferFunctionReturn(handler);
 
   return {
     name,
-    propertyType: inferFunctionReturnType(handler),
-    methodText: `async #${name}() {\n${indent(bodyText, 2)}\n}`,
+    propertyType: returnInfo.propertyType,
+    methodText: `${handler.isAsync() ? "async " : ""}#${name}() {\n${indent(
+      bodyText,
+      2,
+    )}\n}`,
+    shouldAwait: returnInfo.shouldAwait,
   };
 }
 
 function inputSchemaToType(node: Node | undefined): string | null {
   if (!node) return null;
-  const inferred = inferArkTypeSchema(node);
-  if (inferred) return inferred;
-
-  const schema = unwrapExpression(node);
-  if (!Node.isObjectLiteralExpression(schema)) return "unknown";
-  return objectLiteralSchemaToType(schema);
+  return inferArkTypeSchema(node) ?? "unknown";
 }
 
 let arkTypeProbeId = 0;
@@ -310,78 +316,61 @@ function inferArkTypeSchema(node: Node): string | null {
   }
 }
 
-function objectLiteralSchemaToType(schema: import("ts-morph").ObjectLiteralExpression): string {
-  const members = schema.getProperties().flatMap((property) => {
-    if (!Node.isPropertyAssignment(property)) return [];
-
-    const name = propertyNameToText(property.getNameNode());
-    const initializer = unwrapExpression(property.getInitializerOrThrow());
-    return [`${name}: ${schemaValueToType(initializer)};`];
-  });
-
-  return `{ ${members.join(" ")} }`;
-}
-
-function schemaValueToType(node: Node): string {
-  if (Node.isStringLiteral(node)) return primitiveSchemaToType(node.getLiteralText());
-  if (Node.isObjectLiteralExpression(node)) return objectLiteralSchemaToType(node);
-  if (Node.isArrayLiteralExpression(node)) {
-    const [first] = node.getElements();
-    return first ? schemaValueToType(first) : "unknown[]";
-  }
-  return "unknown";
-}
-
-function primitiveSchemaToType(value: string): string {
-  if (value.endsWith("[]")) {
-    return `${primitiveSchemaToType(value.slice(0, -2))}[]`;
-  }
-
-  switch (value) {
-    case "string":
-    case "number":
-    case "boolean":
-    case "bigint":
-    case "symbol":
-    case "undefined":
-    case "null":
-      return value;
-    default:
-      return "unknown";
-  }
-}
-
-function propertyNameToText(node: Node): string {
-  if (Node.isIdentifier(node)) return node.getText();
-  if (Node.isStringLiteral(node) || Node.isNumericLiteral(node)) {
-    return JSON.stringify(node.getLiteralText());
-  }
-  return node.getText();
-}
-
-function inferFunctionReturnType(fn: import("ts-morph").FunctionExpression): string {
+function inferFunctionReturn(
+  fn: import("ts-morph").FunctionExpression,
+): FunctionReturnInfo {
   const returns = fn.getDescendantsOfKind(SyntaxKind.ReturnStatement);
-  if (returns.length !== 1) return "unknown";
+  if (returns.length !== 1) {
+    return {
+      propertyType: "unknown",
+      shouldAwait: fn.isAsync(),
+    };
+  }
 
   const expression = returns[0]?.getExpression();
-  if (!expression) return "void";
+  if (!expression) {
+    return {
+      propertyType: "void",
+      shouldAwait: fn.isAsync(),
+    };
+  }
 
-  return inferExpressionType(expression);
+  const returnInfo = inferExpressionReturn(expression);
+  const shouldAwait = fn.isAsync() || returnInfo.shouldAwait;
+
+  return {
+    propertyType: shouldAwait
+      ? returnInfo.awaitedType ?? returnInfo.propertyType
+      : returnInfo.propertyType,
+    shouldAwait,
+  };
 }
 
-function inferExpressionType(expression: Node): string {
+type ExpressionReturnInfo = FunctionReturnInfo & {
+  awaitedType: string | null;
+};
+
+function inferExpressionReturn(expression: Node): ExpressionReturnInfo {
   const node = unwrapExpression(expression);
 
   if (Node.isStringLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) {
-    return "string";
+    return expressionReturnInfo("string");
   }
-  if (Node.isTemplateExpression(node)) return "string";
-  if (Node.isNumericLiteral(node)) return "number";
+  if (Node.isAwaitExpression(node)) {
+    const awaitedType = typeToText(node.getType(), node);
+    return {
+      propertyType: awaitedType,
+      awaitedType,
+      shouldAwait: true,
+    };
+  }
+  if (Node.isTemplateExpression(node)) return expressionReturnInfo("string");
+  if (Node.isNumericLiteral(node)) return expressionReturnInfo("number");
   if (node.getKind() === SyntaxKind.TrueKeyword || node.getKind() === SyntaxKind.FalseKeyword) {
-    return "boolean";
+    return expressionReturnInfo("boolean");
   }
   if (Node.isPropertyAccessExpression(node) && node.getName() === "length") {
-    return "number";
+    return expressionReturnInfo("number");
   }
   if (Node.isBinaryExpression(node)) {
     const operator = node.getOperatorToken().getKind();
@@ -393,7 +382,7 @@ function inferExpressionType(expression: Node): string {
       operator === SyntaxKind.PercentToken ||
       operator === SyntaxKind.AsteriskAsteriskToken
     ) {
-      return "number";
+      return expressionReturnInfo("number");
     }
     if (
       operator === SyntaxKind.GreaterThanToken ||
@@ -405,17 +394,59 @@ function inferExpressionType(expression: Node): string {
       operator === SyntaxKind.ExclamationEqualsToken ||
       operator === SyntaxKind.ExclamationEqualsEqualsToken
     ) {
-      return "boolean";
+      return expressionReturnInfo("boolean");
     }
   }
-  if (Node.isArrayLiteralExpression(node)) return "unknown[]";
-  if (Node.isObjectLiteralExpression(node)) return node.getText();
-  if (Node.isCallExpression(node)) {
-    const type = node.getType().getText();
-    if (type && type !== "any") return type;
-  }
+  if (Node.isArrayLiteralExpression(node)) return expressionReturnInfo("unknown[]");
+  if (Node.isObjectLiteralExpression(node)) return expressionReturnInfo(node.getText());
 
-  return "unknown";
+  return inferTypeReturn(node.getType(), node);
+}
+
+function expressionReturnInfo(propertyType: string): ExpressionReturnInfo {
+  return {
+    propertyType,
+    awaitedType: propertyType,
+    shouldAwait: false,
+  };
+}
+
+function inferTypeReturn(
+  type: import("ts-morph").Type,
+  node: Node,
+): ExpressionReturnInfo {
+  const propertyType = typeToText(type, node);
+  const awaitedType = getAwaitedTypeText(type, node);
+
+  return {
+    propertyType,
+    awaitedType,
+    shouldAwait: awaitedType !== null && awaitedType !== propertyType,
+  };
+}
+
+function typeToText(
+  type: import("ts-morph").Type,
+  node: Node,
+): string {
+  const text = type.getText(node, ts.TypeFormatFlags.NoTruncation);
+  return text === "any" ? "unknown" : text;
+}
+
+function getAwaitedTypeText(
+  type: import("ts-morph").Type,
+  node: Node,
+): string | null {
+  const checker = node.getProject().getTypeChecker().compilerObject;
+  const awaitedType = checker.getAwaitedType(type.compilerType);
+  if (!awaitedType) return null;
+
+  const text = checker.typeToString(
+    awaitedType,
+    node.compilerNode,
+    ts.TypeFormatFlags.NoTruncation,
+  );
+  return text === "any" ? "unknown" : text;
 }
 
 function printAction(action: ActionSpec): string {
@@ -449,7 +480,10 @@ function printAction(action: ActionSpec): string {
   lines.push("");
   lines.push("  async run() {");
   for (const step of action.steps) {
-    lines.push(`    this.${step.name} = await this.#${step.name}();`);
+    const invocation = `this.#${step.name}()`;
+    lines.push(
+      `    this.${step.name} = ${step.shouldAwait ? `await ${invocation}` : invocation};`,
+    );
     lines.push("");
   }
   const lastStep = action.steps.at(-1)!;
