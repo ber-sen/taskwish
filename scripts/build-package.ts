@@ -79,7 +79,7 @@ for (const entry of entries) {
       ["esm", "mjs"],
       ["cjs", "cjs"],
     ] as const) {
-      await Bun.$`bun build ${absoluteEntry} --target=bun --format=${format} --packages=external --outfile=${join(
+      await Bun.$`bun build ${absoluteEntry} --target=node --format=${format} --packages=external --outfile=${join(
         dist,
         `${entry.outputName}.${extension}`,
       )}`;
