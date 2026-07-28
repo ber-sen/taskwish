@@ -1,11 +1,11 @@
 import { mkdir } from "node:fs/promises";
 
-import { morph } from "@taskwish/morph";
+import { morph } from "@taskwish/bare-metal-morph";
 
 const input = new URL("./two-steps.ts", import.meta.url);
-const output = new URL("./morph/two-steps.ts", import.meta.url);
+const output = new URL("./bare-metal/two-steps.ts", import.meta.url);
 
-await mkdir(new URL("./morph", import.meta.url), { recursive: true });
+await mkdir(new URL("./bare-metal", import.meta.url), { recursive: true });
 await Bun.write(
   output,
   morph(await Bun.file(input).text(), {

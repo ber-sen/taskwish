@@ -1,5 +1,5 @@
 {
-  "name": "@taskwish/morph",
+  "name": "@taskwish/bare-metal-morph",
   "publishConfig": {
     "access": "public",
     "exports": {

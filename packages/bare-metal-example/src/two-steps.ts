@@ -20,3 +20,11 @@ export const { runSteps } = Lorem()
       return this.firstStep.length;
     }),
   );
+
+const main = async () => {
+  const result = await runSteps({ name: "hello" });
+
+  console.log(result);
+};
+
+main();
