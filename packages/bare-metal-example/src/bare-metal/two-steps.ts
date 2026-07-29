@@ -2,15 +2,7 @@ function normalizeName(name: string) {
   return name.trim();
 }
 
-const main = async () => {
-  const result = await runSteps({ name: "hello" });
-
-  console.log(result);
-};
-
-main();
-
-class LoremRunSteps {
+class LoremRunStepsAction {
   public input: { name: string; };
   declare public firstStep: string;
   declare public lastStep: number;
@@ -37,4 +29,12 @@ class LoremRunSteps {
 }
 
 export const runSteps = (input: { name: string; }) =>
-  new LoremRunSteps(input).run();
+  new LoremRunStepsAction(input).run();
+
+const main = async () => {
+  const result = await runSteps({ name: "hello" });
+
+  console.log(result);
+};
+
+main();

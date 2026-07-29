@@ -1,5 +1,4 @@
 import {
-  ImportDeclaration,
   Node,
   Project,
   QuoteKind,
@@ -22,6 +21,7 @@ type ActionSpec = {
   actorName: string;
   actionName: string;
   inputType: string | null;
+  actorDeclaration: import("ts-morph").VariableStatement;
   declaration: import("ts-morph").VariableStatement;
   steps: StepSpec[];
 };
@@ -36,6 +36,12 @@ type StepSpec = {
 type FunctionReturnInfo = {
   propertyType: string;
   shouldAwait: boolean;
+};
+
+type TextEdit = {
+  start: number;
+  end: number;
+  text: string;
 };
 
 export function morph(sourceText: string, options: MorphOptions = {}): string {
@@ -66,10 +72,7 @@ export function morph(sourceText: string, options: MorphOptions = {}): string {
     throw new Error("No TaskWish actor action chain found.");
   }
 
-  const preservedSource = preserveNonActorSource(sourceFile, actions);
-  const generatedSource = actions.map(printAction).join("\n\n");
-
-  return [preservedSource, generatedSource].filter(Boolean).join("\n\n");
+  return applyBareMetalReplacements(sourceText, sourceFile, actions).trim();
 }
 
 export const transform = morph;
@@ -120,6 +123,7 @@ function findActionSpecs(sourceFile: SourceFile): ActionSpec[] {
       actorName: actor.actorName,
       actionName: exportedActionName,
       inputType,
+      actorDeclaration: actor.declaration,
       declaration: variableStatement,
       steps: runCall.getArguments().map(parseStep).filter(isDefined),
     });
@@ -184,44 +188,94 @@ function actorCallFromInitializer(
   return receiver;
 }
 
-function preserveNonActorSource(
+function applyBareMetalReplacements(
+  sourceText: string,
   sourceFile: SourceFile,
   actions: ActionSpec[],
 ): string {
-  const actorDeclarations = findActorBindings(sourceFile);
-  const declarationsToRemove = new Set<import("ts-morph").VariableStatement>();
+  const edits: TextEdit[] = taskWishImportEdits(sourceText, sourceFile);
+  const actorDeclarations = new Set<import("ts-morph").VariableStatement>();
 
-  for (const actor of actorDeclarations.values()) {
-    declarationsToRemove.add(actor.declaration);
-  }
   for (const action of actions) {
-    declarationsToRemove.add(action.declaration);
+    edits.push({
+      start: action.declaration.getStart(),
+      end: action.declaration.getEnd(),
+      text: printAction(action),
+    });
+    actorDeclarations.add(action.actorDeclaration);
   }
 
-  for (const statement of declarationsToRemove) {
-    statement.remove();
+  for (const statement of actorDeclarations) {
+    edits.push(removeNodeEdit(sourceText, statement));
   }
 
-  for (const importDeclaration of sourceFile.getImportDeclarations()) {
-    removeTaskWishSpecifiers(importDeclaration);
-  }
-
-  return sourceFile.getFullText().trim();
+  return applyTextEdits(sourceText, edits);
 }
 
-function removeTaskWishSpecifiers(importDeclaration: ImportDeclaration): void {
-  for (const namedImport of importDeclaration.getNamedImports()) {
-    const name = namedImport.getName();
-    if (name === "Actor" || name === "Step") namedImport.remove();
+function taskWishImportEdits(
+  sourceText: string,
+  sourceFile: SourceFile,
+): TextEdit[] {
+  const edits: TextEdit[] = [];
+
+  for (const importDeclaration of sourceFile.getImportDeclarations()) {
+    const namedImports = importDeclaration.getNamedImports();
+    const remainingImports = namedImports.filter((namedImport) => {
+      const name = namedImport.getName();
+      return name !== "Actor" && name !== "Step";
+    });
+
+    if (remainingImports.length === namedImports.length) continue;
+
+    if (
+      remainingImports.length === 0 &&
+      !importDeclaration.getDefaultImport() &&
+      !importDeclaration.getNamespaceImport()
+    ) {
+      edits.push(removeNodeEdit(sourceText, importDeclaration));
+      continue;
+    }
+
+    if (remainingImports.length > 0) {
+      edits.push({
+        start: namedImports[0]!.getStart(),
+        end: namedImports.at(-1)!.getEnd(),
+        text: remainingImports
+          .map((namedImport) => namedImport.getText())
+          .join(", "),
+      });
+    }
   }
 
-  if (
-    importDeclaration.getNamedImports().length === 0 &&
-    !importDeclaration.getDefaultImport() &&
-    !importDeclaration.getNamespaceImport()
-  ) {
-    importDeclaration.remove();
+  return edits;
+}
+
+function removeNodeEdit(
+  sourceText: string,
+  node: Node,
+): TextEdit {
+  let end = node.getEnd();
+
+  while (end < sourceText.length && /\s/.test(sourceText[end] ?? "")) {
+    end++;
   }
+
+  return {
+    start: node.getStart(),
+    end,
+    text: "",
+  };
+}
+
+function applyTextEdits(sourceText: string, edits: TextEdit[]): string {
+  const orderedEdits = [...edits].sort((a, b) => b.start - a.start);
+  let output = sourceText;
+
+  for (const edit of orderedEdits) {
+    output = output.slice(0, edit.start) + edit.text + output.slice(edit.end);
+  }
+
+  return output;
 }
 
 function collectCallChain(call: Node): {
@@ -454,7 +508,7 @@ function printAction(action: ActionSpec): string {
     throw new Error(`${action.actorName}.${action.actionName} has no Step calls.`);
   }
 
-  const className = `${action.actorName}${toPascalCase(action.actionName)}`;
+  const className = `${action.actorName}${toPascalCase(action.actionName)}Action`;
   const lines: string[] = [`class ${className} {`];
 
   if (action.inputType) {
