@@ -29,8 +29,8 @@ type ActionSpec = {
 type StepSpec = {
   name: string;
   propertyType: string;
-  methodText: string;
-  shouldAwait: boolean;
+  blockText: string;
+  useBreakBlock: boolean;
 };
 
 type FunctionReturnInfo = {
@@ -317,18 +317,171 @@ function parseStep(node: Node): StepSpec | null {
   if (!handler || !Node.isFunctionExpression(handler)) return null;
 
   const name = nameArg.getLiteralText();
-  const bodyText = normalizeBlock(handler.getBodyText() ?? "");
   const returnInfo = inferFunctionReturn(handler);
+  const useBreakBlock = needsBreakBlock(handler);
+  const blockLabel = useBreakBlock ? `${name}Block` : null;
 
   return {
     name,
     propertyType: returnInfo.propertyType,
-    methodText: `${handler.isAsync() ? "async " : ""}#${name}() {\n${indent(
-      bodyText,
-      2,
-    )}\n}`,
-    shouldAwait: returnInfo.shouldAwait,
+    blockText: rewriteStepBody(
+      handler,
+      name,
+      blockLabel,
+      returnInfo.shouldAwait,
+    ),
+    useBreakBlock,
   };
+}
+
+let stepBodyProbeId = 0;
+
+function rewriteStepBody(
+  handler: import("ts-morph").FunctionExpression,
+  stepName: string,
+  blockLabel: string | null,
+  shouldAwait: boolean,
+): string {
+  const bodyText = functionBodyText(handler);
+  const project = handler.getProject();
+  const probe = project.createSourceFile(
+    `${handler.getSourceFile().getDirectoryPath()}/.taskwish-morph-step-body-${
+      stepBodyProbeId++
+    }.ts`,
+    `function __step__() {\n${bodyText}\n}`,
+    { overwrite: true },
+  );
+
+  try {
+    const fn = probe.getFunctionOrThrow("__step__");
+    const body = fn.getBodyOrThrow();
+
+    for (const propertyAccess of body
+      .getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+      .reverse()) {
+      if (!belongsToFunction(propertyAccess, fn)) continue;
+
+      const expression = unwrapExpression(propertyAccess.getExpression());
+      if (!Node.isThisExpression(expression)) continue;
+
+      propertyAccess.replaceWithText(propertyAccess.getName());
+    }
+
+    const rewrittenBody = fn.getBodyOrThrow();
+    const probeText = probe.getFullText();
+    const contentStart = rewrittenBody.getStart() + 1;
+    const contentEnd = rewrittenBody.getEnd() - 1;
+    let contentText = probeText.slice(contentStart, contentEnd);
+    const returnEdits = rewrittenBody
+      .getDescendantsOfKind(SyntaxKind.ReturnStatement)
+      .filter((returnStatement) => belongsToFunction(returnStatement, fn))
+      .map((returnStatement) => {
+        const expression = returnStatement.getExpression();
+        const assignmentExpression = expression
+          ? shouldAwait && !Node.isAwaitExpression(unwrapExpression(expression))
+            ? `await ${awaitOperandText(expression)}`
+            : expression.getText()
+          : "undefined";
+        const lineStart =
+          probeText.lastIndexOf("\n", returnStatement.getStart()) + 1;
+        const indentation = probeText.slice(lineStart, returnStatement.getStart());
+
+        return {
+          start: returnStatement.getStart() - contentStart,
+          end: returnStatement.getEnd() - contentStart,
+          text: blockLabel
+            ? `${stepName} = ${assignmentExpression};\n${indentation}break ${blockLabel};`
+            : `${stepName} = ${assignmentExpression};`,
+        };
+      });
+
+    for (const edit of returnEdits.sort((a, b) => b.start - a.start)) {
+      contentText =
+        contentText.slice(0, edit.start) +
+        edit.text +
+        contentText.slice(edit.end);
+    }
+
+    return normalizeBlock(contentText.replace(/^\s*\n/, ""));
+  } finally {
+    project.removeSourceFile(probe);
+  }
+}
+
+function needsBreakBlock(fn: import("ts-morph").FunctionExpression): boolean {
+  const returns = ownReturnStatements(fn);
+  if (returns.length !== 1) return returns.length > 0;
+
+  return !isDirectFinalReturn(returns[0]!, fn);
+}
+
+function ownReturnStatements(
+  fn: import("ts-morph").FunctionExpression,
+): import("ts-morph").ReturnStatement[] {
+  return fn
+    .getDescendantsOfKind(SyntaxKind.ReturnStatement)
+    .filter((returnStatement) => belongsToFunction(returnStatement, fn));
+}
+
+function isDirectFinalReturn(
+  returnStatement: import("ts-morph").ReturnStatement,
+  fn: import("ts-morph").FunctionExpression,
+): boolean {
+  const body = fn.getBody();
+  if (!body || !Node.isBlock(body)) return false;
+
+  return (
+    returnStatement.getParent() === body &&
+    body.getStatements().at(-1) === returnStatement
+  );
+}
+
+function belongsToFunction(
+  node: Node,
+  owner: Node,
+): boolean {
+  for (const ancestor of node.getAncestors()) {
+    if (ancestor === owner) return true;
+    if (isFunctionLikeBoundary(ancestor)) return false;
+  }
+
+  return false;
+}
+
+function isFunctionLikeBoundary(node: Node): boolean {
+  return (
+    Node.isFunctionDeclaration(node) ||
+    Node.isFunctionExpression(node) ||
+    Node.isArrowFunction(node) ||
+    Node.isMethodDeclaration(node) ||
+    Node.isGetAccessorDeclaration(node) ||
+    Node.isSetAccessorDeclaration(node) ||
+    Node.isConstructorDeclaration(node)
+  );
+}
+
+function awaitOperandText(expression: Node): string {
+  const node = unwrapExpression(expression);
+
+  if (
+    Node.isCallExpression(node) ||
+    Node.isIdentifier(node) ||
+    Node.isPropertyAccessExpression(node) ||
+    Node.isElementAccessExpression(node)
+  ) {
+    return expression.getText();
+  }
+
+  return `(${expression.getText()})`;
+}
+
+function functionBodyText(
+  fn: import("ts-morph").FunctionExpression,
+): string {
+  const body = fn.getBody();
+  if (!body) return "";
+
+  return normalizeBlock(body.getText().slice(1, -1).replace(/^\s*\n/, ""));
 }
 
 function inputSchemaToType(node: Node | undefined): string | null {
@@ -373,29 +526,29 @@ function inferArkTypeSchema(node: Node): string | null {
 function inferFunctionReturn(
   fn: import("ts-morph").FunctionExpression,
 ): FunctionReturnInfo {
-  const returns = fn.getDescendantsOfKind(SyntaxKind.ReturnStatement);
-  if (returns.length !== 1) {
+  const returns = ownReturnStatements(fn);
+
+  if (returns.length === 0) {
     return {
       propertyType: "unknown",
       shouldAwait: fn.isAsync(),
     };
   }
 
-  const expression = returns[0]?.getExpression();
-  if (!expression) {
-    return {
-      propertyType: "void",
-      shouldAwait: fn.isAsync(),
-    };
-  }
-
-  const returnInfo = inferExpressionReturn(expression);
-  const shouldAwait = fn.isAsync() || returnInfo.shouldAwait;
+  const returnInfos = returns.map((returnStatement) => {
+    const expression = returnStatement.getExpression();
+    return expression
+      ? inferExpressionReturn(expression)
+      : expressionReturnInfo("void");
+  });
+  const shouldAwait = fn.isAsync() || returnInfos.some((info) => info.shouldAwait);
+  const propertyTypes = returnInfos.map((info) =>
+    shouldAwait ? info.awaitedType ?? info.propertyType : info.propertyType,
+  );
+  const uniquePropertyTypes = [...new Set(propertyTypes)];
 
   return {
-    propertyType: shouldAwait
-      ? returnInfo.awaitedType ?? returnInfo.propertyType
-      : returnInfo.propertyType,
+    propertyType: uniquePropertyTypes.join(" | "),
     shouldAwait,
   };
 }
@@ -508,62 +661,24 @@ function printAction(action: ActionSpec): string {
     throw new Error(`${action.actorName}.${action.actionName} has no Step calls.`);
   }
 
-  const className = `${action.actorName}${toPascalCase(action.actionName)}Action`;
-  const lines: string[] = [`class ${className} {`];
-
-  if (action.inputType) {
-    lines.push(`  public input: ${action.inputType};`);
-  }
+  const parameterText = action.inputType ? `input: ${action.inputType}` : "";
+  const lines: string[] = [
+    `export async function ${action.actionName}(${parameterText}) {`,
+  ];
 
   for (const step of action.steps) {
-    lines.push(`  declare public ${step.name}: ${step.propertyType};`);
-  }
-
-  if (action.inputType) {
-    lines.push("");
-    lines.push(`  constructor(input: ${action.inputType}) {`);
-    lines.push("    this.input = input;");
+    lines.push(`  let ${step.name}: ${step.propertyType};`);
+    lines.push(step.useBreakBlock ? `  ${step.name}Block: {` : "  {");
+    lines.push(indent(step.blockText, 4));
     lines.push("  }");
-  }
-
-  for (const step of action.steps) {
-    lines.push("");
-    lines.push(indent(step.methodText, 2));
-  }
-
-  lines.push("");
-  lines.push("  async run() {");
-  for (const step of action.steps) {
-    const invocation = `this.#${step.name}()`;
-    lines.push(
-      `    this.${step.name} = ${step.shouldAwait ? `await ${invocation}` : invocation};`,
-    );
     lines.push("");
   }
+
   const lastStep = action.steps.at(-1)!;
-  lines.push(`    return this.${lastStep.name};`);
-  lines.push("  }");
+  lines.push(`  return ${lastStep.name};`);
   lines.push("}");
-  lines.push("");
-
-  if (action.inputType) {
-    lines.push(
-      `export const ${action.actionName} = (input: ${action.inputType}) =>`,
-    );
-    lines.push(`  new ${className}(input).run();`);
-  } else {
-    lines.push(`export const ${action.actionName} = () => new ${className}().run();`);
-  }
 
   return lines.join("\n");
-}
-
-function toPascalCase(value: string): string {
-  return value
-    .replace(/(^|[^a-zA-Z0-9]+)([a-zA-Z0-9])/g, (_, __, char: string) =>
-      char.toUpperCase(),
-    )
-    .replace(/[^a-zA-Z0-9]/g, "");
 }
 
 function indent(value: string, spaces: number): string {
