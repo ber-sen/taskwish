@@ -2,34 +2,13 @@ function normalizeName(name: string) {
   return name.trim();
 }
 
-class LoremRunStepsAction {
-  public input: { name: string; };
-  declare public firstStep: string;
-  declare public lastStep: number;
+export async function runSteps(input: { name: string; }) {
+  const firstStep = `Hello ${normalizeName(input.name)}`;
 
-  constructor(input: { name: string; }) {
-    this.input = input;
-  }
+  const lastStep = firstStep.length;
 
-  #firstStep() {
-    return `Hello ${normalizeName(this.input.name)}`;
-  }
-
-  #lastStep() {
-    return this.firstStep.length;
-  }
-
-  async run() {
-    this.firstStep = this.#firstStep();
-
-    this.lastStep = this.#lastStep();
-
-    return this.lastStep;
-  }
+  return lastStep;
 }
-
-export const runSteps = (input: { name: string; }) =>
-  new LoremRunStepsAction(input).run();
 
 const main = async () => {
   const result = await runSteps({ name: "hello" });

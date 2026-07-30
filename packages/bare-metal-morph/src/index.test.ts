@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { morph } from ".";
 
 describe("morph", () => {
-  test("converts a TaskWish actor step chain to a class runner", () => {
+  test("converts a TaskWish actor step chain to an async function runner", () => {
     const source = `import { Actor, Step } from "../../src";
 
 const { MyActor } = Actor("MyActor");
@@ -24,34 +24,95 @@ export const { runSteps } = MyActor()
   );
 `;
 
-    expect(morph(source)).toBe(`class MyActorRunStepsAction {
-  public input: { message: string; };
-  declare public firstStep: string;
-  declare public lastStep: number;
+    expect(morph(source)).toBe(`export async function runSteps(input: { message: string; }) {
+  const firstStep = "step 1";
 
-  constructor(input: { message: string; }) {
-    this.input = input;
+  const lastStep = firstStep.length;
+
+  return lastStep;
+}`);
+  });
+
+  test("preserves early returns by breaking out of the step block", () => {
+    const source = `import { Actor, Step } from "../../src";
+
+const { MyActor } = Actor("MyActor");
+
+export const { runSteps } = MyActor()
+  .on("Command", "runSteps")
+
+  .input({ message: "string" })
+
+  .run(
+    Step("firstStep", function () {
+      if (this.input.message.trim() === "") {
+        return "empty";
+      }
+
+      return "filled";
+    }),
+
+    Step("lastStep", function () {
+      return this.firstStep.length;
+    }),
+  );
+`;
+
+    expect(morph(source)).toBe(`export async function runSteps(input: { message: string; }) {
+  let firstStep: string;
+  firstStepBlock: {
+    if (input.message.trim() === "") {
+      firstStep = "empty";
+      break firstStepBlock;
+    }
+
+    firstStep = "filled";
+    break firstStepBlock;
   }
 
-  #firstStep() {
-    return "step 1";
+  const lastStep = firstStep.length;
+
+  return lastStep;
+}`);
+  });
+
+  test("keeps blocks for multi-expression step handlers", () => {
+    const source = `import { Actor, Step } from "../../src";
+
+const { MyActor } = Actor("MyActor");
+
+export const { runSteps } = MyActor()
+  .on("Command", "runSteps")
+
+  .input({ message: "string" })
+
+  .run(
+    Step("firstStep", function () {
+      const normalized = this.input.message.trim();
+      const upper = normalized.toUpperCase();
+
+      return upper;
+    }),
+
+    Step("lastStep", function () {
+      return this.firstStep.length;
+    }),
+  );
+`;
+
+    expect(morph(source)).toBe(`export async function runSteps(input: { message: string; }) {
+  let firstStep: unknown;
+  {
+    const normalized = input.message.trim();
+    const upper = normalized.toUpperCase();
+
+    firstStep = upper;
   }
 
-  #lastStep() {
-    return this.firstStep.length;
-  }
+  const lastStep = firstStep.length;
 
-  async run() {
-    this.firstStep = this.#firstStep();
-
-    this.lastStep = this.#lastStep();
-
-    return this.lastStep;
-  }
-}
-
-export const runSteps = (input: { message: string; }) =>
-  new MyActorRunStepsAction(input).run();`);
+  return lastStep;
+}`);
   });
 
   test("leaves helper functions outside the actor untouched", () => {
@@ -83,34 +144,13 @@ export const { runSteps } = MyActor()
   return message.trim().toUpperCase();
 }
 
-class MyActorRunStepsAction {
-  public input: { message: string; };
-  declare public firstStep: string;
-  declare public lastStep: number;
+export async function runSteps(input: { message: string; }) {
+  const firstStep = normalizeMessage(input.message);
 
-  constructor(input: { message: string; }) {
-    this.input = input;
-  }
+  const lastStep = firstStep.length;
 
-  #firstStep() {
-    return normalizeMessage(this.input.message);
-  }
-
-  #lastStep() {
-    return this.firstStep.length;
-  }
-
-  async run() {
-    this.firstStep = this.#firstStep();
-
-    this.lastStep = this.#lastStep();
-
-    return this.lastStep;
-  }
-}
-
-export const runSteps = (input: { message: string; }) =>
-  new MyActorRunStepsAction(input).run();`);
+  return lastStep;
+}`);
   });
 
   test("keeps declarations after the action in place", () => {
@@ -146,27 +186,11 @@ main();
   return message.trim().toUpperCase();
 }
 
-class MyActorRunStepsAction {
-  public input: { message: string; };
-  declare public firstStep: string;
+export async function runSteps(input: { message: string; }) {
+  const firstStep = normalizeMessage(input.message);
 
-  constructor(input: { message: string; }) {
-    this.input = input;
-  }
-
-  #firstStep() {
-    return normalizeMessage(this.input.message);
-  }
-
-  async run() {
-    this.firstStep = this.#firstStep();
-
-    return this.firstStep;
-  }
+  return firstStep;
 }
-
-export const runSteps = (input: { message: string; }) =>
-  new MyActorRunStepsAction(input).run();
 
 const main = async () => {
   const result = await runSteps({ message: "hello" });
@@ -198,34 +222,13 @@ export const { runSteps } = MyActor()
   );
 `;
 
-    expect(morph(source)).toBe(`class MyActorRunStepsAction {
-  public input: { name: string; };
-  declare public firstStep: string;
-  declare public lastStep: string;
+    expect(morph(source)).toBe(`export async function runSteps(input: { name: string; }) {
+  const firstStep = \`Hello \${input.name}\`;
 
-  constructor(input: { name: string; }) {
-    this.input = input;
-  }
+  const lastStep = \`Hello \${input.name}\`;
 
-  #firstStep() {
-    return \`Hello \${this.input.name}\`;
-  }
-
-  #lastStep() {
-    return \`Hello \${this.input.name}\`;
-  }
-
-  async run() {
-    this.firstStep = this.#firstStep();
-
-    this.lastStep = this.#lastStep();
-
-    return this.lastStep;
-  }
-}
-
-export const runSteps = (input: { name: string; }) =>
-  new MyActorRunStepsAction(input).run();`);
+  return lastStep;
+}`);
   });
 
   test("uses ArkType inference for input schemas", () => {
@@ -245,30 +248,14 @@ export const { runSteps } = MyActor()
   );
 `;
 
-    expect(morph(source)).toBe(`class MyActorRunStepsAction {
-  public input: { name: string; tags: string[]; age?: number | undefined; };
-  declare public firstStep: number;
+    expect(morph(source)).toBe(`export async function runSteps(input: { name: string; tags: string[]; age?: number | undefined; }) {
+  const firstStep = input.tags.length;
 
-  constructor(input: { name: string; tags: string[]; age?: number | undefined; }) {
-    this.input = input;
-  }
-
-  #firstStep() {
-    return this.input.tags.length;
-  }
-
-  async run() {
-    this.firstStep = this.#firstStep();
-
-    return this.firstStep;
-  }
-}
-
-export const runSteps = (input: { name: string; tags: string[]; age?: number | undefined; }) =>
-  new MyActorRunStepsAction(input).run();`);
+  return firstStep;
+}`);
   });
 
-  test("only emits async step methods for async handlers", () => {
+  test("awaits async step handlers inline", () => {
     const source = `import { Actor, Step } from "../../src";
 
 async function loadGreeting(name: string) {
@@ -297,34 +284,13 @@ export const { runSteps } = MyActor()
   return \`Hello \${name}\`;
 }
 
-class MyActorRunStepsAction {
-  public input: { name: string; };
-  declare public firstStep: string;
-  declare public lastStep: number;
+export async function runSteps(input: { name: string; }) {
+  const firstStep = await loadGreeting(input.name);
 
-  constructor(input: { name: string; }) {
-    this.input = input;
-  }
+  const lastStep = firstStep.length;
 
-  async #firstStep() {
-    return await loadGreeting(this.input.name);
-  }
-
-  #lastStep() {
-    return this.firstStep.length;
-  }
-
-  async run() {
-    this.firstStep = await this.#firstStep();
-
-    this.lastStep = this.#lastStep();
-
-    return this.lastStep;
-  }
-}
-
-export const runSteps = (input: { name: string; }) =>
-  new MyActorRunStepsAction(input).run();`);
+  return lastStep;
+}`);
   });
 
   test("awaits non-async step methods that return promises", () => {
@@ -356,33 +322,12 @@ export const { runSteps } = MyActor()
   return Promise.resolve(\`Hello \${name}\`);
 }
 
-class MyActorRunStepsAction {
-  public input: { name: string; };
-  declare public firstStep: string;
-  declare public lastStep: number;
+export async function runSteps(input: { name: string; }) {
+  const firstStep = await loadGreeting(input.name);
 
-  constructor(input: { name: string; }) {
-    this.input = input;
-  }
+  const lastStep = firstStep.length;
 
-  #firstStep() {
-    return loadGreeting(this.input.name);
-  }
-
-  #lastStep() {
-    return this.firstStep.length;
-  }
-
-  async run() {
-    this.firstStep = await this.#firstStep();
-
-    this.lastStep = this.#lastStep();
-
-    return this.lastStep;
-  }
-}
-
-export const runSteps = (input: { name: string; }) =>
-  new MyActorRunStepsAction(input).run();`);
+  return lastStep;
+}`);
   });
 });
