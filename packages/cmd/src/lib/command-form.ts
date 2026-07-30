@@ -2,7 +2,7 @@ import type {
   CommandCenterInputField,
   CommandCenterJsonSchema,
 } from "../types";
-import { sentenceFromIdentifier, uppercaseFirst } from "./command-center-text";
+import { sentenceFromIdentifier, uppercaseFirst } from "./cmd-text";
 
 export type ActionRunResult = {
   status: number;

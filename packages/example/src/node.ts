@@ -1,4 +1,4 @@
-import { CommandCenter } from "@taskwish/command-center";
+import { CommandCenter } from "@taskwish/cmd";
 import { Node } from "taskwish";
 
 await Node("example", {

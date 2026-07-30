@@ -20,7 +20,7 @@ import {
   schemaType,
   type CommandFormValues,
 } from "../../lib/command-form";
-import { sentenceFromIdentifier } from "../../lib/command-center-text";
+import { sentenceFromIdentifier } from "../../lib/cmd-text";
 import type { CommandCenterInputField } from "../../types";
 import { FieldDescription } from "./field-description";
 

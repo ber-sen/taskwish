@@ -1,6 +1,6 @@
 import { createInterface } from "node:readline/promises";
 import { type as arkType } from "arktype";
-import commandCenterIndex from "@taskwish/command-center/index.html";
+import commandCenterIndex from "@taskwish/cmd/index.html";
 import type {
   CommandCenterAction,
   CommandCenterConfig,
@@ -353,7 +353,7 @@ export function createCommandCenterRoutes(
   return {
     "/": commandCenterIndex,
     "/*": commandCenterIndex,
-    [`${options.prefix}/command-center/config`]: {
+    [`${options.prefix}/cmd/config`]: {
       GET: config,
     },
   };
@@ -406,7 +406,7 @@ export function CommandCenter(
   options: CommandCenterOptions = {},
 ): CommandCenterApp {
   return {
-    name: "command-center",
+    name: "cmd",
     routes(context) {
       return createCommandCenterRoutes(context.registry, {
         nodeName: context.nodeName,

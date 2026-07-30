@@ -1,6 +1,6 @@
 import type { CommandCenterAction } from "../types";
 import { actorColor } from "./actor-color";
-import { uppercaseFirst } from "./command-center-text";
+import { uppercaseFirst } from "./cmd-text";
 
 function splitActionName(
   id: string,

@@ -1,5 +1,5 @@
 {
-  "name": "@taskwish/command-center",
+  "name": "@taskwish/cmd",
   "publishConfig": {
     "access": "public"
   },

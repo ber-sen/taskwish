@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Command as CommandPrimitive } from "cmdk";
 import { Search } from "lucide-react";
 
-import { ActionCommandItem } from "./components/command-center/action-command-item";
-import { ActionDrawerHeader } from "./components/command-center/action-drawer-header";
-import { ActionForm } from "./components/command-center/action-form";
-import { TaskWishLogo } from "./components/command-center/taskwish-logo";
+import { ActionCommandItem } from "./components/cmd/action-command-item";
+import { ActionDrawerHeader } from "./components/cmd/action-drawer-header";
+import { ActionForm } from "./components/cmd/action-form";
+import { TaskWishLogo } from "./components/cmd/taskwish-logo";
 import {
   Drawer,
   DrawerClose,
@@ -22,7 +22,7 @@ type LoadState =
   | { status: "error"; message: string };
 
 async function loadConfig(): Promise<CommandCenterConfig> {
-  const response = await fetch("/tw/command-center/config");
+  const response = await fetch("/tw/cmd/config");
   if (!response.ok) {
     throw new Error(`Unable to load command center (${response.status})`);
   }
@@ -153,7 +153,7 @@ export function CommandCenter() {
 
   const submitSelectedAction = () => {
     document
-      .getElementById("command-center-action-form")
+      .getElementById("cmd-action-form")
       ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
   };
 
@@ -243,7 +243,7 @@ export function CommandCenter() {
               </div>
 
               <DrawerFooter className="shrink-0 flex-row border-t bg-background mini-app:hidden">
-                <Button type="submit" form="command-center-action-form">
+                <Button type="submit" form="cmd-action-form">
                   Run
                 </Button>
                 <DrawerClose asChild>
