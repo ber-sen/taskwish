@@ -69,7 +69,7 @@ export function ActionForm({
 
   return (
     <form
-      id="command-center-action-form"
+      id="cmd-action-form"
       className="space-y-4"
       onSubmit={form.handleSubmit(submit)}
     >

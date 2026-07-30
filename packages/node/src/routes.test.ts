@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { Actor, Event } from "@taskwish/core";
-import { CommandCenter } from "@taskwish/command-center";
+import { CommandCenter } from "@taskwish/cmd";
 import { createNodeRegistry, createRoutes } from "./index";
 import { apiKey, auth } from "./test-helpers";
 import type { NodeRouteMap, NodeRoutes } from "./types";
@@ -87,7 +87,7 @@ test("does not export command center routes by default", async () => {
 
   expect(routes["/"]).toBeUndefined();
   expect(routes["/*"]).toBeUndefined();
-  expect(routes["/tw/command-center/config"]).toBeUndefined();
+  expect(routes["/tw/cmd/config"]).toBeUndefined();
 });
 
 test("exports command center config when the app is installed", async () => {
@@ -118,10 +118,10 @@ test("exports command center config when the app is installed", async () => {
     { apiKey, nodeName: "test-node", apps: [CommandCenter()] },
   );
 
-  const route = routeMap(routes, "/tw/command-center/config");
+  const route = routeMap(routes, "/tw/cmd/config");
 
   const response = await route.GET!(
-    new Request("http://localhost/tw/command-center/config"),
+    new Request("http://localhost/tw/cmd/config"),
   );
 
   expect(response.status).toBe(200);
