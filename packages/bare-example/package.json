@@ -1,8 +1,8 @@
 {
-  "name": "@taskwish/bare-metal-example",
+  "name": "@taskwish/bare-example",
   "version": "0.0.1",
   "author": "Bersen Pajaziti",
-  "description": "Runnable TaskWish bare-metal example",
+  "description": "Runnable TaskWish bare example",
   "license": "Elastic-2.0",
   "private": true,
   "scripts": {
@@ -11,7 +11,7 @@
   },
   "type": "module",
   "dependencies": {
-    "@taskwish/bare-metal": "workspace:*",
+    "@taskwish/bare": "workspace:*",
     "taskwish": "^0.0.8"
   },
   "devDependencies": {

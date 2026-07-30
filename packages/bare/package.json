@@ -1,5 +1,5 @@
 {
-  "name": "@taskwish/bare-metal",
+  "name": "@taskwish/bare",
   "publishConfig": {
     "access": "public",
     "exports": {
@@ -12,7 +12,7 @@
     "types": "./dist/index.d.ts"
   },
   "version": "0.0.1",
-  "description": "Transform TaskWish actor code into bare-metal TypeScript runners",
+  "description": "Transform TaskWish actor code into bare TypeScript runners",
   "license": "Elastic-2.0",
   "author": "Bersen Pajaziti",
   "exports": {
