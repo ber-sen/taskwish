@@ -9,11 +9,22 @@ function actorHash(actor: string): number {
   return hash;
 }
 
+const actorColors = [
+  "#be123c",
+  "#a21caf",
+  "#0e7490",
+  "#047857",
+  "#4338ca",
+  "#b45309",
+  "#c2410c",
+  "#7e22ce",
+  "#0369a1",
+  "#15803d",
+  "#b91c1c",
+  "#6d28d9",
+];
+
 export function actorColor(actor: string): string {
   const hash = actorHash(actor);
-  const hue = hash % 360;
-  const saturation = 72;
-  const lightness = 48;
-
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  return actorColors[hash % actorColors.length]!;
 }

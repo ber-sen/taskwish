@@ -11,7 +11,7 @@
   },
   "type": "module",
   "dependencies": {
-    "@taskwish/bare-metal-morph": "workspace:*",
+    "@taskwish/bare-metal": "workspace:*",
     "taskwish": "^0.0.8"
   },
   "devDependencies": {
