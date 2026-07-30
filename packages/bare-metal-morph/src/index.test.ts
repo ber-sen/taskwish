@@ -25,15 +25,9 @@ export const { runSteps } = MyActor()
 `;
 
     expect(morph(source)).toBe(`export async function runSteps(input: { message: string; }) {
-  let firstStep: string;
-  {
-    firstStep = "step 1";
-  }
+  const firstStep = "step 1";
 
-  let lastStep: number;
-  {
-    lastStep = firstStep.length;
-  }
+  const lastStep = firstStep.length;
 
   return lastStep;
 }`);
@@ -76,10 +70,46 @@ export const { runSteps } = MyActor()
     break firstStepBlock;
   }
 
-  let lastStep: number;
+  const lastStep = firstStep.length;
+
+  return lastStep;
+}`);
+  });
+
+  test("keeps blocks for multi-expression step handlers", () => {
+    const source = `import { Actor, Step } from "../../src";
+
+const { MyActor } = Actor("MyActor");
+
+export const { runSteps } = MyActor()
+  .on("Command", "runSteps")
+
+  .input({ message: "string" })
+
+  .run(
+    Step("firstStep", function () {
+      const normalized = this.input.message.trim();
+      const upper = normalized.toUpperCase();
+
+      return upper;
+    }),
+
+    Step("lastStep", function () {
+      return this.firstStep.length;
+    }),
+  );
+`;
+
+    expect(morph(source)).toBe(`export async function runSteps(input: { message: string; }) {
+  let firstStep: unknown;
   {
-    lastStep = firstStep.length;
+    const normalized = input.message.trim();
+    const upper = normalized.toUpperCase();
+
+    firstStep = upper;
   }
+
+  const lastStep = firstStep.length;
 
   return lastStep;
 }`);
@@ -115,15 +145,9 @@ export const { runSteps } = MyActor()
 }
 
 export async function runSteps(input: { message: string; }) {
-  let firstStep: string;
-  {
-    firstStep = normalizeMessage(input.message);
-  }
+  const firstStep = normalizeMessage(input.message);
 
-  let lastStep: number;
-  {
-    lastStep = firstStep.length;
-  }
+  const lastStep = firstStep.length;
 
   return lastStep;
 }`);
@@ -163,10 +187,7 @@ main();
 }
 
 export async function runSteps(input: { message: string; }) {
-  let firstStep: string;
-  {
-    firstStep = normalizeMessage(input.message);
-  }
+  const firstStep = normalizeMessage(input.message);
 
   return firstStep;
 }
@@ -202,15 +223,9 @@ export const { runSteps } = MyActor()
 `;
 
     expect(morph(source)).toBe(`export async function runSteps(input: { name: string; }) {
-  let firstStep: string;
-  {
-    firstStep = \`Hello \${input.name}\`;
-  }
+  const firstStep = \`Hello \${input.name}\`;
 
-  let lastStep: string;
-  {
-    lastStep = \`Hello \${input.name}\`;
-  }
+  const lastStep = \`Hello \${input.name}\`;
 
   return lastStep;
 }`);
@@ -234,10 +249,7 @@ export const { runSteps } = MyActor()
 `;
 
     expect(morph(source)).toBe(`export async function runSteps(input: { name: string; tags: string[]; age?: number | undefined; }) {
-  let firstStep: number;
-  {
-    firstStep = input.tags.length;
-  }
+  const firstStep = input.tags.length;
 
   return firstStep;
 }`);
@@ -273,15 +285,9 @@ export const { runSteps } = MyActor()
 }
 
 export async function runSteps(input: { name: string; }) {
-  let firstStep: string;
-  {
-    firstStep = await loadGreeting(input.name);
-  }
+  const firstStep = await loadGreeting(input.name);
 
-  let lastStep: number;
-  {
-    lastStep = firstStep.length;
-  }
+  const lastStep = firstStep.length;
 
   return lastStep;
 }`);
@@ -317,15 +323,9 @@ export const { runSteps } = MyActor()
 }
 
 export async function runSteps(input: { name: string; }) {
-  let firstStep: string;
-  {
-    firstStep = await loadGreeting(input.name);
-  }
+  const firstStep = await loadGreeting(input.name);
 
-  let lastStep: number;
-  {
-    lastStep = firstStep.length;
-  }
+  const lastStep = firstStep.length;
 
   return lastStep;
 }`);

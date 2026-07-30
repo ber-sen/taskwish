@@ -3,15 +3,9 @@ function normalizeName(name: string) {
 }
 
 export async function runSteps(input: { name: string; }) {
-  let firstStep: string;
-  {
-    firstStep = `Hello ${normalizeName(input.name)}`;
-  }
+  const firstStep = `Hello ${normalizeName(input.name)}`;
 
-  let lastStep: number;
-  {
-    lastStep = firstStep.length;
-  }
+  const lastStep = firstStep.length;
 
   return lastStep;
 }

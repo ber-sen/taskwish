@@ -30,6 +30,7 @@ type StepSpec = {
   name: string;
   propertyType: string;
   blockText: string;
+  directExpressionText: string | null;
   useBreakBlock: boolean;
 };
 
@@ -318,12 +319,17 @@ function parseStep(node: Node): StepSpec | null {
 
   const name = nameArg.getLiteralText();
   const returnInfo = inferFunctionReturn(handler);
-  const useBreakBlock = needsBreakBlock(handler);
+  const directExpressionText = rewriteDirectStepExpression(
+    handler,
+    returnInfo.shouldAwait,
+  );
+  const useBreakBlock = directExpressionText === null && needsBreakBlock(handler);
   const blockLabel = useBreakBlock ? `${name}Block` : null;
 
   return {
     name,
     propertyType: returnInfo.propertyType,
+    directExpressionText,
     blockText: rewriteStepBody(
       handler,
       name,
@@ -332,6 +338,53 @@ function parseStep(node: Node): StepSpec | null {
     ),
     useBreakBlock,
   };
+}
+
+function rewriteDirectStepExpression(
+  handler: import("ts-morph").FunctionExpression,
+  shouldAwait: boolean,
+): string | null {
+  const body = handler.getBody();
+  if (!body || !Node.isBlock(body)) return null;
+
+  const statements = body.getStatements();
+  if (statements.length !== 1) return null;
+
+  const statement = statements[0]!;
+  if (!Node.isReturnStatement(statement)) return null;
+
+  const expression = statement.getExpression();
+  if (!expression) return null;
+
+  const project = handler.getProject();
+  const probe = project.createSourceFile(
+    `${handler.getSourceFile().getDirectoryPath()}/.taskwish-morph-step-expression-${
+      stepBodyProbeId++
+    }.ts`,
+    `function __step__() {\n  return ${expression.getText()};\n}`,
+    { overwrite: true },
+  );
+
+  try {
+    const fn = probe.getFunctionOrThrow("__step__");
+    const rewrittenBody = fn.getBodyOrThrow();
+    if (!Node.isBlock(rewrittenBody)) return null;
+
+    const returnStatement = rewrittenBody
+      .getStatements()
+      .find(Node.isReturnStatement);
+
+    if (!returnStatement) return null;
+
+    rewriteThisPropertyAccesses(fn.getBodyOrThrow(), fn);
+
+    const rewrittenExpression = returnStatement.getExpression();
+    if (!rewrittenExpression) return null;
+
+    return assignmentExpressionText(rewrittenExpression, shouldAwait);
+  } finally {
+    project.removeSourceFile(probe);
+  }
 }
 
 let stepBodyProbeId = 0;
@@ -356,16 +409,7 @@ function rewriteStepBody(
     const fn = probe.getFunctionOrThrow("__step__");
     const body = fn.getBodyOrThrow();
 
-    for (const propertyAccess of body
-      .getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-      .reverse()) {
-      if (!belongsToFunction(propertyAccess, fn)) continue;
-
-      const expression = unwrapExpression(propertyAccess.getExpression());
-      if (!Node.isThisExpression(expression)) continue;
-
-      propertyAccess.replaceWithText(propertyAccess.getName());
-    }
+    rewriteThisPropertyAccesses(body, fn);
 
     const rewrittenBody = fn.getBodyOrThrow();
     const probeText = probe.getFullText();
@@ -378,9 +422,7 @@ function rewriteStepBody(
       .map((returnStatement) => {
         const expression = returnStatement.getExpression();
         const assignmentExpression = expression
-          ? shouldAwait && !Node.isAwaitExpression(unwrapExpression(expression))
-            ? `await ${awaitOperandText(expression)}`
-            : expression.getText()
+          ? assignmentExpressionText(expression, shouldAwait)
           : "undefined";
         const lineStart =
           probeText.lastIndexOf("\n", returnStatement.getStart()) + 1;
@@ -405,6 +447,24 @@ function rewriteStepBody(
     return normalizeBlock(contentText.replace(/^\s*\n/, ""));
   } finally {
     project.removeSourceFile(probe);
+  }
+}
+
+function rewriteThisPropertyAccesses(root: Node, owner: Node): void {
+  const propertyAccesses = root.getDescendantsOfKind(
+    SyntaxKind.PropertyAccessExpression,
+  );
+  if (Node.isPropertyAccessExpression(root)) {
+    propertyAccesses.unshift(root);
+  }
+
+  for (const propertyAccess of propertyAccesses.reverse()) {
+    if (!belongsToFunction(propertyAccess, owner)) continue;
+
+    const expression = unwrapExpression(propertyAccess.getExpression());
+    if (!Node.isThisExpression(expression)) continue;
+
+    propertyAccess.replaceWithText(propertyAccess.getName());
   }
 }
 
@@ -473,6 +533,12 @@ function awaitOperandText(expression: Node): string {
   }
 
   return `(${expression.getText()})`;
+}
+
+function assignmentExpressionText(expression: Node, shouldAwait: boolean): string {
+  return shouldAwait && !Node.isAwaitExpression(unwrapExpression(expression))
+    ? `await ${awaitOperandText(expression)}`
+    : expression.getText();
 }
 
 function functionBodyText(
@@ -667,10 +733,14 @@ function printAction(action: ActionSpec): string {
   ];
 
   for (const step of action.steps) {
-    lines.push(`  let ${step.name}: ${step.propertyType};`);
-    lines.push(step.useBreakBlock ? `  ${step.name}Block: {` : "  {");
-    lines.push(indent(step.blockText, 4));
-    lines.push("  }");
+    if (step.directExpressionText !== null) {
+      lines.push(`  const ${step.name} = ${step.directExpressionText};`);
+    } else {
+      lines.push(`  let ${step.name}: ${step.propertyType};`);
+      lines.push(step.useBreakBlock ? `  ${step.name}Block: {` : "  {");
+      lines.push(indent(step.blockText, 4));
+      lines.push("  }");
+    }
     lines.push("");
   }
 
