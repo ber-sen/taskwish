@@ -1,10 +1,10 @@
 {
-  "name": "@taskwish/bus",
+  "name": "@taskwish/wire",
   "publishConfig": {
     "access": "public"
   },
   "version": "0.0.1",
-  "description": "Shared TaskWish runtime event bus",
+  "description": "Shared TaskWish runtime event wire",
   "license": "Elastic-2.0",
   "author": "Bersen Pajaziti",
   "exports": {
