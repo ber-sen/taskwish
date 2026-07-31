@@ -1,2 +1,2 @@
-export * from "./actor";
+export * from "./slack";
 export * from "./postMessage"

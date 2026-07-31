@@ -1,5 +1,5 @@
 import { Step } from "@taskwish/core";
-import { Slack } from "./actor";
+import { Slack } from "./slack";
 
 import { SlackAPIClient } from "slack-web-api-client";
 import type { ChatPostMessageRequest } from "slack-web-api-client";
