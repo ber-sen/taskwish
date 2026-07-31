@@ -1,3 +1,3 @@
 import { EventEmitter } from "node:events";
 
-export const signals = new EventEmitter();
+export const events = new EventEmitter();

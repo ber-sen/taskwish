@@ -1,10 +1,10 @@
 {
-  "name": "@taskwish/beep",
+  "name": "@taskwish/bus",
   "publishConfig": {
     "access": "public"
   },
   "version": "0.0.1",
-  "description": "Handle shared TaskWish runtime events",
+  "description": "Shared TaskWish runtime event bus",
   "license": "Elastic-2.0",
   "author": "Bersen Pajaziti",
   "exports": {
