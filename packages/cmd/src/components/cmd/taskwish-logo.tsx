@@ -15,7 +15,7 @@ export function TaskWishLogo() {
           <path
             d="M33.9489 19L50 3.41374L46.4844 0L33.9489 12.1725L28.3735 6.75866L24.858 10.1724L33.9489 19Z"
             fill="black"
-            fill-opacity="0.5"
+            fill-opacity="0.3"
           />
         </g>
       </svg>
