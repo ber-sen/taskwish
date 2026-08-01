@@ -11,11 +11,11 @@ let shutdownHandlersInstalled = false;
 let shutdownInProgress = false;
 
 const TASKWISH_BANNER = `
-                ▉▉▉          xxx
-              ▉▉▉          xxx
-    ▉▉▉     ▉▉▉  xxx     xxx
-      ▉▉▉ ▉▉▉      xxx xxx
-        ▉▉▉          xxx `;
+                ▉▉▉           xxx
+              ▉▉▉           xxx
+    ▉▉▉     ▉▉▉   xxx     xxx
+      ▉▉▉ ▉▉▉       xxx xxx
+        ▉▉▉           xxx `;
 
 function exitCodeForSignal(signal: NodeJS.Signals): number {
   if (signal === "SIGINT") return 130;
