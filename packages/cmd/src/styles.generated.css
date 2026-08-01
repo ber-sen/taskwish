@@ -1028,11 +1028,6 @@
     .md\:h-\[176px\] {
       height: 176px;
     }
-    @media (hover: hover) {
-      .md\:group-hover\:invisible:is(:where(.group):hover *) {
-        visibility: hidden;
-      }
-    }
   }
   @media (width >= 64rem) {
     .lg\:\[--drawer-max-width\:600px\] {
