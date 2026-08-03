@@ -158,7 +158,7 @@ export function CommandCenter() {
   };
 
   return (
-    <main className="relative min-h-screen bg-background px-4 pb-16 pt-16 text-foreground">
+    <main className="relative min-h-screen bg-background px-4 pb-16 pt-14 text-foreground">
       <a
         href="/"
         aria-label="TaskWish"
@@ -178,7 +178,7 @@ export function CommandCenter() {
       >
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold leading-tight text-foreground">
+            <h1 className="text-3xl font-bold leading-tight text-foreground">
               Command Center
             </h1>
             <p className="text-sm text-muted-foreground sm:text-base">

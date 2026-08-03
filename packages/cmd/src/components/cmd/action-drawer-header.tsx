@@ -58,7 +58,7 @@ export function ActionDrawerHeader({
         )}
         <div className="flex min-w-0 flex-col gap-0.5">
           <DrawerTitle className="truncate">{actionTitle(action)}</DrawerTitle>
-          <DrawerDescription className="whitespace-normal break-words">
+          <DrawerDescription className="truncate">
             {collapsed ? action.actor : actionDescription(action)}
           </DrawerDescription>
         </div>

@@ -10,6 +10,7 @@
       "Courier New", monospace;
     --color-neutral-600: oklch(43.9% 0 none);
     --color-black: #000;
+    --color-white: #fff;
     --spacing: 0.25rem;
     --container-2xl: 42rem;
     --container-4xl: 56rem;
@@ -21,14 +22,13 @@
     --text-base--line-height: calc(1.5 / 1);
     --text-lg: 1.125rem;
     --text-lg--line-height: calc(1.75 / 1.125);
-    --text-2xl: 1.5rem;
-    --text-2xl--line-height: calc(2 / 1.5);
+    --text-3xl: 1.875rem;
+    --text-3xl--line-height: calc(2.25 / 1.875);
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
     --tracking-tight: -0.025em;
     --leading-tight: 1.25;
-    --leading-snug: 1.375;
     --radius-2xl: 1rem;
     --ease-out: cubic-bezier(0, 0, 0.2, 1);
     --blur-lg: 16px;
@@ -253,9 +253,6 @@
   .ml-1 {
     margin-left: var(--spacing);
   }
-  .\[display\:-webkit-box\] {
-    display: -webkit-box;
-  }
   .contents {
     display: contents;
   }
@@ -292,8 +289,8 @@
   .h-\[38px\] {
     height: 38px;
   }
-  .h-\[164px\] {
-    height: 164px;
+  .h-full {
+    height: 100%;
   }
   .max-h-\[260px\] {
     max-height: 260px;
@@ -306,6 +303,9 @@
   }
   .min-h-\[110px\] {
     min-height: 110px;
+  }
+  .min-h-\[130px\] {
+    min-height: 130px;
   }
   .min-h-screen {
     min-height: 100vh;
@@ -463,6 +463,9 @@
     --tw-border-style: dashed;
     border-style: dashed;
   }
+  .border-black {
+    border-color: var(--color-black);
+  }
   .border-border {
     border-color: hsl(var(--border));
   }
@@ -483,6 +486,9 @@
   }
   .bg-background {
     background-color: hsl(var(--background));
+  }
+  .bg-black {
+    background-color: var(--color-black);
   }
   .bg-black\/20 {
     background-color: color-mix(in srgb, #000 20%, transparent);
@@ -556,8 +562,8 @@
   .pt-3 {
     padding-top: calc(var(--spacing) * 3);
   }
-  .pt-16 {
-    padding-top: calc(var(--spacing) * 16);
+  .pt-14 {
+    padding-top: calc(var(--spacing) * 14);
   }
   .pr-2 {
     padding-right: calc(var(--spacing) * 2);
@@ -586,9 +592,9 @@
   .text-left {
     text-align: left;
   }
-  .text-2xl {
-    font-size: var(--text-2xl);
-    line-height: var(--tw-leading, var(--text-2xl--line-height));
+  .text-3xl {
+    font-size: var(--text-3xl);
+    line-height: var(--tw-leading, var(--text-3xl--line-height));
   }
   .text-base {
     font-size: var(--text-base);
@@ -609,10 +615,6 @@
   .leading-none {
     --tw-leading: 1;
     line-height: 1;
-  }
-  .leading-snug {
-    --tw-leading: var(--leading-snug);
-    line-height: var(--leading-snug);
   }
   .leading-tight {
     --tw-leading: var(--leading-tight);
@@ -636,9 +638,6 @@
   }
   .break-words {
     overflow-wrap: break-word;
-  }
-  .whitespace-normal {
-    white-space: normal;
   }
   .whitespace-pre-wrap {
     white-space: pre-wrap;
@@ -669,6 +668,9 @@
   }
   .text-secondary-foreground {
     color: hsl(var(--secondary-foreground));
+  }
+  .text-white {
+    color: var(--color-white);
   }
   .underline-offset-4 {
     text-underline-offset: 4px;
@@ -747,12 +749,6 @@
   }
   .\[--drawer-width\:100vw\] {
     --drawer-width: 100vw;
-  }
-  .\[-webkit-box-orient\:vertical\] {
-    -webkit-box-orient: vertical;
-  }
-  .\[-webkit-line-clamp\:2\] {
-    -webkit-line-clamp: 2;
   }
   .peer-disabled\:cursor-not-allowed:is(:where(.peer):disabled ~ *) {
     cursor: not-allowed;
@@ -1025,8 +1021,8 @@
     }
   }
   @media (width >= 48rem) {
-    .md\:h-\[176px\] {
-      height: 176px;
+    .md\:min-h-\[150px\] {
+      min-height: 150px;
     }
   }
   @media (width >= 64rem) {
@@ -1121,7 +1117,7 @@
     min-width: 320px;
     min-height: 100vh;
     margin: 0;
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
       "Segoe UI", sans-serif;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
