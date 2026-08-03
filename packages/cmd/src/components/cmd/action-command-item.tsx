@@ -1,5 +1,5 @@
 import { Command as CommandPrimitive } from "cmdk";
-import { Copy, Play } from "lucide-react";
+import { Copy, ArrowUpRight } from "lucide-react";
 
 import ActorArtwork from "../console/actor-artwork";
 import { cn } from "../../lib/utils";
@@ -14,12 +14,12 @@ function ActionIcon({ action }: { action: CommandCenterAction }) {
   return (
     <span
       aria-hidden="true"
-      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black bg-black text-white"
+      className="flex shrink-0 items-center justify-center rounded-full text-black"
     >
       {action.source === "http" ? (
-        <Copy className="h-4 w-4" />
+        <Copy size={24} />
       ) : (
-        <Play className="h-4 w-4 fill-current" />
+        <ArrowUpRight size={24} />
       )}
     </span>
   );
@@ -43,18 +43,18 @@ export function ActionCommandItem({
       ]}
       onSelect={() => onSelect(action)}
       className={cn(
-        "group flex h-full min-h-[130px] w-full cursor-pointer flex-col rounded-2xl border border-border bg-action/70 p-4 text-left transition-[background-color,border-color,box-shadow] duration-100 hover:bg-action data-[selected=true]:border-transparent data-[selected=true]:ring-2 data-[selected=true]:ring-landing-primary md:min-h-[150px]",
+        "group relative flex h-full min-h-[130px] w-full cursor-pointer flex-col rounded-2xl border border-border bg-action/50 p-4 text-left transition-[background-color,border-color,box-shadow] duration-100 hover:bg-action data-[selected=true]:border-transparent data-[selected=true]:ring-2 data-[selected=true]:ring-landing-primary md:min-h-[150px]",
         "outline-none",
       )}
     >
       <div className="flex flex-col gap-2">
-        <span className="break-words font-semibold leading-tight text-foreground sm:text-lg">
+        <span className="break-words font-semibold leading-tight text-black sm:text-lg">
           {actionTitle(action)}
         </span>
       </div>
 
-      <div className="mt-auto flex min-w-0 items-end justify-between gap-2 pt-3">
-        <span className="flex min-w-0 flex-col items-start gap-0.5 truncate text-xs font-semibold text-foreground/80">
+      <div className=" mt-auto flex min-w-0 items-end justify-between gap-2 pt-3">
+        <span className="flex min-w-0 flex-col items-start gap-0.5 truncate text-xs font-semibold">
           <ActorArtwork
             color={action.color}
             className="h-[30px] w-[30px] shrink-0"
