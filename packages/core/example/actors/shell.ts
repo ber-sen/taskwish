@@ -27,7 +27,7 @@ export const Shell = {
     [TW.Step]: (ctx: Ctx) => {
       name: Ctx["name"];
       steps: Ctx["steps"] & Record<Name, InferSchema<Result>>;
-      [TW.Step]: Ctx["step"];
+      step: Ctx["step"];
       scope: Record<Name, InferSchema<Result>> & Ctx["scope"];
       last: InferSchema<Result>;
     };

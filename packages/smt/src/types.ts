@@ -114,7 +114,7 @@ export type StepResult<
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["steps"];
-    [TW.Step]: Ctx["step"];
+    step: Ctx["step"];
     scope: StepScopeAdd<ScopeAdd> & Ctx["scope"];
     last: RawEntry<Last, [], Yields>;
     plugins: Ctx["plugins"];

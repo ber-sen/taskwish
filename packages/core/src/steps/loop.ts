@@ -47,7 +47,7 @@ export type ForEachNode<Ctx extends Record<any, any>, Item = any, Name extends s
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["steps"];
-    [TW.Step]: Ctx["step"];
+    step: Ctx["step"];
     scope: Record<Name, RawEntry<{ item: Item; index: number }, []>> & Ctx["scope"];
     last: Ctx["last"];
   };

@@ -16,12 +16,12 @@ export function Agent<
   options: {
     model: string;
     instructions?: string;
-    tools: Tools;
+    tools?: Tools;
   },
 ): {
   [TW.Step]: (input: Ctx) => {
     steps: Ctx["steps"] & Record<Name, Agent<Name, Tools>>;
-    [TW.Step]: Ctx["step"];
+    step: Ctx["step"];
     scope: Record<Name, Agent<Name, Tools>> & Ctx["scope"];
     last: Agent<Name, Tools>;
   };

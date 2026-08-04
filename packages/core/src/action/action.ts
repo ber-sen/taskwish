@@ -217,7 +217,7 @@ export interface ActionFactory<
           name: Ctx["name"];
           service: Ctx["service"];
           scope: InferTriggerScope<Schema> & Ctx["scope"];
-          [TW.Step]: {
+          step: {
             name: "launchApp" | StepName;
             map: { launchApp: string };
           };
@@ -1171,6 +1171,56 @@ export function Action<const Name extends string>(
     }
   }
 
+  function isEventKind(
+    value: unknown,
+  ): value is Record<string | symbol, unknown> {
+    return (
+      value !== null &&
+      typeof value === "object" &&
+      TW.Name in value &&
+      "emit" in value
+    );
+  }
+
+  function hasEventExports(value: unknown): value is { events: unknown } {
+    return (
+      value !== null &&
+      (typeof value === "object" || typeof value === "function") &&
+      "events" in value
+    );
+  }
+
+  const injectedEvents: Record<string, unknown> = {};
+  const pendingEventPlugins: Promise<void>[] = [];
+
+  function injectEvents(plugin: unknown) {
+    if (isEventKind(plugin)) {
+      const eventName = plugin[TW.Name];
+      if (typeof eventName === "string") injectedEvents[eventName] = plugin;
+      return;
+    }
+
+    if (hasEventExports(plugin)) {
+      injectEvents(plugin.events);
+      return;
+    }
+
+    if (plugin === null || typeof plugin !== "object") return;
+    if ("then" in (plugin as object)) {
+      pendingEventPlugins.push(Promise.resolve(plugin).then(injectEvents));
+      return;
+    }
+
+    for (const [key, value] of Object.entries(
+      plugin as Record<string, unknown>,
+    )) {
+      if (!isEventKind(value)) continue;
+      const eventName = value[TW.Name];
+      injectedEvents[key] = value;
+      if (typeof eventName === "string") injectedEvents[eventName] = value;
+    }
+  }
+
   function usePlugin(config: unknown) {
     const type =
       config !== null && typeof config === "object"
@@ -1180,15 +1230,20 @@ export function Action<const Name extends string>(
       detectPlugin(config as LoggerConfig | InferTypeConfig);
     } else {
       injectActions(config);
+      injectEvents(config);
     }
   }
 
   async function buildExtra() {
     if (pendingPlugins.length > 0) await Promise.all(pendingPlugins);
+    if (pendingEventPlugins.length > 0) await Promise.all(pendingEventPlugins);
 
-    return Object.keys(injectedActions).length > 0
-      ? { actions: { ...injectedActions } }
-      : {};
+    return {
+      ...(Object.keys(injectedEvents).length > 0 ? { ...injectedEvents } : {}),
+      ...(Object.keys(injectedActions).length > 0
+        ? { actions: { ...injectedActions } }
+        : {}),
+    };
   }
 
   function createAction(

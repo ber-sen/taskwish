@@ -101,7 +101,7 @@ export const FFI = {
     [TW.Step]: (ctx: Ctx) => {
       name: Ctx["name"];
       steps: Ctx["steps"] & Record<Name, InferRuntimeSchema<Result, Runtime>>;
-      [TW.Step]: Ctx["step"];
+      step: Ctx["step"];
       scope: Record<Name, InferRuntimeSchema<Result, Runtime>> & Ctx["scope"];
       last: InferRuntimeSchema<Result, Runtime>;
     };

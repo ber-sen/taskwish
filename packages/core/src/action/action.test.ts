@@ -6,6 +6,7 @@ import { Actor } from "../actor";
 import { TW } from "../core";
 import { Rule, Step } from "../steps";
 import { Logger, InferType, formatEvent } from "../use";
+import { Event } from "../event";
 
 const eventData = (value: unknown) =>
   value instanceof TW.Trace || value instanceof TW.Signal ? value.data : value;
@@ -45,6 +46,63 @@ describe("Action", () => {
     >;
 
     expect(await hello({ name: "World" })).toEqual("Hello World");
+  });
+
+  test("use — accepts a single event definition for signal()", async () => {
+    const { VoiceCall } = Event("VoiceCall", {
+      callId: "string",
+      from: "string",
+    });
+
+    const { announceCall } = Action("announceCall")
+      .use(VoiceCall)
+
+      .input({ callId: "string", from: "string" })
+
+      .run(
+        Step("voiceCall", function () {
+          return this.signal("VoiceCall", {
+            callId: this.input.callId,
+            from: this.input.from,
+          });
+        }),
+      );
+
+    const yields: unknown[] = [];
+    for await (const v of announceCall.stream({
+      callId: "call-1",
+      from: "Ada",
+    })) {
+      yields.push(v);
+    }
+
+    expect(eventDataList(yields)).toEqual([
+      {
+        ">>": "announceCall",
+        input: { callId: "call-1", from: "Ada" },
+      },
+      {
+        "->": "VoiceCall",
+        callId: "call-1",
+        from: "Ada",
+      },
+      {
+        ">>": "announceCall.voiceCall",
+        result: {
+          "->": "VoiceCall",
+          callId: "call-1",
+          from: "Ada",
+        },
+      },
+      {
+        ">>": "announceCall",
+        result: {
+          "->": "VoiceCall",
+          callId: "call-1",
+          from: "Ada",
+        },
+      },
+    ]);
   });
 
   test("step chain — yields each step, resolves to last", async () => {

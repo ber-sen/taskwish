@@ -424,6 +424,25 @@ export interface Behavior<Ctx extends Record<any, any>> {
         BaseScope<Ctx>;
     }
   >;
+
+  on<
+    const EventName extends string,
+    Input,
+    ExtraScope extends Record<any, any> = {},
+  >(
+    behavior: TW.EventKind<EventName, Input, ExtraScope>,
+  ): ActionFactory<
+    EventHandlerName<EventName>,
+    {
+      name: EventHandlerName<EventName>;
+      service: Ctx["name"] & string;
+      meta: { event: EventName };
+      scope: {
+        input: Input;
+      } & ExtraScope &
+        BaseScope<Ctx>;
+    }
+  >;
 }
 
 /**
@@ -653,14 +672,26 @@ function createBehavior(
       );
       return self;
     },
-    on(behavior: string, config?: string, schema?: unknown) {
+    on(
+      behaviorInput: string | Record<string | symbol, unknown>,
+      config?: string,
+      schema?: unknown,
+    ) {
+      const eventKind = isEventKind(behaviorInput) ? behaviorInput : null;
+      const behavior =
+        eventKind !== null && typeof eventKind[TW.Name] === "string"
+          ? eventKind[TW.Name]
+          : String(behaviorInput);
       let actionName: string;
       let traitMeta: string | null = null;
       let eventMeta: string | null = null;
       let actionScope: Record<string, unknown> = {};
       const pendingActionScopes: Promise<Record<string, unknown>>[] = [];
 
-      const initialScopeAtOn = currentInitialScope();
+      const initialScopeAtOn =
+        eventKind !== null
+          ? mergeActorScope(currentInitialScope(), collectEvents(eventKind))
+          : currentInitialScope();
       const scopedBehavior = initialScopeAtOn[behavior];
       const isScopedEvent =
         scopedBehavior !== null &&

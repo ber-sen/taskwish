@@ -47,7 +47,7 @@ export function Event<
           ExtraScope
         >
       >;
-    [TW.Step]: Ctx["step"];
+    step: Ctx["step"];
     scope: Record<
       Name,
       TW.EventKind<

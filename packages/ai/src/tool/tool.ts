@@ -18,7 +18,7 @@ interface ToolStep<
 > {
   [TW.Step]: (input: Ctx) => {
     steps: Ctx["steps"] & Record<Name, Tool<Name, Input, Output>>;
-    [TW.Step]: Ctx["step"];
+    step: Ctx["step"];
     scope: Record<Name, Tool<Name, Input, Output>> & Ctx["scope"];
     last: Tool<Name, Input, Output>;
   };
