@@ -412,6 +412,50 @@ describe("Actor", () => {
     ).toEqual("alice:inv-1");
   });
 
+  test("use — accepts a single event definition and on() accepts EventKind", async () => {
+    const { VoiceCall } = Event(
+      "VoiceCall",
+      {
+        callId: "string",
+        from: "string",
+      },
+      (input) => ({
+        call: {
+          id: input.callId,
+          from: input.from,
+        },
+      }),
+    );
+
+    const { Agent } = Actor("Agent").use(VoiceCall);
+
+    const { onVoiceCall } = Agent()
+      .on(VoiceCall)
+
+      .run(function () {
+        return `${this.call.id}:${this.input.from}`;
+      });
+
+    type T = typeof onVoiceCall;
+    type check = Expect<
+      Equal<
+        TW.Action<
+          "Agent::on_voice_call",
+          (input: { callId: string; from: string }) => Promise<string>,
+          { event: "VoiceCall" }
+        >,
+        T
+      >
+    >;
+
+    expect(
+      await onVoiceCall({
+        callId: "call-1",
+        from: "Ada",
+      }),
+    ).toEqual("call-1:Ada");
+  });
+
   test("Schedule — injects this.input with expression and runtime at", async () => {
     const { Scheduler } = Actor("Scheduler");
 
