@@ -4,7 +4,7 @@ import { Actor, Step, Event, Steps, DefResultKind, TW } from "../../src";
 const Pipeline: Steps<{}, DefResultKind> = {} as never;
 
 const SpeechToText: <Ctx extends Record<string, any>>(
-  args: any,
+  ...args: any
 ) => {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
@@ -17,7 +17,7 @@ const SpeechToText: <Ctx extends Record<string, any>>(
 } = {} as never;
 
 const TextToSpeech: <Ctx extends Record<string, any>>(
-  args: any,
+  ...args: any
 ) => {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
@@ -40,17 +40,19 @@ export const { onVoiceCall } = Assistant()
 
   .run(
     Pipeline(
-      SpeechToText({
+      SpeechToText("transcript", {
         model: "sadasd",
       }),
-      Agent({
+      Agent("assistant", {
         instructions: "sadasd",
       }),
-      TextToSpeech({
+      TextToSpeech("speech", {
         model: "sadasd",
       }),
-      Step("done", function () {
-        return "done";
+      Step("log", function () {
+        console.log(this.transcript);
+        console.log(this.assistant);
+        console.log(this.speech);
       }),
     ),
   );
