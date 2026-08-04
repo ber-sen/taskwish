@@ -217,7 +217,7 @@ export interface ActionFactory<
           name: Ctx["name"];
           service: Ctx["service"];
           scope: InferTriggerScope<Schema> & Ctx["scope"];
-          [TW.Step]: {
+          step: {
             name: "launchApp" | StepName;
             map: { launchApp: string };
           };

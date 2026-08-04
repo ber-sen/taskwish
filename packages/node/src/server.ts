@@ -73,17 +73,32 @@ function isPortUnavailableError(error: unknown): boolean {
   );
 }
 
+function randomPort(): number {
+  return 49152 + Math.floor(Math.random() * (65535 - 49152 + 1));
+}
+
 function serveWithRandomPortFallback(
   options: Parameters<typeof Bun.serve>[0],
 ): Bun.Server<any> {
-  try {
-    return Bun.serve(options);
-  } catch (error) {
-    if (!isPortUnavailableError(error)) throw error;
-    return Bun.serve({ ...options, port: 0 } as Parameters<
-      typeof Bun.serve
-    >[0]);
+  const requestedPort = "port" in options ? options.port : undefined;
+  let nextOptions =
+    requestedPort === undefined || requestedPort === 0
+      ? ({ ...options, port: randomPort() } as Parameters<typeof Bun.serve>[0])
+      : options;
+
+  for (let attempt = 0; attempt < 10; attempt++) {
+    try {
+      return Bun.serve(nextOptions);
+    } catch (error) {
+      if (!isPortUnavailableError(error) || attempt === 9) throw error;
+      nextOptions = {
+        ...options,
+        port: randomPort(),
+      } as Parameters<typeof Bun.serve>[0];
+    }
   }
+
+  throw new Error("Unable to start server");
 }
 
 function printStartupMessage(

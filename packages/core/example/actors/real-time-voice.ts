@@ -3,27 +3,34 @@ import { Actor, Step, Event, Steps, DefResultKind, TW } from "../../src";
 
 const Pipeline: Steps<{}, DefResultKind> = {} as never;
 
-const SpeechToText: <Ctx extends Record<string, any>>(
-  ...args: any
+const SpeechToText: <
+  const Name extends string,
+  Ctx extends Record<string, any>,
+>(
+  name: Name,
+  args: any,
 ) => {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["step"];
     step: Ctx["step"];
-    scope: Ctx["scope"];
+    scope: Ctx["scope"] & Record<Name, { text: string }>;
     last: null;
     plugins: Ctx["plugins"];
   };
 } = {} as never;
 
-const TextToSpeech: <Ctx extends Record<string, any>>(
+const TextToSpeech: <
+  const Name extends string,
+  Ctx extends Record<string, any>,
+>(
   ...args: any
 ) => {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["step"];
     step: Ctx["step"];
-    scope: Ctx["scope"];
+    scope: Ctx["scope"] & Record<Name, { text: string }>;
     last: null;
     plugins: Ctx["plugins"];
   };
@@ -44,6 +51,7 @@ export const { onVoiceCall } = Assistant()
         model: "sadasd",
       }),
       Agent("assistant", {
+        model: "openai/gpt-4",
         instructions: "sadasd",
       }),
       TextToSpeech("speech", {

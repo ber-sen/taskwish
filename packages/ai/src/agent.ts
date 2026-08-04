@@ -16,7 +16,7 @@ export function Agent<
   options: {
     model: string;
     instructions?: string;
-    tools: Tools;
+    tools?: Tools;
   },
 ): {
   [TW.Step]: (input: Ctx) => {

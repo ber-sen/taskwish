@@ -136,7 +136,7 @@ test("exports command center config when the app is installed", async () => {
         action: "hello",
         label: "Hello",
         description: "Greet a person by name",
-        color: "#0e7490",
+        color: expect.stringMatching(/^hsl\(\d+ 85% 40%\)$/),
         route: "/tw/Greeter/hello",
         source: "local",
         input: [

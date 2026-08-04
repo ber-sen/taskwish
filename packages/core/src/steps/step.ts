@@ -34,7 +34,7 @@ type UserScope<Ctx extends Record<any, any>> = PrettyScope<
 export function Step<
   Ctx extends Record<any, any>,
   const NameParm extends "name" extends keyof Ctx["step"]
-    ? Ctx["step"]["name"]
+    ? Ctx["step"]["name"] | readonly ["|>", string]
     : string | readonly ["|>", string],
   const Handler extends Name extends keyof Ctx["step"]["map"]
     ? Ctx["step"]["map"][Name]
