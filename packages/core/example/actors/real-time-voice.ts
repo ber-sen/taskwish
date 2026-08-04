@@ -37,7 +37,7 @@ const TextToSpeech: <
 } = {} as never;
 
 const { VoiceCall } = Event("VoiceCall", {
-  event: "'connect' | 'dissconect'",
+  state: "'connect' | 'dissconect'",
 });
 
 export const { Assistant } = Actor("Assistant");
@@ -51,7 +51,6 @@ export const { onVoiceCall } = Assistant()
         model: "sadasd",
       }),
       Agent("assistant", {
-        model: "openai/gpt-4",
         instructions: "sadasd",
       }),
       TextToSpeech("speech", {
