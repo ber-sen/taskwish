@@ -47,7 +47,7 @@ interface Struct {
             Name,
             TW.Struct<Name, type.instantiate<Schema, Ctx["scope"]>["infer"]>
           >;
-        [TW.Step]: Ctx["step"];
+        step: Ctx["step"];
         scope: Record<
           Name,
           TW.Struct<Name, type.instantiate<Schema, Ctx["scope"]>["infer"]>
@@ -101,7 +101,7 @@ interface Struct {
           name: Ctx["name"];
           steps: Ctx["steps"] &
             Record<Name, TW.Struct<Name, _ extends ArkType<infer T> ? T : _>>;
-          [TW.Step]: Ctx["step"];
+          step: Ctx["step"];
           scope: Record<
             Name,
             TW.Struct<Name, _ extends ArkType<infer T> ? T : _>

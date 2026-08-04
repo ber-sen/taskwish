@@ -77,7 +77,7 @@ export function Step<
       : Name extends keyof Ctx["step"]["map"]
       ? []
       : [TW.Step<Name, () => ReturnType<Handler>>];
-    [TW.Step]: Ctx["step"];
+    step: Ctx["step"];
     scope: Record<
       Name,
       RawEntry<
@@ -120,7 +120,7 @@ export function Step<
     steps: Ctx extends { steps: infer L extends any[] }
       ? [...L, TW.Step<Name, () => ReturnType<Handler>>]
       : [TW.Step<Name, () => ReturnType<Handler>>];
-    [TW.Step]: Ctx["step"];
+    step: Ctx["step"];
     scope: Record<Name, RawEntry<A, [], ResolveYields<Handler>>> & Ctx["scope"];
     last: RawEntry<ResolveReturn<Handler>, [], ResolveYields<Handler>>;
     plugins: Ctx["plugins"];
@@ -157,7 +157,7 @@ export function Step<
     steps: Ctx extends { steps: infer L extends any[] }
       ? [...L, TW.ScriptStep<Name, () => ReturnType<Handler>>]
       : [TW.ScriptStep<Name, () => ReturnType<Handler>>];
-    [TW.Step]: Ctx["step"];
+    step: Ctx["step"];
     scope: Record<Name, RawEntry<B, [], ResolveYields<Handler>>> & Ctx["scope"];
     last: RawEntry<ResolveReturn<Handler>, [], ResolveYields<Handler>>;
     plugins: Ctx["plugins"];

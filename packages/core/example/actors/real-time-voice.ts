@@ -9,7 +9,7 @@ const SpeechToText: <Ctx extends Record<string, any>>(
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["step"];
-    [TW.Step]: Ctx["step"];
+    step: Ctx["step"];
     scope: Ctx["scope"];
     last: null;
     plugins: Ctx["plugins"];
@@ -22,7 +22,7 @@ const TextToSpeech: <Ctx extends Record<string, any>>(
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["step"];
-    [TW.Step]: Ctx["step"];
+    step: Ctx["step"];
     scope: Ctx["scope"];
     last: null;
     plugins: Ctx["plugins"];

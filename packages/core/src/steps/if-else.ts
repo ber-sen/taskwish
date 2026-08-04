@@ -161,7 +161,7 @@ export type CondNode<Ctx extends Record<any, any> = any, Cond = any> = {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["steps"];
-    [TW.Step]: Ctx["step"];
+    step: Ctx["step"];
     scope: Record<"condition", RawEntry<Cond, []>> & Ctx["scope"];
     last: Cond;
   };

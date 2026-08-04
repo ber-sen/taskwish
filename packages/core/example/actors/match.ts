@@ -78,7 +78,7 @@ const Match: (<const Value, const Ctx extends Record<any, any>>(
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["steps"];
-    [TW.Step]: Ctx["step"];
+    step: Ctx["step"];
     scope: Ctx["scope"] & Record<"$match", Value>;
     last: Value;
     plugins: Ctx["plugins"];
