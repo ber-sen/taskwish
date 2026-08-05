@@ -1,6 +1,6 @@
 import { Trait } from "../../src";
 
-export const { read, write } = Trait<{
+export const Storage = Trait<{
   read: (input: string) => string;
   write: (input: { key: string; value: string }) => string;
 }>();

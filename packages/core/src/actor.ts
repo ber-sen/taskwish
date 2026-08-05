@@ -18,7 +18,6 @@ import {
   Pretty,
   ExtractActionName,
   AddActionsToCtx,
-  InferTriggerScope,
   DeepWriteable,
   QualifiedActionName,
   qualifyActionName,
@@ -136,19 +135,22 @@ type TraitActionHandler<I, R> = [I] extends [void]
 type ExtractTraitQualifiedName<A> =
   ExtractActionName<A> extends `::${string}` ? ExtractActionName<A> : never;
 
-/**
- * Derive all valid qualified method strings for a trait instance, e.g.
- *   { read: TW.Action<"::read", …>, write: TW.Action<"::write", …> }
- *     → "::read" | "::write"
- */
-type AllTraitMethods<TraitInstance extends Record<string, any>> = {
-  [M in keyof TraitInstance & string]: ExtractTraitQualifiedName<
-    TraitInstance[M]
-  >;
-}[keyof TraitInstance & string];
+type TraitActionLike<TraitMethod extends `::${string}` = `::${string}`> = ((
+  ...args: any[]
+) => any) &
+  TW.Resource<TraitMethod>;
+
+type ExtractTraitEventName<A> = A extends TW.Attributable<infer Meta>
+  ? Meta extends { event: infer EventName extends `::${string}` }
+    ? EventName
+    : never
+  : never;
+
+type TraitEventActionLike<EventName extends `::${string}` = `::${string}`> =
+  TraitActionLike<EventName> & TW.Attributable<{ event: EventName }>;
 
 /**
- * Returned by `TraitBehavior.on("::read")` — a fluent builder whose
+ * Returned by `Behavior.on(Storage.read)` — a fluent builder whose
  * input type is already fixed by the trait instance. No `.input()` call needed.
  */
 interface TraitMethodFactoryFromTrait<
@@ -175,80 +177,10 @@ interface TraitMethodFactoryFromTrait<
   };
 }
 
-/**
- * Resolve the factory type for a specific qualified key, threading the matching
- * trait method's input type through from the instance.
- */
-type TraitMethodFactoryFor<
-  TraitInstance extends Record<string, any>,
-  K extends `::${string}`,
-  Ctx extends Record<any, any>,
-> =
-  TraitMethodPart<K> extends infer M extends keyof TraitInstance
-    ? TraitMethodFactoryFromTrait<K, Ctx, ExtractTraitInput<TraitInstance[M]>>
-    : never;
-
-/**
- * Returned by `Actor("S3Storage")(storage)` — `.on()` is constrained to the
- * trait's own qualified method names, with each method's input type inferred
- * from the trait instance.
- */
-interface TraitBehavior<
-  Ctx extends Record<any, any>,
-  TraitInstance extends Record<string, any>,
-> {
-  on<const K extends AllTraitMethods<TraitInstance>>(
-    traitMethod: K,
-  ): TraitMethodFactoryFor<TraitInstance, K, Ctx>;
-}
-
-/**
- * The actor factory function — overloaded:
- *   - `()` → `Behavior<Ctx>` (existing, full overload set)
- *   - `(traitInstance)` → `TraitBehavior<Ctx, T>` (typed input from trait)
- *
- * The `trait` parameter accepts either a plain trait object or a `Promise`
- * of one (e.g. `import("./storage.ts")`). TypeScript infers `T` as the
- * unwrapped record in both cases.
- */
+/** The actor factory function returned under an actor's name. */
 export interface ActorFactoryFn<Ctx extends Record<any, any>> {
   (): Behavior<Ctx>;
-  <const T extends Record<string, any>>(
-    trait: T | Promise<T>,
-  ): TraitBehavior<Ctx, T>;
   events: ActorEventExports<BaseScope<Ctx>, Ctx["name"] & string>;
-}
-
-/**
- * Returned by `Behavior.on("::log")` (no trait instance passed) —
- * a fluent builder that requires `.input(schema)` to specify the input type.
- */
-interface TraitMethodFactory<
-  TraitMethod extends `::${string}`,
-  Ctx extends Record<any, any>,
-> {
-  use(): this;
-
-  input<const Schema>(schema?: Schema): TraitMethodFactory<
-    TraitMethod,
-    Omit<Ctx, "scope"> & {
-      scope: Pretty<InferTriggerScope<Schema> & BaseScope<Ctx>>;
-    }
-  >;
-
-  run<const H extends (this: TW.Scope<Pretty<BaseScope<Ctx>>>) => any>(
-    handler: H,
-  ): {
-    [K in TraitMethodPart<TraitMethod>]: TW.Action<
-      QualifiedActionName<Ctx["name"] & string, TraitMethodPart<TraitMethod>>,
-      "input" extends keyof BaseScope<Ctx>
-        ? (input: BaseScope<Ctx>["input"]) => Promise<
-            RuntimeResult<ReturnType<H>>
-          >
-        : () => Promise<RuntimeResult<ReturnType<H>>>,
-      { trait: TraitMethod }
-    >;
-  };
 }
 
 type CommandResult<
@@ -404,11 +336,30 @@ export interface Behavior<Ctx extends Record<any, any>> {
     >;
   };
 
-  on<const TraitMethod extends `::${string}`>(
-    traitMethod: TraitMethod extends EventKeys<BaseScope<Ctx>>
-      ? never
-      : TraitMethod,
-  ): TraitMethodFactory<TraitMethod, Ctx>;
+  on<const TraitEventAction extends TraitEventActionLike>(
+    behavior: TraitEventAction,
+  ): ActionFactory<
+    EventHandlerName<ExtractTraitEventName<TraitEventAction>>,
+    {
+      name: EventHandlerName<ExtractTraitEventName<TraitEventAction>>;
+      service: Ctx["name"] & string;
+      meta: { event: ExtractTraitEventName<TraitEventAction> };
+      scope: Pretty<
+        ([ExtractTraitInput<TraitEventAction>] extends [void]
+          ? {}
+          : { input: ExtractTraitInput<TraitEventAction> }) &
+          BaseScope<Ctx>
+      >;
+    }
+  >;
+
+  on<const TraitAction extends TraitActionLike>(
+    traitMethod: TraitAction,
+  ): TraitMethodFactoryFromTrait<
+    ExtractTraitQualifiedName<TraitAction>,
+    Ctx,
+    ExtractTraitInput<TraitAction>
+  >;
 
   on<const EventName extends EventKeys<BaseScope<Ctx>>>(
     behavior: EventName,
@@ -673,14 +624,20 @@ function createBehavior(
       return self;
     },
     on(
-      behaviorInput: string | Record<string | symbol, unknown>,
+      behaviorInput: unknown,
       config?: string,
       schema?: unknown,
     ) {
       const eventKind = isEventKind(behaviorInput) ? behaviorInput : null;
+      const traitEvent = getTraitEventName(behaviorInput);
+      const traitMethod = getTraitMethodName(behaviorInput);
       const behavior =
         eventKind !== null && typeof eventKind[TW.Name] === "string"
           ? eventKind[TW.Name]
+          : traitEvent !== null
+          ? traitEvent
+          : traitMethod !== null
+          ? traitMethod
           : String(behaviorInput);
       let actionName: string;
       let traitMeta: string | null = null;
@@ -697,10 +654,14 @@ function createBehavior(
         scopedBehavior !== null &&
         typeof scopedBehavior === "object" &&
         "emit" in scopedBehavior;
-      if (behavior.startsWith("::") && !isScopedEvent) {
-        // Trait method: "::log" → actionName = "log", traitMeta = "::log"
-        actionName = toCamelCaseName(behavior.slice(2));
-        traitMeta = behavior;
+      if (traitEvent !== null && !isScopedEvent) {
+        // Trait event: VoiceCall.VoiceCall → actionName = "onVoiceCall"
+        actionName = eventHandlerName(traitEvent);
+        eventMeta = traitEvent;
+      } else if (traitMethod !== null && !isScopedEvent) {
+        // Trait method: Logger.log → actionName = "log", traitMeta = "::log"
+        actionName = toCamelCaseName(traitMethod.slice(2));
+        traitMeta = traitMethod;
       } else if (behavior === "Command") {
         actionName = config!;
       } else if (HTTP_METHODS.has(behavior)) {
@@ -1028,6 +989,41 @@ function isEventKind(
   );
 }
 
+function getTraitMethodName(value: unknown): `::${string}` | null {
+  if (
+    value === null ||
+    (typeof value !== "object" && typeof value !== "function") ||
+    !(TW.Name in Object(value))
+  ) {
+    return null;
+  }
+
+  const name = (value as Record<string | symbol, unknown>)[TW.Name];
+  return typeof name === "string" && name.startsWith("::")
+    ? (name as `::${string}`)
+    : null;
+}
+
+function getTraitEventName(value: unknown): `::${string}` | null {
+  if (
+    value === null ||
+    (typeof value !== "object" && typeof value !== "function") ||
+    !(TW.Meta in Object(value))
+  ) {
+    return null;
+  }
+
+  const meta = (value as Record<string | symbol, unknown>)[TW.Meta];
+  const event =
+    meta !== null && typeof meta === "object"
+      ? (meta as Record<string, unknown>).event
+      : null;
+
+  return typeof event === "string" && event.startsWith("::")
+    ? (event as `::${string}`)
+    : null;
+}
+
 function eventScopeKey(eventName: string): string {
   return eventName;
 }
@@ -1153,8 +1149,7 @@ function makeActorBuilder(
     eventScope: () => Record<string, unknown>,
   ) =>
     Object.assign(
-      (_trait?: unknown) =>
-        createBehavior(actorName, behaviorScope, resolveBehaviorScope),
+      () => createBehavior(actorName, behaviorScope, resolveBehaviorScope),
       {
         get events() {
           return collectOwnedEvents(actorName, eventScope());

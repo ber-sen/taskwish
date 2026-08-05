@@ -1390,8 +1390,8 @@ describe("Actor", () => {
 
       const { S3Logger } = Actor("S3Logger");
 
-      const { log } = S3Logger(Logger)
-        .on("::log")
+      const { log } = S3Logger()
+        .on(Logger.log)
 
         .run(function () {
           return `s3: ${this.input}`;
@@ -1420,12 +1420,12 @@ describe("Actor", () => {
     });
 
     test("actor implements trait — no-arg method produces no-arg action", async () => {
-      const { S3Logger } = Actor("S3Logger").use(
-        Trait<{ log: () => string }>(),
-      );
+      const Logger = Trait<{ log: () => string }>();
+
+      const { S3Logger } = Actor("S3Logger");
 
       const { log } = S3Logger()
-        .on("::log")
+        .on(Logger.log)
 
         .run(function () {
           return "logged";
@@ -1439,6 +1439,118 @@ describe("Actor", () => {
         Equal<
           typeof log,
           TW.Action<"S3Logger::log", () => Promise<string>, { trait: "::log" }>
+        >
+      >;
+    });
+
+    test("actor implements trait event — on-method maps to event action", async () => {
+      const VoiceCall = Trait<{
+        onVoiceCall: (
+          chunk: ArrayBuffer,
+        ) => Generator<ArrayBuffer, null, unknown>;
+      }>();
+
+      const { Assistant } = Actor("Assistant");
+
+      const { onVoiceCall } = Assistant()
+        .on(VoiceCall.VoiceCall)
+
+        .run(function () {
+          return this.input.byteLength;
+        });
+
+      expect(await onVoiceCall(new ArrayBuffer(4))).toEqual(4);
+      expect((onVoiceCall as any)[TW.Name]).toBe("Assistant::on_voice_call");
+      expect((onVoiceCall as any)[TW.Meta]).toEqual({
+        event: "::VoiceCall",
+      });
+
+      type check = Expect<
+        Equal<
+          typeof onVoiceCall,
+          TW.Action<
+            "Assistant::on_voice_call",
+            (input: ArrayBuffer) => Promise<number>,
+            { event: "::VoiceCall" }
+          >
+        >
+      >;
+    });
+
+    test("actor implements service trait event through property and self", async () => {
+      const VoiceCall = Trait({
+        service: "VoiceCall",
+        self: "onStream",
+      })<{
+        onStream: (input: {
+          sessionId: string;
+          chunk: ArrayBuffer;
+        }) => Generator<ArrayBuffer, null, unknown>;
+        onConnect: <Result>(input: { sessionId: string }) => Result;
+      }>();
+
+      const { Assistant } = Actor("Assistant");
+
+      const { onVoiceCallConnect } = Assistant()
+        .on(VoiceCall.Connect)
+
+        .run(function () {
+          return this.input.sessionId.length;
+        });
+
+      const { onVoiceCallStream } = Assistant()
+        .on(VoiceCall)
+
+        .run(function () {
+          const sessionId: string = this.input.sessionId;
+          const chunk: ArrayBuffer = this.input.chunk;
+          // @ts-expect-error stream input does not include arbitrary keys
+          this.input.missing;
+
+          return sessionId.length + chunk.byteLength;
+        });
+
+      expect(await onVoiceCallConnect({ sessionId: "abc" })).toEqual(3);
+      expect(
+        await onVoiceCallStream({
+          sessionId: "abc",
+          chunk: new ArrayBuffer(5),
+        }),
+      ).toEqual(8);
+      expect((onVoiceCallConnect as any)[TW.Name]).toBe(
+        "Assistant::on_voice_call_connect",
+      );
+      expect((onVoiceCallConnect as any)[TW.Meta]).toEqual({
+        event: "::VoiceCallConnect",
+      });
+      expect((onVoiceCallStream as any)[TW.Name]).toBe(
+        "Assistant::on_voice_call_stream",
+      );
+      expect((onVoiceCallStream as any)[TW.Meta]).toEqual({
+        event: "::VoiceCallStream",
+      });
+
+      type checkConnect = Expect<
+        Equal<
+          typeof onVoiceCallConnect,
+          TW.Action<
+            "Assistant::on_voice_call_connect",
+            (input: { sessionId: string }) => Promise<number>,
+            { event: "::VoiceCallConnect" }
+          >
+        >
+      >;
+      type checkCall = Expect<
+        Equal<
+          typeof onVoiceCallStream,
+          TW.Action<
+            "Assistant::on_voice_call_stream",
+            (input: {
+              sessionId: string;
+              chunk: ArrayBuffer;
+            }) => Promise<number>,
+            { event: "::VoiceCallStream" }
+          >
         >
       >;
     });
@@ -1468,72 +1580,15 @@ describe("Actor", () => {
 
       const { S3Storage } = Actor("S3Storage");
 
-      const { read } = S3Storage(Storage)
-        .on("::read")
+      const { read } = S3Storage()
+        .on(Storage.read)
 
         .run(function () {
           return `data:${this.input}`;
         });
 
-      const { write } = S3Storage(Storage)
-        .on("::write")
-
-        .run(function () {
-          return `wrote:${this.input.key}`;
-        });
-
-      expect(await read("k")).toEqual("data:k");
-      expect(await write({ key: "k", value: "v" })).toEqual("wrote:k");
-
-      expect((read as any)[TW.Name]).toBe("S3Storage::read");
-      expect((write as any)[TW.Name]).toBe("S3Storage::write");
-      expect((read as any)[TW.Meta]).toEqual({ trait: "::read" });
-      expect((write as any)[TW.Meta]).toEqual({ trait: "::write" });
-
-      type checkRead = Expect<
-        Equal<
-          typeof read,
-          TW.Action<
-            "S3Storage::read",
-            (input: string) => Promise<string>,
-            { trait: "::read" }
-          >
-        >
-      >;
-      type checkWrite = Expect<
-        Equal<
-          typeof write,
-          TW.Action<
-            "S3Storage::write",
-            (input: { key: string; value: string }) => Promise<string>,
-            { trait: "::write" }
-          >
-        >
-      >;
-    });
-
-    test("actor implements trait — dynamic import (Promise<module>) form", async () => {
-      const Storage = Trait<{
-        read: (input: string) => string;
-        write: (input: { key: string; value: string }) => string;
-      }>();
-
-      // Simulate `import("./storage.ts")` — a Promise that resolves to the
-      // module's named exports (which are trait stubs).
-      const StorageImport = Promise.resolve(Storage);
-
-      const { S3Storage } = Actor("S3Storage");
-
-      // Both forms must compile and produce identical types.
-      const { read } = S3Storage(StorageImport)
-        .on("::read")
-
-        .run(function () {
-          return `data:${this.input}`;
-        });
-
-      const { write } = S3Storage(StorageImport)
-        .on("::write")
+      const { write } = S3Storage()
+        .on(Storage.write)
 
         .run(function () {
           return `wrote:${this.input.key}`;
