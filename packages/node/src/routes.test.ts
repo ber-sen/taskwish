@@ -50,7 +50,7 @@ test("exports Bun.serve routes for service dispatch", async () => {
 });
 
 test("exports actor event handlers as concrete Bun.serve routes", async () => {
-  const { Greeter } = Actor("Greeter").def(
+  const { Greeter } = Actor("Greeter").scope(
     Event("Message", { content: "string" }),
   );
   const { Biller } = Actor("Biller").use(Greeter);
@@ -91,7 +91,7 @@ test("does not export command center routes by default", async () => {
 });
 
 test("exports command center config when the app is installed", async () => {
-  const { Greeter } = Actor("Greeter").def(
+  const { Greeter } = Actor("Greeter").scope(
     Event("Message", { content: "string" }),
   );
   const { Biller } = Actor("Biller").use(Greeter);

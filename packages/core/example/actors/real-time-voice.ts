@@ -1,7 +1,7 @@
 import { GenerateText } from "@taskwish/ai";
-import { Actor, DefResultKind, Step, Steps, TW, Trait } from "@taskwish/core";
+import { Actor, ScopeResultKind, Step, Steps, TW, Trait } from "@taskwish/core";
 
-export const Pipeline = {} as Steps<{}, DefResultKind>;
+export const Pipeline = {} as Steps<{}, ScopeResultKind>;
 
 const SpeechToText: <
   const Name extends string,

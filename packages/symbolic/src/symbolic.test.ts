@@ -128,6 +128,7 @@ describe("Symbolic", () => {
 
         Model(
           "contradictionModel",
+          
           ({ x }) => x == 1,
           ({ x }) => x == 2,
         ),
@@ -205,35 +206,34 @@ describe("Symbolic", () => {
   });
 
   test("Model.prove returns accounting status from known line items", async () => {
-    const { Accounting } = Actor("Accounting");
+    const { Accounting } = Actor("Accounting").scope(
+      Int(
+        "grossRevenue",
+        "refunds",
+        "netRevenue",
+        "costOfGoods",
+        "operatingExpenses",
+        "taxableIncome",
+        "tax",
+        "netIncome",
+      ),
+
+      Model(
+        "incomeStatement",
+
+        ({ grossRevenue, refunds, netRevenue }) =>
+          netRevenue == grossRevenue - refunds,
+        ({ netRevenue, costOfGoods, operatingExpenses, taxableIncome }) =>
+          taxableIncome == netRevenue - costOfGoods - operatingExpenses,
+        ({ taxableIncome, tax }) => tax == taxableIncome / 5,
+        ({ taxableIncome, tax, netIncome }) => netIncome == taxableIncome - tax,
+      ),
+    );
 
     const { forecast } = Accounting()
       .on("Command", "forecast")
 
       .run(
-        Int(
-          "grossRevenue",
-          "refunds",
-          "netRevenue",
-          "costOfGoods",
-          "operatingExpenses",
-          "taxableIncome",
-          "tax",
-          "netIncome",
-        ),
-
-        Model(
-          "incomeStatement",
-
-          ({ grossRevenue, refunds, netRevenue }) =>
-            netRevenue == grossRevenue - refunds,
-          ({ netRevenue, costOfGoods, operatingExpenses, taxableIncome }) =>
-            taxableIncome == netRevenue - costOfGoods - operatingExpenses,
-          ({ taxableIncome, tax }) => tax == taxableIncome / 5,
-          ({ taxableIncome, tax, netIncome }) =>
-            netIncome == taxableIncome - tax,
-        ),
-
         Step("forecast", function () {
           return this.incomeStatement.prove({
             grossRevenue: 125000,
@@ -262,35 +262,34 @@ describe("Symbolic", () => {
   });
 
   test("Model solves a missing accounting input from a desired outcome", async () => {
-    const { Accounting } = Actor("Accounting");
+    const { Accounting } = Actor("Accounting").scope(
+      Int(
+        "grossRevenue",
+        "refunds",
+        "netRevenue",
+        "costOfGoods",
+        "operatingExpenses",
+        "taxableIncome",
+        "tax",
+        "netIncome",
+      ),
+
+      Model(
+        "incomeStatement",
+
+        ({ grossRevenue, refunds, netRevenue }) =>
+          netRevenue == grossRevenue - refunds,
+        ({ netRevenue, costOfGoods, operatingExpenses, taxableIncome }) =>
+          taxableIncome == netRevenue - costOfGoods - operatingExpenses,
+        ({ taxableIncome, tax }) => tax == taxableIncome / 5,
+        ({ taxableIncome, tax, netIncome }) => netIncome == taxableIncome - tax,
+      ),
+    );
 
     const { forecast } = Accounting()
       .on("Command", "forecast")
 
       .run(
-        Int(
-          "grossRevenue",
-          "refunds",
-          "netRevenue",
-          "costOfGoods",
-          "operatingExpenses",
-          "taxableIncome",
-          "tax",
-          "netIncome",
-        ),
-
-        Model(
-          "incomeStatement",
-
-          ({ grossRevenue, refunds, netRevenue }) =>
-            netRevenue == grossRevenue - refunds,
-          ({ netRevenue, costOfGoods, operatingExpenses, taxableIncome }) =>
-            taxableIncome == netRevenue - costOfGoods - operatingExpenses,
-          ({ taxableIncome, tax }) => tax == taxableIncome / 5,
-          ({ taxableIncome, tax, netIncome }) =>
-            netIncome == taxableIncome - tax,
-        ),
-
         Step("forecast", function () {
           return this.incomeStatement.solve({
             grossRevenue: 125000,

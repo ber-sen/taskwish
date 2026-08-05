@@ -4,7 +4,7 @@ import { createFetchHandler, createNodeRegistry } from "./index";
 import { apiKey, auth } from "./test-helpers";
 
 test("dispatches stream signal events to registered handlers without waiting", async () => {
-  const { Greeter } = Actor("Greeter").def(
+  const { Greeter } = Actor("Greeter").scope(
     Event("Message", { content: "string" }),
   );
   const { Biller } = Actor("Biller").use(Greeter);
@@ -66,7 +66,7 @@ test("dispatches stream signal events to registered handlers without waiting", a
 });
 
 test("ignores non-Event objects yielded with signal shape", async () => {
-  const { Greeter } = Actor("Greeter").def(
+  const { Greeter } = Actor("Greeter").scope(
     Event("Message", { content: "string" }),
   );
   const { Biller } = Actor("Biller").use(Greeter);

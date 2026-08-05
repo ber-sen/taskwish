@@ -212,8 +212,8 @@ describe("Actor", () => {
     expect(thrown).toBe(boom);
   });
 
-  test("def — custom event usable as on() trigger", async () => {
-    const { Biller } = Actor("Biller").def(
+  test("scope — custom event usable as on() trigger", async () => {
+    const { Biller } = Actor("Biller").scope(
       Event("InvoicePaid", { invoiceId: "string", amount: "number" }),
     );
 
@@ -254,8 +254,8 @@ describe("Actor", () => {
     ).toEqual("invoice: inv-1, amount: 99");
   });
 
-  test("def — does not inject EventKind into behavior handlers", async () => {
-    const { Biller } = Actor("Biller").def(
+  test("scope — does not inject EventKind into behavior handlers", async () => {
+    const { Biller } = Actor("Biller").scope(
       Event("InvoicePaid", {
         invoiceId: "string",
         amount: "number",
@@ -280,8 +280,8 @@ describe("Actor", () => {
     );
   });
 
-  test("def — Signal emit yields signal data", async () => {
-    const { Biller } = Actor("Biller").def(
+  test("scope — Signal emit yields signal data", async () => {
+    const { Biller } = Actor("Biller").scope(
       Event("InvoicePaid", {
         invoiceId: "string",
         amount: "number",
@@ -336,7 +336,7 @@ describe("Actor", () => {
       customer: "string",
     } as const;
 
-    const { Biller } = Actor("Biller").def(
+    const { Biller } = Actor("Biller").scope(
       Event("InvoicePaid", invoicePaidSchema),
     );
 
@@ -487,7 +487,7 @@ describe("Actor", () => {
   });
 
   test("GET — with schema and command, named action takes flat input and route metadata", async () => {
-    const { InvoiceProvider } = Actor("InvoiceProvider").def(
+    const { InvoiceProvider } = Actor("InvoiceProvider").scope(
       Event("InvoiceFetched", { id: "string", page: "string" }),
     );
 
@@ -715,7 +715,7 @@ describe("Actor", () => {
   });
 
   test("signal — typed from scope, Step yields event then step result, chained step reads value", async () => {
-    const { Emitter } = Actor("Emitter").def(
+    const { Emitter } = Actor("Emitter").scope(
       Event("OrderPlaced", { orderId: "string", amount: "number" }),
     );
 
@@ -855,7 +855,7 @@ describe("Actor", () => {
       error: logged.push.bind(logged),
     };
 
-    const { Greeter } = Actor("Greeter").def(
+    const { Greeter } = Actor("Greeter").scope(
       Event("Message", { content: "string" }),
     );
 

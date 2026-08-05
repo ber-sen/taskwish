@@ -397,10 +397,10 @@ export interface Behavior<Ctx extends Record<any, any>> {
 }
 
 /**
- * Used by `Steps<Ctx, DefResultKind>` — produces a named behavior definition
+ * Used by `Steps<Ctx, ScopeResultKind>` — produces a named scoped actor
  * `{ [name]: () => Behavior<Last> }`.
  */
-export interface DefResultKind extends ResultKind {
+export interface ScopeResultKind extends ResultKind {
   type: this["ctx"] extends Record<any, any>
     ? "name" extends keyof this["ctx"]
       ? this["ctx"]["name"] extends string
@@ -521,43 +521,60 @@ function collectScope(
   actorName?: string,
 ): Record<string, unknown> {
   const scope: Record<string, unknown> = {};
+
+  const collectEntry = (key: string, value: unknown) => {
+    const scopedValue =
+      actorName &&
+      value !== null &&
+      typeof value === "object" &&
+      "emit" in value &&
+      TW.Name in value &&
+      typeof (value as Record<string | symbol, unknown>)[TW.Name] ===
+        "string" &&
+      !(
+        (value as Record<string | symbol, unknown>)[TW.Name] as string
+      ).includes("::")
+        ? scopeEventKind(
+            actorName,
+            key,
+            value as Record<string | symbol, unknown>,
+          )
+        : value;
+    scope[key] = scopedValue;
+
+    if (
+      actorName &&
+      value !== null &&
+      typeof value === "object" &&
+      "emit" in value &&
+      TW.Name in value &&
+      typeof (value as Record<string | symbol, unknown>)[TW.Name] ===
+        "string" &&
+      !(
+        (value as Record<string | symbol, unknown>)[TW.Name] as string
+      ).includes("::")
+    ) {
+      scope[qualifyEventName(actorName, key)] = scopedValue;
+    }
+  };
+
   for (const step of steps) {
-    if (step !== null && typeof step === "object") {
+    if (typeof step === "function" && TW.Name in step) {
+      const key = String(step[TW.Name as keyof typeof step]);
+      const value = step.call(scope);
+      if (
+        value !== null &&
+        typeof value === "object" &&
+        "then" in value &&
+        typeof (value as { then?: unknown }).then === "function"
+      ) {
+        throw new Error("Actor.scope steps must resolve synchronously");
+      }
+      collectEntry(key, value);
+    } else if (step !== null && typeof step === "object") {
       for (const key of Object.keys(step as object)) {
         const value = (step as Record<string, unknown>)[key];
-        const scopedValue =
-          actorName &&
-          value !== null &&
-          typeof value === "object" &&
-          "emit" in value &&
-          TW.Name in value &&
-          typeof (value as Record<string | symbol, unknown>)[TW.Name] ===
-            "string" &&
-          !(
-            (value as Record<string | symbol, unknown>)[TW.Name] as string
-          ).includes("::")
-            ? scopeEventKind(
-                actorName,
-                key,
-                value as Record<string | symbol, unknown>,
-              )
-            : value;
-        scope[key] = scopedValue;
-
-        if (
-          actorName &&
-          value !== null &&
-          typeof value === "object" &&
-          "emit" in value &&
-          TW.Name in value &&
-          typeof (value as Record<string | symbol, unknown>)[TW.Name] ===
-            "string" &&
-          !(
-            (value as Record<string | symbol, unknown>)[TW.Name] as string
-          ).includes("::")
-        ) {
-          scope[qualifyEventName(actorName, key)] = scopedValue;
-        }
+        collectEntry(key, value);
       }
     }
   }
@@ -880,7 +897,7 @@ function createBehavior(
 
 /**
  * The full return type of Actor(), including:
- *  - `def` / `[actorName]` — standard builder API
+ *  - `scope` / `[actorName]` — standard builder API
  *  - `use(plugin)` — inject action scope from an object or dynamic import
  *  - all `Behavior` methods (except `use`) so `.on()` can be called fluently
  *    directly on the builder without needing an explicit `[actorName]()` call
@@ -889,7 +906,7 @@ export type ActorBuilderResult<
   Name extends string,
   Ctx extends Record<any, any>,
 > = {
-  def: Steps<Ctx, DefResultKind>;
+  scope: Steps<Ctx, ScopeResultKind>;
   use<const U>(plugin: U): ActorBuilderResult<Name, AddActionsToCtx<Ctx, U>>;
 } & {
   [key in Name]: ActorFactoryFn<Ctx>;
@@ -1158,7 +1175,7 @@ function makeActorBuilder(
     );
 
   return {
-    def(...steps: unknown[]) {
+    scope(...steps: unknown[]) {
       const definedScope = collectScope(steps, actorName);
       const initialScope = {
         ...builtInEventScope,
