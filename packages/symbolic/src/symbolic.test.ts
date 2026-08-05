@@ -223,9 +223,12 @@ describe("Symbolic", () => {
 
         ({ grossRevenue, refunds, netRevenue }) =>
           netRevenue == grossRevenue - refunds,
+
         ({ netRevenue, costOfGoods, operatingExpenses, taxableIncome }) =>
           taxableIncome == netRevenue - costOfGoods - operatingExpenses,
+
         ({ taxableIncome, tax }) => tax == taxableIncome / 5,
+
         ({ taxableIncome, tax, netIncome }) => netIncome == taxableIncome - tax,
       ),
     );
@@ -279,9 +282,12 @@ describe("Symbolic", () => {
 
         ({ grossRevenue, refunds, netRevenue }) =>
           netRevenue == grossRevenue - refunds,
+
         ({ netRevenue, costOfGoods, operatingExpenses, taxableIncome }) =>
           taxableIncome == netRevenue - costOfGoods - operatingExpenses,
+
         ({ taxableIncome, tax }) => tax == taxableIncome / 5,
+        
         ({ taxableIncome, tax, netIncome }) => netIncome == taxableIncome - tax,
       ),
     );
