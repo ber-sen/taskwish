@@ -1,5 +1,5 @@
 {
-  "name": "@taskwish/smt",
+  "name": "@taskwish/symbolic",
   "publishConfig": {
     "access": "public",
     "exports": {
@@ -12,7 +12,7 @@
     "types": "./dist/index.d.ts"
   },
   "version": "0.0.1",
-  "description": "SMT solver steps for TaskWish",
+  "description": "Symbolic model solving steps for TaskWish",
   "license": "Elastic-2.0",
   "author": "Bersen Pajaziti",
   "exports": {

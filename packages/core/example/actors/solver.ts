@@ -1,5 +1,5 @@
 import { Actor, Step } from "../../src";
-import { Int, Real, Solve } from "@taskwish/smt";
+import { Int, Model, Real } from "@taskwish/symbolic";
 
 export const { Solver } = Actor("Solver");
 
@@ -13,14 +13,14 @@ export const { solve } = Solver()
 
     Real("z"),
 
-    Solve(
-      "system",
+    Model(
+      "linearEquation",
 
       ({ x, y }) => x + y == 10,
       ({ x, y }) => x + 3 >= y - 4,
     ),
 
     Step("model", function () {
-      return this.system.model;
+      return this.linearEquation.solve({ x: 2 });
     }),
   );

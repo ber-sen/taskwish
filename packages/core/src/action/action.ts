@@ -610,7 +610,6 @@ type IfEntry = { condition: unknown; steps: unknown[] };
 type ElseEntry = { steps: unknown[] };
 type LoopEntry = { name: string; items: unknown; steps: unknown[] };
 type ParallelEntry = { steps: unknown[] };
-type RuleEntry = { name: string; description: string; fn: unknown };
 
 function twType(handler: unknown): string | null {
   return handler !== null && typeof handler === "object"
@@ -632,27 +631,6 @@ async function evalCond(
         )
       : condition;
   return Boolean(val);
-}
-
-function ruleScope(
-  ctx: Record<string | symbol, unknown>,
-): Record<string | symbol, unknown> {
-  return ctx.input !== null &&
-    typeof ctx.input === "object" &&
-    !Array.isArray(ctx.input)
-    ? { ...(ctx.input as Record<string, unknown>), ...ctx }
-    : ctx;
-}
-
-async function evalRule(
-  rule: RuleEntry,
-  ctx: Record<string | symbol, unknown>,
-): Promise<unknown> {
-  const scope = ruleScope(ctx);
-
-  return typeof rule.fn === "function"
-    ? await (rule.fn as (scope: unknown) => unknown).call(scope, scope)
-    : rule.fn;
 }
 
 async function* runHandlerList(
@@ -787,23 +765,6 @@ async function* runHandlerList(
         );
       }
       lastCond = null;
-    } else if (type === "Rule") {
-      lastCond = null;
-      const rule = handler as RuleEntry;
-
-      try {
-        const result = await evalRule(rule, ctx);
-        yield new TW.Trace(`${currentName}.${rule.name}`, {
-          "==": rule.description,
-          result,
-        });
-      } catch (error) {
-        yield new TW.Trace(`${currentName}.${rule.name}`, {
-          "==": rule.description,
-          error,
-        });
-        throw error;
-      }
     } else if (type === "Loop") {
       lastCond = null;
       const {

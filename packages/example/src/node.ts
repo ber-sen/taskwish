@@ -15,5 +15,6 @@ await Node("example", {
     import("./solver"),
     import("./pipe-solver"),
     import("./puzzle-solver"),
+    import("./accounting-model"),
   ],
 });

@@ -136,6 +136,16 @@ export type SolveResult<T> =
       reason: string;
     };
 
+export type ModelInput<T> = Partial<{
+  [Name in keyof T]: T[Name];
+}>;
+
+export type SymbolicModel<T> = {
+  solve(input?: ModelInput<T>): Promise<T>;
+  prove(input?: ModelInput<T>): Promise<SolveResult<T>>;
+  solveAll(input?: ModelInput<T>): AsyncGenerator<T, void, unknown>;
+};
+
 export type Constraint<Scope> = (scope: Scope) => number | boolean;
 
 export type AstNode = {

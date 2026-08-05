@@ -4,7 +4,7 @@ import { Expect, Equal, RawEntry } from "../helpers";
 import { Action } from "./action";
 import { Actor } from "../actor";
 import { TW } from "../core";
-import { Rule, Step } from "../steps";
+import { Step } from "../steps";
 import { Logger, InferType, formatEvent } from "../use";
 import { Event } from "../event";
 
@@ -142,118 +142,6 @@ describe("Action", () => {
       { ">>": "hello.secondStep", result: true },
       { ">>": "hello", result: true },
     ]);
-  });
-
-  test("Rule — emits merged step and expression result", async () => {
-    const { charge } = Action("charge")
-      .input({ total: "number" })
-
-      .run(
-        Step("fee", function () {
-          return this.input.total * 0.1;
-        }),
-
-        Rule("feeLimit", ({ total }) => total * 0.1),
-
-        Step("receipt", function () {
-          return { total: this.input.total, fee: this.fee };
-        }),
-      );
-
-    expect(await charge({ total: 100 })).toEqual({ total: 100, fee: 10 });
-
-    const yields: unknown[] = [];
-
-    for await (const v of charge.stream({ total: 100 })) {
-      yields.push(v);
-    }
-
-    expect(eventDataList(yields)).toEqual([
-      { ">>": "charge", input: { total: 100 } },
-      { ">>": "charge.fee", result: 10 },
-      {
-        ">>": "charge.feeLimit",
-        "==": "feeLimit = total * 0.1",
-        result: 10,
-      },
-      { ">>": "charge.receipt", result: { total: 100, fee: 10 } },
-      { ">>": "charge", result: { total: 100, fee: 10 } },
-    ]);
-  });
-
-  test("Rule — preserves falsy raw result", async () => {
-    const { charge } = Action("charge")
-      .input({ total: "number" })
-
-      .run(
-        Rule("feeLimit", ({ total }) => total * 0.1),
-
-        Step("receipt", function () {
-          return this.input.total;
-        }),
-      );
-
-    expect(await charge({ total: 0 })).toBe(0);
-
-    const yields: unknown[] = [];
-
-    for await (const v of charge.stream({ total: 0 })) {
-      yields.push(v);
-    }
-
-    expect(eventDataList(yields)).toEqual([
-      { ">>": "charge", input: { total: 0 } },
-      {
-        ">>": "charge.feeLimit",
-        "==": "feeLimit = total * 0.1",
-        result: 0,
-      },
-      { ">>": "charge.receipt", result: 0 },
-      { ">>": "charge", result: 0 },
-    ]);
-  });
-
-  test("Rule — preserves previous last value", async () => {
-    const { compute } = Action("compute")
-      .input({ total: "number" })
-
-      .run(
-        Step("fee", function () {
-          return this.input.total * 0.1;
-        }),
-
-        Rule("feeLimit", async ({ fee }) => fee),
-      );
-
-    type T = typeof compute;
-
-    type check = Expect<
-      Equal<
-        TW.Action<
-          "compute",
-          (input: { total: number }) => Promise<number>,
-          null
-        >,
-        T
-      >
-    >;
-
-    expect(await compute({ total: 100 })).toBe(10);
-  });
-
-  test("Rule — allows raw function handlers after it", async () => {
-    const { charge } = Action("charge")
-      .input({ total: "number" })
-
-      .run(
-        Rule("feeLimit", ({ total }) => total * 0.1),
-
-        Step("return", function () {
-          return this.input.total;
-        }),
-      );
-
-    expect(await charge({ total: 100 })).toBe(100);
   });
 
   test("TypeScript type input", async () => {
@@ -644,46 +532,6 @@ describe("Action", () => {
     expect(formatEvent({ ">>": "nested", result: nested })).toBe(
       '\x1b[2m{\x1b[22m \x1b[2m">>": \x1b[22m"\x1b[1mnested\x1b[22m", \x1b[2m"result": \x1b[22m{ "a": { "b": { "c": "[Object]" } } } \x1b[2m}\x1b[22m',
     );
-  });
-
-  test("Logger — logs Rule events", async () => {
-    const logged: unknown[] = [];
-    const spy = {
-      log: logged.push.bind(logged),
-      info: logged.push.bind(logged),
-      error: logged.push.bind(logged),
-    };
-
-    const { charge } = Action("charge")
-      .use(Logger(spy))
-
-      .input({ total: "number" })
-
-      .run(
-        Step("fee", function () {
-          return this.input.total * 0.1;
-        }),
-
-        Rule("feeLimit", ({ total }) => total * 0.1),
-
-        Step("done", function () {
-          return this.fee;
-        }),
-      );
-
-    await charge({ total: 100 });
-
-    expect(logged).toEqual([
-      formatEvent({ ">>": "charge", input: { total: 100 } }),
-      formatEvent({ ">>": "charge.fee", result: 10 }),
-      formatEvent({
-        ">>": "charge.feeLimit",
-        "==": "feeLimit = total * 0.1",
-        result: 10,
-      }),
-      formatEvent({ ">>": "charge.done", result: 10 }),
-      formatEvent({ ">>": "charge", result: 10 }),
-    ]);
   });
 
   test("Logger — stream also logs", async () => {
