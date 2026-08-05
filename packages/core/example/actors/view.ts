@@ -14,6 +14,7 @@ const App = {} as any;
 const Screen = {} as any;
 const List = {} as any;
 const Node = {} as any;
+const Widget = {} as any;
 
 export const { hello } = Greeter()
   .on("Command", "hello")
@@ -41,6 +42,14 @@ const { Connections } = ConnectionsView({
   "/": { name: "List", List: { data: [1, 2, 3] } },
 });
 
+const { QuickConnections } = Widget(
+  "QuickConnections",
+
+  Card("Lorem", Text("Header")),
+)({
+  Lorem: { Header: "Hello" },
+});
+
 const node = Node({
-  workspace: [import("./greeter"), Connections],
+  workspace: [import("./greeter"), Connections, QuickConnections],
 });
