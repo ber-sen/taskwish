@@ -32,15 +32,15 @@ export const { hello } = Greeter()
     }),
   );
 
-const { Connections } = App("Connections", {
+const { ConnectionsView } = App("Connections", {
   "/": Screen(List()),
-})
+});
 
-const connections = Connections({
+const { Connections } = ConnectionsView({
   use: [import("./greeter")],
   "/": { name: "List", List: { data: [1, 2, 3] } },
 });
 
 const node = Node({
-  workspace: [import("./greeter"), connections],
+  workspace: [import("./greeter"), Connections],
 });
