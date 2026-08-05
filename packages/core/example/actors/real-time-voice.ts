@@ -36,11 +36,11 @@ const TextToSpeech: <
   };
 } = {} as never;
 
-const { VoiceCall: VoiceCallMain } = Event("VoiceCall", {
+const { VoiceCall: VoiceCallChunk } = Event("VoiceCall", {
   frame: "string",
 });
 
-const VoiceCall = Object.assign(VoiceCallMain, {
+const VoiceCall = Object.assign(VoiceCallChunk, {
   Connect: Event("VoiceCall::Connect", {
     frame: "string",
   })["VoiceCall::Connect"],
