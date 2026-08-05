@@ -1,5 +1,5 @@
-import { Agent } from "../../../ai/src";
-import { Actor, Step, Event, Steps, DefResultKind, TW } from "../../src";
+import { GenerateText } from "../../../ai/src";
+import { Actor, Event, Steps, DefResultKind, TW } from "../../src";
 
 const Pipeline: Steps<{}, DefResultKind> = {} as never;
 
@@ -36,8 +36,14 @@ const TextToSpeech: <
   };
 } = {} as never;
 
-const { VoiceCall } = Event("VoiceCall", {
-  state: "'connect' | 'dissconect'",
+const { VoiceCall: VoiceCallMain } = Event("VoiceCall", {
+  frame: "string",
+});
+
+const VoiceCall = Object.assign(VoiceCallMain, {
+  Connect: Event("VoiceCall::Connect", {
+    frame: "string",
+  })["VoiceCall::Connect"],
 });
 
 export const { Assistant } = Actor("Assistant");
@@ -50,16 +56,17 @@ export const { onVoiceCall } = Assistant()
       SpeechToText("transcript", {
         model: "sadasd",
       }),
-      Agent("assistant", {
-        instructions: "sadasd",
+      GenerateText("answer", {
+        model: "sadasd",
       }),
       TextToSpeech("speech", {
         model: "sadasd",
       }),
-      Step("log", function () {
-        console.log(this.transcript);
-        console.log(this.assistant);
-        console.log(this.speech);
-      }),
     ),
   );
+
+// Step("log", function () {
+//       console.log(this.transcript);
+//       console.log(this.assistant);
+//       console.log(this.speech);
+//     }),
