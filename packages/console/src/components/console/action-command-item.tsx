@@ -8,9 +8,9 @@ import {
   actionTitle,
   getActionValue,
 } from "../../lib/command-actions";
-import type { CommandCenterAction } from "../../types";
+import type { ConsoleAction } from "../../types";
 
-function ActionIcon({ action }: { action: CommandCenterAction }) {
+function ActionIcon({ action }: { action: ConsoleAction }) {
   return (
     <span
       aria-hidden="true"
@@ -29,8 +29,8 @@ export function ActionCommandItem({
   action,
   onSelect,
 }: {
-  action: CommandCenterAction;
-  onSelect: (action: CommandCenterAction) => void;
+  action: ConsoleAction;
+  onSelect: (action: ConsoleAction) => void;
 }) {
   return (
     <CommandPrimitive.Item
@@ -44,7 +44,7 @@ export function ActionCommandItem({
       onSelect={() => onSelect(action)}
       className={cn(
         "group relative flex h-full min-h-[130px] w-full cursor-pointer flex-col rounded-2xl border border-border bg-action/50 p-4 text-left transition-[background-color,border-color,box-shadow] duration-100 hover:bg-action data-[selected=true]:border-transparent data-[selected=true]:ring-2 data-[selected=true]:ring-landing-primary md:min-h-[150px]",
-        "outline-none",
+        "outline-none"
       )}
     >
       <div className="flex flex-col gap-2">

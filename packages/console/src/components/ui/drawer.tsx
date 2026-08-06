@@ -32,7 +32,9 @@ const Drawer = ({
 );
 Drawer.displayName = "Drawer";
 
-type DrawerTriggerProps = React.ComponentProps<typeof DrawerPrimitive.Trigger> & {
+type DrawerTriggerProps = React.ComponentProps<
+  typeof DrawerPrimitive.Trigger
+> & {
   asChild?: boolean;
 };
 
@@ -56,7 +58,7 @@ const DrawerTrigger = React.forwardRef<HTMLButtonElement, DrawerTriggerProps>(
         {renderedChild ? undefined : children}
       </DrawerPrimitive.Trigger>
     );
-  },
+  }
 );
 DrawerTrigger.displayName = "DrawerTrigger";
 
@@ -86,7 +88,7 @@ const DrawerClose = React.forwardRef<HTMLButtonElement, DrawerCloseProps>(
         {renderedChild ? undefined : children}
       </DrawerPrimitive.Close>
     );
-  },
+  }
 );
 DrawerClose.displayName = "DrawerClose";
 
@@ -99,7 +101,7 @@ const DrawerOverlay = React.forwardRef<
     data-slot="drawer-overlay"
     className={cn(
       "fixed inset-0 z-50 bg-black/20  opacity-[var(--drawer-overlay-opacity)] transition-opacity data-[ending-style]:opacity-0 data-[starting-style]:opacity-0",
-      className,
+      className
     )}
     {...props}
   />
@@ -114,7 +116,7 @@ const DrawerSwipeHandle = ({
     data-slot="drawer-swipe-handle"
     className={cn(
       "mx-auto mt-4 h-2 w-[100px] shrink-0 rounded-full bg-neutral-600",
-      className,
+      className
     )}
     {...props}
   />
@@ -144,7 +146,7 @@ const DrawerContent = React.forwardRef<
             "data-[swipe-direction=up]:left-[var(--drawer-inset)] data-[swipe-direction=up]:right-[var(--drawer-inset)] data-[swipe-direction=up]:top-[var(--drawer-inset)] data-[swipe-direction=up]:mb-24 data-[swipe-direction=up]:max-h-[calc(100dvh-6rem)] data-[swipe-direction=up]:rounded-b-[10px] data-[swipe-direction=up]:-translate-y-[calc(var(--drawer-swipe-movement-y)+var(--drawer-snap-point-offset,0px))] data-[swipe-direction=up]:data-[ending-style]:-translate-y-full data-[swipe-direction=up]:data-[starting-style]:-translate-y-full",
             "data-[swipe-direction=right]:bottom-[var(--drawer-inset)] data-[swipe-direction=right]:right-[var(--drawer-inset)] data-[swipe-direction=right]:top-[var(--drawer-inset)] data-[swipe-direction=right]:h-[calc(100dvh-var(--drawer-inset)-var(--drawer-inset))] data-[swipe-direction=right]:w-[var(--drawer-width)] data-[swipe-direction=right]:max-w-[var(--drawer-max-width)] data-[swipe-direction=right]:translate-x-[var(--drawer-swipe-movement-x)] data-[swipe-direction=right]:data-[ending-style]:translate-x-full data-[swipe-direction=right]:data-[starting-style]:translate-x-full",
             "data-[swipe-direction=left]:bottom-[var(--drawer-inset)] data-[swipe-direction=left]:left-[var(--drawer-inset)] data-[swipe-direction=left]:top-[var(--drawer-inset)] data-[swipe-direction=left]:h-[calc(100dvh-var(--drawer-inset)-var(--drawer-inset))] data-[swipe-direction=left]:w-[var(--drawer-width)] data-[swipe-direction=left]:max-w-[var(--drawer-max-width)] data-[swipe-direction=left]:translate-x-[var(--drawer-swipe-movement-x)] data-[swipe-direction=left]:data-[ending-style]:-translate-x-full data-[swipe-direction=left]:data-[starting-style]:-translate-x-full",
-            className,
+            className
           )}
           {...props}
         >
@@ -171,7 +173,7 @@ const DrawerHeader = ({
     data-slot="drawer-header"
     className={cn(
       "grid gap-1.5 p-4 text-center outline-none sm:text-left",
-      className,
+      className
     )}
     {...props}
   />
@@ -199,7 +201,7 @@ const DrawerTitle = React.forwardRef<
     data-slot="drawer-title"
     className={cn(
       "text-lg font-semibold leading-none tracking-tight",
-      className,
+      className
     )}
     {...props}
   />

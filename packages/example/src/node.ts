@@ -1,10 +1,10 @@
-import { CommandCenter } from "@taskwish/cmd";
+import { Console } from "@taskwish/console";
 import { Node } from "taskwish";
 
 await Node("example", {
   apiKey: process.env.TW_API_KEY,
   port: 3000,
-  apps: [CommandCenter()],
+  apps: [Console()],
   workspace: [
     import("./greeter"),
     import("./biller"),

@@ -1,10 +1,10 @@
-import type { CommandCenterAction } from "../types";
+import type { ConsoleAction } from "../types";
 import { actorColor } from "./actor-color";
-import { uppercaseFirst } from "./cmd-text";
+import { uppercaseFirst } from "./console-text";
 
 function splitActionName(
-  id: string,
-): Pick<CommandCenterAction, "actor" | "action" | "label"> {
+  id: string
+): Pick<ConsoleAction, "actor" | "action" | "label"> {
   const [actor = "TaskWish", action = id] = id.split("::");
   const label = action
     .replace(/[_-]+/g, " ")
@@ -15,11 +15,11 @@ function splitActionName(
   return { actor, action, label: label || action };
 }
 
-function isVisibleAction(action: CommandCenterAction): boolean {
+function isVisibleAction(action: ConsoleAction): boolean {
   return !action.action.toLowerCase().startsWith("on");
 }
 
-function normalizeAction(raw: CommandCenterAction): CommandCenterAction {
+function normalizeAction(raw: ConsoleAction): ConsoleAction {
   const parsed = splitActionName(raw.id);
   const label = uppercaseFirst(raw.label || parsed.label || parsed.action);
   return {
@@ -31,20 +31,18 @@ function normalizeAction(raw: CommandCenterAction): CommandCenterAction {
   };
 }
 
-export function normalizeActions(
-  actions: CommandCenterAction[],
-): CommandCenterAction[] {
+export function normalizeActions(actions: ConsoleAction[]): ConsoleAction[] {
   return actions.map(normalizeAction).filter(isVisibleAction);
 }
 
-export function getActionValue(action: CommandCenterAction) {
+export function getActionValue(action: ConsoleAction) {
   return action.id;
 }
 
-export function actionTitle(action: CommandCenterAction) {
+export function actionTitle(action: ConsoleAction) {
   return action.label || action.action;
 }
 
-export function actionDescription(action: CommandCenterAction) {
+export function actionDescription(action: ConsoleAction) {
   return action.description || action.actor;
 }

@@ -12,7 +12,7 @@ export function ActionResult({ result }: { result: ActionRunResult }) {
         <span
           className={cn(
             "text-xs font-semibold",
-            result.ok ? "text-muted-foreground" : "text-destructive",
+            result.ok ? "text-muted-foreground" : "text-destructive"
           )}
         >
           {result.status}

@@ -1,8 +1,5 @@
-import type {
-  CommandCenterInputField,
-  CommandCenterJsonSchema,
-} from "../types";
-import { sentenceFromIdentifier, uppercaseFirst } from "./cmd-text";
+import type { ConsoleInputField, ConsoleJsonSchema } from "../types";
+import { sentenceFromIdentifier, uppercaseFirst } from "./console-text";
 
 export type ActionRunResult = {
   status: number;
@@ -19,7 +16,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function schemaType(
-  schema: CommandCenterJsonSchema | undefined,
+  schema: ConsoleJsonSchema | undefined
 ): string | undefined {
   if (Array.isArray(schema?.type)) {
     return schema.type.find((value) => value !== "null");
@@ -28,14 +25,14 @@ export function schemaType(
 }
 
 export function arrayItemSchema(
-  schema: CommandCenterJsonSchema | undefined,
-): CommandCenterJsonSchema | undefined {
+  schema: ConsoleJsonSchema | undefined
+): ConsoleJsonSchema | undefined {
   return Array.isArray(schema?.items) ? schema.items[0] : schema?.items;
 }
 
 export function objectSchemaFields(
-  schema: CommandCenterJsonSchema | undefined,
-): CommandCenterInputField[] {
+  schema: ConsoleJsonSchema | undefined
+): ConsoleInputField[] {
   if (!isRecord(schema?.properties)) return [];
 
   return Object.entries(schema.properties).map(([name, property]) => ({
@@ -43,7 +40,9 @@ export function objectSchemaFields(
     required: schema.required?.includes(name),
     schema: property,
     description:
-      typeof property.description === "string" ? property.description : undefined,
+      typeof property.description === "string"
+        ? property.description
+        : undefined,
     example: property.examples?.[0],
     defaultValue: "default" in property ? property.default : undefined,
   }));
@@ -55,9 +54,7 @@ export function enumValue(value: unknown): string {
     : JSON.stringify(value) ?? String(value);
 }
 
-export function listItemDefaultValue(
-  field: CommandCenterInputField,
-): ListItemValue {
+export function listItemDefaultValue(field: ConsoleInputField): ListItemValue {
   const itemSchema = arrayItemSchema(field.schema);
   const itemType = schemaType(itemSchema);
   if (itemType === "object") {
@@ -65,14 +62,14 @@ export function listItemDefaultValue(
       objectSchemaFields(itemSchema).map((property) => [
         property.name,
         rawFieldDefaultValue(property),
-      ]),
+      ])
     );
   }
   if (itemType === "boolean") return { value: false };
   return { value: "" };
 }
 
-function rawFieldDefaultValue(field: CommandCenterInputField): unknown {
+function rawFieldDefaultValue(field: ConsoleInputField): unknown {
   if (field.defaultValue !== undefined) return field.defaultValue;
   if (field.example !== undefined) return field.example;
 
@@ -82,7 +79,7 @@ function rawFieldDefaultValue(field: CommandCenterInputField): unknown {
   return "";
 }
 
-function fieldFormDefaultValue(field: CommandCenterInputField): unknown {
+function fieldFormDefaultValue(field: ConsoleInputField): unknown {
   const type = schemaType(field.schema);
   const rawValue = rawFieldDefaultValue(field);
 
@@ -103,25 +100,25 @@ function fieldFormDefaultValue(field: CommandCenterInputField): unknown {
 }
 
 export function formDefaultValues(
-  fields: CommandCenterInputField[],
+  fields: ConsoleInputField[]
 ): CommandFormValues {
   return Object.fromEntries(
-    fields.map((field) => [field.name, fieldFormDefaultValue(field)]),
+    fields.map((field) => [field.name, fieldFormDefaultValue(field)])
   );
 }
 
-function isJsonField(field: CommandCenterInputField): boolean {
+function isJsonField(field: ConsoleInputField): boolean {
   const type = schemaType(field.schema);
   return type === "object" || type === "array" || !type;
 }
 
-export function fieldPlaceholder(field: CommandCenterInputField): string {
+export function fieldPlaceholder(field: ConsoleInputField): string {
   const type = schemaType(field.schema);
   if (field.example !== undefined) {
     const placeholder =
       typeof field.example === "string"
         ? field.example
-        : (JSON.stringify(field.example) ?? String(field.example));
+        : JSON.stringify(field.example) ?? String(field.example);
     return uppercaseFirst(placeholder);
   }
   if (type === "number" || type === "integer") return "0";
@@ -140,10 +137,7 @@ function parseJsonValue(value: string): unknown {
   }
 }
 
-function parseFieldValue(
-  field: CommandCenterInputField,
-  value: unknown,
-): unknown {
+function parseFieldValue(field: ConsoleInputField, value: unknown): unknown {
   const type = schemaType(field.schema);
   const raw = String(value ?? "");
   const trimmed = raw.trim();
@@ -178,10 +172,7 @@ function parseFieldValue(
   return parseJsonValue(raw);
 }
 
-function parseListItemValue(
-  field: CommandCenterInputField,
-  value: unknown,
-): unknown {
+function parseListItemValue(field: ConsoleInputField, value: unknown): unknown {
   const itemSchema = arrayItemSchema(field.schema);
   if (schemaType(itemSchema) === "object") {
     const row = isRecord(value) ? value : {};
@@ -195,7 +186,7 @@ function parseListItemValue(
     return Object.keys(parsedRow).length ? parsedRow : undefined;
   }
 
-  const itemField: CommandCenterInputField = {
+  const itemField: ConsoleInputField = {
     ...field,
     schema: itemSchema,
   };
@@ -203,8 +194,8 @@ function parseListItemValue(
 }
 
 function parseListValue(
-  field: CommandCenterInputField,
-  value: unknown,
+  field: ConsoleInputField,
+  value: unknown
 ): unknown[] | undefined {
   const rows = Array.isArray(value) ? value : [];
   const parsedRows = rows
@@ -217,8 +208,8 @@ function parseListValue(
 }
 
 function parseCommandFieldValue(
-  field: CommandCenterInputField,
-  value: unknown,
+  field: ConsoleInputField,
+  value: unknown
 ): unknown {
   return schemaType(field.schema) === "array"
     ? parseListValue(field, value)
@@ -227,7 +218,7 @@ function parseCommandFieldValue(
 
 export function buildPayload(
   values: CommandFormValues,
-  fields: CommandCenterInputField[],
+  fields: ConsoleInputField[]
 ) {
   if (fields.length === 1 && fields[0]?.name === "input") {
     const parsed = parseCommandFieldValue(fields[0], values.input);
@@ -243,15 +234,15 @@ export function buildPayload(
 }
 
 export async function parseActionResponse(
-  response: Response,
+  response: Response
 ): Promise<ActionRunResult> {
   const contentType = response.headers.get("Content-Type") ?? "";
   const body =
     response.status === 204
       ? null
       : contentType.includes("application/json")
-        ? await response.json()
-        : await response.text();
+      ? await response.json()
+      : await response.text();
 
   return {
     status: response.status,

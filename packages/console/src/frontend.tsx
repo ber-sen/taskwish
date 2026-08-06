@@ -6,7 +6,7 @@ import "./styles.generated.css";
 const rootElement = document.getElementById("root");
 
 if (!rootElement) {
-  throw new Error("Command Center root element was not found");
+  throw new Error("Console root element was not found");
 }
 
 const app = (

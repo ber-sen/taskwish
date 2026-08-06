@@ -1,10 +1,10 @@
 {
-  "name": "@taskwish/cmd",
+  "name": "@taskwish/console",
   "publishConfig": {
     "access": "public"
   },
   "version": "0.0.1",
-  "description": "Command Center UI for TaskWish nodes",
+  "description": "Console UI for TaskWish nodes",
   "license": "Elastic-2.0",
   "author": "Bersen Pajaziti",
   "exports": {

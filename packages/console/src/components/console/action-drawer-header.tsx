@@ -9,20 +9,22 @@ import {
   DrawerTitle,
 } from "../ui/drawer";
 import { actionDescription, actionTitle } from "../../lib/command-actions";
-import type { CommandCenterAction } from "../../types";
+import type { ConsoleAction } from "../../types";
 
 export function ActionDrawerHeader({
   action,
   collapsed,
   onRun,
 }: {
-  action: CommandCenterAction;
+  action: ConsoleAction;
   collapsed: boolean;
   onRun: () => void;
 }) {
   return (
     <DrawerHeader
-      className={`relative shrink-0 text-left transition-all duration-200 mini-app:pt-[100px] ${collapsed && "pb-2"}`}
+      className={`relative shrink-0 text-left transition-all duration-200 mini-app:pt-[100px] ${
+        collapsed && "pb-2"
+      }`}
     >
       <div className="relative">
         <Button

@@ -20,8 +20,8 @@ import {
   schemaType,
   type CommandFormValues,
 } from "../../lib/command-form";
-import { sentenceFromIdentifier } from "../../lib/cmd-text";
-import type { CommandCenterInputField } from "../../types";
+import { sentenceFromIdentifier } from "../../lib/console-text";
+import type { ConsoleInputField } from "../../types";
 import { FieldDescription } from "./field-description";
 
 function ObjectPropertyInput({
@@ -32,7 +32,7 @@ function ObjectPropertyInput({
   autoFocus,
   register,
 }: {
-  field: CommandCenterInputField;
+  field: ConsoleInputField;
   name: string;
   id: string;
   disabled: boolean;
@@ -74,7 +74,10 @@ function ObjectPropertyInput({
   if (type === "boolean") {
     return (
       <div className="space-y-2">
-        <label htmlFor={id} className="flex items-center gap-2 text-sm font-medium">
+        <label
+          htmlFor={id}
+          className="flex items-center gap-2 text-sm font-medium"
+        >
           <input
             id={id}
             type="checkbox"
@@ -137,7 +140,7 @@ export function ListInputField({
   control,
   label,
 }: {
-  field: CommandCenterInputField;
+  field: ConsoleInputField;
   disabled: boolean;
   autoFocus?: boolean;
   register: UseFormRegister<CommandFormValues>;
@@ -177,7 +180,9 @@ export function ListInputField({
           rows.map((row, index) => {
             const itemName = `${field.name}.${index}.value`;
             const itemId = `command-${field.name}-${row.id}`;
-            const itemLabel = `${sentenceFromIdentifier(field.name)} ${index + 1}`;
+            const itemLabel = `${sentenceFromIdentifier(field.name)} ${
+              index + 1
+            }`;
 
             return (
               <div
@@ -213,7 +218,9 @@ export function ListInputField({
                       {...register(itemName)}
                       className="flex h-[38px] w-full rounded-md border border-input bg-transparent px-2 py-1 text-base transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {!field.required ? <option value="">Select...</option> : null}
+                      {!field.required ? (
+                        <option value="">Select...</option>
+                      ) : null}
                       {enumValues.map((value) => (
                         <option key={enumValue(value)} value={enumValue(value)}>
                           {enumValue(value)}

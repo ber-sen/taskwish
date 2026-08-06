@@ -1,11 +1,11 @@
 import { createInterface } from "node:readline/promises";
 import { type as arkType } from "arktype";
-import commandCenterIndex from "@taskwish/cmd/index.html";
+import consoleIndex from "@taskwish/console/index.html";
 import type {
-  CommandCenterAction,
-  CommandCenterConfig,
-  CommandCenterJsonSchema,
-  CommandCenterInputField,
+  ConsoleAction,
+  ConsoleConfig,
+  ConsoleJsonSchema,
+  ConsoleInputField,
 } from "./types";
 import { actorColor } from "./lib/actor-color";
 
@@ -41,13 +41,13 @@ type NodeAppReadyContext = NodeAppContext & {
   server: Bun.Server<any>;
 };
 
-export type CommandCenterApp = {
+export type ConsoleApp = {
   name?: string;
   routes?: (context: NodeAppContext) => NodeRoutes | Promise<NodeRoutes>;
   ready?: (context: NodeAppReadyContext) => void | Promise<void>;
 };
 
-export type CommandCenterOptions = {
+export type ConsoleOptions = {
   openBrowser?: boolean | "ask";
 };
 
@@ -88,7 +88,7 @@ function uppercaseFirst(value: string): string {
   return value ? `${value[0]!.toUpperCase()}${value.slice(1)}` : value;
 }
 
-function isVisibleAction(action: CommandCenterAction): boolean {
+function isVisibleAction(action: ConsoleAction): boolean {
   return !action.action.toLowerCase().startsWith("on");
 }
 
@@ -109,37 +109,33 @@ function isArkSchemaString(value: string): boolean {
 }
 
 function jsonSchemaFromArkSchema(
-  schema: unknown,
-): CommandCenterJsonSchema | undefined {
+  schema: unknown
+): ConsoleJsonSchema | undefined {
   if (schema === undefined) return undefined;
 
   try {
-    return arkType
-      .raw(schema as never)
-      .toJsonSchema() as CommandCenterJsonSchema;
+    return arkType.raw(schema as never).toJsonSchema() as ConsoleJsonSchema;
   } catch {
     return undefined;
   }
 }
 
 function fieldExample(
-  schema: CommandCenterJsonSchema | undefined,
-  metadata: Record<string, unknown> | undefined,
+  schema: ConsoleJsonSchema | undefined,
+  metadata: Record<string, unknown> | undefined
 ): unknown {
   if (metadata && "example" in metadata) return metadata.example;
   return schema?.examples?.[0];
 }
 
-function fieldDefaultValue(
-  schema: CommandCenterJsonSchema | undefined,
-): unknown {
+function fieldDefaultValue(schema: ConsoleJsonSchema | undefined): unknown {
   return schema && "default" in schema ? schema.default : undefined;
 }
 
 function fieldDescription(
-  schema: CommandCenterJsonSchema | undefined,
+  schema: ConsoleJsonSchema | undefined,
   meta: unknown,
-  metadata: Record<string, unknown> | undefined,
+  metadata: Record<string, unknown> | undefined
 ): string | undefined {
   if (metadata && typeof metadata.description === "string") {
     return metadata.description;
@@ -149,16 +145,13 @@ function fieldDescription(
   return undefined;
 }
 
-function fieldFromMeta(
-  name: string,
-  meta: unknown,
-): CommandCenterInputField {
+function fieldFromMeta(name: string, meta: unknown): ConsoleInputField {
   const schema =
     typeof meta === "string" && isArkSchemaString(meta)
       ? jsonSchemaFromArkSchema(meta)
       : isRecord(meta) && "schema" in meta
-        ? jsonSchemaFromArkSchema(meta.schema)
-        : undefined;
+      ? jsonSchemaFromArkSchema(meta.schema)
+      : undefined;
   const metadata = isRecord(meta) ? meta : undefined;
 
   return {
@@ -172,9 +165,9 @@ function fieldFromMeta(
 }
 
 function fieldsFromJsonSchema(
-  schema: CommandCenterJsonSchema | undefined,
-  metadata: Record<string, unknown>,
-): CommandCenterInputField[] {
+  schema: ConsoleJsonSchema | undefined,
+  metadata: Record<string, unknown>
+): ConsoleInputField[] {
   if (!schema) return [];
 
   if (!isRecord(schema.properties)) {
@@ -206,32 +199,32 @@ function fieldsFromJsonSchema(
 }
 
 function inputFieldsFromActionMeta(
-  meta: Record<string, unknown>,
-): CommandCenterInputField[] {
+  meta: Record<string, unknown>
+): ConsoleInputField[] {
   const input = meta.input;
   if (!isRecord(input)) return [];
 
   return Object.entries(input).map(([name, field]) =>
-    fieldFromMeta(name, field),
+    fieldFromMeta(name, field)
   );
 }
 
 function actionInputMetadata(
-  meta: Record<string, unknown>,
+  meta: Record<string, unknown>
 ): Record<string, unknown> {
   return isRecord(meta.input) ? meta.input : {};
 }
 
 function inputFieldsFromRouteMeta(
-  meta: Record<string, unknown>,
-): CommandCenterInputField[] {
+  meta: Record<string, unknown>
+): ConsoleInputField[] {
   const route = meta.route;
   if (!Array.isArray(route)) return [];
 
   const schema = route[2];
   if (!isRecord(schema)) return [];
 
-  const fields: CommandCenterInputField[] = [];
+  const fields: ConsoleInputField[] = [];
   for (const section of ["params", "query", "body"] as const) {
     const value = schema[section];
     if (isRecord(value)) {
@@ -244,8 +237,8 @@ function inputFieldsFromRouteMeta(
 }
 
 function inputSchemaFromRouteMeta(
-  meta: Record<string, unknown>,
-): CommandCenterJsonSchema | undefined {
+  meta: Record<string, unknown>
+): ConsoleJsonSchema | undefined {
   const route = meta.route;
   if (!Array.isArray(route)) return undefined;
 
@@ -263,9 +256,7 @@ function inputSchemaFromRouteMeta(
     : undefined;
 }
 
-function sourceForMeta(
-  meta: Record<string, unknown>,
-): CommandCenterAction["source"] {
+function sourceForMeta(meta: Record<string, unknown>): ConsoleAction["source"] {
   if (typeof meta.event === "string") return "event";
   if (typeof meta.trait === "string") return "trait";
   const route = meta.route;
@@ -295,8 +286,8 @@ function descriptionForMeta(meta: Record<string, unknown>): string | undefined {
 function describeAction(
   actionName: string,
   action: Action,
-  routePrefix: string,
-): CommandCenterAction {
+  routePrefix: string
+): ConsoleAction {
   const { actor, action: method, label } = actionParts(actionName);
   const meta = metaForAction(action);
   const inputSchema =
@@ -304,10 +295,7 @@ function describeAction(
     inputSchemaFromRouteMeta(meta);
   const input = inputSchema
     ? fieldsFromJsonSchema(inputSchema, actionInputMetadata(meta))
-    : [
-        ...inputFieldsFromActionMeta(meta),
-        ...inputFieldsFromRouteMeta(meta),
-      ];
+    : [...inputFieldsFromActionMeta(meta), ...inputFieldsFromRouteMeta(meta)];
 
   return {
     id: actionName,
@@ -324,36 +312,38 @@ function describeAction(
   };
 }
 
-export function commandCenterConfig(
+export function consoleConfig(
   registry: NodeRegistry,
-  options: { nodeName: string; apiKey: string; prefix: string },
-): CommandCenterConfig {
+  options: { nodeName: string; apiKey: string; prefix: string }
+): ConsoleConfig {
   return {
     nodeName: options.nodeName,
     apiKey: options.apiKey,
     apiPrefix: options.prefix,
     actions: Array.from(registry.actions)
       .map(([actionName, action]) =>
-        describeAction(actionName, action, options.prefix),
+        describeAction(actionName, action, options.prefix)
       )
       .filter(isVisibleAction)
       .sort((left, right) =>
-        `${left.actor} ${left.label}`.localeCompare(`${right.actor} ${right.label}`),
+        `${left.actor} ${left.label}`.localeCompare(
+          `${right.actor} ${right.label}`
+        )
       ),
   };
 }
 
-export function createCommandCenterRoutes(
+export function createConsoleRoutes(
   registry: NodeRegistry,
-  options: { nodeName: string; apiKey: string; prefix: string },
+  options: { nodeName: string; apiKey: string; prefix: string }
 ): NodeRoutes {
   const config: NodeRouteHandler = () =>
-    json(200, commandCenterConfig(registry, options));
+    json(200, consoleConfig(registry, options));
 
   return {
-    "/": commandCenterIndex,
-    "/*": commandCenterIndex,
-    [`${options.prefix}/cmd/config`]: {
+    "/": consoleIndex,
+    "/*": consoleIndex,
+    [`${options.prefix}/console/config`]: {
       GET: config,
     },
   };
@@ -364,7 +354,7 @@ function isInteractiveTerminal(): boolean {
 }
 
 async function shouldOpenBrowser(
-  openBrowser: CommandCenterOptions["openBrowser"],
+  openBrowser: ConsoleOptions["openBrowser"]
 ): Promise<boolean> {
   if (openBrowser === true) return true;
   if (openBrowser === false) return false;
@@ -376,7 +366,7 @@ async function shouldOpenBrowser(
   });
 
   try {
-    const answer = await prompt.question("Open Command Center in browser? (Y/n) ");
+    const answer = await prompt.question("Open Console in browser? (Y/n) ");
     return !/^(n|no)$/i.test(answer.trim());
   } finally {
     prompt.close();
@@ -402,13 +392,11 @@ function handleOpenBrowserError(error: unknown): void {
   console.warn(`Could not open browser: ${message}`);
 }
 
-export function CommandCenter(
-  options: CommandCenterOptions = {},
-): CommandCenterApp {
+export function Console(options: ConsoleOptions = {}): ConsoleApp {
   return {
-    name: "cmd",
+    name: "console",
     routes(context) {
-      return createCommandCenterRoutes(context.registry, {
+      return createConsoleRoutes(context.registry, {
         nodeName: context.nodeName,
         apiKey: context.apiKey,
         prefix: context.prefix,

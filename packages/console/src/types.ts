@@ -1,10 +1,10 @@
-export type CommandCenterJsonSchema = {
+export type ConsoleJsonSchema = {
   [key: string]: unknown;
   $schema?: string;
   type?: string | string[];
-  properties?: Record<string, CommandCenterJsonSchema>;
+  properties?: Record<string, ConsoleJsonSchema>;
   required?: string[];
-  items?: CommandCenterJsonSchema | CommandCenterJsonSchema[];
+  items?: ConsoleJsonSchema | ConsoleJsonSchema[];
   enum?: unknown[];
   const?: unknown;
   default?: unknown;
@@ -12,17 +12,17 @@ export type CommandCenterJsonSchema = {
   examples?: unknown[];
 };
 
-export type CommandCenterInputField = {
+export type ConsoleInputField = {
   name: string;
   description?: string;
   example?: unknown;
   defaultValue?: unknown;
   required?: boolean;
-  schema?: CommandCenterJsonSchema;
+  schema?: ConsoleJsonSchema;
   metadata?: Record<string, unknown>;
 };
 
-export type CommandCenterAction = {
+export type ConsoleAction = {
   id: string;
   actor: string;
   action: string;
@@ -31,14 +31,14 @@ export type CommandCenterAction = {
   color: string;
   route: string;
   source: "local" | "http" | "event" | "trait";
-  input: CommandCenterInputField[];
-  inputSchema?: CommandCenterJsonSchema;
+  input: ConsoleInputField[];
+  inputSchema?: ConsoleJsonSchema;
   meta?: unknown;
 };
 
-export type CommandCenterConfig = {
+export type ConsoleConfig = {
   nodeName: string;
   apiKey: string;
   apiPrefix: string;
-  actions: CommandCenterAction[];
+  actions: ConsoleAction[];
 };
