@@ -10,7 +10,7 @@ import {
   type ActionRunResult,
   type CommandFormValues,
 } from "../../lib/command-form";
-import type { CommandCenterAction, CommandCenterConfig } from "../../types";
+import type { ConsoleAction, ConsoleConfig } from "../../types";
 import { ActionInputField } from "./action-input-field";
 import { ActionResult } from "./action-result";
 
@@ -18,8 +18,8 @@ export function ActionForm({
   action,
   config,
 }: {
-  action: CommandCenterAction;
-  config: CommandCenterConfig;
+  action: ConsoleAction;
+  config: ConsoleConfig;
 }) {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,8 +41,8 @@ export function ActionForm({
   const visibleFields = showOptionalFields
     ? action.input
     : requiredFields.length
-      ? requiredFields
-      : [];
+    ? requiredFields
+    : [];
 
   const submit: SubmitHandler<CommandFormValues> = async (values) => {
     setIsRunning(true);
@@ -69,7 +69,7 @@ export function ActionForm({
 
   return (
     <form
-      id="cmd-action-form"
+      id="console-action-form"
       className="space-y-4"
       onSubmit={form.handleSubmit(submit)}
     >

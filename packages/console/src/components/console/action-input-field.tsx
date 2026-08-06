@@ -9,8 +9,8 @@ import {
   schemaType,
   type CommandFormValues,
 } from "../../lib/command-form";
-import { sentenceFromIdentifier } from "../../lib/cmd-text";
-import type { CommandCenterInputField } from "../../types";
+import { sentenceFromIdentifier } from "../../lib/console-text";
+import type { ConsoleInputField } from "../../types";
 import { FieldDescription } from "./field-description";
 import { ListInputField } from "./list-input-field";
 
@@ -21,7 +21,7 @@ export function ActionInputField({
   register,
   control,
 }: {
-  field: CommandCenterInputField;
+  field: ConsoleInputField;
   disabled: boolean;
   autoFocus?: boolean;
   register: UseFormRegister<CommandFormValues>;

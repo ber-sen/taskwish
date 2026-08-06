@@ -55,8 +55,8 @@
         "typescript": "^5.9.2",
       },
     },
-    "packages/cmd": {
-      "name": "@taskwish/cmd",
+    "packages/console": {
+      "name": "@taskwish/console",
       "version": "0.0.1",
       "dependencies": {
         "@base-ui/react": "^1.6.0",
@@ -106,7 +106,7 @@
       "name": "@taskwish/example",
       "version": "0.0.2",
       "dependencies": {
-        "@taskwish/cmd": "^0.0.1",
+        "@taskwish/console": "^0.0.1",
         "@taskwish/node": "^0.0.3",
         "@taskwish/symbolic": "^0.0.1",
         "playwright-core": "^1.61.1",
@@ -130,7 +130,7 @@
         "@taskwish/core": "^0.0.6",
       },
       "devDependencies": {
-        "@taskwish/cmd": "^0.0.1",
+        "@taskwish/console": "^0.0.1",
         "@types/bun": "^1.3.12",
         "typescript": "^5.9.2",
       },
@@ -384,7 +384,7 @@
 
     "@taskwish/bare-example": ["@taskwish/bare-example@workspace:packages/bare-example"],
 
-    "@taskwish/cmd": ["@taskwish/cmd@workspace:packages/cmd"],
+    "@taskwish/console": ["@taskwish/console@workspace:packages/console"],
 
     "@taskwish/core": ["@taskwish/core@workspace:packages/core"],
 
@@ -726,7 +726,7 @@
 
     "@taskwish/bare-example/@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
 
-    "@taskwish/cmd/@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
+    "@taskwish/console/@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
 
     "@taskwish/core/@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
 
@@ -746,7 +746,7 @@
 
     "@taskwish/bare/@types/bun/bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 
-    "@taskwish/cmd/@types/bun/bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
+    "@taskwish/console/@types/bun/bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 
     "@taskwish/core/@types/bun/bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 

@@ -1,14 +1,11 @@
 import { expect, test } from "bun:test";
 import { Actor, Event } from "@taskwish/core";
-import { CommandCenter } from "@taskwish/cmd";
+import { Console } from "@taskwish/console";
 import { createNodeRegistry, createRoutes } from "./index";
 import { apiKey, auth } from "./test-helpers";
 import type { NodeRouteMap, NodeRoutes } from "./types";
 
-function routeMap(
-  routes: NodeRoutes,
-  path: string,
-): NodeRouteMap {
+function routeMap(routes: NodeRoutes, path: string): NodeRouteMap {
   const route = routes[path];
   expect(route).toBeDefined();
   if (!route || route instanceof Response || "index" in route) {
@@ -19,7 +16,7 @@ function routeMap(
 
 test("exports Bun.serve routes for service dispatch", async () => {
   const { Greeter } = Actor("Greeter");
-  
+
   const { hello } = Greeter()
     .on("Command", "hello")
 
@@ -31,7 +28,7 @@ test("exports Bun.serve routes for service dispatch", async () => {
 
   const routes = await createRoutes(
     createNodeRegistry([Promise.resolve({ Greeter, hello })]),
-    { apiKey },
+    { apiKey }
   );
 
   const route = routeMap(routes, "/tw/Greeter/hello");
@@ -42,7 +39,7 @@ test("exports Bun.serve routes for service dispatch", async () => {
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Ada" }),
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -51,7 +48,7 @@ test("exports Bun.serve routes for service dispatch", async () => {
 
 test("exports actor event handlers as concrete Bun.serve routes", async () => {
   const { Greeter } = Actor("Greeter").scope(
-    Event("Message", { content: "string" }),
+    Event("Message", { content: "string" })
   );
   const { Biller } = Actor("Biller").use(Greeter);
   const { onGreeterMessage } = Biller()
@@ -64,7 +61,7 @@ test("exports actor event handlers as concrete Bun.serve routes", async () => {
     createNodeRegistry([
       Promise.resolve({ Greeter, Biller, onGreeterMessage }),
     ]),
-    { apiKey },
+    { apiKey }
   );
 
   const route = routeMap(routes, "/tw/Biller/on-greeter-message");
@@ -75,24 +72,24 @@ test("exports actor event handlers as concrete Bun.serve routes", async () => {
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ content: "hi" }),
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({ received: "hi" });
 });
 
-test("does not export command center routes by default", async () => {
+test("does not export console routes by default", async () => {
   const routes = await createRoutes(createNodeRegistry([]), { apiKey });
 
   expect(routes["/"]).toBeUndefined();
   expect(routes["/*"]).toBeUndefined();
-  expect(routes["/tw/cmd/config"]).toBeUndefined();
+  expect(routes["/tw/console/config"]).toBeUndefined();
 });
 
-test("exports command center config when the app is installed", async () => {
+test("exports console config when the app is installed", async () => {
   const { Greeter } = Actor("Greeter").scope(
-    Event("Message", { content: "string" }),
+    Event("Message", { content: "string" })
   );
   const { Biller } = Actor("Biller").use(Greeter);
 
@@ -115,13 +112,13 @@ test("exports command center config when the app is installed", async () => {
     createNodeRegistry([
       Promise.resolve({ Greeter, Biller, hello, onGreeterMessage }),
     ]),
-    { apiKey, nodeName: "test-node", apps: [CommandCenter()] },
+    { apiKey, nodeName: "test-node", apps: [Console()] }
   );
 
-  const route = routeMap(routes, "/tw/cmd/config");
+  const route = routeMap(routes, "/tw/console/config");
 
   const response = await route.GET!(
-    new Request("http://localhost/tw/cmd/config"),
+    new Request("http://localhost/tw/console/config")
   );
 
   expect(response.status).toBe(200);

@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Command as CommandPrimitive } from "cmdk";
 import { Search } from "lucide-react";
 
-import { ActionCommandItem } from "./components/cmd/action-command-item";
-import { ActionDrawerHeader } from "./components/cmd/action-drawer-header";
-import { ActionForm } from "./components/cmd/action-form";
-import { TaskWishLogo } from "./components/cmd/taskwish-logo";
+import { ActionCommandItem } from "./components/console/action-command-item";
+import { ActionDrawerHeader } from "./components/console/action-drawer-header";
+import { ActionForm } from "./components/console/action-form";
+import { TaskWishLogo } from "./components/console/taskwish-logo";
 import {
   Drawer,
   DrawerClose,
@@ -14,30 +14,31 @@ import {
 } from "./components/ui/drawer";
 import { Button } from "./components/ui/button";
 import { normalizeActions } from "./lib/command-actions";
-import type { CommandCenterAction, CommandCenterConfig } from "./types";
+import type { ConsoleAction, ConsoleConfig } from "./types";
 
 type LoadState =
   | { status: "loading" }
-  | { status: "ready"; config: CommandCenterConfig }
+  | { status: "ready"; config: ConsoleConfig }
   | { status: "error"; message: string };
 
-async function loadConfig(): Promise<CommandCenterConfig> {
-  const response = await fetch("/tw/cmd/config");
+async function loadConfig(): Promise<ConsoleConfig> {
+  const response = await fetch("/tw/console/config");
   if (!response.ok) {
-    throw new Error(`Unable to load command center (${response.status})`);
+    throw new Error(`Unable to load console (${response.status})`);
   }
-  const config = (await response.json()) as CommandCenterConfig;
+  const config = (await response.json()) as ConsoleConfig;
   return {
     ...config,
     actions: normalizeActions(config.actions),
   };
 }
 
-export function CommandCenter() {
+export function Console() {
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [search, setSearch] = useState("");
-  const [selectedAction, setSelectedAction] =
-    useState<CommandCenterAction | null>(null);
+  const [selectedAction, setSelectedAction] = useState<ConsoleAction | null>(
+    null
+  );
   const [isActionHeaderCollapsed, setIsActionHeaderCollapsed] = useState(false);
   const [selectedValue, setSelectedValue] = useState("");
   const commandRef = useRef<HTMLDivElement>(null);
@@ -71,14 +72,14 @@ export function CommandCenter() {
 
   const actions = useMemo(
     () => (loadState.status === "ready" ? loadState.config.actions : []),
-    [loadState],
+    [loadState]
   );
 
   const getVisibleActionValues = () =>
     Array.from(
       commandRef.current?.querySelectorAll<HTMLElement>(
-        '[cmdk-item=""]:not([aria-disabled="true"])',
-      ) ?? [],
+        '[cmdk-item=""]:not([aria-disabled="true"])'
+      ) ?? []
     )
       .map((item) => item.dataset.value)
       .filter((value): value is string => Boolean(value));
@@ -87,7 +88,7 @@ export function CommandCenter() {
     window.matchMedia("(min-width: 640px)").matches ? 3 : 2;
 
   const handleActionGridKeyDown = (
-    event: React.KeyboardEvent<HTMLDivElement>,
+    event: React.KeyboardEvent<HTMLDivElement>
   ) => {
     const visibleValues = getVisibleActionValues();
 
@@ -135,7 +136,7 @@ export function CommandCenter() {
   if (loadState.status === "loading") {
     return (
       <main className="mx-auto grid min-h-screen place-items-center bg-background p-4 text-sm text-muted-foreground">
-        Loading Command Center
+        Loading Console
       </main>
     );
   }
@@ -153,7 +154,7 @@ export function CommandCenter() {
 
   const submitSelectedAction = () => {
     document
-      .getElementById("cmd-action-form")
+      .getElementById("console-action-form")
       ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
   };
 
@@ -169,7 +170,7 @@ export function CommandCenter() {
 
       <CommandPrimitive
         ref={commandRef}
-        label="Command Center"
+        label="Console"
         value={selectedValue}
         onValueChange={setSelectedValue}
         onKeyDown={handleActionGridKeyDown}
@@ -243,7 +244,7 @@ export function CommandCenter() {
               </div>
 
               <DrawerFooter className="shrink-0 flex-row border-t bg-background mini-app:hidden">
-                <Button type="submit" form="cmd-action-form">
+                <Button type="submit" form="console-action-form">
                   Run
                 </Button>
                 <DrawerClose asChild>
@@ -260,4 +261,4 @@ export function CommandCenter() {
   );
 }
 
-export default CommandCenter;
+export default Console;
