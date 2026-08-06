@@ -2,7 +2,7 @@
 
 import { Actor, Step, Event } from "../../src";
 
-export const { Greeter } = Actor("Greeter").def(
+export const { Greeter } = Actor("Greeter").scope(
   Event("UserWelcomed", { name: "string" }),
 );
 
@@ -14,6 +14,7 @@ const App = {} as any;
 const Screen = {} as any;
 const List = {} as any;
 const Node = {} as any;
+const Widget = {} as any;
 
 export const { hello } = Greeter()
   .on("Command", "hello")
@@ -32,15 +33,23 @@ export const { hello } = Greeter()
     }),
   );
 
-const { Connections } = App("Connections", {
+const { ConnectionsView } = App("Connections", {
   "/": Screen(List()),
-})
+});
 
-const connections = Connections({
+const { Connections } = ConnectionsView({
   use: [import("./greeter")],
   "/": { name: "List", List: { data: [1, 2, 3] } },
 });
 
+const { QuickConnections } = Widget(
+  "QuickConnections",
+
+  Card("Lorem", Text("Header")),
+)({
+  Lorem: { Header: "Hello" },
+});
+
 const node = Node({
-  workspace: [import("./greeter"), connections],
+  workspace: [import("./greeter"), Connections, QuickConnections],
 });

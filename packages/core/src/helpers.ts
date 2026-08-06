@@ -388,10 +388,14 @@ export type GroupActions<M> =
   };
 
 /** Extract grouped actions from a plugin (plain object, single TW.Action, or Promise<module>). */
+type ActionProperties<U> = {
+  [K in keyof U as U[K] extends TW.Action<any, any, any> ? K : never]: U[K];
+};
+
 export type ActionsFromPlugin<U> = U extends Promise<infer M>
   ? GroupActions<M>
   : U extends (...args: any[]) => any
-  ? GroupActions<Record<"_", U>>
+  ? GroupActions<Record<"_", U> & ActionProperties<U>>
   : GroupActions<U>;
 
 export type EventsFromPlugin<U> = U extends Promise<infer M>

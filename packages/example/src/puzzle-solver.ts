@@ -1,4 +1,4 @@
-import { Int, Solve } from "@taskwish/smt";
+import { Int, Model } from "@taskwish/symbolic";
 import { Actor, Step } from "taskwish";
 
 const { PuzzleSolver } = Actor("PuzzleSolver");
@@ -9,7 +9,7 @@ export const { solvePuzzle } = PuzzleSolver()
   .run(
     Int("square", "circle", "triangle"),
 
-    Solve.orElseThrow(
+    Model(
       "puzzle",
 
       ({ square, circle }) => square * square + circle == 16,
@@ -18,6 +18,8 @@ export const { solvePuzzle } = PuzzleSolver()
     ),
 
     Step("res", function () {
-      return this.puzzle.square * this.puzzle.circle * this.puzzle.triangle;
+      return this.puzzle
+        .solve()
+        .then(({ square, circle, triangle }) => square * circle * triangle);
     }),
   );

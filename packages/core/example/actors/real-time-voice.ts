@@ -1,7 +1,7 @@
-import { GenerateText } from "../../../ai/src";
-import { Actor, Event, Steps, DefResultKind, TW } from "../../src";
+import { GenerateText } from "@taskwish/ai";
+import { Actor, ScopeResultKind, Step, Steps, TW, Trait } from "@taskwish/core";
 
-const Pipeline: Steps<{}, DefResultKind> = {} as never;
+export const Pipeline = {} as Steps<{}, ScopeResultKind>;
 
 const SpeechToText: <
   const Name extends string,
@@ -12,7 +12,7 @@ const SpeechToText: <
 ) => {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
-    steps: Ctx["step"];
+    steps: Ctx["steps"];
     step: Ctx["step"];
     scope: Ctx["scope"] & Record<Name, { text: string }>;
     last: null;
@@ -24,11 +24,12 @@ const TextToSpeech: <
   const Name extends string,
   Ctx extends Record<string, any>,
 >(
-  ...args: any
+  name: Name,
+  args: any,
 ) => {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
-    steps: Ctx["step"];
+    steps: Ctx["steps"];
     step: Ctx["step"];
     scope: Ctx["scope"] & Record<Name, { text: string }>;
     last: null;
@@ -36,19 +37,34 @@ const TextToSpeech: <
   };
 } = {} as never;
 
-const { VoiceCall: VoiceCallChunk } = Event("VoiceCall", {
-  frame: "string",
-});
+const VoiceCall = Trait({
+  service: "VoiceCall",
+  self: "onStream",
+})<{
+  onStream: (input: {
+    sessionId: string;
+    chunk: ArrayBuffer;
+  }) => Generator<ArrayBuffer, null, unknown>;
+  onConnect: <Result>(input: { sessionId: string }) => Result;
+}>();
 
-const VoiceCall = Object.assign(VoiceCallChunk, {
-  Connect: Event("VoiceCall::Connect", {
-    frame: "string",
-  })["VoiceCall::Connect"],
-});
+type VoiceCallStreamInput = {
+  sessionId: string;
+  chunk: ArrayBuffer;
+};
 
 export const { Assistant } = Actor("Assistant");
 
-export const { onVoiceCall } = Assistant()
+export const { onVoiceCallConnect } = Assistant()
+  .on(VoiceCall.Connect)
+
+  .run(
+    Step("log", function () {
+      console.log(this.input);
+    }),
+  );
+
+export const { onVoiceCallStream } = Assistant()
   .on(VoiceCall)
 
   .run(

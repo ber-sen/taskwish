@@ -1,4 +1,4 @@
-import { Int, Solve } from "@taskwish/smt";
+import { Int, Model } from "@taskwish/symbolic";
 import { Actor, Step } from "taskwish";
 
 const { PipeSolver } = Actor("PipeSolver");
@@ -9,16 +9,20 @@ export const { solveAll } = PipeSolver()
   .run(
     Int("x"),
 
-    Solve.all(
-      "system",
+    Model(
+      "integerRange",
 
       ({ x }) => x < 100000000,
       ({ x }) => x > 3,
     ),
 
+    Step("solutions", function () {
+      return this.integerRange.solveAll();
+    }),
+
     Step(["|>", "x"], async function* (source) {
-      for await (const result of source) {
-        yield `${result.model?.x}\n`;
+      for await (const model of source) {
+        yield `${model.x}\n`;
       }
     }),
   );

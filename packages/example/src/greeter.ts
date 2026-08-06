@@ -1,6 +1,6 @@
 import { Actor, Event, Step } from "taskwish";
 
-export const { Greeter } = Actor("Greeter").def(
+export const { Greeter } = Actor("Greeter").scope(
   Event("Message", { name: "string" }),
 );
 

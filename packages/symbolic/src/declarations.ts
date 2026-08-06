@@ -16,7 +16,7 @@ export function declareSort(sort: SmtSort, names: readonly string[]) {
   };
 
   return Object.assign(run, {
-    [TW.Name]: `smt.${sort}.${names.join(".")}`,
+    [TW.Name]: `symbolic.${sort}.${names.join(".")}`,
   });
 }
 
@@ -42,7 +42,7 @@ export function dedupeDeclarations(
     const existing = seen.get(declaration.name);
     if (existing && existing.sort !== declaration.sort) {
       throw new Error(
-        `SMT variable "${declaration.name}" declared as both ${existing.sort} and ${declaration.sort}`,
+        `Symbolic variable "${declaration.name}" declared as both ${existing.sort} and ${declaration.sort}`,
       );
     }
     seen.set(declaration.name, declaration);

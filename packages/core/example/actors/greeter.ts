@@ -2,7 +2,7 @@
 
 import { Actor, Step, Type, Event } from "../../src";
 
-export const { Greeter } = Actor("Greeter").def(
+export const { Greeter } = Actor("Greeter").scope(
   Event("UserWelcomed", { name: "string" }),
 );
 

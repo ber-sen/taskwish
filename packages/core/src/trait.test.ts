@@ -4,7 +4,7 @@ import { TW } from "./core";
 import { Trait } from "./trait";
 
 describe("Trait", () => {
-  test("returns an object directly", () => {
+  test("returns a non-callable trait proxy directly", () => {
     const instance = Trait<{ log: () => string }>();
 
     expect(typeof instance).toBe("object");
@@ -28,17 +28,62 @@ describe("Trait", () => {
     expect((log as any)[TW.Meta]).toBeNull();
   });
 
+  test("event methods are exposed by event name and carry event metadata", () => {
+    const VoiceCall = Trait<{
+      onVoiceCall: (
+        chunk: ArrayBuffer,
+      ) => Generator<ArrayBuffer, null, unknown>;
+    }>();
+
+    expect((VoiceCall.VoiceCall as any)[TW.Name]).toBe("::VoiceCall");
+    expect((VoiceCall.VoiceCall as any)[TW.Meta]).toEqual({
+      event: "::VoiceCall",
+    });
+  });
+
+  test("options — service prefixes event names and self exposes the default event", () => {
+    const VoiceCall = Trait({
+      service: "VoiceCall",
+      self: "onStream",
+    })<{
+      onStream: (input: {
+        sessionId: string;
+        chunk: ArrayBuffer;
+      }) => Generator<ArrayBuffer, null, unknown>;
+      onConnect: <Result>(input: { sessionId: string }) => Result;
+    }>();
+
+    expect((VoiceCall as any)[TW.Name]).toBe("::VoiceCallStream");
+    expect((VoiceCall as any)[TW.Meta]).toEqual({
+      event: "::VoiceCallStream",
+    });
+    expect((VoiceCall.Stream as any)[TW.Name]).toBe("::VoiceCallStream");
+    expect((VoiceCall.Stream as any)[TW.Meta]).toEqual({
+      event: "::VoiceCallStream",
+    });
+    expect((VoiceCall.Connect as any)[TW.Name]).toBe("::VoiceCallConnect");
+    expect((VoiceCall.Connect as any)[TW.Meta]).toEqual({
+      event: "::VoiceCallConnect",
+    });
+  });
+
   test("type — single method is wrapped in TW.Action as a trait action", () => {
     const Logger = Trait<{ log: () => string }>();
 
     type check = Expect<
-      Equal<
-        typeof Logger,
-        {
-          log: TW.Action<"::log", () => Promise<string>, null>;
-        }
-      >
+      Equal<typeof Logger.log, TW.Action<"::log", () => Promise<string>, null>>
     >;
+  });
+
+  test("type — plain trait is not an options builder", () => {
+    const Logger = Trait<{ log: () => string }>();
+
+    type check = Expect<Equal<typeof Logger, Trait<{ log: () => string }>>>;
+
+    if (false) {
+      // @ts-expect-error options are only accepted by Trait(options)<T>()
+      Logger({ service: "Logger" });
+    }
   });
 
   test("type — already-Promise return is not double-wrapped", () => {
@@ -46,10 +91,8 @@ describe("Trait", () => {
 
     type check = Expect<
       Equal<
-        typeof Cache,
-        {
-          get: TW.Action<"::get", (key: string) => Promise<string>, null>;
-        }
+        typeof Cache.get,
+        TW.Action<"::get", (key: string) => Promise<string>, null>
       >
     >;
   });
@@ -60,21 +103,90 @@ describe("Trait", () => {
       post: (url: string, body: unknown) => Promise<Response>;
     }>();
 
+    type checkGet = Expect<
+      Equal<
+        typeof HttpClient.get,
+        TW.Action<"::get", (url: string) => Promise<Response>, null>
+      >
+    >;
+    type checkPost = Expect<
+      Equal<
+        typeof HttpClient.post,
+        TW.Action<
+          "::post",
+          (url: string, body: unknown) => Promise<Response>,
+          null
+        >
+      >
+    >;
+  });
+
+  test("type — event method is exposed as event action with event metadata", () => {
+    const VoiceCall = Trait<{
+      onVoiceCall: (
+        chunk: ArrayBuffer,
+      ) => Generator<ArrayBuffer, null, unknown>;
+    }>();
+
     type check = Expect<
       Equal<
-        typeof HttpClient,
-        {
-          get: TW.Action<
-            "::get",
-            (url: string) => Promise<Response>,
-            null
+        typeof VoiceCall.VoiceCall,
+        TW.Action<
+          "::VoiceCall",
+          (chunk: ArrayBuffer) => Generator<ArrayBuffer, null, unknown>,
+          { event: "::VoiceCall" }
+        >
+      >
+    >;
+  });
+
+  test("type — options expose service events and self as the default action", () => {
+    const VoiceCall = Trait({
+      service: "VoiceCall",
+      self: "onStream",
+    })<{
+      onStream: (input: {
+        sessionId: string;
+        chunk: ArrayBuffer;
+      }) => Generator<ArrayBuffer, null, unknown>;
+      onConnect: <Result>(input: { sessionId: string }) => Result;
+    }>();
+
+    type checkSelf = Expect<
+      Equal<
+        typeof VoiceCall,
+        TW.Action<
+          "::VoiceCallStream",
+          (input: {
+            sessionId: string;
+            chunk: ArrayBuffer;
+          }) => Generator<ArrayBuffer, null, unknown>,
+          { event: "::VoiceCallStream" }
+        > & {
+          Stream: TW.Action<
+            "::VoiceCallStream",
+            (input: {
+              sessionId: string;
+              chunk: ArrayBuffer;
+            }) => Generator<ArrayBuffer, null, unknown>,
+            { event: "::VoiceCallStream" }
           >;
-          post: TW.Action<
-            "::post",
-            (url: string, body: unknown) => Promise<Response>,
-            null
+          Connect: TW.Action<
+            "::VoiceCallConnect",
+            <Result>(input: { sessionId: string }) => Result,
+            { event: "::VoiceCallConnect" }
           >;
         }
+      >
+    >;
+    type checkConnect = Expect<
+      Equal<
+        typeof VoiceCall.Connect,
+        TW.Action<
+          "::VoiceCallConnect",
+          <Result>(input: { sessionId: string }) => Result,
+          { event: "::VoiceCallConnect" }
+        >
       >
     >;
   });
@@ -85,15 +197,7 @@ describe("Trait", () => {
     }>();
 
     type check = Expect<
-      Equal<
-        typeof Logger,
-        {
-          log: TW.Action<
-            "::log",
-            () => Promise<string>
-          >;
-        }
-      >
+      Equal<typeof Logger.log, TW.Action<"::log", () => Promise<string>>>
     >;
   });
 });

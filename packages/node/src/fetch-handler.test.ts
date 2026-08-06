@@ -177,7 +177,7 @@ test("logs traces when invoking command actions through fetch handlers", async (
 });
 
 test("serves actor event handlers with POST under /tw/<Actor>/<handler>", async () => {
-  const { Greeter } = Actor("Greeter").def(
+  const { Greeter } = Actor("Greeter").scope(
     Event("Message", { content: "string" }),
   );
   const { Biller } = Actor("Biller").use(Greeter);
@@ -211,7 +211,7 @@ test("serves actor event handlers with POST under /tw/<Actor>/<handler>", async 
 });
 
 test("serves actor event handlers with GET under /tw/<Actor>/<handler>", async () => {
-  const { Greeter } = Actor("Greeter").def(
+  const { Greeter } = Actor("Greeter").scope(
     Event("Message", { content: "string" }),
   );
 
