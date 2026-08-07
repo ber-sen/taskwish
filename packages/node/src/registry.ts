@@ -37,7 +37,17 @@ function candidateEventNames(actionName: string): string[] {
 function buildEventHandlers(actions: Map<string, Action>): Map<string, Action[]> {
   const eventHandlers = new Map<string, Action[]>();
   for (const [actionName, action] of actions) {
-    for (const eventName of candidateEventNames(actionName)) {
+    const meta = action[TW.Meta];
+    const eventMeta =
+      meta !== null && typeof meta === "object"
+        ? (meta as Record<string, unknown>).event
+        : null;
+    const eventNames =
+      typeof eventMeta === "string"
+        ? [eventMeta]
+        : candidateEventNames(actionName);
+
+    for (const eventName of eventNames) {
       const handlers = eventHandlers.get(eventName) ?? [];
       handlers.push(action);
       eventHandlers.set(eventName, handlers);

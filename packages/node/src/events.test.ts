@@ -69,6 +69,66 @@ test("dispatches stream signal events to registered handlers without waiting", a
   releaseHandler();
 });
 
+test("dispatches built-in event listeners registered on a service", async () => {
+  const { greeter } = Actor("Greeter");
+
+  let resolveReceived!: (value: string) => void;
+  const received = new Promise<string>((resolve) => {
+    resolveReceived = resolve;
+  });
+
+  const { hello } = greeter()
+    .on("Command", "hello")
+
+    .input({ name: "string" })
+
+    .run(
+      Step("email", function () {
+        return this.signal("NewEmail", {
+          from: this.input.name,
+          to: "support@example.com",
+          subject: "Greeting",
+          body: "Hello",
+        });
+      }),
+
+      Step("greet", function () {
+        return `Hello ${this.input.name}`;
+      }),
+    );
+
+  const { onNewEmail } = greeter()
+    .on("NewEmail")
+
+    .run(function () {
+      resolveReceived(this.input.from);
+      return { received: this.input.subject };
+    });
+
+  const { Greeter } = greeter().service({
+    public: [hello],
+    listeners: [onNewEmail],
+  });
+  
+
+  const fetch = createFetchHandler(
+    createNodeRegistry([Promise.resolve({ Greeter })]),
+    { apiKey },
+  );
+
+  const response = await fetch(
+    new Request("http://localhost/tw/Greeter/hello", {
+      method: "POST",
+      headers: { ...auth, "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Ada" }),
+    }),
+  );
+
+  expect(response.status).toBe(200);
+  expect(await response.text()).toBe("Hello Ada");
+  expect(await received).toBe("Ada");
+});
+
 test("ignores non-Event objects yielded with signal shape", async () => {
   const { greeter } = Actor("Greeter").scope(
     Event("Message", { content: "string" }),

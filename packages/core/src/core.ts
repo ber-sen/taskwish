@@ -153,12 +153,13 @@ export namespace TW {
 
   export type Service<
     Name extends string,
-    Actions extends {},
+    Actions extends [],
     ServiceScope = {},
+    ListenerActions extends readonly unknown[] = readonly unknown[],
   > = Actions & {
     [Name]: Name;
+    [Listeners]?: ListenerActions;
     [Scope]: ServiceScope;
-    [Listeners]?: readonly unknown[];
   };
 
   export interface Log<Data> {

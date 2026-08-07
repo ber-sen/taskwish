@@ -24,7 +24,7 @@ export const { hello } = greeter()
     }),
   );
 
-greeter()
+const { onNewEmail } = greeter()
   .on("NewEmail")
 
   .run(
@@ -33,4 +33,7 @@ greeter()
     }),
   );
 
-export const { Greeter } = greeter().service({ public: [hello] });
+export const { Greeter } = greeter().service({
+  public: [hello],
+  listeners: [onNewEmail],
+});

@@ -767,6 +767,41 @@ describe("Actor", () => {
     ]);
   });
 
+  test("service — keeps listeners separate from public actions", () => {
+    const { greeter } = Actor("Greeter");
+
+    const { hello } = greeter()
+      .on("Command", "hello")
+
+      .input({ name: "string" })
+
+      .run(function () {
+        return `Hello ${this.input.name}`;
+      });
+
+    const { onNewEmail } = greeter()
+      .on("NewEmail")
+
+      .run(
+        Step("greet", function () {
+          return this.thread.reply(`Hello ${this.thread.sender.name}!`);
+        }),
+      );
+
+    const { Greeter } = greeter().service({
+      public: [hello],
+      listeners: [onNewEmail],
+    });
+
+    type T = typeof Greeter[typeof TW.Listeners];
+    type check = Expect<Equal<T, readonly [typeof onNewEmail] | undefined>>;
+
+    expect(Greeter.hello).toBe(hello);
+    expect("onNewEmail" in Greeter).toBe(false);
+    expect((Greeter as any)[TW.Listeners]).toEqual([onNewEmail]);
+    expect(Object.keys(Greeter)).not.toContain(String(TW.Listeners));
+  });
+
   test("signal — typed from scope, Step yields event then step result, chained step reads value", async () => {
     const { emitter } = Actor("Emitter").scope(
       Event("OrderPlaced", { orderId: "string", amount: "number" }),

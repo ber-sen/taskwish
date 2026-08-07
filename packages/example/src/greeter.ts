@@ -19,4 +19,16 @@ export const { hello } = greeter()
     }),
   );
 
-export const { Greeter } = greeter().service({ public: [hello] });
+export const { onNewEmail } = greeter()
+  .on("NewEmail")
+
+  .run(
+    Step("greet", function () {
+      return this.thread.reply(`Hello ${this.thread.sender.name}!`);
+    }),
+  );
+
+export const { Greeter } = greeter().service({
+  public: [hello],
+  listeners: [onNewEmail],
+});

@@ -34,12 +34,15 @@ import { ResultKind } from "./steps/hkt";
 
 type BaseScope<Ctx> = Ctx extends Record<any, any> ? Ctx["scope"] : {};
 
-type RuntimeResult<Result> =
-  Awaited<Result> extends AsyncGenerator<any, infer Return, any>
-    ? Awaited<Return>
-    : Result extends Generator<any, infer Return, any>
-      ? Return
-      : Result;
+type RuntimeResult<Result> = Awaited<Result> extends AsyncGenerator<
+  any,
+  infer Return,
+  any
+>
+  ? Awaited<Return>
+  : Result extends Generator<any, infer Return, any>
+  ? Return
+  : Result;
 
 type EventKeys<Scope> = {
   [K in keyof Scope]: Scope[K] extends TW.EventKind<infer Name, any>
@@ -56,22 +59,26 @@ type ExtractEventKind<Scope, EventName extends string> = {
     : never;
 }[keyof Scope];
 
-type ExtractEventInput<Scope, EventName extends string> =
-  ExtractEventKind<Scope, EventName> extends TW.EventKind<string, infer D>
-    ? D
-    : never;
+type ExtractEventInput<Scope, EventName extends string> = ExtractEventKind<
+  Scope,
+  EventName
+> extends TW.EventKind<string, infer D>
+  ? D
+  : never;
 
-type ExtractEventExtraScope<Scope, EventName extends string> =
-  ExtractEventKind<Scope, EventName> extends TW.EventKind<string, any, infer S>
-    ? S
-    : {};
+type ExtractEventExtraScope<Scope, EventName extends string> = ExtractEventKind<
+  Scope,
+  EventName
+> extends TW.EventKind<string, any, infer S>
+  ? S
+  : {};
 
 type EventHandlerName<EventName extends string> =
   EventName extends `${infer Actor}::${infer Name}`
     ? `on${Actor}${Name}`
     : EventName extends `${infer Actor}:${infer Name}`
-      ? `on${Actor}${Name}`
-      : `on${EventName}`;
+    ? `on${Actor}${Name}`
+    : `on${EventName}`;
 
 type ActorEventExports<Scope, Actor extends string> = Pretty<{
   [K in keyof Scope as Scope[K] extends TW.EventKind<infer Name, any, any>
@@ -95,7 +102,8 @@ export type HttpEvent = {
 type ValidateHttpSchema<Schema> = {
   [K in keyof Schema]: K extends "params" | "query" | "body" | "headers"
     ? ValidateSchema<Schema[K]>
-    : `Unexpected key "${K & string}", expected "params" | "query" | "body" | "headers"`;
+    : `Unexpected key "${K &
+        string}", expected "params" | "query" | "body" | "headers"`;
 };
 
 type FlatInput<Schema> = Pretty<
@@ -133,8 +141,9 @@ type TraitActionHandler<I, R> = [I] extends [void]
  * Extract the qualified action name carried inside a trait action's stream events.
  * e.g. TW.Action<"::read", …> → "::read".
  */
-type ExtractTraitQualifiedName<A> =
-  ExtractActionName<A> extends `::${string}` ? ExtractActionName<A> : never;
+type ExtractTraitQualifiedName<A> = ExtractActionName<A> extends `::${string}`
+  ? ExtractActionName<A>
+  : never;
 
 type TraitActionLike<TraitMethod extends `::${string}` = `::${string}`> = ((
   ...args: any[]
@@ -184,26 +193,17 @@ export interface ActorFactory<Ctx extends Record<any, any>> {
   events: ActorEventExports<BaseScope<Ctx>, Ctx["name"] & string>;
 }
 
-type ServiceActionKey<Action> =
-  ExtractActionName<Action> extends `${string}::${infer Name}`
-    ? ToCamelCase<Name>
-    : ExtractActionName<Action> extends `${string}.${infer Name}`
-      ? Name
-      : never;
-
-type ServiceActions<Actions extends readonly unknown[]> = Pretty<{
-  [Action in Actions[number] as ServiceActionKey<Action>]: Action;
-}>;
-
 type ServiceResult<
   ServiceName extends string,
   Actions extends readonly unknown[],
   ServiceScope,
+  Listeners extends readonly unknown[] = readonly unknown[],
 > = {
   [Name in ToCapitalCase<ServiceName>]: TW.Service<
     ServiceName,
-    ServiceActions<Actions>,
-    ServiceScope
+    Actions,
+    ServiceScope,
+    Listeners
   >;
 };
 
@@ -319,7 +319,8 @@ export interface Behavior<Ctx extends Record<any, any>> {
   }): ServiceResult<
     Ctx["name"] & string,
     Actions,
-    ActorEventExports<BaseScope<Ctx>, Ctx["name"] & string>
+    ActorEventExports<BaseScope<Ctx>, Ctx["name"] & string>,
+    Listeners
   >;
 
   on<Name extends string>(
@@ -641,7 +642,8 @@ function createBehavior(
     return tapWith(gen, dispatch(logger)) as G;
   }
 
-  const currentInitialScope = () => mergeActorScope(initialScope, behaviorScope);
+  const currentInitialScope = () =>
+    mergeActorScope(initialScope, behaviorScope);
 
   async function resolveBehaviorScope() {
     let resolved = await resolveInitialScope();
@@ -689,11 +691,7 @@ function createBehavior(
     service(config: unknown) {
       return createService(actorName, config, currentInitialScope());
     },
-    on(
-      behaviorInput: unknown,
-      config?: string,
-      schema?: unknown,
-    ) {
+    on(behaviorInput: unknown, config?: string, schema?: unknown) {
       const eventKind = isEventKind(behaviorInput) ? behaviorInput : null;
       const traitEvent = getTraitEventName(behaviorInput);
       const traitMethod = getTraitMethodName(behaviorInput);
@@ -835,7 +833,10 @@ function createBehavior(
         return result;
       }
 
-      const makeBody = (inputMode: "first" | "args", inputSchema?: unknown) => ({
+      const makeBody = (
+        inputMode: "first" | "args",
+        inputSchema?: unknown,
+      ) => ({
         use(plugin?: unknown) {
           if (arguments.length > 0) useActionPlugin(plugin);
           return this;
@@ -984,14 +985,13 @@ function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
 function exposeAction(plugin: unknown) {
   return typeof plugin === "function" &&
     RawStreamTag in plugin &&
-    typeof (plugin as { [RawStreamTag]?: unknown })[RawStreamTag] ===
-      "function"
+    typeof (plugin as { [RawStreamTag]?: unknown })[RawStreamTag] === "function"
     ? (plugin as { [RawStreamTag]: (...args: unknown[]) => unknown })[
         RawStreamTag
       ]
     : typeof plugin === "function" &&
-    "stream" in plugin &&
-    typeof (plugin as { stream?: unknown }).stream === "function"
+      "stream" in plugin &&
+      typeof (plugin as { stream?: unknown }).stream === "function"
     ? (plugin as { stream: (...args: unknown[]) => unknown }).stream
     : plugin;
 }
@@ -1189,11 +1189,7 @@ function collectEvents(plugin: unknown): Record<string, unknown> {
       ? { [eventScopeKey(eventName)]: plugin }
       : {};
   }
-  if (
-    plugin !== null &&
-    typeof plugin === "object" &&
-    TW.Scope in plugin
-  ) {
+  if (plugin !== null && typeof plugin === "object" && TW.Scope in plugin) {
     return collectEvents(
       (plugin as Record<string | symbol, unknown>)[TW.Scope],
     );
