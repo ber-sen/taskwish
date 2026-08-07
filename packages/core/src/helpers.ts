@@ -351,17 +351,25 @@ export type ActionMethod<N extends string> = QualifiedActionParts<N> extends [
   ? M
   : N;
 
-/**
- * Groups TW.Action exports in two ways:
- *  - Qualified names ("Slack::post_message") → nested `{ slack: { postMessage: T["stream"] } }`
- *  - Flat names ("notify")                  → direct  `{ notify: T["stream"] }`
- */
 type ExposedAction<T> = T extends {
   stream: infer Stream extends (...args: any[]) => any;
 }
   ? Stream
   : T;
 
+export type ActionRecordName<N extends string> = [
+  QualifiedActionParts<N>,
+] extends [never]
+  ? N
+  : QualifiedActionParts<N> extends [string, infer M extends string]
+  ? M
+  : never;
+
+/**
+ * Groups TW.Action exports in two ways:
+ *  - Qualified names ("Slack::post_message") → nested `{ slack: { postMessage: T["stream"] } }`
+ *  - Flat names ("notify")                  → direct  `{ notify: T["stream"] }`
+ */
 export type GroupActions<M> =
   // Qualified names → { service: { method: T } }
   {

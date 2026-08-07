@@ -793,8 +793,11 @@ describe("Actor", () => {
       listeners: [onNewEmail],
     });
 
-    type T = typeof Greeter[typeof TW.Listeners];
-    type check = Expect<Equal<T, readonly [typeof onNewEmail] | undefined>>;
+    type T = (typeof Greeter)[typeof TW.Listeners];
+    type check = Expect<Equal<T, { onNewEmail: typeof onNewEmail }>>;
+    type serviceActionsCheck = Expect<
+      Equal<Pick<typeof Greeter, "hello">, { hello: typeof hello }>
+    >;
 
     expect(Greeter.hello).toBe(hello);
     expect("onNewEmail" in Greeter).toBe(false);

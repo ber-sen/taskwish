@@ -17,6 +17,7 @@ import {
   ValidateSchema,
   Pretty,
   ExtractActionName,
+  ActionRecordName,
   AddActionsToCtx,
   DeepWriteable,
   QualifiedActionName,
@@ -196,16 +197,32 @@ export interface ActorFactory<Ctx extends Record<any, any>> {
 type ServiceResult<
   ServiceName extends string,
   Actions extends readonly unknown[],
+  Listeners extends readonly unknown[],
   ServiceScope,
-  Listeners extends readonly unknown[] = readonly unknown[],
 > = {
   [Name in ToCapitalCase<ServiceName>]: TW.Service<
     ServiceName,
-    Actions,
-    ServiceScope,
-    Listeners
+    ServiceActions<Actions>,
+    ServiceListeners<Listeners>,
+    ServiceScope
   >;
 };
+
+type ServiceActions<Actions extends readonly unknown[]> = Pretty<{
+  -readonly [Index in keyof Actions as ExtractActionName<
+    Actions[Index]
+  > extends infer Name extends string
+    ? ActionRecordName<Name>
+    : never]: Actions[Index];
+}>;
+
+type ServiceListeners<Actions extends readonly unknown[]> = Pretty<{
+  -readonly [Index in keyof Actions as ExtractActionName<
+    Actions[Index]
+  > extends infer Name extends string
+    ? ActionRecordName<Name>
+    : never]: Actions[Index];
+}>;
 
 type CommandResult<
   CmdName extends string,
@@ -319,8 +336,8 @@ export interface Behavior<Ctx extends Record<any, any>> {
   }): ServiceResult<
     Ctx["name"] & string,
     Actions,
-    ActorEventExports<BaseScope<Ctx>, Ctx["name"] & string>,
-    Listeners
+    Listeners,
+    ActorEventExports<BaseScope<Ctx>, Ctx["name"] & string>
   >;
 
   on<Name extends string>(
