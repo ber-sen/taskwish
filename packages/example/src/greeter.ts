@@ -1,10 +1,10 @@
 import { Actor, Event, Step } from "taskwish";
 
-export const { Greeter } = Actor("Greeter").scope(
+const { greeter } = Actor("Greeter").scope(
   Event("Message", { name: "string" }),
 );
 
-export const { hello } = Greeter()
+export const { hello } = greeter()
   .on("Command", "hello")
 
   .input({ name: "string" })
@@ -18,3 +18,5 @@ export const { hello } = Greeter()
       return `Hello ${this.input.name}`;
     }),
   );
+
+export const { Greeter } = greeter().service({ public: [hello] });

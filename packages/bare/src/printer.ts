@@ -1,5 +1,5 @@
 import { indent } from "./syntax";
-import type { ActionSpec } from "./types";
+import type { ActionSpec, ServiceSpec } from "./types";
 
 export function printAction(action: ActionSpec): string {
   if (action.steps.length === 0) {
@@ -25,6 +25,19 @@ export function printAction(action: ActionSpec): string {
 
   const lastStep = action.steps.at(-1)!;
   lines.push(`  return ${lastStep.name};`);
+  lines.push("}");
+
+  return lines.join("\n");
+}
+
+export function printService(service: ServiceSpec): string {
+  const lines = [`export const ${service.serviceName} = {`];
+
+  for (const [index, actionName] of service.actionNames.entries()) {
+    const separator = index === service.actionNames.length - 1 ? "" : ",";
+    lines.push(`  ${actionName}${separator}`);
+  }
+
   lines.push("}");
 
   return lines.join("\n");

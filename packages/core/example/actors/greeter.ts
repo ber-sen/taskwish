@@ -1,12 +1,12 @@
 "use server";
 
-import { Actor, Step, Type, Event } from "../../src";
+import { Actor, Step, Event } from "../../src";
 
-export const { Greeter } = Actor("Greeter").scope(
+const { greeter } = Actor("Greeter").scope(
   Event("UserWelcomed", { name: "string" }),
 );
 
-export const { hello } = Greeter()
+export const { hello } = greeter()
   .on("Command", "hello")
 
   .input({ name: "string" })
@@ -24,7 +24,7 @@ export const { hello } = Greeter()
     }),
   );
 
-Greeter()
+greeter()
   .on("NewEmail")
 
   .run(
@@ -32,3 +32,5 @@ Greeter()
       return this.thread.reply(`Hello ${this.thread.sender.name}!`);
     }),
   );
+
+export const { Greeter } = greeter().service({ public: [hello] });

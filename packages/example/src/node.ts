@@ -1,20 +1,30 @@
 import { Console } from "@taskwish/console";
 import { Node } from "taskwish";
+import { Accounting } from "./accounting-model";
+import { Biller } from "./biller";
+import { Browser } from "./browser";
+import { Greeter } from "./greeter";
+import { HackerNews } from "./hackerNews";
+import { PipeSolver } from "./pipe-solver";
+import { Piper } from "./piper";
+import { PuzzleSolver } from "./puzzle-solver";
+import { Solver } from "./solver";
+import { Streamer } from "./streamer";
 
 await Node("example", {
   apiKey: process.env.TW_API_KEY,
   port: 3000,
   apps: [Console()],
   workspace: [
-    import("./greeter"),
-    import("./biller"),
-    import("./browser"),
-    import("./hackerNews"),
-    import("./streamer"),
-    import("./piper"),
-    import("./solver"),
-    import("./pipe-solver"),
-    import("./puzzle-solver"),
-    import("./accounting-model"),
+    Greeter,
+    Biller,
+    Browser,
+    HackerNews,
+    Streamer,
+    Piper,
+    Solver,
+    PipeSolver,
+    PuzzleSolver,
+    Accounting,
   ],
 });

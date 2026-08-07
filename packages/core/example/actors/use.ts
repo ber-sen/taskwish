@@ -2,9 +2,9 @@ import { Actor, Step } from "../../src";
 
 // Actions from the dynamic import are merged into this.actions at the type level.
 // No slack hardcoding — the scope is driven by whatever .use() receives.
-const { MyActor } = Actor("MyActor").use(import("@taskwish/slack"));
+const { myActor } = Actor("MyActor").use(import("@taskwish/slack"));
 
-export const { sendMessage } = MyActor()
+export const { sendMessage } = myActor()
   .on("Command", "sendMessage")
 
   .run(
@@ -16,3 +16,5 @@ export const { sendMessage } = MyActor()
       });
     }),
   );
+
+export const { MyActor } = myActor().service({ public: [sendMessage] });

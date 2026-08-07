@@ -1,8 +1,8 @@
 import { Actor, Step } from "taskwish";
 
-const { Piper } = Actor("Piper");
+const { piper } = Actor("Piper");
 
-export const { count } = Piper()
+export const { count } = piper()
   .on("Command", "count")
 
   .input({ total: "number" })
@@ -21,3 +21,5 @@ export const { count } = Piper()
       }
     }),
   );
+
+export const { Piper } = piper().service({ public: [count] });

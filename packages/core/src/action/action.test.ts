@@ -798,9 +798,9 @@ describe("Action", () => {
 
   test("use(TW.Action) — Actor-service action injected into this.actions.<service>.<method>", async () => {
     // Actor-created: TW.Name = "Notifier::notify" → this.actions.notifier.notify
-    const { Notifier } = Actor("Notifier");
+    const { notifier } = Actor("Notifier");
 
-    const { notify } = Notifier()
+    const { notify } = notifier()
       .on("Command", "notify")
 
       .input({ message: "string" })

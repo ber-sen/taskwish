@@ -1,9 +1,9 @@
 import { Actor, Step } from "../../src";
 import { Int, Model, Real } from "@taskwish/symbolic";
 
-export const { Solver } = Actor("Solver");
+const { solver } = Actor("Solver");
 
-export const { solve } = Solver()
+export const { solve } = solver()
   .on("Command", "solve")
 
   .input({ name: "string" })
@@ -24,3 +24,5 @@ export const { solve } = Solver()
       return this.linearEquation.solve({ x: 2 });
     }),
   );
+
+export const { Solver } = solver().service({ public: [solve] });

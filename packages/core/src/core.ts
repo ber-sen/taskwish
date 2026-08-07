@@ -20,6 +20,8 @@ export namespace TW {
 
   export const Scope = Symbol.for("TW.Ctx");
 
+  export const Listeners = Symbol.for("TW.Listeners");
+
   export const Type = Symbol.for("TW.Type");
 
   export interface Contextual<Ctx extends Record<any, any>> {
@@ -149,9 +151,15 @@ export namespace TW {
     params: Params;
   }
 
-  export interface Actor<Name extends string> extends Resource<Name> {}
-
-  export interface Service<Name extends string> extends Resource<Name> {}
+  export type Service<
+    Name extends string,
+    Actions extends {},
+    ServiceScope = {},
+  > = Actions & {
+    [Name]: Name;
+    [Scope]: ServiceScope;
+    [Listeners]?: readonly unknown[];
+  };
 
   export interface Log<Data> {
     id: Inject<UUIDv7String>;

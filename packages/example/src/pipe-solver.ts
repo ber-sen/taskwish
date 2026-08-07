@@ -1,9 +1,9 @@
 import { Int, Model } from "@taskwish/symbolic";
 import { Actor, Step } from "taskwish";
 
-const { PipeSolver } = Actor("PipeSolver");
+const { pipeSolver } = Actor("PipeSolver");
 
-export const { solveAll } = PipeSolver()
+export const { solveAll } = pipeSolver()
   .on("Command", "solveAll")
 
   .run(
@@ -26,3 +26,5 @@ export const { solveAll } = PipeSolver()
       }
     }),
   );
+
+export const { PipeSolver } = pipeSolver().service({ public: [solveAll] });

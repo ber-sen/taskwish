@@ -1,8 +1,8 @@
 import { Actor, Step } from "../../src";
 
-const { MyActor } = Actor("MyActor");
+const { myActor } = Actor("MyActor");
 
-const { myAction } = MyActor()
+const { myAction } = myActor()
   .on("Command", "myAction")
 
   .input({ name: "string" })
@@ -17,3 +17,5 @@ const { myAction } = MyActor()
   );
 
 export { myAction };
+
+export const { MyActor } = myActor().service({ public: [myAction] });

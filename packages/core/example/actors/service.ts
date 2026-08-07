@@ -1,3 +1,5 @@
+import { Actor, Step } from "../../src";
+
 const { myActor } = Actor("MyActor");
 
 export const { runSteps } = myActor()

@@ -1,12 +1,13 @@
 import { Node, SourceFile } from "ts-morph";
 
-import { printAction } from "./printer";
-import type { ActionSpec, TextEdit } from "./types";
+import { printAction, printService } from "./printer";
+import type { ActionSpec, ServiceSpec, TextEdit } from "./types";
 
 export function applyBareMetalReplacements(
   sourceText: string,
   sourceFile: SourceFile,
   actions: ActionSpec[],
+  services: ServiceSpec[] = [],
 ): string {
   const edits: TextEdit[] = taskWishImportEdits(sourceText, sourceFile);
   const actorDeclarations = new Set<import("ts-morph").VariableStatement>();
@@ -18,6 +19,15 @@ export function applyBareMetalReplacements(
       text: printAction(action),
     });
     actorDeclarations.add(action.actorDeclaration);
+  }
+
+  for (const service of services) {
+    edits.push({
+      start: service.declaration.getStart(),
+      end: service.declaration.getEnd(),
+      text: printService(service),
+    });
+    actorDeclarations.add(service.actorDeclaration);
   }
 
   for (const statement of actorDeclarations) {

@@ -1,7 +1,7 @@
 import { Int, Model } from "@taskwish/symbolic";
 import { Actor, Step } from "taskwish";
 
-const { Accounting } = Actor("Accounting").scope(
+const { accounting } = Actor("Accounting").scope(
   Int(
     "grossRevenue",
     "refunds",
@@ -25,7 +25,7 @@ const { Accounting } = Actor("Accounting").scope(
   ),
 );
 
-export const { forecast } = Accounting()
+export const { forecast } = accounting()
   .on("Command", "forecast")
 
   .run(
@@ -38,3 +38,5 @@ export const { forecast } = Accounting()
       });
     }),
   );
+
+export const { Accounting } = accounting().service({ public: [forecast] });

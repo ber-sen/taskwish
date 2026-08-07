@@ -1,8 +1,9 @@
 import { Actor, Step } from "taskwish";
+import { Browser } from "./browser";
 
-export const { HackerNews } = Actor("HackerNews").use(import("./browser"));
+const { hackerNews } = Actor("HackerNews").use(Browser);
 
-export const { openFirstPage } = HackerNews()
+export const { openFirstPage } = hackerNews()
   .on("Command", "openFirstPage")
 
   .run(
@@ -31,3 +32,5 @@ export const { openFirstPage } = HackerNews()
       };
     }),
   );
+
+export const { HackerNews } = hackerNews().service({ public: [openFirstPage] });

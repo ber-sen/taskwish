@@ -61,6 +61,11 @@ function collectExports(
     return;
   }
 
+  const listeners = (value as Record<string | symbol, unknown>)[TW.Listeners];
+  if (Array.isArray(listeners)) {
+    for (const listener of listeners) collectExports(listener, actions, seen);
+  }
+
   for (const exported of Object.values(value)) {
     if (isRecord(exported)) collectExports(exported, actions, seen);
   }

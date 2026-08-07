@@ -85,9 +85,9 @@ const Match: (<const Value, const Ctx extends Record<any, any>>(
   };
 }) & { on: OptionSubSteps } = {} as never;
 
-const { MyActor } = Actor("MyActor");
+const { myActor } = Actor("MyActor");
 
-export const { match } = MyActor()
+export const { match } = myActor()
   .on("Command", "match")
 
   .input({ type: "string" })
@@ -123,3 +123,5 @@ export const { match } = MyActor()
   type A = { lorem: 3} | { ipsum: 2 } 
 
   type B = Extract<A, { ipsum: 2 }>
+
+export const { MyActor } = myActor().service({ public: [match] });

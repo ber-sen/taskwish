@@ -1,8 +1,8 @@
 import { Actor } from "../../src";
 
-const { MyActor } = Actor("MyActor");
+const { myActor } = Actor("MyActor");
 
-export const { handle } = MyActor()
+export const { handle } = myActor()
   .on("Command", "handle")
 
   .run(function () {
@@ -11,3 +11,5 @@ export const { handle } = MyActor()
       message: "Hello World",
     });
   });
+
+export const { MyActor } = myActor().service({ public: [handle] });

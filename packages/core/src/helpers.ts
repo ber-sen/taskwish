@@ -400,6 +400,8 @@ export type ActionsFromPlugin<U> = U extends Promise<infer M>
 
 export type EventsFromPlugin<U> = U extends Promise<infer M>
   ? EventsFromPlugin<M>
+  : U extends { [TW.Scope]: infer S }
+  ? EventsFromPlugin<S>
   : U extends TW.EventKind<infer Name extends string, any, any>
   ? {
       [K in Name]: U;

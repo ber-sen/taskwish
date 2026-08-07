@@ -2,7 +2,7 @@
 
 import { Actor, Step, Event } from "../../src";
 
-export const { Greeter } = Actor("Greeter").scope(
+const { greeter } = Actor("Greeter").scope(
   Event("UserWelcomed", { name: "string" }),
 );
 
@@ -16,7 +16,7 @@ const List = {} as any;
 const Node = {} as any;
 const Widget = {} as any;
 
-export const { hello } = Greeter()
+export const { hello } = greeter()
   .on("Command", "hello")
 
   .input({ name: "string" })
@@ -33,12 +33,14 @@ export const { hello } = Greeter()
     }),
   );
 
+export const { Greeter } = greeter().service({ public: [hello] });
+
 const { ConnectionsView } = App("Connections", {
   "/": Screen(List()),
 });
 
 const { Connections } = ConnectionsView({
-  use: [import("./greeter")],
+  use: [Greeter],
   "/": { name: "List", List: { data: [1, 2, 3] } },
 });
 

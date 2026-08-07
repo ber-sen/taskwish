@@ -14,9 +14,9 @@ export const Browser: Steps<typeof SubSteps> & {
   
 } = {} as never;
 
-export const { BrowserActor } = Actor("BrowserActor");
+export const { browserActor } = Actor("BrowserActor");
 
-BrowserActor()
+browserActor()
   .on("NewMessage")
 
   .run(
@@ -28,7 +28,7 @@ BrowserActor()
     }),
   );
 
-export const { browse } = BrowserActor()
+export const { browse } = browserActor()
   .on("Command", "browse")
 
   .input({ name: "string" })
@@ -59,3 +59,5 @@ export const { browse } = BrowserActor()
       return this.NewsItem;
     }),
   );
+
+export const { BrowserActor } = browserActor().service({ public: [browse] });

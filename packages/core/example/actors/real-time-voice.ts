@@ -53,9 +53,9 @@ type VoiceCallStreamInput = {
   chunk: ArrayBuffer;
 };
 
-export const { Assistant } = Actor("Assistant");
+const { assistant } = Actor("Assistant");
 
-export const { onVoiceCallConnect } = Assistant()
+export const { onVoiceCallConnect } = assistant()
   .on(VoiceCall.Connect)
 
   .run(
@@ -64,7 +64,7 @@ export const { onVoiceCallConnect } = Assistant()
     }),
   );
 
-export const { onVoiceCallStream } = Assistant()
+export const { onVoiceCallStream } = assistant()
   .on(VoiceCall)
 
   .run(
@@ -80,6 +80,10 @@ export const { onVoiceCallStream } = Assistant()
       }),
     ),
   );
+
+export const { Assistant } = assistant().service({
+  listeners: [onVoiceCallConnect, onVoiceCallStream],
+});
 
 // Step("log", function () {
 //       console.log(this.transcript);

@@ -1,7 +1,7 @@
 import { Actor, Step, TW } from "../../src";
 import { CamelCase } from "../../src/helpers";
 
-const { MyActor } = Actor("MyActor");
+const { myActor } = Actor("MyActor");
 
 type FFITypeName =
   | "void"
@@ -110,7 +110,7 @@ export const FFI = {
   },
 };
 
-export const { runPython } = MyActor()
+export const { runPython } = myActor()
   .on("Command", "runPython")
 
   .run(
@@ -158,3 +158,5 @@ export const { runPython } = MyActor()
       return this.pyStep.company;
     }),
   );
+
+export const { MyActor } = myActor().service({ public: [runPython] });

@@ -1,9 +1,9 @@
 import { Int, Model } from "@taskwish/symbolic";
 import { Actor, Step } from "taskwish";
 
-const { Solver } = Actor("Solver");
+const { solver } = Actor("Solver");
 
-export const { solve } = Solver()
+export const { solve } = solver()
   .on("Command", "solve")
 
   .run(
@@ -20,3 +20,5 @@ export const { solve } = Solver()
       return this.quadraticEquation.solve();
     }),
   );
+
+export const { Solver } = solver().service({ public: [solve] });

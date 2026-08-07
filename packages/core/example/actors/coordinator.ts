@@ -1,9 +1,9 @@
 import { Actor, Agent, Desc, Step, Tool, Type } from "../../src";
 import { Coordinator } from "../../src/coordinator";
 
-export const { Handler } = Actor(Coordinator("Handler"));
+const { handler } = Actor(Coordinator("Handler"));
 
-export const { chat } = Handler()
+export const { chat } = handler()
   .action("chat")
 
   .input({ prompt: "string" })
@@ -13,3 +13,5 @@ export const { chat } = Handler()
       return this.input
     }),
   );
+
+export const { Handler } = handler().service({ public: [chat] });
