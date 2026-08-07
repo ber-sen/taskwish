@@ -1,12 +1,10 @@
 import { Event, Step } from "taskwish";
 
-const { GreeterInstance } = Class("Greeter").scope(
-  Private({
+const { GreeterInstance } = Class("Greeter")
+  .private({
     name: "string",
-  }),
-
-  Event("Message", { name: "string" }),
-);
+  })
+  .scope(Event("Message", { name: "string" }));
 
 export const { hello } = GreeterInstance()
   .on("Command", "hello")
