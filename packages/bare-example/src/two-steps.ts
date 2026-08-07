@@ -24,7 +24,7 @@ export const { runSteps } = lorem()
 export const { Lorem } = lorem().service({ public: [runSteps] });
 
 const main = async () => {
-  const result = await runSteps({ name: "hello" });
+  const result = await Lorem.runSteps({ name: "hello" });
 
   console.log(result);
 };
