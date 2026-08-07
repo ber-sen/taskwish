@@ -1,6 +1,6 @@
 import { Event, Step } from "taskwish";
 
-const { GreeterInstance } = Instance("Greeter").scope(
+const { GreeterInstance } = Class("Greeter").scope(
   Private({
     name: "string",
   }),
@@ -26,8 +26,8 @@ export const { goodbye } = GreeterInstance()
     }),
   );
 
-export const { Greeter } = Factory("Greeter")
-  .of(GreeterInstance)
+export const { Greeter } = GreeterInstance()
+  .factory()
 
   .public(hello, goodbye)
 
