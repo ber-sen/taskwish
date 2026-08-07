@@ -9,7 +9,7 @@ const { GreeterInstance } = Instance("Greeter").scope(
 );
 
 export const { hello } = GreeterInstance()
-  .action("hello")
+  .on("Command", "hello")
 
   .run(
     Step("notify", function () {
@@ -18,7 +18,7 @@ export const { hello } = GreeterInstance()
   );
 
 export const { goodbye } = GreeterInstance()
-  .action("goodbye")
+  .on("Command", "goodbye")
 
   .run(
     Step("greet", function () {
