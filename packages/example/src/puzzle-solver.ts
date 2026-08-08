@@ -24,6 +24,4 @@ export const { solvePuzzle } = puzzleSolver()
     }),
   );
 
-export const { PuzzleSolver } = puzzleSolver().service({
-  public: [solvePuzzle],
-});
+export const { PuzzleSolver } = puzzleSolver().service({ solvePuzzle });

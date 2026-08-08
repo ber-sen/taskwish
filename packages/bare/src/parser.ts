@@ -67,6 +67,7 @@ export function findActionSpecs(sourceFile: SourceFile): ActionSpec[] {
 
 export function findServiceSpecs(sourceFile: SourceFile): ServiceSpec[] {
   const actors = findActorBindings(sourceFile);
+  const publicActionNames = findPublicActionNames(sourceFile, actors);
   const services: ServiceSpec[] = [];
 
   for (const declaration of sourceFile.getVariableDeclarations()) {
@@ -104,13 +105,70 @@ export function findServiceSpecs(sourceFile: SourceFile): ServiceSpec[] {
 
     services.push({
       serviceName,
-      actionNames: parsePublicServiceActions(serviceCall),
+      actionNames: parseServiceActions(serviceCall, publicActionNames),
       actorDeclaration: actor.declaration,
       declaration: variableStatement,
     });
   }
 
   return services;
+}
+
+function findPublicActionNames(
+  sourceFile: SourceFile,
+  actors: Map<string, ActorBinding>,
+): Set<string> {
+  const actionNames = new Set<string>();
+
+  for (const declaration of sourceFile.getVariableDeclarations()) {
+    const nameNode = declaration.getNameNode();
+    if (!Node.isObjectBindingPattern(nameNode)) continue;
+    if (!declaration.getFirstAncestorByKind(SyntaxKind.VariableStatement)) {
+      continue;
+    }
+
+    const variableStatement = declaration.getFirstAncestorByKindOrThrow(
+      SyntaxKind.VariableStatement,
+    );
+    if (!variableStatement.isExported()) continue;
+
+    const exportedActionName = nameNode.getElements()[0]?.getNameNode().getText();
+    if (!exportedActionName) continue;
+
+    const initializer = declaration.getInitializer();
+    if (!initializer) continue;
+
+    const runCall = unwrapExpression(initializer);
+    if (!Node.isCallExpression(runCall)) continue;
+
+    const chain = collectCallChain(runCall);
+    if (chain.at(-1)?.methodName !== "run") continue;
+
+    const root = chain[0]?.receiver;
+    if (!root || !Node.isCallExpression(root)) continue;
+
+    const rootExpression = unwrapExpression(root.getExpression());
+    if (!Node.isIdentifier(rootExpression)) continue;
+    if (!actors.has(rootExpression.getText())) continue;
+    if (isPublicActionChain(chain)) actionNames.add(exportedActionName);
+  }
+
+  return actionNames;
+}
+
+function isPublicActionChain(chain: CallChainItem[]): boolean {
+  if (chain.some((item) => item.methodName === "command")) return true;
+
+  const onCall = chain.find((item) => item.methodName === "on")?.call;
+  const behavior = onCall?.getArguments()[0];
+  if (!behavior) return false;
+
+  const unwrapped = unwrapExpression(behavior);
+  if (!Node.isStringLiteral(unwrapped)) return false;
+
+  return ["Command", "GET", "POST", "PUT", "DELETE", "PATCH"].includes(
+    unwrapped.getLiteralText(),
+  );
 }
 
 function findActorBindings(sourceFile: SourceFile): Map<string, ActorBinding> {
@@ -190,33 +248,25 @@ function collectCallChain(call: Node): CallChainItem[] {
   ];
 }
 
-function parsePublicServiceActions(
+function parseServiceActions(
   serviceCall: import("ts-morph").CallExpression,
+  publicActionNames: Set<string>,
 ): string[] {
   const config = serviceCall.getArguments()[0];
   if (!config || !Node.isObjectLiteralExpression(config)) return [];
 
-  const publicProperty = config
+  return config
     .getProperties()
-    .find((property) => {
-      if (!Node.isPropertyAssignment(property)) return false;
+    .map((property) => {
+      if (Node.isShorthandPropertyAssignment(property)) {
+        return property.getNameNode().getText();
+      }
 
-      const nameNode = property.getNameNode();
-      return (
-        (Node.isIdentifier(nameNode) && nameNode.getText() === "public") ||
-        (Node.isStringLiteral(nameNode) &&
-          nameNode.getLiteralText() === "public")
-      );
-    });
+      if (!Node.isPropertyAssignment(property)) return null;
 
-  if (!publicProperty || !Node.isPropertyAssignment(publicProperty)) return [];
-
-  const initializer = unwrapExpression(publicProperty.getInitializerOrThrow());
-  if (!Node.isArrayLiteralExpression(initializer)) return [];
-
-  return initializer
-    .getElements()
-    .map((element) => unwrapExpression(element))
-    .filter(Node.isIdentifier)
-    .map((identifier) => identifier.getText());
+      const initializer = unwrapExpression(property.getInitializerOrThrow());
+      return Node.isIdentifier(initializer) ? initializer.getText() : null;
+    })
+    .filter(isDefined)
+    .filter((actionName) => publicActionNames.has(actionName));
 }

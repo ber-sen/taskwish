@@ -26,4 +26,4 @@ export const { stream } = myActor()
     ),
   );
 
-export const { MyActor } = myActor().service({ public: [stream] });
+export const { MyActor } = myActor().service({ stream });

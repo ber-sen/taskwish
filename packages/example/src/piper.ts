@@ -22,4 +22,4 @@ export const { count } = piper()
     }),
   );
 
-export const { Piper } = piper().service({ public: [count] });
+export const { Piper } = piper().service({ count });

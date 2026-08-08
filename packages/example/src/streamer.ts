@@ -18,4 +18,4 @@ export const { count } = streamer()
     return countTo(this.input.total);
   });
 
-export const { Streamer } = streamer().service({ public: [count] });
+export const { Streamer } = streamer().service({ count });

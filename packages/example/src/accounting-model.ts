@@ -39,4 +39,4 @@ export const { forecast } = accounting()
     }),
   );
 
-export const { Accounting } = accounting().service({ public: [forecast] });
+export const { Accounting } = accounting().service({ forecast });

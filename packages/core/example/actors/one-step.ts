@@ -18,4 +18,4 @@ const { myAction } = myActor()
 
 export { myAction };
 
-export const { MyActor } = myActor().service({ public: [myAction] });
+export const { MyActor } = myActor().service({ myAction });

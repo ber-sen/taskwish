@@ -25,4 +25,4 @@ export const { solve } = solver()
     }),
   );
 
-export const { Solver } = solver().service({ public: [solve] });
+export const { Solver } = solver().service({ solve });

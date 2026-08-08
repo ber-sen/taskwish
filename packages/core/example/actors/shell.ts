@@ -60,4 +60,4 @@ export const { getFileSize } = myActor()
     }),
   );
 
-export const { MyActor } = myActor().service({ public: [getFileSize] });
+export const { MyActor } = myActor().service({ getFileSize });

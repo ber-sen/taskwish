@@ -124,4 +124,4 @@ export const { match } = myActor()
 
   type B = Extract<A, { ipsum: 2 }>
 
-export const { MyActor } = myActor().service({ public: [match] });
+export const { MyActor } = myActor().service({ match });

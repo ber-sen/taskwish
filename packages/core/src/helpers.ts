@@ -1,6 +1,6 @@
 import { Type, type } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
-import { TW } from "./core";
+import type { TW } from "./core";
 import type { InferTypeConfig } from "./use";
 
 /** Walk the plugins tuple and return the filter type from the first InferTypeConfig found.
@@ -28,6 +28,24 @@ export type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
 >() => T extends Y ? 1 : 2
   ? true
   : false;
+
+type IsListenerAction<Action> = Action extends TW.Attributable<infer Meta>
+  ? Meta extends { event: string }
+    ? true
+    : false
+  : false;
+
+export type OmitListeners<Actions> = Pretty<{
+  [Key in keyof Actions as IsListenerAction<Actions[Key]> extends true
+    ? never
+    : Key]: Actions[Key];
+}>;
+
+export type PickListeners<Actions> = Pretty<{
+  [Key in keyof Actions as IsListenerAction<Actions[Key]> extends true
+    ? Key
+    : never]: Actions[Key];
+}>;
 
 export type CamelCaseHelper<T extends string> =
   T extends `${infer Left}${infer Delimiter}${infer Right}`

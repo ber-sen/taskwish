@@ -29,6 +29,7 @@ export const { onNewEmail } = greeter()
   );
 
 export const { Greeter } = greeter().service({
-  public: [hello],
-  listeners: [onNewEmail],
+  hello,
+  onNewEmail,
 });
+

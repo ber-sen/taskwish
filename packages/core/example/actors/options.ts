@@ -30,4 +30,4 @@ export const { withOptions } = myActor()
     }),
   );
 
-export const { MyActor } = myActor().service({ public: [withOptions] });
+export const { MyActor } = myActor().service({ withOptions });

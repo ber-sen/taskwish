@@ -14,4 +14,4 @@ export const { chat } = handler()
     }),
   );
 
-export const { Handler } = handler().service({ public: [chat] });
+export const { Handler } = handler().service({ chat });

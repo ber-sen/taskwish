@@ -82,7 +82,8 @@ export const { onVoiceCallStream } = assistant()
   );
 
 export const { Assistant } = assistant().service({
-  listeners: [onVoiceCallConnect, onVoiceCallStream],
+  onVoiceCallConnect,
+  onVoiceCallStream,
 });
 
 // Step("log", function () {

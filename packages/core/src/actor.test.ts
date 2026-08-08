@@ -355,9 +355,7 @@ describe("Actor", () => {
         }),
       );
 
-    const { Biller } = biller().service({
-      public: [chargeCustomer],
-    });
+    const { Biller } = biller().service({ chargeCustomer });
 
     const { listener } = Actor("Listener").use(Biller);
 
@@ -789,8 +787,8 @@ describe("Actor", () => {
       );
 
     const { Greeter } = greeter().service({
-      public: [hello],
-      listeners: [onNewEmail],
+      hello,
+      onNewEmail,
     });
 
     type T = (typeof Greeter)[typeof TW.Listeners];
@@ -803,6 +801,29 @@ describe("Actor", () => {
     expect("onNewEmail" in Greeter).toBe(false);
     expect((Greeter as any)[TW.Listeners]).toEqual([onNewEmail]);
     expect(Object.keys(Greeter)).not.toContain(String(TW.Listeners));
+  });
+
+  test("service — rejects legacy public and listeners keys", () => {
+    const { greeter } = Actor("Greeter");
+    const { hello } = greeter()
+      .on("Command", "hello")
+      .run(function () {
+        return "Hello";
+      });
+
+    expect(() =>
+      // @ts-expect-error public/listeners service keys are no longer supported
+      greeter().service({
+        public: [hello],
+      }),
+    ).toThrow(/public\/listeners keys are no longer supported/);
+
+    expect(() =>
+      // @ts-expect-error public/listeners service keys are no longer supported
+      greeter().service({
+        listeners: [hello],
+      }),
+    ).toThrow(/public\/listeners keys are no longer supported/);
   });
 
   test("signal — typed from scope, Step yields event then step result, chained step reads value", async () => {
@@ -1073,9 +1094,7 @@ describe("Actor", () => {
           };
         });
 
-      const { Slack } = slack().service({
-        public: [conversationsList],
-      });
+      const { Slack } = slack().service({ conversationsList });
 
       const { postMessage } = Actor("Slack")
         .use(Slack)
@@ -1153,9 +1172,7 @@ describe("Actor", () => {
           return `sent: ${this.input.message}`;
         });
 
-      const { Notifier } = notifier().service({
-        public: [notify],
-      });
+      const { Notifier } = notifier().service({ notify });
 
       // ── inject into a consumer actor ──────────────────────────────────────
       const { consumer } = Actor("Consumer").use(Notifier);
@@ -1196,9 +1213,7 @@ describe("Actor", () => {
           }),
         );
 
-      const { MyActor } = myActor().service({
-        public: [runSteps],
-      });
+      const { MyActor } = myActor().service({ runSteps });
 
       expect(await MyActor.runSteps({ message: "hello" })).toEqual(6);
 
@@ -1243,9 +1258,7 @@ describe("Actor", () => {
           };
         });
 
-      const { Slack } = slack().service({
-        public: [conversationsList],
-      });
+      const { Slack } = slack().service({ conversationsList });
 
       const { postMessage } = slack()
         .on("Command", "postMessage")
@@ -1296,9 +1309,7 @@ describe("Actor", () => {
           return [`channels:${this.input.types}`];
         });
 
-      const { Slack } = slack().service({
-        public: [conversationsList],
-      });
+      const { Slack } = slack().service({ conversationsList });
 
       const { postMessage } = slack()
         .use(Slack)
@@ -1341,9 +1352,7 @@ describe("Actor", () => {
         .run(function () {
           return `email→${this.input.to}`;
         });
-      const { Emailer } = emailer().service({
-        public: [sendEmail],
-      });
+      const { Emailer } = emailer().service({ sendEmail });
 
       const { texter } = Actor("Texter");
 
@@ -1355,9 +1364,7 @@ describe("Actor", () => {
         .run(function () {
           return `text→${this.input.to}`;
         });
-      const { Texter } = texter().service({
-        public: [sendText],
-      });
+      const { Texter } = texter().service({ sendText });
 
       const { dispatcher } = Actor("Dispatcher").use(Emailer).use(Texter);
 

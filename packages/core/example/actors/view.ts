@@ -33,7 +33,7 @@ export const { hello } = greeter()
     }),
   );
 
-export const { Greeter } = greeter().service({ public: [hello] });
+export const { Greeter } = greeter().service({ hello });
 
 const { ConnectionsView } = App("Connections", {
   "/": Screen(List()),

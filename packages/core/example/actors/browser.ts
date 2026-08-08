@@ -60,4 +60,4 @@ export const { browse } = browserActor()
     }),
   );
 
-export const { BrowserActor } = browserActor().service({ public: [browse] });
+export const { BrowserActor } = browserActor().service({ browse });

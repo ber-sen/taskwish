@@ -25,7 +25,7 @@ test("exports Bun.serve routes for service dispatch", async () => {
     .run(function () {
       return `Hello ${this.input.name}`;
     });
-  const { Greeter } = greeter().service({ public: [hello] });
+  const { Greeter } = greeter().service({ hello });
 
   const routes = await createRoutes(
     createNodeRegistry([Promise.resolve({ Greeter, hello })]),
@@ -58,7 +58,7 @@ test("exports actor event handlers as concrete Bun.serve routes", async () => {
     .run(function () {
       return { received: this.input.content };
     });
-  const { Biller } = biller().service({ listeners: [onGreeterMessage] });
+  const { Biller } = biller().service({ onGreeterMessage });
 
   const routes = await createRoutes(
     createNodeRegistry([
@@ -104,7 +104,7 @@ test("exports console config when the app is installed", async () => {
       return `Hello ${this.input.name}`;
     })
     .meta({ description: "Greet a person by name" });
-  const { Greeter } = greeter().service({ public: [hello] });
+  const { Greeter } = greeter().service({ hello });
   const { biller } = Actor("Biller").use(Greeter);
 
   const { onGreeterMessage } = biller()
@@ -112,7 +112,7 @@ test("exports console config when the app is installed", async () => {
     .run(function () {
       return { received: this.input.content };
     });
-  const { Biller } = biller().service({ listeners: [onGreeterMessage] });
+  const { Biller } = biller().service({ onGreeterMessage });
 
   const routes = await createRoutes(
     createNodeRegistry([

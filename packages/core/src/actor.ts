@@ -196,32 +196,22 @@ export interface ActorFactory<Ctx extends Record<any, any>> {
 
 type ServiceResult<
   ServiceName extends string,
-  Actions extends readonly unknown[],
-  Listeners extends readonly unknown[],
+  Config extends Record<string, unknown>,
   ServiceScope,
 > = {
   [Name in ToCapitalCase<ServiceName>]: TW.Service<
     ServiceName,
-    ServiceActions<Actions>,
-    ServiceListeners<Listeners>,
+    ServiceActions<Config>,
     ServiceScope
   >;
 };
 
-type ServiceActions<Actions extends readonly unknown[]> = Pretty<{
-  -readonly [Index in keyof Actions as ExtractActionName<
-    Actions[Index]
-  > extends infer Name extends string
-    ? ActionRecordName<Name>
-    : never]: Actions[Index];
-}>;
-
-type ServiceListeners<Actions extends readonly unknown[]> = Pretty<{
-  -readonly [Index in keyof Actions as ExtractActionName<
-    Actions[Index]
-  > extends infer Name extends string
-    ? ActionRecordName<Name>
-    : never]: Actions[Index];
+type ServiceActions<Config extends Record<string, unknown>> = Pretty<{
+  -readonly [Key in keyof Config as Key extends "public" | "listeners"
+    ? never
+    : ExtractActionName<Config[Key]> extends infer Name extends string
+      ? ActionRecordName<Name>
+      : never]: Config[Key];
 }>;
 
 type CommandResult<
@@ -327,16 +317,11 @@ const builtInEventScope: Record<string, unknown> = {
 export interface Behavior<Ctx extends Record<any, any>> {
   use(config: LoggerConfig): this;
   use<const U>(plugin: U): Behavior<AddActionsToCtx<Ctx, U>>;
-  service<
-    const Actions extends readonly unknown[] = [],
-    const Listeners extends readonly unknown[] = [],
-  >(config?: {
-    public?: Actions;
-    listeners?: Listeners;
-  }): ServiceResult<
+  service<const Config extends Record<string, unknown> = {}>(
+    config?: Config & { public?: never; listeners?: never },
+  ): ServiceResult<
     Ctx["name"] & string,
-    Actions,
-    Listeners,
+    Config,
     ActorEventExports<BaseScope<Ctx>, Ctx["name"] & string>
   >;
 
@@ -1085,23 +1070,46 @@ function serviceActionName(action: unknown): string | null {
   return typeof action === "function" && action.name ? action.name : null;
 }
 
+function isServiceListenerAction(action: unknown): boolean {
+  if (
+    action === null ||
+    (typeof action !== "object" && typeof action !== "function") ||
+    !(TW.Meta in Object(action))
+  ) {
+    return false;
+  }
+
+  const meta = (action as Record<string | symbol, unknown>)[TW.Meta];
+  return (
+    meta !== null &&
+    typeof meta === "object" &&
+    typeof (meta as Record<string, unknown>).event === "string"
+  );
+}
+
 function createService(
   actorName: string,
   config: unknown,
   scope: Record<string, unknown>,
 ): Record<string, unknown> {
-  const publicActions =
+  if (
     config !== null &&
     typeof config === "object" &&
-    Array.isArray((config as { public?: unknown }).public)
-      ? (config as { public: unknown[] }).public
+    ("public" in config || "listeners" in config)
+  ) {
+    throw new Error(
+      "service() accepts actions directly: service({ hello, onNewEmail }). The public/listeners keys are no longer supported.",
+    );
+  }
+
+  const configuredActions =
+    config !== null && typeof config === "object"
+      ? Object.values(config as Record<string, unknown>)
       : [];
-  const listenerActions =
-    config !== null &&
-    typeof config === "object" &&
-    Array.isArray((config as { listeners?: unknown }).listeners)
-      ? (config as { listeners: unknown[] }).listeners
-      : [];
+  const publicActions = configuredActions.filter(
+    (action) => !isServiceListenerAction(action),
+  );
+  const listenerActions = configuredActions.filter(isServiceListenerAction);
   const service: Record<string | symbol, unknown> = {
     [TW.Name]: actorName,
     [TW.Scope]: collectOwnedEvents(actorName, scope),

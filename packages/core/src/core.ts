@@ -2,6 +2,8 @@ import {
   UUIDv7String,
   ValidateTrigger,
   InferTriggerScope,
+  OmitListeners,
+  PickListeners,
   Pretty,
   StreamResult,
   StreamInput,
@@ -154,11 +156,10 @@ export namespace TW {
   export type Service<
     Name extends string,
     Actions,
-    ListenerActions,
     ServiceScope = {},
-  > = Actions & {
+  > = OmitListeners<Actions> & {
     [Name]: Name;
-    [Listeners]: ListenerActions;
+    [Listeners]: PickListeners<Actions>;
     [Scope]: ServiceScope;
   };
 

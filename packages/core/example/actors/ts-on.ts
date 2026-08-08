@@ -20,4 +20,4 @@ export const { runSteps } = myActor()
     }),
   );
 
-export const { MyActor } = myActor().service({ public: [runSteps] });
+export const { MyActor } = myActor().service({ runSteps });

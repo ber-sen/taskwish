@@ -11,7 +11,7 @@ export async function fetchActionResult(result: unknown): Promise<Response> {
     .run(function () {
       return result;
     });
-  const { Responder } = responder().service({ public: [value] });
+  const { Responder } = responder().service({ value });
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Responder, value })]),

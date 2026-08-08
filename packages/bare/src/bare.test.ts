@@ -23,9 +23,7 @@ export const { runSteps } = myActor()
     }),
   );
 
-export const { MyActor } = myActor().service({
-  public: [runSteps],
-});
+export const { MyActor } = myActor().service({ runSteps });
 `;
 
     expect(morph(source)).toBe(`export async function runSteps(input: { message: string; }) {
@@ -38,6 +36,52 @@ export const { MyActor } = myActor().service({
 
 export const MyActor = {
   runSteps
+}`);
+  });
+
+  test("keeps event listeners out of direct service exports", () => {
+    const source = `import { Actor, Step } from "../../src";
+
+const { greeter } = Actor("Greeter");
+
+export const { hello } = greeter()
+  .on("Command", "hello")
+
+  .run(
+    Step("greeting", function () {
+      return "hello";
+    }),
+  );
+
+export const { onNewEmail } = greeter()
+  .on("NewEmail")
+
+  .run(
+    Step("result", function () {
+      return "email";
+    }),
+  );
+
+export const { Greeter } = greeter().service({
+  hello,
+  onNewEmail,
+});
+`;
+
+    expect(morph(source)).toBe(`export async function hello() {
+  const greeting = "hello";
+
+  return greeting;
+}
+
+export async function onNewEmail() {
+  const result = "email";
+
+  return result;
+}
+
+export const Greeter = {
+  hello
 }`);
   });
 

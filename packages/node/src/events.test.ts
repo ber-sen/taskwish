@@ -32,7 +32,7 @@ test("dispatches stream signal events to registered handlers without waiting", a
       }),
     );
 
-  const { Greeter } = greeter().service({ public: [hello] });
+  const { Greeter } = greeter().service({ hello });
   const { biller } = Actor("Biller").use(Greeter);
 
   const { onGreeterMessage } = biller()
@@ -46,7 +46,7 @@ test("dispatches stream signal events to registered handlers without waiting", a
       return { received: this.input.content };
     });
 
-  const { Biller } = biller().service({ listeners: [onGreeterMessage] });
+  const { Biller } = biller().service({ onGreeterMessage });
 
   const fetch = createFetchHandler(
     createNodeRegistry([
@@ -106,8 +106,8 @@ test("dispatches built-in event listeners registered on a service", async () => 
     });
 
   const { Greeter } = greeter().service({
-    public: [hello],
-    listeners: [onNewEmail],
+    hello,
+    onNewEmail,
   });
   
 
@@ -144,7 +144,7 @@ test("ignores non-Event objects yielded with signal shape", async () => {
       return "Hello Ada";
     });
 
-  const { Greeter } = greeter().service({ public: [hello] });
+  const { Greeter } = greeter().service({ hello });
   const { biller } = Actor("Biller").use(Greeter);
 
   const { onGreeterMessage } = biller()
@@ -154,7 +154,7 @@ test("ignores non-Event objects yielded with signal shape", async () => {
       received.push(this.input.content);
     });
 
-  const { Biller } = biller().service({ listeners: [onGreeterMessage] });
+  const { Biller } = biller().service({ onGreeterMessage });
 
   const fetch = createFetchHandler(
     createNodeRegistry([

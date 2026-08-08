@@ -33,4 +33,4 @@ export const { parallel } = myActor()
     }),
   );
 
-export const { MyActor } = myActor().service({ public: [parallel] });
+export const { MyActor } = myActor().service({ parallel });

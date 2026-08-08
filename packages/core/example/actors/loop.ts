@@ -41,4 +41,4 @@ export const { loop } = myActor()
     }),
   );
 
-export const { MyActor } = myActor().service({ public: [loop] });
+export const { MyActor } = myActor().service({ loop });

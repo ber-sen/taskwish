@@ -13,6 +13,4 @@ export const { onGreeterMessage } = biller()
     };
   });
 
-export const { Biller } = biller().service({
-  listeners: [onGreeterMessage],
-});
+export const { Biller } = biller().service({ onGreeterMessage });

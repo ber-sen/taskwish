@@ -33,4 +33,4 @@ export const { openFirstPage } = hackerNews()
     }),
   );
 
-export const { HackerNews } = hackerNews().service({ public: [openFirstPage] });
+export const { HackerNews } = hackerNews().service({ openFirstPage });

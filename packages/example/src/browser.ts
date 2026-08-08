@@ -62,4 +62,4 @@ export const { close } = browser()
     }),
   );
 
-export const { Browser } = browser().service({ public: [browse, close] });
+export const { Browser } = browser().service({ browse, close });

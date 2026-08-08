@@ -17,4 +17,4 @@ export const { write } = s3Storage()
     return `wrote:${this.input.key}`;
   });
 
-export const { S3Storage } = s3Storage().service({ public: [read, write] });
+export const { S3Storage } = s3Storage().service({ read, write });

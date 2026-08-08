@@ -159,4 +159,4 @@ export const { runPython } = myActor()
     }),
   );
 
-export const { MyActor } = myActor().service({ public: [runPython] });
+export const { MyActor } = myActor().service({ runPython });

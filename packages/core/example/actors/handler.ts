@@ -12,4 +12,4 @@ export const { handle } = myActor()
     });
   });
 
-export const { MyActor } = myActor().service({ public: [handle] });
+export const { MyActor } = myActor().service({ handle });

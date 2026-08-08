@@ -27,4 +27,4 @@ export const { solveAll } = pipeSolver()
     }),
   );
 
-export const { PipeSolver } = pipeSolver().service({ public: [solveAll] });
+export const { PipeSolver } = pipeSolver().service({ solveAll });

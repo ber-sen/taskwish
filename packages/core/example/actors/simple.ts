@@ -14,4 +14,4 @@ export const { sendMessage } = myActor()
     }),
   );
 
-export const { MyActor } = myActor().service({ public: [sendMessage] });
+export const { MyActor } = myActor().service({ sendMessage });
