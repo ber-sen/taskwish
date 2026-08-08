@@ -39,19 +39,11 @@ const TextToSpeech: <
 
 const VoiceCall = Trait({
   service: "VoiceCall",
-  self: "onStream",
+  self: "voiceCall",
 })<{
-  onStream: (input: {
-    sessionId: string;
-    chunk: ArrayBuffer;
-  }) => Generator<ArrayBuffer, null, unknown>;
+  voiceCall: (input: () => Generator<Uint8Array>) => void;
   onConnect: <Result>(input: { sessionId: string }) => Result;
 }>();
-
-type VoiceCallStreamInput = {
-  sessionId: string;
-  chunk: ArrayBuffer;
-};
 
 const { assistant } = Actor("Assistant");
 
@@ -64,7 +56,7 @@ export const { onVoiceCallConnect } = assistant()
     }),
   );
 
-export const { onVoiceCallStream } = assistant()
+export const { voiceCall } = assistant()
   .on(VoiceCall)
 
   .run(
@@ -83,7 +75,11 @@ export const { onVoiceCallStream } = assistant()
 
 export const { Assistant } = assistant().service({
   onVoiceCallConnect,
-  onVoiceCallStream,
+  voiceCall,
+});
+
+voiceCall(function* () {
+  yield new Uint8Array([120, 240, -100, 50]);
 });
 
 // Step("log", function () {
