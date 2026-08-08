@@ -2,9 +2,9 @@ import { Actor } from "taskwish";
 
 import { Greeter } from "./greeter";
 
-export const { Biller } = Actor("Biller").use(Greeter);
+const { biller } = Actor("Biller").use(Greeter);
 
-export const { onGreeterMessage } = Biller()
+export const { onGreeterMessage } = biller()
   .on("Greeter::Message")
 
   .run(function () {
@@ -12,3 +12,5 @@ export const { onGreeterMessage } = Biller()
       invoice: `Invoice created from greeter message: ${this.input.name}`,
     };
   });
+
+export const { Biller } = biller().service({ onGreeterMessage });

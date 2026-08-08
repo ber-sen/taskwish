@@ -15,9 +15,9 @@ function routeMap(routes: NodeRoutes, path: string): NodeRouteMap {
 }
 
 test("exports Bun.serve routes for service dispatch", async () => {
-  const { Greeter } = Actor("Greeter");
+  const { greeter } = Actor("Greeter");
 
-  const { hello } = Greeter()
+  const { hello } = greeter()
     .on("Command", "hello")
 
     .input({ name: "string" })
@@ -25,6 +25,7 @@ test("exports Bun.serve routes for service dispatch", async () => {
     .run(function () {
       return `Hello ${this.input.name}`;
     });
+  const { Greeter } = greeter().service({ hello });
 
   const routes = await createRoutes(
     createNodeRegistry([Promise.resolve({ Greeter, hello })]),
@@ -47,19 +48,21 @@ test("exports Bun.serve routes for service dispatch", async () => {
 });
 
 test("exports actor event handlers as concrete Bun.serve routes", async () => {
-  const { Greeter } = Actor("Greeter").scope(
+  const { greeter } = Actor("Greeter").scope(
     Event("Message", { content: "string" })
   );
-  const { Biller } = Actor("Biller").use(Greeter);
-  const { onGreeterMessage } = Biller()
+  const { Greeter } = greeter().service();
+  const { biller } = Actor("Biller").use(Greeter);
+  const { onGreeterMessage } = biller()
     .on("Greeter::Message")
     .run(function () {
       return { received: this.input.content };
     });
+  const { Biller } = biller().service({ onGreeterMessage });
 
   const routes = await createRoutes(
     createNodeRegistry([
-      Promise.resolve({ Greeter, Biller, onGreeterMessage }),
+      Promise.resolve({ Greeter, Biller }),
     ]),
     { apiKey }
   );
@@ -88,12 +91,11 @@ test("does not export console routes by default", async () => {
 });
 
 test("exports console config when the app is installed", async () => {
-  const { Greeter } = Actor("Greeter").scope(
+  const { greeter } = Actor("Greeter").scope(
     Event("Message", { content: "string" })
   );
-  const { Biller } = Actor("Biller").use(Greeter);
 
-  const { hello } = Greeter()
+  const { hello } = greeter()
     .on("Command", "hello")
 
     .input({ name: "string" })
@@ -102,15 +104,19 @@ test("exports console config when the app is installed", async () => {
       return `Hello ${this.input.name}`;
     })
     .meta({ description: "Greet a person by name" });
-  const { onGreeterMessage } = Biller()
+  const { Greeter } = greeter().service({ hello });
+  const { biller } = Actor("Biller").use(Greeter);
+
+  const { onGreeterMessage } = biller()
     .on("Greeter::Message")
     .run(function () {
       return { received: this.input.content };
     });
+  const { Biller } = biller().service({ onGreeterMessage });
 
   const routes = await createRoutes(
     createNodeRegistry([
-      Promise.resolve({ Greeter, Biller, hello, onGreeterMessage }),
+      Promise.resolve({ Greeter, Biller, hello }),
     ]),
     { apiKey, nodeName: "test-node", apps: [Console()] }
   );

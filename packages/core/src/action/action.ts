@@ -1101,10 +1101,8 @@ export function Action<const Name extends string>(
     const exposed = exposeAction(plugin);
     const qualified = splitQualifiedActionName(fullName);
     if (qualified === null) {
-      // Flat name: store directly — this.actions.notify
       injectedActions[fullName] = exposed;
     } else {
-      // Qualified name: store nested — this.actions.notifier.notify
       const service =
         qualified.service.charAt(0).toLowerCase() + qualified.service.slice(1);
       const method = qualified.method;
@@ -1115,20 +1113,26 @@ export function Action<const Name extends string>(
     }
   }
 
-  function injectActions(plugin: unknown) {
+  function injectActions(plugin: unknown, visited = new WeakSet<object>()) {
     if (typeof plugin === "function") {
       injectAction(plugin);
       return;
     }
 
     if (plugin === null || typeof plugin !== "object") return;
+    if (visited.has(plugin)) return;
+    visited.add(plugin);
     if ("then" in (plugin as object)) {
       pendingPlugins.push(Promise.resolve(plugin).then(injectActions));
       return;
     }
 
     for (const value of Object.values(plugin as Record<string, unknown>)) {
-      if (typeof value === "function") injectAction(value);
+      if (typeof value === "function") {
+        injectAction(value);
+      } else {
+        injectActions(value, visited);
+      }
     }
   }
 

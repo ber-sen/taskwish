@@ -1,9 +1,9 @@
 import { Actor, Step, Struct } from "../../src";
 import { Browser } from "./browser";
 
-const { MyActor } = Actor("MyActor");
+const { myActor } = Actor("MyActor");
 
-export const { runSteps } = MyActor()
+export const { runSteps } = myActor()
   .on("Command", "runSteps")
 
   .input({ message: "string" })
@@ -39,3 +39,5 @@ export const { runSteps } = MyActor()
       return this;
     }),
   );
+
+export const { MyActor } = myActor().service({ runSteps });

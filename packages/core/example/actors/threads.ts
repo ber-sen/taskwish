@@ -13,9 +13,9 @@ export const Commander: {
   NeedsApproval: Steps<typeof SubSteps>;
 } = {} as never;
 
-const { Greeter } = Actor("Greeter");
+const { greeter } = Actor("Greeter");
 
-Greeter()
+greeter()
   .on("NewMessage")
 
   .run(
@@ -32,3 +32,5 @@ Greeter()
 
     Reply("asdasddas"),
   );
+
+export const { Greeter } = greeter().service();

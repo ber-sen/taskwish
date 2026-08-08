@@ -1,3 +1,5 @@
+import { Actor, Step } from "../../src";
+
 const { myActor } = Actor("MyActor");
 
 export const { runSteps } = myActor()
@@ -15,6 +17,4 @@ export const { runSteps } = myActor()
     }),
   );
 
-export const { MyActor } = myActor().service({
-  public: [runSteps],
-});
+export const { MyActor } = myActor().service({ runSteps });

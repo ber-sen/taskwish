@@ -1,8 +1,8 @@
 import { Actor, Agent, Desc, Step, Tool, Type } from "../../src";
 
-const { ChatBot } = Actor("ChatBot");
+const { chatBot } = Actor("ChatBot");
 
-export const { chat } = ChatBot()
+export const { chat } = chatBot()
   .on("Command", "chat")
 
   .input({ prompt: ["string", Desc`User's prompt`] })

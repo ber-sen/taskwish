@@ -1,10 +1,10 @@
 import { Step } from "@taskwish/core";
-import { Slack } from "./slack";
+import { slack } from "./slack";
 
 import { SlackAPIClient } from "slack-web-api-client";
 import type { ChatPostMessageRequest } from "slack-web-api-client";
 
-export const { postMessage } = Slack()
+export const { postMessage } = slack()
   .on("Command", "postMessage")
 
   .input<ChatPostMessageRequest>()

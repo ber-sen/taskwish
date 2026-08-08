@@ -18,6 +18,13 @@ export type ActionSpec = {
   steps: StepSpec[];
 };
 
+export type ServiceSpec = {
+  serviceName: string;
+  actionNames: string[];
+  actorDeclaration: VariableStatement;
+  declaration: VariableStatement;
+};
+
 export type StepSpec = {
   name: string;
   propertyType: string;

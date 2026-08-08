@@ -1,8 +1,8 @@
 import { Loop, ForEach, Actor, Step } from "../../src";
 
-const { MyActor } = Actor("MyActor");
+const { myActor } = Actor("MyActor");
 
-export const { loop } = MyActor()
+export const { loop } = myActor()
   .on("Command", "loop")
 
   .input({ user: { name: "string", age: "number" } })
@@ -40,3 +40,5 @@ export const { loop } = MyActor()
       });
     }),
   );
+
+export const { MyActor } = myActor().service({ loop });

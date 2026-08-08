@@ -1,8 +1,8 @@
 import { Actor, Step } from "../../src";
 
-const { MyActor } = Actor("My actor");
+const { myActor } = Actor("My actor");
 
-export const { runSteps } = MyActor()
+export const { runSteps } = myActor()
   .on("Command", "Run steps")
 
   .input<{ message: string }>()
@@ -19,3 +19,5 @@ export const { runSteps } = MyActor()
       return this.firstStep.length;
     }),
   );
+
+export const { MyActor } = myActor().service({ runSteps });

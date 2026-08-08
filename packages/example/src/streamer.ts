@@ -1,6 +1,6 @@
 import { Actor } from "taskwish";
 
-const { Streamer } = Actor("Streamer");
+const { streamer } = Actor("Streamer");
 
 async function* countTo(total: number) {
   for (let count = 1; count <= total; count++) {
@@ -9,7 +9,7 @@ async function* countTo(total: number) {
   }
 }
 
-export const { count } = Streamer()
+export const { count } = streamer()
   .on("Command", "count")
 
   .input({ total: "number" })
@@ -17,3 +17,5 @@ export const { count } = Streamer()
   .run(function () {
     return countTo(this.input.total);
   });
+
+export const { Streamer } = streamer().service({ count });

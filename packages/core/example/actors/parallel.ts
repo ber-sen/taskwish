@@ -1,8 +1,8 @@
 import { Actor, Parallel, Step } from "../../src";
 
-const { MyActor } = Actor("My actor");
+const { myActor } = Actor("My actor");
 
-export const { parallel } = MyActor()
+export const { parallel } = myActor()
   .on("Command", "parallel")
 
   .input({ user: { model: "string" } })
@@ -32,3 +32,5 @@ export const { parallel } = MyActor()
       return this.firstStep.length;
     }),
   );
+
+export const { MyActor } = myActor().service({ parallel });

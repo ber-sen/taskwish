@@ -7,9 +7,9 @@ import { Actor, Step } from "taskwish";
 
 let browserContext: BrowserContext | null = null;
 
-export const { Browser } = Actor("Browser");
+const { browser } = Actor("Browser");
 
-export const { browse } = Browser()
+export const { browse } = browser()
   .on("Command", "browse")
 
   .input({ url: "string" })
@@ -48,7 +48,7 @@ export const { browse } = Browser()
     }),
   );
 
-export const { close } = Browser()
+export const { close } = browser()
   .on("Command", "close")
 
   .run(
@@ -61,3 +61,5 @@ export const { close } = Browser()
       return { closed: true };
     }),
   );
+
+export const { Browser } = browser().service({ browse, close });

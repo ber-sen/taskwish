@@ -1,9 +1,9 @@
 import { Int, Model } from "@taskwish/symbolic";
 import { Actor, Step } from "taskwish";
 
-const { PuzzleSolver } = Actor("PuzzleSolver");
+const { puzzleSolver } = Actor("PuzzleSolver");
 
-export const { solvePuzzle } = PuzzleSolver()
+export const { solvePuzzle } = puzzleSolver()
   .on("Command", "solvePuzzle")
 
   .run(
@@ -23,3 +23,5 @@ export const { solvePuzzle } = PuzzleSolver()
         .then(({ square, circle, triangle }) => square * circle * triangle);
     }),
   );
+
+export const { PuzzleSolver } = puzzleSolver().service({ solvePuzzle });

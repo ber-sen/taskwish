@@ -36,9 +36,9 @@ export const Shell = {
   },
 };
 
-const { MyActor } = Actor("MyActor");
+const { myActor } = Actor("MyActor");
 
-export const { getFileSize } = MyActor()
+export const { getFileSize } = myActor()
   .on("Command", "getFileSize")
 
   .input({ fileName: "string" })
@@ -59,3 +59,5 @@ export const { getFileSize } = MyActor()
       return this.fileSize;
     }),
   );
+
+export const { MyActor } = myActor().service({ getFileSize });

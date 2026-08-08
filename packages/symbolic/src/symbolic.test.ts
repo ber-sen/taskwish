@@ -11,9 +11,9 @@ const eventDataList = (values: unknown[]) => values.map(eventData);
 
 describe("Symbolic", () => {
   test("Model.prove runs as an actor step and returns status with model", async () => {
-    const { Solver } = Actor("Solver");
+    const { solver } = Actor("Solver");
 
-    const { solve } = Solver()
+    const { solve } = solver()
       .on("Command", "solve")
 
       .run(
@@ -53,9 +53,9 @@ describe("Symbolic", () => {
   });
 
   test("Model.solve returns the model directly", async () => {
-    const { Solver } = Actor("Solver");
+    const { solver } = Actor("Solver");
 
-    const { solve } = Solver()
+    const { solve } = solver()
       .on("Command", "solve")
 
       .run(
@@ -72,9 +72,9 @@ describe("Symbolic", () => {
   });
 
   test("Model.solve supports optional fixed inputs", async () => {
-    const { Solver } = Actor("Solver");
+    const { solver } = Actor("Solver");
 
-    const { solve } = Solver()
+    const { solve } = solver()
       .on("Command", "solve")
 
       .run(
@@ -96,9 +96,9 @@ describe("Symbolic", () => {
   });
 
   test("Model validates fixed inputs against declarations", async () => {
-    const { Solver } = Actor("Solver");
+    const { solver } = Actor("Solver");
 
-    const { solve } = Solver()
+    const { solve } = solver()
       .on("Command", "solve")
 
       .run(
@@ -118,9 +118,9 @@ describe("Symbolic", () => {
   });
 
   test("Model.solve throws when the constraints are not sat", async () => {
-    const { Solver } = Actor("Solver");
+    const { solver } = Actor("Solver");
 
-    const { solve } = Solver()
+    const { solve } = solver()
       .on("Command", "solve")
 
       .run(
@@ -142,9 +142,9 @@ describe("Symbolic", () => {
   });
 
   test("Model.solveAll yields each model as a pipeable async generator", async () => {
-    const { Solver } = Actor("Solver");
+    const { solver } = Actor("Solver");
 
-    const { solve } = Solver()
+    const { solve } = solver()
       .on("Command", "solve")
 
       .run(
@@ -178,9 +178,9 @@ describe("Symbolic", () => {
   });
 
   test("Model emits step traces inside an actor stream", async () => {
-    const { Solver } = Actor("Solver");
+    const { solver } = Actor("Solver");
 
-    const { solve } = Solver()
+    const { solve } = solver()
       .on("Command", "solve")
 
       .run(
@@ -206,7 +206,7 @@ describe("Symbolic", () => {
   });
 
   test("Model.prove returns accounting status from known line items", async () => {
-    const { Accounting } = Actor("Accounting").scope(
+    const { accounting } = Actor("Accounting").scope(
       Int(
         "grossRevenue",
         "refunds",
@@ -233,7 +233,7 @@ describe("Symbolic", () => {
       ),
     );
 
-    const { forecast } = Accounting()
+    const { forecast } = accounting()
       .on("Command", "forecast")
 
       .run(
@@ -265,7 +265,7 @@ describe("Symbolic", () => {
   });
 
   test("Model solves a missing accounting input from a desired outcome", async () => {
-    const { Accounting } = Actor("Accounting").scope(
+    const { accounting } = Actor("Accounting").scope(
       Int(
         "grossRevenue",
         "refunds",
@@ -292,7 +292,7 @@ describe("Symbolic", () => {
       ),
     );
 
-    const { forecast } = Accounting()
+    const { forecast } = accounting()
       .on("Command", "forecast")
 
       .run(

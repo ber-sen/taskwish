@@ -2,6 +2,8 @@ import {
   UUIDv7String,
   ValidateTrigger,
   InferTriggerScope,
+  OmitListeners,
+  PickListeners,
   Pretty,
   StreamResult,
   StreamInput,
@@ -19,6 +21,8 @@ export namespace TW {
   export const Step = Symbol.for("TW.Step");
 
   export const Scope = Symbol.for("TW.Ctx");
+
+  export const Listeners = Symbol.for("TW.Listeners");
 
   export const Type = Symbol.for("TW.Type");
 
@@ -149,9 +153,15 @@ export namespace TW {
     params: Params;
   }
 
-  export interface Actor<Name extends string> extends Resource<Name> {}
-
-  export interface Service<Name extends string> extends Resource<Name> {}
+  export type Service<
+    Name extends string,
+    Actions,
+    ServiceScope = {},
+  > = OmitListeners<Actions> & {
+    [Name]: Name;
+    [Listeners]: PickListeners<Actions>;
+    [Scope]: ServiceScope;
+  };
 
   export interface Log<Data> {
     id: Inject<UUIDv7String>;

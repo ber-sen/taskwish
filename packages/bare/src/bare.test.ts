@@ -6,9 +6,9 @@ describe("morph", () => {
   test("converts a TaskWish actor step chain to an async function runner", () => {
     const source = `import { Actor, Step } from "../../src";
 
-const { MyActor } = Actor("MyActor");
+const { myActor } = Actor("MyActor");
 
-export const { runSteps } = MyActor()
+export const { runSteps } = myActor()
   .on("Command", "runSteps")
 
   .input({ message: "string" })
@@ -22,6 +22,8 @@ export const { runSteps } = MyActor()
       return this.firstStep.length;
     }),
   );
+
+export const { MyActor } = myActor().service({ runSteps });
 `;
 
     expect(morph(source)).toBe(`export async function runSteps(input: { message: string; }) {
@@ -30,15 +32,65 @@ export const { runSteps } = MyActor()
   const lastStep = firstStep.length;
 
   return lastStep;
+}
+
+export const MyActor = {
+  runSteps
+}`);
+  });
+
+  test("keeps event listeners out of direct service exports", () => {
+    const source = `import { Actor, Step } from "../../src";
+
+const { greeter } = Actor("Greeter");
+
+export const { hello } = greeter()
+  .on("Command", "hello")
+
+  .run(
+    Step("greeting", function () {
+      return "hello";
+    }),
+  );
+
+export const { onNewEmail } = greeter()
+  .on("NewEmail")
+
+  .run(
+    Step("result", function () {
+      return "email";
+    }),
+  );
+
+export const { Greeter } = greeter().service({
+  hello,
+  onNewEmail,
+});
+`;
+
+    expect(morph(source)).toBe(`export async function hello() {
+  const greeting = "hello";
+
+  return greeting;
+}
+
+export async function onNewEmail() {
+  const result = "email";
+
+  return result;
+}
+
+export const Greeter = {
+  hello
 }`);
   });
 
   test("preserves early returns by breaking out of the step block", () => {
     const source = `import { Actor, Step } from "../../src";
 
-const { MyActor } = Actor("MyActor");
+const { myActor } = Actor("MyActor");
 
-export const { runSteps } = MyActor()
+export const { runSteps } = myActor()
   .on("Command", "runSteps")
 
   .input({ message: "string" })
@@ -79,9 +131,9 @@ export const { runSteps } = MyActor()
   test("keeps blocks for multi-expression step handlers", () => {
     const source = `import { Actor, Step } from "../../src";
 
-const { MyActor } = Actor("MyActor");
+const { myActor } = Actor("MyActor");
 
-export const { runSteps } = MyActor()
+export const { runSteps } = myActor()
   .on("Command", "runSteps")
 
   .input({ message: "string" })
@@ -122,9 +174,9 @@ function normalizeMessage(message: string) {
   return message.trim().toUpperCase();
 }
 
-const { MyActor } = Actor("MyActor");
+const { myActor } = Actor("MyActor");
 
-export const { runSteps } = MyActor()
+export const { runSteps } = myActor()
   .on("Command", "runSteps")
 
   .input({ message: "string" })
@@ -160,9 +212,9 @@ function normalizeMessage(message: string) {
   return message.trim().toUpperCase();
 }
 
-const { MyActor } = Actor("MyActor");
+const { myActor } = Actor("MyActor");
 
-export const { runSteps } = MyActor()
+export const { runSteps } = myActor()
   .on("Command", "runSteps")
 
   .input({ message: "string" })
@@ -204,9 +256,9 @@ main();`);
   test("exports a wrapper with the original action binding name", () => {
     const source = `import { Actor, Step } from "../../src";
 
-const { MyActor } = Actor("MyActor");
+const { myActor } = Actor("MyActor");
 
-export const { runSteps } = MyActor()
+export const { runSteps } = myActor()
   .on("Command", "Run steps")
 
   .input({ name: "string" })
@@ -234,9 +286,9 @@ export const { runSteps } = MyActor()
   test("uses ArkType inference for input schemas", () => {
     const source = `import { Actor, Step } from "../../src";
 
-const { MyActor } = Actor("MyActor");
+const { myActor } = Actor("MyActor");
 
-export const { runSteps } = MyActor()
+export const { runSteps } = myActor()
   .on("Command", "runSteps")
 
   .input({ name: "string", tags: "string[]", "age?": "number" })
@@ -262,9 +314,9 @@ async function loadGreeting(name: string) {
   return \`Hello \${name}\`;
 }
 
-const { MyActor } = Actor("MyActor");
+const { myActor } = Actor("MyActor");
 
-export const { runSteps } = MyActor()
+export const { runSteps } = myActor()
   .on("Command", "runSteps")
 
   .input({ name: "string" })
@@ -300,9 +352,9 @@ function loadGreeting(name: string) {
   return Promise.resolve(\`Hello \${name}\`);
 }
 
-const { MyActor } = Actor("MyActor");
+const { myActor } = Actor("MyActor");
 
-export const { runSteps } = MyActor()
+export const { runSteps } = myActor()
   .on("Command", "runSteps")
 
   .input({ name: "string" })

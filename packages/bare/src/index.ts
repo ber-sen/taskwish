@@ -1,7 +1,7 @@
 import { Project, QuoteKind, ScriptTarget, ts } from "ts-morph";
 
 import { applyBareMetalReplacements } from "./edits";
-import { findActionSpecs } from "./parser";
+import { findActionSpecs, findServiceSpecs } from "./parser";
 import type { MorphOptions } from "./types";
 
 export type { MorphOptions } from "./types";
@@ -29,12 +29,18 @@ export function morph(sourceText: string, options: MorphOptions = {}): string {
     { overwrite: true },
   );
   const actions = findActionSpecs(sourceFile);
+  const services = findServiceSpecs(sourceFile);
 
-  if (actions.length === 0) {
+  if (actions.length === 0 && services.length === 0) {
     throw new Error("No TaskWish actor action chain found.");
   }
 
-  return applyBareMetalReplacements(sourceText, sourceFile, actions).trim();
+  return applyBareMetalReplacements(
+    sourceText,
+    sourceFile,
+    actions,
+    services,
+  ).trim();
 }
 
 export const transform = morph;

@@ -16,9 +16,9 @@ const eventDataList = (values: unknown[]) => values.map(eventData);
 
 describe("Actor", () => {
   test("Command — plain handler with input", async () => {
-    const { Greeter } = Actor("Greeter");
+    const { greeter } = Actor("Greeter");
 
-    const { greet } = Greeter()
+    const { greet } = greeter()
       .on("Command", "greet")
 
       .input({ name: "string" })
@@ -43,9 +43,9 @@ describe("Actor", () => {
   });
 
   test("Command — no input", async () => {
-    const { Pinger } = Actor("Pinger");
+    const { pinger } = Actor("Pinger");
 
-    const { healthz } = Pinger()
+    const { healthz } = pinger()
       .on("Command", "healthz")
 
       .run(function () {
@@ -56,9 +56,9 @@ describe("Actor", () => {
   });
 
   test("Command — step chain resolves to last step", async () => {
-    const { Processor } = Actor("Processor");
+    const { processor } = Actor("Processor");
 
-    const { process } = Processor()
+    const { process } = processor()
       .on("Command", "process")
 
       .input({ value: "number" })
@@ -89,9 +89,9 @@ describe("Actor", () => {
   });
 
   test("actor name prefixed in Action and Step events", async () => {
-    const { Pipeline } = Actor("Pipeline");
+    const { pipeline } = Actor("Pipeline");
 
-    const { run } = Pipeline()
+    const { run } = pipeline()
       .on("Command", "run")
 
       .input({ name: "string" })
@@ -125,9 +125,9 @@ describe("Actor", () => {
   });
 
   test("NewMessage — actor name prefixed, input carries message data", async () => {
-    const { Broadcaster } = Actor("Broadcaster");
+    const { broadcaster } = Actor("Broadcaster");
 
-    const { onNewMessage } = Broadcaster()
+    const { onNewMessage } = broadcaster()
       .on("NewMessage")
 
       .run(function () {
@@ -171,9 +171,9 @@ describe("Actor", () => {
   test("Command error — yields step error, action error, then rethrows", async () => {
     const boom = new Error("boom");
 
-    const { Crasher } = Actor("Crasher");
+    const { crasher } = Actor("Crasher");
 
-    const { failing } = Crasher()
+    const { failing } = crasher()
       .on("Command", "failing")
 
       .input({ name: "string" })
@@ -213,11 +213,11 @@ describe("Actor", () => {
   });
 
   test("scope — custom event usable as on() trigger", async () => {
-    const { Biller } = Actor("Biller").scope(
+    const { biller } = Actor("Biller").scope(
       Event("InvoicePaid", { invoiceId: "string", amount: "number" }),
     );
 
-    const { InvoicePaid } = Biller.events;
+    const { InvoicePaid } = biller.events;
     type E = typeof InvoicePaid;
     type eventCheck = Expect<
       Equal<
@@ -230,7 +230,7 @@ describe("Actor", () => {
     >;
     expect(InvoicePaid[TW.Name]).toEqual("Biller::InvoicePaid");
 
-    const { onBillerInvoicePaid } = Biller()
+    const { onBillerInvoicePaid } = biller()
       .on("Biller::InvoicePaid")
 
       .run(function () {
@@ -255,7 +255,7 @@ describe("Actor", () => {
   });
 
   test("scope — does not inject EventKind into behavior handlers", async () => {
-    const { Biller } = Actor("Biller").scope(
+    const { biller } = Actor("Biller").scope(
       Event("InvoicePaid", {
         invoiceId: "string",
         amount: "number",
@@ -263,7 +263,7 @@ describe("Actor", () => {
       }),
     );
 
-    const { processPayment } = Biller()
+    const { processPayment } = biller()
       .on("Command", "processPayment")
 
       .input({ invoiceId: "string" })
@@ -281,7 +281,7 @@ describe("Actor", () => {
   });
 
   test("scope — Signal emit yields signal data", async () => {
-    const { Biller } = Actor("Biller").scope(
+    const { biller } = Actor("Biller").scope(
       Event("InvoicePaid", {
         invoiceId: "string",
         amount: "number",
@@ -289,7 +289,7 @@ describe("Actor", () => {
       }),
     );
 
-    const { chargeCustomer } = Biller()
+    const { chargeCustomer } = biller()
       .on("Command", "chargeCustomer")
 
       .input({ invoiceId: "string", amount: "number" })
@@ -336,11 +336,11 @@ describe("Actor", () => {
       customer: "string",
     } as const;
 
-    const { Biller } = Actor("Biller").scope(
+    const { biller } = Actor("Biller").scope(
       Event("InvoicePaid", invoicePaidSchema),
     );
 
-    const { chargeCustomer } = Biller()
+    const { chargeCustomer } = biller()
       .on("Command", "chargeCustomer")
 
       .input({ invoiceId: "string", amount: "number" })
@@ -355,9 +355,11 @@ describe("Actor", () => {
         }),
       );
 
-    const { Listener } = Actor("Listener").use(Biller);
+    const { Biller } = biller().service({ chargeCustomer });
 
-    const { onBillerInvoicePaid } = Listener()
+    const { listener } = Actor("Listener").use(Biller);
+
+    const { onBillerInvoicePaid } = listener()
       .on("Biller::InvoicePaid")
 
       .run(function () {
@@ -412,6 +414,55 @@ describe("Actor", () => {
     ).toEqual("alice:inv-1");
   });
 
+  test("use — imports service scope events from TW.Scope", async () => {
+    const { biller } = Actor("Biller").scope(
+      Event("InvoicePaid", {
+        invoiceId: "string",
+        amount: "number",
+        customer: "string",
+      }),
+    );
+
+    const { Biller } = biller().service();
+
+    expect((Biller as any)[TW.Scope].InvoicePaid[TW.Name]).toBe(
+      "Biller::InvoicePaid",
+    );
+
+    const { listener } = Actor("Listener").use(Biller);
+
+    const { onBillerInvoicePaid } = listener()
+      .on("Biller::InvoicePaid")
+
+      .run(function () {
+        return `${this.input.customer}:${this.input.invoiceId}`;
+      });
+
+    type T = typeof onBillerInvoicePaid;
+    type check = Expect<
+      Equal<
+        TW.Action<
+          "Listener::on_biller_invoice_paid",
+          (input: {
+            invoiceId: string;
+            amount: number;
+            customer: string;
+          }) => Promise<string>,
+          { event: "Biller::InvoicePaid" }
+        >,
+        T
+      >
+    >;
+
+    expect(
+      await onBillerInvoicePaid({
+        invoiceId: "inv-1",
+        amount: 100,
+        customer: "alice",
+      }),
+    ).toEqual("alice:inv-1");
+  });
+
   test("use — accepts a single event definition and on() accepts EventKind", async () => {
     const { VoiceCall } = Event(
       "VoiceCall",
@@ -427,9 +478,9 @@ describe("Actor", () => {
       }),
     );
 
-    const { Agent } = Actor("Agent").use(VoiceCall);
+    const { agent } = Actor("Agent").use(VoiceCall);
 
-    const { onVoiceCall } = Agent()
+    const { onVoiceCall } = agent()
       .on(VoiceCall)
 
       .run(function () {
@@ -457,9 +508,9 @@ describe("Actor", () => {
   });
 
   test("Schedule — injects this.input with expression and runtime at", async () => {
-    const { Scheduler } = Actor("Scheduler");
+    const { scheduler } = Actor("Scheduler");
 
-    const { onSchedule } = Scheduler()
+    const { onSchedule } = scheduler()
       .on("Schedule", "0 9 * * 1-5")
 
       .run(function () {
@@ -487,11 +538,11 @@ describe("Actor", () => {
   });
 
   test("GET — with schema and command, named action takes flat input and route metadata", async () => {
-    const { InvoiceProvider } = Actor("InvoiceProvider").scope(
+    const { invoiceProvider } = Actor("InvoiceProvider").scope(
       Event("InvoiceFetched", { id: "string", page: "string" }),
     );
 
-    const { getInvoices } = InvoiceProvider()
+    const { getInvoices } = invoiceProvider()
       .on("GET", "/invoices/:id", {
         params: { id: "string" },
         query: { page: "string" },
@@ -524,7 +575,7 @@ describe("Actor", () => {
         },
       });
 
-    InvoiceProvider()
+    invoiceProvider()
       .on("GET", "/invoices/:id", {
         params: { id: "string" },
         query: { page: "string" },
@@ -635,9 +686,9 @@ describe("Actor", () => {
   });
 
   test("NewEmail — input carries email fields", async () => {
-    const { Mailer } = Actor("Mailer");
+    const { mailer } = Actor("Mailer");
 
-    const { onNewEmail } = Mailer()
+    const { onNewEmail } = mailer()
       .on("NewEmail")
 
       .run(function () {
@@ -672,9 +723,9 @@ describe("Actor", () => {
   });
 
   test("NewEmail — input available inside Step, events are prefixed", async () => {
-    const { MailAgent } = Actor("MailAgent");
+    const { mailAgent } = Actor("MailAgent");
 
-    const { onNewEmail } = MailAgent()
+    const { onNewEmail } = mailAgent()
       .on("NewEmail")
 
       .run(
@@ -714,12 +765,73 @@ describe("Actor", () => {
     ]);
   });
 
+  test("service — keeps listeners separate from public actions", () => {
+    const { greeter } = Actor("Greeter");
+
+    const { hello } = greeter()
+      .on("Command", "hello")
+
+      .input({ name: "string" })
+
+      .run(function () {
+        return `Hello ${this.input.name}`;
+      });
+
+    const { onNewEmail } = greeter()
+      .on("NewEmail")
+
+      .run(
+        Step("greet", function () {
+          return this.thread.reply(`Hello ${this.thread.sender.name}!`);
+        }),
+      );
+
+    const { Greeter } = greeter().service({
+      hello,
+      onNewEmail,
+    });
+
+    type T = (typeof Greeter)[typeof TW.Listeners];
+    type check = Expect<Equal<T, { onNewEmail: typeof onNewEmail }>>;
+    type serviceActionsCheck = Expect<
+      Equal<Pick<typeof Greeter, "hello">, { hello: typeof hello }>
+    >;
+
+    expect(Greeter.hello).toBe(hello);
+    expect("onNewEmail" in Greeter).toBe(false);
+    expect((Greeter as any)[TW.Listeners]).toEqual([onNewEmail]);
+    expect(Object.keys(Greeter)).not.toContain(String(TW.Listeners));
+  });
+
+  test("service — rejects legacy public and listeners keys", () => {
+    const { greeter } = Actor("Greeter");
+    const { hello } = greeter()
+      .on("Command", "hello")
+      .run(function () {
+        return "Hello";
+      });
+
+    expect(() =>
+      // @ts-expect-error public/listeners service keys are no longer supported
+      greeter().service({
+        public: [hello],
+      }),
+    ).toThrow(/public\/listeners keys are no longer supported/);
+
+    expect(() =>
+      // @ts-expect-error public/listeners service keys are no longer supported
+      greeter().service({
+        listeners: [hello],
+      }),
+    ).toThrow(/public\/listeners keys are no longer supported/);
+  });
+
   test("signal — typed from scope, Step yields event then step result, chained step reads value", async () => {
-    const { Emitter } = Actor("Emitter").scope(
+    const { emitter } = Actor("Emitter").scope(
       Event("OrderPlaced", { orderId: "string", amount: "number" }),
     );
 
-    const { emit } = Emitter()
+    const { emit } = emitter()
       .on("Command", "emit")
 
       .input({ orderId: "string", amount: "number" })
@@ -774,9 +886,9 @@ describe("Actor", () => {
       error: logged.push.bind(logged),
     };
 
-    const { Worker } = Actor("Worker");
+    const { worker } = Actor("Worker");
 
-    const { run } = Worker()
+    const { run } = worker()
       .use(Logger(spy))
 
       .on("Command", "run")
@@ -811,8 +923,8 @@ describe("Actor", () => {
       error: logged.push.bind(logged),
     };
 
-    const { Counter } = Actor("Counter");
-    const { tick } = Counter()
+    const { counter } = Actor("Counter");
+    const { tick } = counter()
       .use(Logger(spy))
 
       .on("Command", "tick")
@@ -855,11 +967,11 @@ describe("Actor", () => {
       error: logged.push.bind(logged),
     };
 
-    const { Greeter } = Actor("Greeter").scope(
+    const { greeter } = Actor("Greeter").scope(
       Event("Message", { content: "string" }),
     );
 
-    const { hello } = Greeter()
+    const { hello } = greeter()
       .use(Logger(spy))
 
       .on("Command", "hello")
@@ -885,10 +997,10 @@ describe("Actor", () => {
       error: logged.push.bind(logged),
     };
 
-    const { Hub } = Actor("Hub");
-    const hub = Hub().use(Logger(spy));
+    const { hub } = Actor("Hub");
+    const hubBehavior = hub().use(Logger(spy));
 
-    const { ping } = hub
+    const { ping } = hubBehavior
       .on("Command", "ping")
 
       .input({ id: "string" })
@@ -899,7 +1011,7 @@ describe("Actor", () => {
         }),
       );
 
-    const { onNewMessage } = hub.on("NewMessage").run(
+    const { onNewMessage } = hubBehavior.on("NewMessage").run(
       Step("excerpt", function () {
         return this.input.content.slice(0, 3);
       }),
@@ -930,9 +1042,9 @@ describe("Actor", () => {
   });
 
   test("multiple behaviors from same actor instance", async () => {
-    const { Conductor } = Actor("Conductor");
+    const { conductor } = Actor("Conductor");
 
-    const { greet } = Conductor()
+    const { greet } = conductor()
       .on("Command", "greet")
 
       .input({ name: "string" })
@@ -941,7 +1053,7 @@ describe("Actor", () => {
         return `hi ${this.input.name}`;
       });
 
-    const { onNewMention } = Conductor()
+    const { onNewMention } = conductor()
       .on("NewMention")
 
       .run(function () {
@@ -965,9 +1077,9 @@ describe("Actor", () => {
         { id: "C456", name: "engineering" },
       ];
 
-      const { Slack } = Actor("Slack");
+      const { slack } = Actor("Slack");
 
-      const { conversationsList } = Slack()
+      const { conversationsList } = slack()
         .on("Command", "conversationsList")
 
         .input({ types: "string" })
@@ -982,8 +1094,10 @@ describe("Actor", () => {
           };
         });
 
+      const { Slack } = slack().service({ conversationsList });
+
       const { postMessage } = Actor("Slack")
-        .use(conversationsList)
+        .use(Slack)
 
         .on("Command", "postMessage")
 
@@ -1047,9 +1161,9 @@ describe("Actor", () => {
 
     test("groups TW.Actions by service name under this.actions.<service>.<method>", async () => {
       // ── build a real TW.Action from a service actor ───────────────────────
-      const { Notifier } = Actor("Notifier");
+      const { notifier } = Actor("Notifier");
 
-      const { notify } = Notifier()
+      const { notify } = notifier()
         .on("Command", "notify")
 
         .input({ message: "string" })
@@ -1058,10 +1172,12 @@ describe("Actor", () => {
           return `sent: ${this.input.message}`;
         });
 
-      // ── inject into a consumer actor ──────────────────────────────────────
-      const { Consumer } = Actor("Consumer").use(notify);
+      const { Notifier } = notifier().service({ notify });
 
-      const { run } = Consumer()
+      // ── inject into a consumer actor ──────────────────────────────────────
+      const { consumer } = Actor("Consumer").use(Notifier);
+
+      const { run } = consumer()
         .on("Command", "run")
 
         .input({ text: "string" })
@@ -1079,10 +1195,56 @@ describe("Actor", () => {
       expect(await run({ text: "hello" })).toEqual("sent: hello");
     });
 
-    test("same actor command can be injected with .use() on a second command", async () => {
-      const { Slack } = Actor("Slack");
+    test("exports lowercase actor factory and builds public service objects", async () => {
+      const { myActor } = Actor("MyActor");
 
-      const { conversationsList } = Slack()
+      const { runSteps } = myActor()
+        .on("Command", "runSteps")
+
+        .input({ message: "string" })
+
+        .run(
+          Step("firstStep", function () {
+            return "step 1";
+          }),
+
+          Step("lastStep", function () {
+            return this.firstStep.length;
+          }),
+        );
+
+      const { MyActor } = myActor().service({ runSteps });
+
+      expect(await MyActor.runSteps({ message: "hello" })).toEqual(6);
+
+      const { consumer } = Actor("Consumer").use(MyActor);
+
+      const { run } = consumer()
+        .on("Command", "run")
+
+        .input({ message: "string" })
+
+        .run(
+          Step("runSteps", function () {
+            type Check = Expect<
+              Equal<
+                typeof this.actions.myActor.runSteps,
+                typeof runSteps.stream
+              >
+            >;
+            return this.actions.myActor.runSteps({
+              message: this.input.message,
+            });
+          }),
+        );
+
+      expect(await run({ message: "hello" })).toEqual(6);
+    });
+
+    test("same actor command can be injected with .use() on a second command", async () => {
+      const { slack } = Actor("Slack");
+
+      const { conversationsList } = slack()
         .on("Command", "conversationsList")
 
         .input({ types: "string" })
@@ -1096,10 +1258,12 @@ describe("Actor", () => {
           };
         });
 
-      const { postMessage } = Slack()
+      const { Slack } = slack().service({ conversationsList });
+
+      const { postMessage } = slack()
         .on("Command", "postMessage")
 
-        .use(conversationsList)
+        .use(Slack)
 
         .input({ channel: "string", text: "string" })
 
@@ -1134,9 +1298,9 @@ describe("Actor", () => {
     });
 
     test("same actor command can be injected with .use() on the actor instance", async () => {
-      const { Slack } = Actor("Slack");
+      const { slack } = Actor("Slack");
 
-      const { conversationsList } = Slack()
+      const { conversationsList } = slack()
         .on("Command", "conversationsList")
 
         .input({ types: "string" })
@@ -1145,8 +1309,10 @@ describe("Actor", () => {
           return [`channels:${this.input.types}`];
         });
 
-      const { postMessage } = Slack()
-        .use(conversationsList)
+      const { Slack } = slack().service({ conversationsList });
+
+      const { postMessage } = slack()
+        .use(Slack)
 
         .on("Command", "postMessage")
 
@@ -1176,9 +1342,9 @@ describe("Actor", () => {
     });
 
     test("merges actions from multiple .use() calls preserving prior services", async () => {
-      const { Emailer } = Actor("Emailer");
+      const { emailer } = Actor("Emailer");
 
-      const { sendEmail } = Emailer()
+      const { sendEmail } = emailer()
         .on("Command", "sendEmail")
 
         .input({ to: "string" })
@@ -1186,10 +1352,11 @@ describe("Actor", () => {
         .run(function () {
           return `email→${this.input.to}`;
         });
+      const { Emailer } = emailer().service({ sendEmail });
 
-      const { Texter } = Actor("Texter");
+      const { texter } = Actor("Texter");
 
-      const { sendText } = Texter()
+      const { sendText } = texter()
         .on("Command", "sendText")
 
         .input({ to: "string" })
@@ -1197,10 +1364,11 @@ describe("Actor", () => {
         .run(function () {
           return `text→${this.input.to}`;
         });
+      const { Texter } = texter().service({ sendText });
 
-      const { Dispatcher } = Actor("Dispatcher").use({ sendEmail, sendText });
+      const { dispatcher } = Actor("Dispatcher").use(Emailer).use(Texter);
 
-      const { dispatch } = Dispatcher()
+      const { dispatch } = dispatcher()
         .on("Command", "dispatch")
 
         .input({ recipient: "string" })
@@ -1229,9 +1397,9 @@ describe("Actor", () => {
     });
 
     test("bare TW.Action (no wrapping object) — use(notify) equivalent to use({ notify })", async () => {
-      const { Notifier } = Actor("Notifier");
+      const { notifier } = Actor("Notifier");
 
-      const { notify } = Notifier()
+      const { notify } = notifier()
         .on("Command", "notify")
 
         .input({ message: "string" })
@@ -1241,9 +1409,9 @@ describe("Actor", () => {
         });
 
       // Pass the action directly instead of wrapping it
-      const { Consumer } = Actor("Consumer").use(notify);
+      const { consumer } = Actor("Consumer").use(notify);
 
-      const { run } = Consumer()
+      const { run } = consumer()
         .on("Command", "run")
 
         .input({ text: "string" })
@@ -1260,10 +1428,10 @@ describe("Actor", () => {
       expect(await run({ text: "hello" })).toEqual("sent: hello");
     });
 
-    test("bare TW.Action — destructuring actor name works: const { Consumer } = Actor(...).use(notify)", async () => {
-      const { Notifier } = Actor("Notifier");
+    test("bare TW.Action — lowercase actor factory works after use(notify)", async () => {
+      const { notifier } = Actor("Notifier");
 
-      const { notify } = Notifier()
+      const { notify } = notifier()
         .on("Command", "notify")
 
         .input({ message: "string" })
@@ -1273,9 +1441,9 @@ describe("Actor", () => {
         });
 
       // Destructure the actor name directly from the .use() result
-      const { Consumer } = Actor("Consumer").use(notify);
+      const { consumer } = Actor("Consumer").use(notify);
 
-      const { run } = Consumer()
+      const { run } = consumer()
         .on("Command", "run")
 
         .input({ text: "string" })
@@ -1298,9 +1466,9 @@ describe("Actor", () => {
           return `sent: ${this.input.message}`;
         });
 
-      const { Consumer } = Actor("Consumer").use(notify);
+      const { consumer } = Actor("Consumer").use(notify);
 
-      const { run } = Consumer()
+      const { run } = consumer()
         .on("Command", "run")
 
         .input({ text: "string" })
@@ -1325,9 +1493,9 @@ describe("Actor", () => {
           return `sent: ${this.input.message}`;
         });
 
-      const { Consumer } = Actor("Consumer").use({ notify });
+      const { consumer } = Actor("Consumer").use({ notify });
 
-      const { run } = Consumer()
+      const { run } = consumer()
         .on("Command", "run")
 
         .input({ text: "string" })
@@ -1343,9 +1511,9 @@ describe("Actor", () => {
 
     test("non-TW.Action values in .use() object are silently ignored", async () => {
       // Plain object with a mix of action and non-action values
-      const { Pinger } = Actor("Pinger");
+      const { pinger } = Actor("Pinger");
 
-      const { ping } = Pinger()
+      const { ping } = pinger()
         .on("Command", "ping")
 
         .run(function () {
@@ -1353,12 +1521,12 @@ describe("Actor", () => {
         });
 
       // notAnAction is a plain function without [TW.Name] → should be skipped
-      const { Caller } = Actor("Caller").use({
+      const { caller } = Actor("Caller").use({
         ping,
         notAnAction: () => "ignored",
       });
 
-      const { run } = Caller()
+      const { run } = caller()
         .on("Command", "run")
 
         .run(
@@ -1372,8 +1540,8 @@ describe("Actor", () => {
       type actions = typeof run extends TW.Action<any, any>
         ? never // prevents unused-type-param error
         : never;
-      type Check = "notAnAction" extends keyof (typeof Caller extends {
-        Caller: () => infer B;
+      type Check = "notAnAction" extends keyof (typeof caller extends {
+        caller: () => infer B;
       }
         ? B
         : never)
@@ -1388,9 +1556,9 @@ describe("Actor", () => {
     test("actor implements trait — input type inferred from trait instance", async () => {
       const Logger = Trait<{ log: (input: string) => string }>();
 
-      const { S3Logger } = Actor("S3Logger");
+      const { s3Logger } = Actor("S3Logger");
 
-      const { log } = S3Logger()
+      const { log } = s3Logger()
         .on(Logger.log)
 
         .run(function () {
@@ -1422,9 +1590,9 @@ describe("Actor", () => {
     test("actor implements trait — no-arg method produces no-arg action", async () => {
       const Logger = Trait<{ log: () => string }>();
 
-      const { S3Logger } = Actor("S3Logger");
+      const { s3Logger } = Actor("S3Logger");
 
-      const { log } = S3Logger()
+      const { log } = s3Logger()
         .on(Logger.log)
 
         .run(function () {
@@ -1450,9 +1618,9 @@ describe("Actor", () => {
         ) => Generator<ArrayBuffer, null, unknown>;
       }>();
 
-      const { Assistant } = Actor("Assistant");
+      const { assistant } = Actor("Assistant");
 
-      const { onVoiceCall } = Assistant()
+      const { onVoiceCall } = assistant()
         .on(VoiceCall.VoiceCall)
 
         .run(function () {
@@ -1489,16 +1657,16 @@ describe("Actor", () => {
         onConnect: <Result>(input: { sessionId: string }) => Result;
       }>();
 
-      const { Assistant } = Actor("Assistant");
+      const { assistant } = Actor("Assistant");
 
-      const { onVoiceCallConnect } = Assistant()
+      const { onVoiceCallConnect } = assistant()
         .on(VoiceCall.Connect)
 
         .run(function () {
           return this.input.sessionId.length;
         });
 
-      const { onVoiceCallStream } = Assistant()
+      const { onVoiceCallStream } = assistant()
         .on(VoiceCall)
 
         .run(function () {
@@ -1558,9 +1726,9 @@ describe("Actor", () => {
     test("actor use trait — trait actions are added directly to actions scope", () => {
       const Logger = Trait<{ log: () => string }>();
 
-      const { S3Logger } = Actor("S3Logger").use(Logger);
+      const { s3Logger } = Actor("S3Logger").use(Logger);
 
-      const { smth } = S3Logger()
+      const { smth } = s3Logger()
         .on("Command", "smth")
 
         .run(function () {
@@ -1578,16 +1746,16 @@ describe("Actor", () => {
         write: (input: { key: string; value: string }) => string;
       }>();
 
-      const { S3Storage } = Actor("S3Storage");
+      const { s3Storage } = Actor("S3Storage");
 
-      const { read } = S3Storage()
+      const { read } = s3Storage()
         .on(Storage.read)
 
         .run(function () {
           return `data:${this.input}`;
         });
 
-      const { write } = S3Storage()
+      const { write } = s3Storage()
         .on(Storage.write)
 
         .run(function () {

@@ -1,6 +1,6 @@
 import { Type, type } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
-import { TW } from "./core";
+import type { TW } from "./core";
 import type { InferTypeConfig } from "./use";
 
 /** Walk the plugins tuple and return the filter type from the first InferTypeConfig found.
@@ -28,6 +28,24 @@ export type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
 >() => T extends Y ? 1 : 2
   ? true
   : false;
+
+type IsListenerAction<Action> = Action extends TW.Attributable<infer Meta>
+  ? Meta extends { event: string }
+    ? true
+    : false
+  : false;
+
+export type OmitListeners<Actions> = Pretty<{
+  [Key in keyof Actions as IsListenerAction<Actions[Key]> extends true
+    ? never
+    : Key]: Actions[Key];
+}>;
+
+export type PickListeners<Actions> = Pretty<{
+  [Key in keyof Actions as IsListenerAction<Actions[Key]> extends true
+    ? Key
+    : never]: Actions[Key];
+}>;
 
 export type CamelCaseHelper<T extends string> =
   T extends `${infer Left}${infer Delimiter}${infer Right}`
@@ -351,17 +369,25 @@ export type ActionMethod<N extends string> = QualifiedActionParts<N> extends [
   ? M
   : N;
 
-/**
- * Groups TW.Action exports in two ways:
- *  - Qualified names ("Slack::post_message") → nested `{ slack: { postMessage: T["stream"] } }`
- *  - Flat names ("notify")                  → direct  `{ notify: T["stream"] }`
- */
 type ExposedAction<T> = T extends {
   stream: infer Stream extends (...args: any[]) => any;
 }
   ? Stream
   : T;
 
+export type ActionRecordName<N extends string> = [
+  QualifiedActionParts<N>,
+] extends [never]
+  ? N
+  : QualifiedActionParts<N> extends [string, infer M extends string]
+  ? M
+  : never;
+
+/**
+ * Groups TW.Action exports in two ways:
+ *  - Qualified names ("Slack::post_message") → nested `{ slack: { postMessage: T["stream"] } }`
+ *  - Flat names ("notify")                  → direct  `{ notify: T["stream"] }`
+ */
 export type GroupActions<M> =
   // Qualified names → { service: { method: T } }
   {
@@ -400,6 +426,8 @@ export type ActionsFromPlugin<U> = U extends Promise<infer M>
 
 export type EventsFromPlugin<U> = U extends Promise<infer M>
   ? EventsFromPlugin<M>
+  : U extends { [TW.Scope]: infer S }
+  ? EventsFromPlugin<S>
   : U extends TW.EventKind<infer Name extends string, any, any>
   ? {
       [K in Name]: U;

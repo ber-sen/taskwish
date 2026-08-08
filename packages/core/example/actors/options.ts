@@ -7,9 +7,9 @@ const Options = {
       R,
 };
 
-const { MyActor } = Actor("MyActor");
+const { myActor } = Actor("MyActor");
 
-export const { withOptions } = MyActor()
+export const { withOptions } = myActor()
   .on("Command", "withOptions")
   
   .input({ message: "string" })
@@ -29,3 +29,5 @@ export const { withOptions } = MyActor()
       return this.firstStep.length;
     }),
   );
+
+export const { MyActor } = myActor().service({ withOptions });

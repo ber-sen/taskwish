@@ -2,9 +2,9 @@ import { Actor, Step, Steps, SubSteps } from "../../src";
 
 const Stream: Steps<typeof SubSteps> = {} as never;
 
-const { MyActor } = Actor("MyActor");
+const { myActor } = Actor("MyActor");
 
-export const { stream } = MyActor()
+export const { stream } = myActor()
   .on("Command", "stream")
 
   .run(
@@ -25,3 +25,5 @@ export const { stream } = MyActor()
       }),
     ),
   );
+
+export const { MyActor } = myActor().service({ stream });

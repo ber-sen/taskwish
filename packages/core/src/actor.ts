@@ -17,6 +17,7 @@ import {
   ValidateSchema,
   Pretty,
   ExtractActionName,
+  ActionRecordName,
   AddActionsToCtx,
   DeepWriteable,
   QualifiedActionName,
@@ -25,6 +26,7 @@ import {
   ToCamelCase,
   toCamelCaseName,
   splitQualifiedActionName,
+  ToCapitalCase,
 } from "./helpers";
 import { TW } from "./core";
 import { dispatch, type ConsoleLike, type LoggerConfig } from "./use";
@@ -33,12 +35,15 @@ import { ResultKind } from "./steps/hkt";
 
 type BaseScope<Ctx> = Ctx extends Record<any, any> ? Ctx["scope"] : {};
 
-type RuntimeResult<Result> =
-  Awaited<Result> extends AsyncGenerator<any, infer Return, any>
-    ? Awaited<Return>
-    : Result extends Generator<any, infer Return, any>
-      ? Return
-      : Result;
+type RuntimeResult<Result> = Awaited<Result> extends AsyncGenerator<
+  any,
+  infer Return,
+  any
+>
+  ? Awaited<Return>
+  : Result extends Generator<any, infer Return, any>
+  ? Return
+  : Result;
 
 type EventKeys<Scope> = {
   [K in keyof Scope]: Scope[K] extends TW.EventKind<infer Name, any>
@@ -55,22 +60,26 @@ type ExtractEventKind<Scope, EventName extends string> = {
     : never;
 }[keyof Scope];
 
-type ExtractEventInput<Scope, EventName extends string> =
-  ExtractEventKind<Scope, EventName> extends TW.EventKind<string, infer D>
-    ? D
-    : never;
+type ExtractEventInput<Scope, EventName extends string> = ExtractEventKind<
+  Scope,
+  EventName
+> extends TW.EventKind<string, infer D>
+  ? D
+  : never;
 
-type ExtractEventExtraScope<Scope, EventName extends string> =
-  ExtractEventKind<Scope, EventName> extends TW.EventKind<string, any, infer S>
-    ? S
-    : {};
+type ExtractEventExtraScope<Scope, EventName extends string> = ExtractEventKind<
+  Scope,
+  EventName
+> extends TW.EventKind<string, any, infer S>
+  ? S
+  : {};
 
 type EventHandlerName<EventName extends string> =
   EventName extends `${infer Actor}::${infer Name}`
     ? `on${Actor}${Name}`
     : EventName extends `${infer Actor}:${infer Name}`
-      ? `on${Actor}${Name}`
-      : `on${EventName}`;
+    ? `on${Actor}${Name}`
+    : `on${EventName}`;
 
 type ActorEventExports<Scope, Actor extends string> = Pretty<{
   [K in keyof Scope as Scope[K] extends TW.EventKind<infer Name, any, any>
@@ -94,7 +103,8 @@ export type HttpEvent = {
 type ValidateHttpSchema<Schema> = {
   [K in keyof Schema]: K extends "params" | "query" | "body" | "headers"
     ? ValidateSchema<Schema[K]>
-    : `Unexpected key "${K & string}", expected "params" | "query" | "body" | "headers"`;
+    : `Unexpected key "${K &
+        string}", expected "params" | "query" | "body" | "headers"`;
 };
 
 type FlatInput<Schema> = Pretty<
@@ -132,8 +142,9 @@ type TraitActionHandler<I, R> = [I] extends [void]
  * Extract the qualified action name carried inside a trait action's stream events.
  * e.g. TW.Action<"::read", …> → "::read".
  */
-type ExtractTraitQualifiedName<A> =
-  ExtractActionName<A> extends `::${string}` ? ExtractActionName<A> : never;
+type ExtractTraitQualifiedName<A> = ExtractActionName<A> extends `::${string}`
+  ? ExtractActionName<A>
+  : never;
 
 type TraitActionLike<TraitMethod extends `::${string}` = `::${string}`> = ((
   ...args: any[]
@@ -178,10 +189,30 @@ interface TraitMethodFactoryFromTrait<
 }
 
 /** The actor factory function returned under an actor's name. */
-export interface ActorFactoryFn<Ctx extends Record<any, any>> {
+export interface ActorFactory<Ctx extends Record<any, any>> {
   (): Behavior<Ctx>;
   events: ActorEventExports<BaseScope<Ctx>, Ctx["name"] & string>;
 }
+
+type ServiceResult<
+  ServiceName extends string,
+  Config extends Record<string, unknown>,
+  ServiceScope,
+> = {
+  [Name in ToCapitalCase<ServiceName>]: TW.Service<
+    ServiceName,
+    ServiceActions<Config>,
+    ServiceScope
+  >;
+};
+
+type ServiceActions<Config extends Record<string, unknown>> = Pretty<{
+  -readonly [Key in keyof Config as Key extends "public" | "listeners"
+    ? never
+    : ExtractActionName<Config[Key]> extends infer Name extends string
+      ? ActionRecordName<Name>
+      : never]: Config[Key];
+}>;
 
 type CommandResult<
   CmdName extends string,
@@ -286,6 +317,13 @@ const builtInEventScope: Record<string, unknown> = {
 export interface Behavior<Ctx extends Record<any, any>> {
   use(config: LoggerConfig): this;
   use<const U>(plugin: U): Behavior<AddActionsToCtx<Ctx, U>>;
+  service<const Config extends Record<string, unknown> = {}>(
+    config?: Config & { public?: never; listeners?: never },
+  ): ServiceResult<
+    Ctx["name"] & string,
+    Config,
+    ActorEventExports<BaseScope<Ctx>, Ctx["name"] & string>
+  >;
 
   on<Name extends string>(
     behavior: "Command",
@@ -405,7 +443,7 @@ export interface ScopeResultKind extends ResultKind {
     ? "name" extends keyof this["ctx"]
       ? this["ctx"]["name"] extends string
         ? {
-            [name in this["ctx"]["name"]]: ActorFactoryFn<
+            [name in ToCamelCase<this["ctx"]["name"]>]: ActorFactory<
               this["last"] & Record<any, any>
             >;
           }
@@ -415,6 +453,16 @@ export interface ScopeResultKind extends ResultKind {
 }
 
 const HTTP_METHODS = new Set(["GET", "POST", "PUT", "DELETE", "PATCH"]);
+
+function lowerCamelCaseName(name: string): string {
+  const camel = toCamelCaseName(name);
+  return camel.charAt(0).toLowerCase() + camel.slice(1);
+}
+
+function capitalCaseName(name: string): string {
+  const camel = toCamelCaseName(name);
+  return camel.charAt(0).toUpperCase() + camel.slice(1);
+}
 
 function eventHandlerName(eventName: string): string {
   if (eventName.includes("::")) {
@@ -501,6 +549,7 @@ function scopeEventKind(
   eventKind: Record<string | symbol, unknown>,
 ): Record<string | symbol, unknown> {
   const qualifiedEventName = qualifyEventName(actorName, eventName);
+
   return {
     ...eventKind,
     [TW.Name]: qualifiedEventName,
@@ -595,7 +644,8 @@ function createBehavior(
     return tapWith(gen, dispatch(logger)) as G;
   }
 
-  const currentInitialScope = () => mergeActorScope(initialScope, behaviorScope);
+  const currentInitialScope = () =>
+    mergeActorScope(initialScope, behaviorScope);
 
   async function resolveBehaviorScope() {
     let resolved = await resolveInitialScope();
@@ -640,11 +690,10 @@ function createBehavior(
       );
       return self;
     },
-    on(
-      behaviorInput: unknown,
-      config?: string,
-      schema?: unknown,
-    ) {
+    service(config: unknown) {
+      return createService(actorName, config, currentInitialScope());
+    },
+    on(behaviorInput: unknown, config?: string, schema?: unknown) {
       const eventKind = isEventKind(behaviorInput) ? behaviorInput : null;
       const traitEvent = getTraitEventName(behaviorInput);
       const traitMethod = getTraitMethodName(behaviorInput);
@@ -786,7 +835,10 @@ function createBehavior(
         return result;
       }
 
-      const makeBody = (inputMode: "first" | "args", inputSchema?: unknown) => ({
+      const makeBody = (
+        inputMode: "first" | "args",
+        inputSchema?: unknown,
+      ) => ({
         use(plugin?: unknown) {
           if (arguments.length > 0) useActionPlugin(plugin);
           return this;
@@ -909,7 +961,7 @@ export type ActorBuilderResult<
   scope: Steps<Ctx, ScopeResultKind>;
   use<const U>(plugin: U): ActorBuilderResult<Name, AddActionsToCtx<Ctx, U>>;
 } & {
-  [key in Name]: ActorFactoryFn<Ctx>;
+  [key in ToCamelCase<Name>]: ActorFactory<Ctx>;
 } & Omit<Behavior<Ctx>, "use">;
 
 // ── Actor builder runtime ─────────────────────────────────────────────────────
@@ -935,14 +987,13 @@ function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
 function exposeAction(plugin: unknown) {
   return typeof plugin === "function" &&
     RawStreamTag in plugin &&
-    typeof (plugin as { [RawStreamTag]?: unknown })[RawStreamTag] ===
-      "function"
+    typeof (plugin as { [RawStreamTag]?: unknown })[RawStreamTag] === "function"
     ? (plugin as { [RawStreamTag]: (...args: unknown[]) => unknown })[
         RawStreamTag
       ]
     : typeof plugin === "function" &&
-    "stream" in plugin &&
-    typeof (plugin as { stream?: unknown }).stream === "function"
+      "stream" in plugin &&
+      typeof (plugin as { stream?: unknown }).stream === "function"
     ? (plugin as { stream: (...args: unknown[]) => unknown }).stream
     : plugin;
 }
@@ -983,16 +1034,100 @@ function mergeActions(
 }
 
 function collectActions(plugin: unknown): Record<string, unknown> {
+  return collectActionsInner(plugin, new WeakSet<object>());
+}
+
+function collectActionsInner(
+  plugin: unknown,
+  visited: WeakSet<object>,
+): Record<string, unknown> {
   if (typeof plugin === "function") return collectAction(plugin);
   if (plugin === null || typeof plugin !== "object") return {};
+  if (visited.has(plugin)) return {};
+  visited.add(plugin);
 
   let incoming: Record<string, unknown> = {};
   for (const value of Object.values(plugin as Record<string, unknown>)) {
-    if (typeof value !== "function") continue;
-    incoming = mergeActions(incoming, collectAction(value));
+    incoming = mergeActions(incoming, collectActionsInner(value, visited));
   }
 
   return incoming;
+}
+
+function serviceActionName(action: unknown): string | null {
+  if (
+    action !== null &&
+    (typeof action === "object" || typeof action === "function") &&
+    TW.Name in Object(action)
+  ) {
+    const fullName = (action as Record<string | symbol, unknown>)[TW.Name];
+    if (typeof fullName === "string") {
+      const qualified = splitQualifiedActionName(fullName);
+      return qualified?.method ?? fullName;
+    }
+  }
+
+  return typeof action === "function" && action.name ? action.name : null;
+}
+
+function isServiceListenerAction(action: unknown): boolean {
+  if (
+    action === null ||
+    (typeof action !== "object" && typeof action !== "function") ||
+    !(TW.Meta in Object(action))
+  ) {
+    return false;
+  }
+
+  const meta = (action as Record<string | symbol, unknown>)[TW.Meta];
+  return (
+    meta !== null &&
+    typeof meta === "object" &&
+    typeof (meta as Record<string, unknown>).event === "string"
+  );
+}
+
+function createService(
+  actorName: string,
+  config: unknown,
+  scope: Record<string, unknown>,
+): Record<string, unknown> {
+  if (
+    config !== null &&
+    typeof config === "object" &&
+    ("public" in config || "listeners" in config)
+  ) {
+    throw new Error(
+      "service() accepts actions directly: service({ hello, onNewEmail }). The public/listeners keys are no longer supported.",
+    );
+  }
+
+  const configuredActions =
+    config !== null && typeof config === "object"
+      ? Object.values(config as Record<string, unknown>)
+      : [];
+  const publicActions = configuredActions.filter(
+    (action) => !isServiceListenerAction(action),
+  );
+  const listenerActions = configuredActions.filter(isServiceListenerAction);
+  const service: Record<string | symbol, unknown> = {
+    [TW.Name]: actorName,
+    [TW.Scope]: collectOwnedEvents(actorName, scope),
+  };
+
+  if (listenerActions.length > 0) {
+    Object.defineProperty(service, TW.Listeners, {
+      value: listenerActions,
+      enumerable: false,
+    });
+  }
+
+  for (const action of publicActions) {
+    const name = serviceActionName(action);
+    if (name) service[name] = action;
+  }
+
+  return { [capitalCaseName(actorName)]: service };
 }
 
 function isEventKind(
@@ -1079,6 +1214,11 @@ function collectEvents(plugin: unknown): Record<string, unknown> {
       ? { [eventScopeKey(eventName)]: plugin }
       : {};
   }
+  if (plugin !== null && typeof plugin === "object" && TW.Scope in plugin) {
+    return collectEvents(
+      (plugin as Record<string | symbol, unknown>)[TW.Scope],
+    );
+  }
   if (hasEventExports(plugin)) {
     return collectEvents(plugin.events);
   }
@@ -1137,6 +1277,7 @@ function makeActorBuilder(
 ): any {
   // Lazily-created behavior for fluid `.on()` calls directly on the builder.
   let _behavior: ReturnType<typeof createBehavior> | null = null;
+  const factoryName = lowerCamelCaseName(actorName);
   const resolveActorScope = async () => {
     if (pendingPlugins.length === 0) return actorScope;
 
@@ -1174,6 +1315,15 @@ function makeActorBuilder(
       },
     );
 
+  const defaultFactory = createActorFactory(
+    { ...builtInEventScope, ...actorScope },
+    async () => ({
+      ...builtInEventScope,
+      ...(await resolveActorScope()),
+    }),
+    () => actorScope,
+  );
+
   return {
     scope(...steps: unknown[]) {
       const definedScope = collectScope(steps, actorName);
@@ -1182,16 +1332,17 @@ function makeActorBuilder(
         ...actorScope,
         ...definedScope,
       };
+      const factory = createActorFactory(
+        initialScope,
+        async () => ({
+          ...builtInEventScope,
+          ...(await resolveActorScope()),
+          ...collectScope(steps, actorName),
+        }),
+        () => definedScope,
+      );
       return {
-        [actorName]: createActorFactory(
-          initialScope,
-          async () => ({
-            ...builtInEventScope,
-            ...(await resolveActorScope()),
-            ...collectScope(steps, actorName),
-          }),
-          () => definedScope,
-        ),
+        [factoryName]: factory,
       } as any;
     },
 
@@ -1220,19 +1371,15 @@ function makeActorBuilder(
 
     // Fluent `.on()` — delegates to a lazily-created Behavior so callers
     // can write `Actor("X").use(plugin).on("Command", "foo")` without the
-    // explicit `[actorName]()` call.
+    // explicit lower-camel actor factory call.
     on(...args: unknown[]) {
       return (getBehavior() as any).on(...args);
     },
+    service(...args: unknown[]) {
+      return (getBehavior() as any).service(...args);
+    },
 
-    [actorName]: createActorFactory(
-      { ...builtInEventScope, ...actorScope },
-      async () => ({
-        ...builtInEventScope,
-        ...(await resolveActorScope()),
-      }),
-      () => actorScope,
-    ),
+    [factoryName]: defaultFactory,
   };
 }
 
