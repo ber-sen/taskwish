@@ -6,12 +6,24 @@ export async function greet(input: { name: string }) {
   return run_greet({ input });
 }
 
-async function run_greet(params: { input: { name: string } }) {
+async function run_greet(params: {
+  input: { name: string };
+  trace?: (data: unknown) => void;
+}) {
+  const trace =
+    params.trace ?? ((data: unknown) => console.log(JSON.stringify(data)));
+
   const input = params.input;
+
+  trace({ ">>": "Greeter", input: input });
 
   const salutation = Math.random() > 0.5 ? "Hello" : "HI";
 
-  const greet = `${salutation} ${normalizeName(input.name)}.`
+  trace({ ">>": "Greeter::greet", result: salutation });
+
+  const greet = `${salutation} ${normalizeName(input.name)}.`;
+
+  trace({ ">>": "Greeter", result: greet });
 
   return greet;
 }
