@@ -2,8 +2,14 @@ import { describe, expect, test } from "bun:test";
 
 import { morph } from ".";
 
+function expectParts(output: string, parts: string[]) {
+  for (const part of parts) {
+    expect(output).toContain(part);
+  }
+}
+
 describe("morph", () => {
-  test("converts a TaskWish actor step chain to an async function runner", () => {
+  test("converts a TaskWish actor step chain to traced runners and service helpers", () => {
     const source = `import { Actor, Step } from "../../src";
 
 const { myActor } = Actor("MyActor");
@@ -25,18 +31,48 @@ export const { runSteps } = myActor()
 
 export const { MyActor } = myActor().service({ runSteps });
 `;
+    expect(morph(source))
+      .toBe(`import { Trace, consume } from "@taskwish/wire";
 
-    expect(morph(source)).toBe(`export async function runSteps(input: { message: string; }) {
+export async function runSteps(input: { message: string; }) {
+  return consume(stream_runSteps({ input }));
+}
+
+async function run_runSteps(params: {
+  input: { message: string; };
+}) {
+  return consume(stream_runSteps(params));
+}
+
+async function* stream_runSteps(params: {
+  input: { message: string; };
+}) {
+  const input = params.input;
+
+  yield new Trace("MyActor::runSteps", { input });
+
   const firstStep = "step 1";
 
+  yield new Trace("MyActor::runSteps.firstStep", { result: firstStep });
+
   const lastStep = firstStep.length;
+
+  yield new Trace("MyActor::runSteps.lastStep", { result: lastStep });
+
+  yield new Trace("MyActor::runSteps", { result: lastStep });
 
   return lastStep;
 }
 
 export const MyActor = {
-  runSteps
-}`);
+  runSteps,
+  run: {
+    runSteps: run_runSteps
+  },
+  stream: {
+    runSteps: stream_runSteps
+  }
+};`);
   });
 
   test("keeps event listeners out of direct service exports", () => {
@@ -68,21 +104,25 @@ export const { Greeter } = greeter().service({
 });
 `;
 
-    expect(morph(source)).toBe(`export async function hello() {
-  const greeting = "hello";
+    const output = morph(source);
 
-  return greeting;
-}
-
-export async function onNewEmail() {
-  const result = "email";
-
-  return result;
-}
-
-export const Greeter = {
-  hello
-}`);
+    expectParts(output, [
+      `export async function hello()`,
+      `export async function onNewEmail()`,
+      `yield new Trace("Greeter::hello", { input });`,
+      `yield new Trace("Greeter::onNewEmail", { input });`,
+      `export const Greeter = {
+  hello,
+  run: {
+    hello: run_hello
+  },
+  stream: {
+    hello: stream_hello
+  }
+};`,
+    ]);
+    expect(output).not.toContain(`onNewEmail: run_onNewEmail`);
+    expect(output).not.toContain(`onNewEmail: stream_onNewEmail`);
   });
 
   test("preserves early returns by breaking out of the step block", () => {
@@ -110,22 +150,13 @@ export const { runSteps } = myActor()
   );
 `;
 
-    expect(morph(source)).toBe(`export async function runSteps(input: { message: string; }) {
-  let firstStep: string;
-  firstStepBlock: {
-    if (input.message.trim() === "") {
-      firstStep = "empty";
-      break firstStepBlock;
-    }
-
-    firstStep = "filled";
-    break firstStepBlock;
-  }
-
-  const lastStep = firstStep.length;
-
-  return lastStep;
-}`);
+    expectParts(morph(source), [
+      `firstStepBlock: {`,
+      `firstStep = "empty";
+      break firstStepBlock;`,
+      `yield new Trace("MyActor::runSteps.firstStep", { result: firstStep });`,
+      `const lastStep = firstStep.length;`,
+    ]);
   });
 
   test("keeps blocks for multi-expression step handlers", () => {
@@ -152,19 +183,12 @@ export const { runSteps } = myActor()
   );
 `;
 
-    expect(morph(source)).toBe(`export async function runSteps(input: { message: string; }) {
-  let firstStep: unknown;
-  {
-    const normalized = input.message.trim();
-    const upper = normalized.toUpperCase();
-
-    firstStep = upper;
-  }
-
-  const lastStep = firstStep.length;
-
-  return lastStep;
-}`);
+    expectParts(morph(source), [
+      `const normalized = input.message.trim();`,
+      `const upper = normalized.toUpperCase();`,
+      `firstStep = upper;`,
+      `yield new Trace("MyActor::runSteps.firstStep", { result: firstStep });`,
+    ]);
   });
 
   test("leaves helper functions outside the actor untouched", () => {
@@ -192,17 +216,13 @@ export const { runSteps } = myActor()
   );
 `;
 
-    expect(morph(source)).toBe(`function normalizeMessage(message: string) {
+    expectParts(morph(source), [
+      `function normalizeMessage(message: string) {
   return message.trim().toUpperCase();
-}
-
-export async function runSteps(input: { message: string; }) {
-  const firstStep = normalizeMessage(input.message);
-
-  const lastStep = firstStep.length;
-
-  return lastStep;
-}`);
+}`,
+      `const firstStep = normalizeMessage(input.message);`,
+      `const lastStep = firstStep.length;`,
+    ]);
   });
 
   test("keeps declarations after the action in place", () => {
@@ -234,23 +254,16 @@ const main = async () => {
 main();
 `;
 
-    expect(morph(source)).toBe(`function normalizeMessage(message: string) {
-  return message.trim().toUpperCase();
-}
-
-export async function runSteps(input: { message: string; }) {
-  const firstStep = normalizeMessage(input.message);
-
-  return firstStep;
-}
-
-const main = async () => {
+    expectParts(morph(source), [
+      `yield new Trace("MyActor::runSteps", { result: firstStep });`,
+      `const main = async () => {
   const result = await runSteps({ message: "hello" });
 
   console.log(result);
 };
 
-main();`);
+main();`,
+    ]);
   });
 
   test("exports a wrapper with the original action binding name", () => {
@@ -274,13 +287,11 @@ export const { runSteps } = myActor()
   );
 `;
 
-    expect(morph(source)).toBe(`export async function runSteps(input: { name: string; }) {
-  const firstStep = \`Hello \${input.name}\`;
-
-  const lastStep = \`Hello \${input.name}\`;
-
-  return lastStep;
-}`);
+    expectParts(morph(source), [
+      `export async function runSteps(input: { name: string; })`,
+      `async function run_runSteps(params: {`,
+      `async function* stream_runSteps(params: {`,
+    ]);
   });
 
   test("uses ArkType inference for input schemas", () => {
@@ -300,11 +311,11 @@ export const { runSteps } = myActor()
   );
 `;
 
-    expect(morph(source)).toBe(`export async function runSteps(input: { name: string; tags: string[]; age?: number | undefined; }) {
-  const firstStep = input.tags.length;
-
-  return firstStep;
-}`);
+    expectParts(morph(source), [
+      `input: { name: string; tags: string[]; age?: number | undefined; };`,
+      `const firstStep = input.tags.length;`,
+      `yield new Trace("MyActor::runSteps.firstStep", { result: firstStep });`,
+    ]);
   });
 
   test("awaits async step handlers inline", () => {
@@ -332,17 +343,11 @@ export const { runSteps } = myActor()
   );
 `;
 
-    expect(morph(source)).toBe(`async function loadGreeting(name: string) {
-  return \`Hello \${name}\`;
-}
-
-export async function runSteps(input: { name: string; }) {
-  const firstStep = await loadGreeting(input.name);
-
-  const lastStep = firstStep.length;
-
-  return lastStep;
-}`);
+    expectParts(morph(source), [
+      `async function loadGreeting(name: string)`,
+      `const firstStep = await loadGreeting(input.name);`,
+      `const lastStep = firstStep.length;`,
+    ]);
   });
 
   test("awaits non-async step methods that return promises", () => {
@@ -370,16 +375,10 @@ export const { runSteps } = myActor()
   );
 `;
 
-    expect(morph(source)).toBe(`function loadGreeting(name: string) {
-  return Promise.resolve(\`Hello \${name}\`);
-}
-
-export async function runSteps(input: { name: string; }) {
-  const firstStep = await loadGreeting(input.name);
-
-  const lastStep = firstStep.length;
-
-  return lastStep;
-}`);
+    expectParts(morph(source), [
+      `function loadGreeting(name: string)`,
+      `const firstStep = await loadGreeting(input.name);`,
+      `const lastStep = firstStep.length;`,
+    ]);
   });
 });

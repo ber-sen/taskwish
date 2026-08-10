@@ -5,11 +5,9 @@ import { Action } from "./action";
 import { Actor } from "../actor";
 import { TW } from "../core";
 import { Step } from "../steps";
-import { Logger, InferType, formatEvent } from "../use";
+import { InferType } from "../use";
+import { Logger, Signal, Trace, eventData, formatEvent } from "@taskwish/wire";
 import { Event } from "../event";
-
-const eventData = (value: unknown) =>
-  value instanceof TW.Trace || value instanceof TW.Signal ? value.data : value;
 
 const eventDataList = (values: unknown[]) => values.map(eventData);
 
@@ -257,13 +255,13 @@ describe("Action", () => {
     expect(await mixed({ name: "World" })).toEqual(true);
   });
 
-  test("TW.Trace yielded from step is ignored", async () => {
+  test("Trace yielded from step is ignored", async () => {
     const { traced } = Action("traced")
       .input({ name: "string" })
 
       .run(
         Step("first", async function* () {
-          yield new TW.Trace("user.step", { message: "ignored" });
+          yield new Trace("user.step", { message: "ignored" });
           yield "visible-step";
 
           return 1;
@@ -289,12 +287,12 @@ describe("Action", () => {
     expect(await traced({ name: "World" })).toEqual(2);
   });
 
-  test("TW.Trace yielded from action function is ignored", async () => {
+  test("Trace yielded from action function is ignored", async () => {
     const { traced } = Action("traced")
       .input({ name: "string" })
 
       .run(async function* () {
-        yield new TW.Trace("user.function", { message: "ignored" });
+        yield new Trace("user.function", { message: "ignored" });
         yield "visible-function";
 
         return 2;

@@ -1,11 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
 import { Actor, Step, TW } from "@taskwish/core";
+import { eventData } from "@taskwish/wire";
 
 import { Int, Model, Real } from "./steps";
-
-const eventData = (value: unknown) =>
-  value instanceof TW.Trace || value instanceof TW.Signal ? value.data : value;
 
 const eventDataList = (values: unknown[]) => values.map(eventData);
 

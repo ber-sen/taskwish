@@ -14,11 +14,13 @@ import type { Steps, ActionResultKind } from "../steps";
 import { TW } from "../core";
 import {
   dispatch,
-  LogFn,
   type ConsoleLike,
   type LoggerConfig,
-  type InferTypeConfig,
-} from "../use";
+  type LogFn,
+  Signal,
+  Trace,
+} from "@taskwish/wire";
+import { type InferTypeConfig } from "../use";
 import { ActionMeta, ValidateActionMeta } from "./meta";
 
 type AppendPlugin<Ctx extends Record<any, any>, Plugin> = {
@@ -184,7 +186,7 @@ export interface ActionFactory<
           model: "gpt5";
           prompt: string;
         }) => AsyncGenerator<
-          TW.Trace<
+          Trace<
             "generateText",
             { input: { model: "gpt5"; prompt: string } }
           >,
@@ -281,7 +283,7 @@ export type Scope = {
   signal<T extends string, D extends Record<string, unknown>>(
     type: T,
     data: D,
-  ): AsyncGenerator<TW.Signal<T, D>, TW.Signal<T, D>["data"], unknown>;
+  ): AsyncGenerator<Signal<T, D>, Signal<T, D>["data"], unknown>;
 };
 
 // ── InferType action-step probe ───────────────────────────────────────────────
@@ -401,12 +403,12 @@ async function* transformUserEvents(
     const next = await gen.next(sent);
     if (next.done) return next.value;
 
-    if (next.value instanceof TW.Trace) {
+    if (next.value instanceof Trace) {
       sent = undefined;
     } else {
       const value =
         streamChunks &&
-        !(next.value instanceof TW.Signal) &&
+        !(next.value instanceof Signal) &&
         !(next.value instanceof TW.Stream)
           ? new TW.Stream(next.value)
           : next.value;
@@ -429,7 +431,7 @@ async function* transformUserEventsFromFirst(
   while (true) {
     if (next.done) return next.value;
 
-    sent = next.value instanceof TW.Trace ? undefined : yield next.value;
+    sent = next.value instanceof Trace ? undefined : yield next.value;
     next = await gen.next(sent);
   }
 }
@@ -490,13 +492,13 @@ async function* drainDeferredStep(
     const result = deferred.done ? deferred.result : yield* deferred.gen;
     let finalResult = result;
 
-    if (finalResult instanceof TW.Signal) {
+    if (finalResult instanceof Signal) {
       yield finalResult;
       finalResult = finalResult.data;
     }
 
     if (!deferred.traced) {
-      yield new TW.Trace(deferred.name, { result: finalResult });
+      yield new Trace(deferred.name, { result: finalResult });
       deferred.traced = true;
     }
 
@@ -505,7 +507,7 @@ async function* drainDeferredStep(
     return finalResult;
   } catch (error) {
     if (!deferred.traced) {
-      yield new TW.Trace(deferred.name, { error });
+      yield new Trace(deferred.name, { error });
       deferred.traced = true;
     }
 
@@ -530,8 +532,8 @@ function stepRuntimeName(handler: unknown): string {
     : String(name);
 }
 
-function commandEvent(input: unknown): TW.Signal<"Command", object> {
-  return new TW.Signal("Command", {
+function commandEvent(input: unknown): Signal<"Command", object> {
+  return new Signal("Command", {
     ...(input !== null && typeof input === "object" ? input : {}),
   });
 }
@@ -592,15 +594,15 @@ async function* runStep(
         : awaited;
     }
     if (isDeferredStep(result)) return result;
-    if (result instanceof TW.Signal) {
+    if (result instanceof Signal) {
       yield result;
       result = result.data;
     }
-    yield new TW.Trace(name, { result });
+    yield new Trace(name, { result });
 
     return result;
   } catch (error) {
-    yield new TW.Trace(name, { error });
+    yield new Trace(name, { error });
 
     throw error;
   }
@@ -785,7 +787,7 @@ async function* runHandlerList(
               .split(".")
               .reduce((o: any, k) => o?.[k], ctx)
           : itemsGetter;
-      yield new TW.Trace(`${currentName}.${loopName}`, { items });
+      yield new Trace(`${currentName}.${loopName}`, { items });
       const innerAcc: Record<string, unknown[]> = {};
       let loopLastStepName: string | null = null;
       const loopIterLasts: unknown[] = [];
@@ -948,8 +950,8 @@ async function* runHandlerList(
         if (first.done) {
           last = first.value;
         } else if (
-          first.value instanceof TW.Signal ||
-          first.value instanceof TW.Trace
+          first.value instanceof Signal ||
+          first.value instanceof Trace
         ) {
           last = yield* transformUserEventsFromFirst(ret, first);
         } else {
@@ -958,7 +960,7 @@ async function* runHandlerList(
       } else {
         last = ret;
       }
-      if (last instanceof TW.Signal) {
+      if (last instanceof Signal) {
         yield last;
         last = last.data;
       }
@@ -979,7 +981,7 @@ export async function* runAction(
 ): AsyncGenerator<unknown, unknown> {
   const ctx: Record<string | symbol, unknown> = { ...scope };
 
-  yield new TW.Trace(name, { input: scope.input });
+  yield new Trace(name, { input: scope.input });
 
   try {
     const r = yield* runHandlerList(
@@ -991,10 +993,10 @@ export async function* runAction(
       name,
       handlers,
     );
-    yield new TW.Trace(name, { result: r.last });
+    yield new Trace(name, { result: r.last });
     return r.last;
   } catch (error) {
-    yield new TW.Trace(name, { error });
+    yield new Trace(name, { error });
     throw error;
   }
 }
@@ -1034,7 +1036,7 @@ export function buildScope(
       type: T,
       data: D,
     ) {
-      const signal = new TW.Signal((eventNames.get(type) ?? type) as T, data);
+      const signal = new Signal((eventNames.get(type) ?? type) as T, data);
       yield signal;
       return signal.data;
     },

@@ -4,12 +4,14 @@ import {
   InferTriggerScope,
   OmitListeners,
   PickListeners,
-  Pretty,
-  StreamResult,
+  ServiceRunActions,
+  ServiceStreamActions,
   StreamInput,
+  StreamResult,
 } from "./helpers";
 
 import { Type as ArkType } from "arktype";
+import type { Signal, Trace } from "@taskwish/wire";
 
 export namespace TW {
   export const Name = Symbol.for("TW.Name");
@@ -153,11 +155,11 @@ export namespace TW {
     params: Params;
   }
 
-  export type Service<
-    Name extends string,
-    Actions,
-    ServiceScope = {},
-  > = OmitListeners<Actions> & {
+  export type Service<Name extends string, Actions, ServiceScope = {}> =
+    OmitListeners<Actions> & {
+      run: ServiceRunActions<Actions>;
+      stream: ServiceStreamActions<Actions>;
+    } & {
     [Name]: Name;
     [Listeners]: PickListeners<Actions>;
     [Scope]: ServiceScope;
@@ -202,28 +204,6 @@ export namespace TW {
   }
 
   export interface ResourceKind<Name extends string> extends Named<Name> {}
-
-  export class Signal<const Type extends string, const Data> {
-    readonly event = "TW::Signal";
-    data: Pretty<{ "->": Type } & Data>;
-
-    constructor(type: Type, data: Data) {
-      this.data = Object.assign({ "->": type }, data);
-    }
-  }
-
-  export class Trace<const Type extends string, const Data extends object> {
-    readonly event = "TW::Trace";
-    data: Pretty<{ ">>": Type } & Data>;
-
-    constructor(type: Type, data: Data) {
-      this.data = Object.assign({ ">>": type }, data);
-    }
-
-    toJSON(): Pretty<{ ">>": Type } & Data> {
-      return this.data;
-    }
-  }
 
   export class Stream<const Data> {
     readonly event = "TW::Stream";

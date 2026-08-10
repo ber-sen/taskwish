@@ -12,6 +12,24 @@ export function applyBareMetalReplacements(
   const edits: TextEdit[] = taskWishImportEdits(sourceText, sourceFile);
   const actorDeclarations = new Set<import("ts-morph").VariableStatement>();
 
+  if (actions.length > 0) {
+    const importLines: string[] = [];
+
+    if (!hasPackageImport(sourceFile, "@taskwish/wire")) {
+      importLines.push(
+        `import { Trace, consume } from "@taskwish/wire";`,
+      );
+    }
+
+    if (importLines.length > 0) {
+      edits.push({
+        start: 0,
+        end: 0,
+        text: `${importLines.join("\n")}\n\n`,
+      });
+    }
+  }
+
   for (const action of actions) {
     edits.push({
       start: action.declaration.getStart(),
@@ -35,6 +53,15 @@ export function applyBareMetalReplacements(
   }
 
   return applyTextEdits(sourceText, edits);
+}
+
+function hasPackageImport(sourceFile: SourceFile, packageName: string): boolean {
+  return sourceFile
+    .getImportDeclarations()
+    .some(
+      (importDeclaration) =>
+        importDeclaration.getModuleSpecifierValue() === packageName,
+    );
 }
 
 function taskWishImportEdits(

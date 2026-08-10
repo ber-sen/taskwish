@@ -13,7 +13,7 @@ export const { greet } = greeter()
 
   .run(
     Step("salutation", function () {
-      return Math.random() > 0.5 ? "Hello" : "HI";
+      return "Hello";
     }),
 
     Step("greet", function () {
@@ -24,9 +24,12 @@ export const { greet } = greeter()
 export const { Greeter } = greeter().service({ greet });
 
 const main = async () => {
+  const start = performance.now()
   const result = await Greeter.greet({ name: "World" });
+  const end = performance.now()
 
   console.log(result);
+  console.log(end - start);
 };
 
 main();

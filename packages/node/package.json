@@ -26,7 +26,8 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@taskwish/core": "^0.0.6"
+    "@taskwish/core": "^0.0.6",
+    "@taskwish/wire": "^0.0.1"
   },
   "devDependencies": {
     "@taskwish/console": "^0.0.1",

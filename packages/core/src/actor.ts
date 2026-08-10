@@ -29,7 +29,12 @@ import {
   ToCapitalCase,
 } from "./helpers";
 import { TW } from "./core";
-import { dispatch, type ConsoleLike, type LoggerConfig } from "./use";
+import {
+  dispatch,
+  Signal,
+  type ConsoleLike,
+  type LoggerConfig,
+} from "@taskwish/wire";
 import { type Steps } from "./steps/steps";
 import { ResultKind } from "./steps/hkt";
 
@@ -554,7 +559,7 @@ function scopeEventKind(
     ...eventKind,
     [TW.Name]: qualifiedEventName,
     emit: async function* (eventData: unknown) {
-      const emitted = new TW.Signal(qualifiedEventName, {
+      const emitted = new Signal(qualifiedEventName, {
         id: null,
         data: eventData,
       });
@@ -1070,6 +1075,66 @@ function serviceActionName(action: unknown): string | null {
   return typeof action === "function" && action.name ? action.name : null;
 }
 
+function serviceArgs(params: unknown): unknown[] {
+  if (params !== null && typeof params === "object" && "input" in params) {
+    return [(params as { input: unknown }).input];
+  }
+
+  return [];
+}
+
+function serviceRunner(action: unknown) {
+  return async function run(params: unknown = {}) {
+    const args = serviceArgs(params);
+    const rawLoggedStream =
+      action !== null &&
+      (typeof action === "object" || typeof action === "function") &&
+      RawLoggedStreamTag in Object(action)
+        ? (action as {
+            [RawLoggedStreamTag]: (
+              ...args: unknown[]
+            ) => AsyncGenerator<unknown, unknown>;
+          })[RawLoggedStreamTag]
+        : null;
+    const gen = rawLoggedStream !== null ? rawLoggedStream(...args) : null;
+
+    if (gen === null) {
+      return typeof action === "function"
+        ? await (action as (...args: unknown[]) => unknown)(...args)
+        : undefined;
+    }
+
+    let item = await gen.next();
+    while (!item.done) item = await gen.next();
+    return item.value;
+  };
+}
+
+function serviceStreamer(action: unknown) {
+  return function stream(params: unknown = {}) {
+    const args = serviceArgs(params);
+    const rawStream =
+      action !== null &&
+      (typeof action === "object" || typeof action === "function") &&
+      RawStreamTag in Object(action)
+        ? (action as { [RawStreamTag]: (...args: unknown[]) => AsyncGenerator<
+            unknown,
+            unknown
+          > })[RawStreamTag]
+        : null;
+
+    if (rawStream !== null) {
+      return unwrapStreamEvents(rawStream(...args));
+    }
+
+    return (async function* () {
+      return typeof action === "function"
+        ? await (action as (...args: unknown[]) => unknown)(...args)
+        : undefined;
+    })();
+  };
+}
+
 function isServiceListenerAction(action: unknown): boolean {
   if (
     action === null ||
@@ -1113,6 +1178,8 @@ function createService(
   const service: Record<string | symbol, unknown> = {
     [TW.Name]: actorName,
     [TW.Scope]: collectOwnedEvents(actorName, scope),
+    run: {},
+    stream: {},
   };
 
   if (listenerActions.length > 0) {
@@ -1124,7 +1191,12 @@ function createService(
 
   for (const action of publicActions) {
     const name = serviceActionName(action);
-    if (name) service[name] = action;
+    if (name) {
+      service[name] = action;
+      (service["run"] as Record<string, unknown>)[name] = serviceRunner(action);
+      (service["stream"] as Record<string, unknown>)[name] =
+        serviceStreamer(action);
+    }
   }
 
   return { [capitalCaseName(actorName)]: service };

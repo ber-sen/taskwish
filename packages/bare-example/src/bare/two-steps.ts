@@ -1,49 +1,35 @@
+import { Trace, consume } from "@taskwish/wire";
+
 function normalizeName(name: string) {
   return name.trim();
 }
 
-export async function greet(input: { name: string }) {
-  const generator = stream_greet({ input });
-
-  while (true) {
-    const next = await generator.next();
-
-    if (next.done) {
-      return next.value;
-    }
-  }
+export async function greet(input: { name: string; }) {
+  return consume(stream_greet({ input }));
 }
 
-export async function run_greet(params: {
-  input: { name: string };
-  trace?: (data: unknown) => void;
+async function run_greet(params: {
+  input: { name: string; };
 }) {
-  const generator = stream_greet(params);
-
-  while (true) {
-    const next = await generator.next();
-
-    if (next.done) {
-      return next.value;
-    }
-  }
+  return consume(stream_greet(params));
 }
 
 async function* stream_greet(params: {
-  input: { name: string };
-  trace?: (data: unknown) => void;
+  input: { name: string; };
 }) {
   const input = params.input;
 
-  yield { ">>": "Greeter", input: input };
+  yield new Trace("Greeter::greet", { input });
 
-  const salutation = Math.random() > 0.5 ? "Hello" : "HI";
+  const salutation = "Hello";
 
-  yield { ">>": "Greeter::greet", result: salutation };
+  yield new Trace("Greeter::greet.salutation", { result: salutation });
 
   const greet = `${salutation} ${normalizeName(input.name)}.`;
 
-  yield { ">>": "Greeter", result: greet };
+  yield new Trace("Greeter::greet.greet", { result: greet });
+
+  yield new Trace("Greeter::greet", { result: greet });
 
   return greet;
 }
@@ -51,17 +37,20 @@ async function* stream_greet(params: {
 export const Greeter = {
   greet,
   run: {
-    greet: run_greet,
+    greet: run_greet
   },
   stream: {
-    greet: stream_greet,
-  },
+    greet: stream_greet
+  }
 };
 
 const main = async () => {
-  const result = await Greeter.run.greet({ input: { name: "World" } });
+  const start = performance.now()
+  const result = await Greeter.greet({ name: "World" });
+  const end = performance.now()
 
   console.log(result);
+  console.log(end - start);
 };
 
 main();
