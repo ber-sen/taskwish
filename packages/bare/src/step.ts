@@ -55,6 +55,7 @@ export function parseFunctionStep(name: string, node: Node): StepSpec | null {
     ),
     useBreakBlock,
     usesSignal: usesThisSignal(handler),
+    usesAbortSignal: usesThisProperty(handler, "abortSignal"),
   };
 }
 
@@ -190,10 +191,14 @@ function rewriteThisPropertyAccesses(root: Node, owner: Node): void {
 }
 
 function usesThisSignal(root: Node): boolean {
+  return usesThisProperty(root, "signal");
+}
+
+function usesThisProperty(root: Node, name: string): boolean {
   return root
     .getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
     .some((propertyAccess) => {
-      if (propertyAccess.getName() !== "signal") return false;
+      if (propertyAccess.getName() !== name) return false;
 
       const expression = unwrapExpression(propertyAccess.getExpression());
       return Node.isThisExpression(expression);

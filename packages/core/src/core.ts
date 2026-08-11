@@ -4,14 +4,17 @@ import {
   InferTriggerScope,
   OmitListeners,
   PickListeners,
-  ServiceRunActions,
-  ServiceStreamActions,
   StreamInput,
   StreamResult,
 } from "./helpers";
 
 import { Type as ArkType } from "arktype";
-import type { Signal, Trace } from "@taskwish/wire";
+import type {
+  Ctx as WireCtx,
+  CtxInput as WireCtxInput,
+  Signal,
+  Trace,
+} from "@taskwish/wire";
 
 export namespace TW {
   export const Name = Symbol.for("TW.Name");
@@ -77,6 +80,7 @@ export namespace TW {
   };
 
   export type Scope<S> = StripEventKinds<S> & {
+    abortSignal?: AbortSignal;
     self: <Return = any>(
       input: S extends Record<any, any>
         ? S["input"] extends Record<any, any>
@@ -99,7 +103,6 @@ export namespace TW {
       >["data"],
       unknown
     >;
-    get<T>(Cls: new (...args: any[]) => T): T;
   };
 
   export type Inject<Type> = Type | null;
@@ -117,16 +120,23 @@ export namespace TW {
     | Trace<Name, { result: Result }>
     | Trace<Name, { error: unknown }>;
 
-  export type GetEvent<T = unknown> = {
-    "->": "get";
-    type: abstract new (...args: any[]) => T;
-  };
-
   export type Action<
     Name extends string,
     Handler extends (...args: any) => any,
     Meta = null,
-  > = NoInfer<Handler> & {
+  > = NoInfer<Handler> &
+    ActionRuntime<Name, Handler> & {
+      ctx(context: WireCtxInput): ActionRuntime<Name, Handler>;
+    } & Resource<Name> &
+    Attributable<Meta>;
+
+  export type ActionContext = WireCtxInput;
+
+  export type ActionRuntime<
+    Name extends string,
+    Handler extends (...args: any) => any,
+  > = {
+    run: NoInfer<Handler>;
     stream: ((
       ...args: Parameters<NoInfer<Handler>>
     ) => AsyncGenerator<
@@ -134,8 +144,7 @@ export namespace TW {
       StreamResult<Handler>
     >) &
       NoInfer<Handler>;
-  } & Resource<Name> &
-    Attributable<Meta>;
+  };
 
   export class IO {
     // threadId!: Message.ThreadId;
@@ -157,9 +166,6 @@ export namespace TW {
 
   export type Service<Name extends string, Actions, ServiceScope = {}> =
     OmitListeners<Actions> & {
-      run: ServiceRunActions<Actions>;
-      stream: ServiceStreamActions<Actions>;
-    } & {
     [Name]: Name;
     [Listeners]: PickListeners<Actions>;
     [Scope]: ServiceScope;

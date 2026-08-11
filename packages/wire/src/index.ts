@@ -1,8 +1,10 @@
 export { wire } from "./bus";
 export { consume } from "./consume";
+export { Ctx, newContext } from "./context";
 export { Signal, Trace, eventData } from "./events";
 export { formatEvent, isActionEvent } from "./format";
 export { Logger, dispatch } from "./logger";
 export { Type } from "./symbols";
+export type { Context, CtxInput } from "./context";
 export type { ConsoleLike, LoggerConfig, LogFn } from "./logger";
 export type { Pretty } from "./types";

@@ -72,5 +72,5 @@ export function formatEvent(event: object): string {
 export function isActionEvent(name: string): boolean {
   if (name.includes("::")) return /^[A-Z][^:]*::[^.]+$/.test(name);
   const parts = name.split(".");
-  return parts.length === 1 || (parts.length === 2 && /^[A-Z]/.test(parts[0]));
+  return parts.length === 1 || (parts.length === 2 && /^[A-Z]/.test(parts[0]!));
 }

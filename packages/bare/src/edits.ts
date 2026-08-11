@@ -16,7 +16,9 @@ export function applyBareMetalReplacements(
     const importLines: string[] = [];
 
     if (!hasPackageImport(sourceFile, "@taskwish/wire")) {
-      importLines.push(`import { Trace, consume } from "@taskwish/wire";`);
+      importLines.push(
+        `import { Trace, consume, Ctx } from "@taskwish/wire";`
+      );
     }
 
     if (importLines.length > 0) {

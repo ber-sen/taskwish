@@ -1,11 +1,5 @@
-import { hello, helloRun, helloStream } from "./hello";
+import { hello } from "./hello";
 
 export const Greeter = {
-  hello,
-  run: {
-    hello: helloRun,
-  },
-  stream: {
-    hello: helloStream,
-  }
+  hello
 };

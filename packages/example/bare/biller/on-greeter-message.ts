@@ -1,31 +1,38 @@
 "use server";
 
-import { Trace, consume } from "@taskwish/wire";
+import { Trace, consume, Ctx } from "@taskwish/wire";
 
-export async function onGreeterMessage(input: any) {
-  return consume(onGreeterMessageStream({ input }));
-}
+export const onGreeterMessage = Object.assign(
+  async function onGreeterMessage(input: { name: string; }) {
+    return onGreeterMessageCtx().run(input);
+  },
+  {
+    ...onGreeterMessageCtx(),
+    ctx: onGreeterMessageCtx,
+  },
+);
 
-export async function onGreeterMessageRun(params: {
-  input: any;
-}) {
-  return consume(onGreeterMessageStream(params));
-}
+export function onGreeterMessageCtx(scope: Ctx = Ctx.new()) {
+  scope = Ctx.new(scope);
 
-export async function* onGreeterMessageStream(params: {
-  input: any;
-}) {
-  const input = params.input;
+  async function run(input: { name: string; }) {
+    return consume(stream(input));
+  }
 
-  yield new Trace("Biller::onGreeterMessage", { input });
+  async function* stream(input: { name: string; }) {
 
-  const onGreeterMessage = {
+    yield new Trace("Biller::onGreeterMessage", { input });
+
+    const onGreeterMessage = {
       invoice: `Invoice created from greeter message: ${input.name}`,
     };
 
-  yield new Trace("Biller::onGreeterMessage.onGreeterMessage", { result: onGreeterMessage });
+    yield new Trace("Biller::onGreeterMessage.onGreeterMessage", { result: onGreeterMessage });
 
-  yield new Trace("Biller::onGreeterMessage", { result: onGreeterMessage });
+    yield new Trace("Biller::onGreeterMessage", { result: onGreeterMessage });
 
-  return onGreeterMessage;
+    return onGreeterMessage;
+  }
+
+  return { run, stream };
 }

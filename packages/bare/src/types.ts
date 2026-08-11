@@ -32,6 +32,7 @@ export type StepSpec = {
   directExpressionText: string | null;
   useBreakBlock: boolean;
   usesSignal: boolean;
+  usesAbortSignal: boolean;
 };
 
 export type FunctionReturnInfo = {

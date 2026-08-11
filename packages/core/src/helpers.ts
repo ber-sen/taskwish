@@ -48,34 +48,6 @@ export type PickListeners<Actions> = Pretty<{
     : never]: Actions[Key];
 }>;
 
-export type ServiceRunParams<Handler extends (...args: any) => any> =
-  StreamInput<Handler> extends undefined ? {} : { input: StreamInput<Handler> };
-
-export type ServiceRunActions<Actions> = Pretty<{
-  [Key in keyof OmitListeners<Actions>]: OmitListeners<Actions>[Key] extends TW.Action<
-    any,
-    infer Handler,
-    any
-  >
-    ? (params: ServiceRunParams<Handler>) => Promise<StreamResult<Handler>>
-    : never;
-}>;
-
-export type ServiceStreamActions<Actions> = Pretty<{
-  [Key in keyof OmitListeners<Actions>]: OmitListeners<Actions>[Key] extends TW.Action<
-    infer Name,
-    infer Handler,
-    any
-  >
-    ? (
-        params: ServiceRunParams<Handler>,
-      ) => AsyncGenerator<
-        TW.ActionEvent<Name, StreamResult<Handler>, StreamInput<Handler>>,
-        StreamResult<Handler>
-      >
-    : never;
-}>;
-
 export type CamelCaseHelper<T extends string> =
   T extends `${infer Left}${infer Delimiter}${infer Right}`
     ? Delimiter extends " " | "_" | "-" | "." | "," | "!"
@@ -349,7 +321,7 @@ type ExtractActionNameFromYield<Yield> = Yield extends Trace<
   ? N
   : never;
 
-/** Extract the action name from a TW.Action resource or exposed action stream. */
+/** Extract the action name from a TW.Action resource or exposed action function. */
 export type ExtractActionName<T> = T extends TW.Resource<infer N extends string>
   ? N
   : T extends (...args: any[]) => AsyncGenerator<infer Yield, any, any>
@@ -399,6 +371,10 @@ export type ActionMethod<N extends string> = QualifiedActionParts<N> extends [
   : N;
 
 type ExposedAction<T> = T extends {
+  run: infer Run extends (...args: any[]) => any;
+}
+  ? Run
+  : T extends {
   stream: infer Stream extends (...args: any[]) => any;
 }
   ? Stream

@@ -1,34 +1,41 @@
 "use server";
 
-import { Trace, consume } from "@taskwish/wire";
+import { Trace, consume, Ctx } from "@taskwish/wire";
 
-export async function hello(input: { name: string; }) {
-  return consume(helloStream({ input }));
-}
+export const hello = Object.assign(
+  async function hello(input: { name: string; }) {
+    return helloCtx().run(input);
+  },
+  {
+    ...helloCtx(),
+    ctx: helloCtx,
+  },
+);
 
-export async function helloRun(params: {
-  input: { name: string; };
-}) {
-  return consume(helloStream(params));
-}
+export function helloCtx(scope: Ctx = Ctx.new()) {
+  scope = Ctx.new(scope);
 
-export async function* helloStream(params: {
-  input: { name: string; };
-}) {
-  const input = params.input;
-  const signal = (name: string, input: unknown) => new Trace(name, { input });
+  async function run(input: { name: string; }) {
+    return consume(stream(input));
+  }
 
-  yield new Trace("Greeter::hello", { input });
+  async function* stream(input: { name: string; }) {
+    const signal = (name: string, input: unknown) => new Trace(name, { input });
 
-  const notify = signal("Greeter::Message", { name: input.name });
+    yield new Trace("Greeter::hello", { input });
 
-  yield new Trace("Greeter::hello.notify", { result: notify });
+    const notify = signal("Greeter::Message", { name: input.name });
 
-  const greet = `Hello ${input.name}`;
+    yield new Trace("Greeter::hello.notify", { result: notify });
 
-  yield new Trace("Greeter::hello.greet", { result: greet });
+    const greet = `Hello ${input.name}`;
 
-  yield new Trace("Greeter::hello", { result: greet });
+    yield new Trace("Greeter::hello.greet", { result: greet });
 
-  return greet;
+    yield new Trace("Greeter::hello", { result: greet });
+
+    return greet;
+  }
+
+  return { run, stream };
 }

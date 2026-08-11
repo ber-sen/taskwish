@@ -9,59 +9,67 @@ export function printAction(action: ActionSpec): string {
   }
 
   const actionEventName = `${action.actorName}::${action.actionName}`;
-  const runName = `${action.actionName}Run`;
-  const streamName = `${action.actionName}Stream`;
+  const ctxName = `${action.actionName}Ctx`;
   const parameterText = action.inputType ? `input: ${action.inputType}` : "";
-  const streamParamText = action.inputType ? "{ input }" : "{}";
-  const paramsType = action.inputType
-    ? `{\n  input: ${action.inputType};\n}`
-    : `{}`;
+  const inputArgText = action.inputType ? "input" : "";
   const usesSignal = action.steps.some((step) => step.usesSignal);
+  const usesAbortSignal = action.steps.some((step) => step.usesAbortSignal);
   const lines: string[] = [
-    `export async function ${action.actionName}(${parameterText}) {`,
-    `  return consume(${streamName}(${streamParamText}));`,
-    `}`,
+    `export const ${action.actionName} = Object.assign(`,
+    `  async function ${action.actionName}(${parameterText}) {`,
+    `    return ${ctxName}().run(${inputArgText});`,
+    `  },`,
+    `  {`,
+    `    ...${ctxName}(),`,
+    `    ctx: ${ctxName},`,
+    `  },`,
+    `);`,
     ``,
-    `async function ${runName}(params: ${paramsType}) {`,
-    `  return consume(${streamName}(params));`,
-    `}`,
+    `export function ${ctxName}(scope: Ctx = Ctx.new()) {`,
+    `  scope = Ctx.new(scope);`,
     ``,
-    `async function* ${streamName}(params: ${paramsType}) {`,
-    action.inputType
-      ? `  const input = params.input;`
-      : `  const input = undefined;`,
+    `  async function run(${parameterText}) {`,
+    `    return consume(stream(${inputArgText}));`,
+    `  }`,
+    ``,
+    `  async function* stream(${parameterText}) {`,
+    action.inputType ? null : `    const input = undefined;`,
+    ...(usesAbortSignal ? [`    const abortSignal = scope.abortSignal;`] : []),
     ...(usesSignal
       ? [
-          `  const signal = (name: string, input: unknown) => new Trace(name, { input });`,
+          `    const signal = (name: string, input: unknown) => new Trace(name, { input });`,
         ]
       : []),
     ``,
-    `  yield new Trace("${actionEventName}", { input });`,
+    `    yield new Trace("${actionEventName}", { input });`,
     ``,
-  ];
+  ].filter((line): line is string => line !== null);
 
   for (const step of action.steps) {
     if (step.directExpressionText !== null) {
-      lines.push(`  const ${step.name} = ${step.directExpressionText};`);
+      lines.push(`    const ${step.name} = ${step.directExpressionText};`);
     } else {
-      lines.push(`  let ${step.name}: ${step.propertyType};`);
-      lines.push(step.useBreakBlock ? `  ${step.name}Block: {` : "  {");
-      lines.push(indent(step.blockText, 4));
-      lines.push("  }");
+      lines.push(`    let ${step.name}: ${step.propertyType};`);
+      lines.push(step.useBreakBlock ? `    ${step.name}Block: {` : "    {");
+      lines.push(indent(step.blockText, 6));
+      lines.push("    }");
     }
     lines.push("");
     lines.push(
-      `  yield new Trace("${actionEventName}.${step.name}", { result: ${step.name} });`
+      `    yield new Trace("${actionEventName}.${step.name}", { result: ${step.name} });`
     );
     lines.push("");
   }
 
   const lastStep = action.steps.at(-1)!;
   lines.push(
-    `  yield new Trace("${actionEventName}", { result: ${lastStep.name} });`
+    `    yield new Trace("${actionEventName}", { result: ${lastStep.name} });`
   );
   lines.push("");
-  lines.push(`  return ${lastStep.name};`);
+  lines.push(`    return ${lastStep.name};`);
+  lines.push("  }");
+  lines.push("");
+  lines.push("  return { run, stream };");
   lines.push("}");
 
   return lines.join("\n");
@@ -70,23 +78,10 @@ export function printAction(action: ActionSpec): string {
 export function printService(service: ServiceSpec): string {
   const lines = [`export const ${service.serviceName} = {`];
 
-  for (const actionName of service.actionNames) {
-    lines.push(`  ${actionName},`);
-  }
-
-  lines.push("  run: {");
   for (const [index, actionName] of service.actionNames.entries()) {
     const separator = index === service.actionNames.length - 1 ? "" : ",";
-    lines.push(`    ${actionName}: ${actionName}Run${separator}`);
+    lines.push(`  ${actionName}${separator}`);
   }
-  lines.push("  },");
-
-  lines.push("  stream: {");
-  for (const [index, actionName] of service.actionNames.entries()) {
-    const separator = index === service.actionNames.length - 1 ? "" : ",";
-    lines.push(`    ${actionName}: ${actionName}Stream${separator}`);
-  }
-  lines.push("  }");
 
   lines.push("};");
 

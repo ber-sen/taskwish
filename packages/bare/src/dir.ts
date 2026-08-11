@@ -308,26 +308,15 @@ function printServiceIndex(
         throw new Error(`No action file found for ${actionName}.`);
       }
 
-      lines.push(
-        `import { ${actionName}, ${actionName}Run, ${actionName}Stream } from "${actionModule}";`
-      );
+      lines.push(`import { ${actionName} } from "${actionModule}";`);
     }
 
     lines.push("");
     lines.push(`export const ${service.serviceName} = {`);
-    for (const actionName of service.actionNames) {
-      lines.push(`  ${actionName},`);
+    for (const [index, actionName] of service.actionNames.entries()) {
+      const separator = index === service.actionNames.length - 1 ? "" : ",";
+      lines.push(`  ${actionName}${separator}`);
     }
-    lines.push("  run: {");
-    for (const actionName of service.actionNames) {
-      lines.push(`    ${actionName}: ${actionName}Run,`);
-    }
-    lines.push("  },");
-    lines.push("  stream: {");
-    for (const actionName of service.actionNames) {
-      lines.push(`    ${actionName}: ${actionName}Stream,`);
-    }
-    lines.push("  }");
     lines.push("};");
     lines.push("");
   }
