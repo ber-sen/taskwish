@@ -25,7 +25,7 @@ export function printAction(action: ActionSpec): string {
     `  },`,
     `);`,
     ``,
-    `export function ${ctxName}(scope: Ctx = Ctx.new()) {`,
+    `function ${ctxName}(scope: Ctx = Ctx.new()) {`,
     `  scope = Ctx.new(scope);`,
     ``,
     `  async function run(${parameterText}) {`,

@@ -48,7 +48,7 @@ export const runSteps = Object.assign(
   },
 );
 
-export function runStepsCtx(scope: Ctx = Ctx.new()) {
+function runStepsCtx(scope: Ctx = Ctx.new()) {
   scope = Ctx.new(scope);
 
   async function run(input: { message: string; }) {
@@ -294,7 +294,7 @@ export const { runSteps } = myActor()
       `export const runSteps = Object.assign(`,
       `...runStepsCtx(),`,
       `ctx: runStepsCtx,`,
-      `export function runStepsCtx(scope: Ctx = Ctx.new())`,
+      `function runStepsCtx(scope: Ctx = Ctx.new())`,
       `scope = Ctx.new(scope);`,
     ]);
   });

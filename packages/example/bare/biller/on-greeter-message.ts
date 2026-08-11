@@ -12,7 +12,7 @@ export const onGreeterMessage = Object.assign(
   },
 );
 
-export function onGreeterMessageCtx(scope: Ctx = Ctx.new()) {
+function onGreeterMessageCtx(scope: Ctx = Ctx.new()) {
   scope = Ctx.new(scope);
 
   async function run(input: { name: string; }) {

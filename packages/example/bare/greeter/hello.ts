@@ -12,7 +12,7 @@ export const hello = Object.assign(
   },
 );
 
-export function helloCtx(scope: Ctx = Ctx.new()) {
+function helloCtx(scope: Ctx = Ctx.new()) {
   scope = Ctx.new(scope);
 
   async function run(input: { name: string; }) {
