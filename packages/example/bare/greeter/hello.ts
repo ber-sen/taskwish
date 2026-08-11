@@ -1,16 +1,20 @@
+"use server";
+
 import { Trace, consume } from "@taskwish/wire";
 
-("use server");
-
-export async function hello(input: { name: string }) {
-  return consume(stream_hello({ input }));
+export async function hello(input: { name: string; }) {
+  return consume(helloStream({ input }));
 }
 
-export async function run_hello(params: { input: { name: string } }) {
-  return consume(stream_hello(params));
+export async function helloRun(params: {
+  input: { name: string; };
+}) {
+  return consume(helloStream(params));
 }
 
-export async function* stream_hello(params: { input: { name: string } }) {
+export async function* helloStream(params: {
+  input: { name: string; };
+}) {
   const input = params.input;
   const signal = (name: string, input: unknown) => new Trace(name, { input });
 

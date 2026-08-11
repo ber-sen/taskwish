@@ -1,6 +1,10 @@
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { describe, expect, test } from "bun:test";
 
-import { morph } from ".";
+import { morph, morphDir } from ".";
 
 function expectParts(output: string, parts: string[]) {
   for (const part of parts) {
@@ -35,16 +39,16 @@ export const { MyActor } = myActor().service({ runSteps });
       .toBe(`import { Trace, consume } from "@taskwish/wire";
 
 export async function runSteps(input: { message: string; }) {
-  return consume(stream_runSteps({ input }));
+  return consume(runStepsStream({ input }));
 }
 
-async function run_runSteps(params: {
+async function runStepsRun(params: {
   input: { message: string; };
 }) {
-  return consume(stream_runSteps(params));
+  return consume(runStepsStream(params));
 }
 
-async function* stream_runSteps(params: {
+async function* runStepsStream(params: {
   input: { message: string; };
 }) {
   const input = params.input;
@@ -67,10 +71,10 @@ async function* stream_runSteps(params: {
 export const MyActor = {
   runSteps,
   run: {
-    runSteps: run_runSteps
+    runSteps: runStepsRun
   },
   stream: {
-    runSteps: stream_runSteps
+    runSteps: runStepsStream
   }
 };`);
   });
@@ -114,15 +118,15 @@ export const { Greeter } = greeter().service({
       `export const Greeter = {
   hello,
   run: {
-    hello: run_hello
+    hello: helloRun
   },
   stream: {
-    hello: stream_hello
+    hello: helloStream
   }
 };`,
     ]);
-    expect(output).not.toContain(`onNewEmail: run_onNewEmail`);
-    expect(output).not.toContain(`onNewEmail: stream_onNewEmail`);
+    expect(output).not.toContain(`onNewEmail: onNewEmailRun`);
+    expect(output).not.toContain(`onNewEmail: onNewEmailStream`);
   });
 
   test("preserves early returns by breaking out of the step block", () => {
@@ -289,8 +293,8 @@ export const { runSteps } = myActor()
 
     expectParts(morph(source), [
       `export async function runSteps(input: { name: string; })`,
-      `async function run_runSteps(params: {`,
-      `async function* stream_runSteps(params: {`,
+      `async function runStepsRun(params: {`,
+      `async function* runStepsStream(params: {`,
     ]);
   });
 
@@ -380,5 +384,56 @@ export const { runSteps } = myActor()
       `const firstStep = await loadGreeting(input.name);`,
       `const lastStep = firstStep.length;`,
     ]);
+  });
+
+  test("morphDir preserves action directive prologues", async () => {
+    const root = await mkdtemp(join(tmpdir(), "taskwish-bare-"));
+    const sourceDir = join(root, "src", "greeter");
+
+    await mkdir(sourceDir, { recursive: true });
+    await writeFile(
+      join(sourceDir, "greeter.ts"),
+      `import { Actor } from "taskwish";
+
+export const { greeter } = Actor("Greeter");
+`
+    );
+    await writeFile(
+      join(sourceDir, "hello.ts"),
+      `"use server";
+
+import { greeter } from "./greeter";
+
+export const { hello } = greeter()
+  .on("Command", "hello")
+
+  .run(function () {
+    return "hello";
+  });
+`
+    );
+    await writeFile(
+      join(sourceDir, "index.ts"),
+      `import { greeter } from "./greeter";
+import { hello } from "./hello";
+
+export const { Greeter } = greeter().service({ hello });
+`
+    );
+
+    await morphDir("./greeter", { baseDir: join(root, "src") });
+
+    const output = await readFile(
+      join(root, "bare", "greeter", "hello.ts"),
+      "utf8"
+    );
+
+    expect(
+      output.startsWith(
+        `"use server";
+
+import { Trace, consume } from "@taskwish/wire";`
+      )
+    ).toBe(true);
   });
 });

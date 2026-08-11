@@ -1,27 +1,29 @@
+"use server";
+
 import { Trace, consume } from "@taskwish/wire";
 
-("use server");
-
 export async function onGreeterMessage(input: any) {
-  return consume(stream_onGreeterMessage({ input }));
+  return consume(onGreeterMessageStream({ input }));
 }
 
-export async function run_onGreeterMessage(params: { input: any }) {
-  return consume(stream_onGreeterMessage(params));
+export async function onGreeterMessageRun(params: {
+  input: any;
+}) {
+  return consume(onGreeterMessageStream(params));
 }
 
-export async function* stream_onGreeterMessage(params: { input: any }) {
+export async function* onGreeterMessageStream(params: {
+  input: any;
+}) {
   const input = params.input;
 
   yield new Trace("Biller::onGreeterMessage", { input });
 
   const onGreeterMessage = {
-    invoice: `Invoice created from greeter message: ${input.name}`,
-  };
+      invoice: `Invoice created from greeter message: ${input.name}`,
+    };
 
-  yield new Trace("Biller::onGreeterMessage.onGreeterMessage", {
-    result: onGreeterMessage,
-  });
+  yield new Trace("Biller::onGreeterMessage.onGreeterMessage", { result: onGreeterMessage });
 
   yield new Trace("Biller::onGreeterMessage", { result: onGreeterMessage });
 

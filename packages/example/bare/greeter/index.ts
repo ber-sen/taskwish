@@ -1,11 +1,11 @@
-import { hello, run_hello, stream_hello } from "./hello";
+import { hello, helloRun, helloStream } from "./hello";
 
 export const Greeter = {
   hello,
   run: {
-    hello: run_hello,
+    hello: helloRun,
   },
   stream: {
-    hello: stream_hello,
-  },
+    hello: helloStream,
+  }
 };

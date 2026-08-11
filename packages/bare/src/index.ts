@@ -5,6 +5,8 @@ import { findActionSpecs, findServiceSpecs } from "./parser";
 import type { MorphOptions } from "./types";
 
 export type { MorphOptions } from "./types";
+export { morphDir } from "./dir";
+export type { MorphDirOptions } from "./dir";
 
 export function morph(sourceText: string, options: MorphOptions = {}): string {
   const project = new Project({

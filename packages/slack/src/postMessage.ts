@@ -11,7 +11,7 @@ export const { postMessage } = slack()
 
   .run(
     Step("send", function () {
-      const client = new SlackAPIClient(process.env.SLACK_BOT_TOKEN);
+      const client = new SlackAPIClient(process.env.TW_SLACK_API_KEY);
 
       return client.chat.postMessage(this.input);
     }),

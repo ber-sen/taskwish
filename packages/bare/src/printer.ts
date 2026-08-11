@@ -9,6 +9,8 @@ export function printAction(action: ActionSpec): string {
   }
 
   const actionEventName = `${action.actorName}::${action.actionName}`;
+  const runName = `${action.actionName}Run`;
+  const streamName = `${action.actionName}Stream`;
   const parameterText = action.inputType ? `input: ${action.inputType}` : "";
   const streamParamText = action.inputType ? "{ input }" : "{}";
   const paramsType = action.inputType
@@ -17,14 +19,14 @@ export function printAction(action: ActionSpec): string {
   const usesSignal = action.steps.some((step) => step.usesSignal);
   const lines: string[] = [
     `export async function ${action.actionName}(${parameterText}) {`,
-    `  return consume(stream_${action.actionName}(${streamParamText}));`,
+    `  return consume(${streamName}(${streamParamText}));`,
     `}`,
     ``,
-    `async function run_${action.actionName}(params: ${paramsType}) {`,
-    `  return consume(stream_${action.actionName}(params));`,
+    `async function ${runName}(params: ${paramsType}) {`,
+    `  return consume(${streamName}(params));`,
     `}`,
     ``,
-    `async function* stream_${action.actionName}(params: ${paramsType}) {`,
+    `async function* ${streamName}(params: ${paramsType}) {`,
     action.inputType
       ? `  const input = params.input;`
       : `  const input = undefined;`,
@@ -75,14 +77,14 @@ export function printService(service: ServiceSpec): string {
   lines.push("  run: {");
   for (const [index, actionName] of service.actionNames.entries()) {
     const separator = index === service.actionNames.length - 1 ? "" : ",";
-    lines.push(`    ${actionName}: run_${actionName}${separator}`);
+    lines.push(`    ${actionName}: ${actionName}Run${separator}`);
   }
   lines.push("  },");
 
   lines.push("  stream: {");
   for (const [index, actionName] of service.actionNames.entries()) {
     const separator = index === service.actionNames.length - 1 ? "" : ",";
-    lines.push(`    ${actionName}: stream_${actionName}${separator}`);
+    lines.push(`    ${actionName}: ${actionName}Stream${separator}`);
   }
   lines.push("  }");
 

@@ -20,9 +20,11 @@ export function applyBareMetalReplacements(
     }
 
     if (importLines.length > 0) {
+      const insertionPosition = importInsertionPosition(sourceText, sourceFile);
+
       edits.push({
-        start: 0,
-        end: 0,
+        start: insertionPosition,
+        end: insertionPosition,
         text: `${importLines.join("\n")}\n\n`,
       });
     }
@@ -51,6 +53,27 @@ export function applyBareMetalReplacements(
   }
 
   return applyTextEdits(sourceText, edits);
+}
+
+function importInsertionPosition(
+  sourceText: string,
+  sourceFile: SourceFile
+): number {
+  let position = 0;
+
+  for (const statement of sourceFile.getStatements()) {
+    if (!statement.getText().match(/^["']use\s+[^"']+["'];?$/)) break;
+
+    position = statement.getEnd();
+    while (
+      position < sourceText.length &&
+      /\s/.test(sourceText[position] ?? "")
+    ) {
+      position++;
+    }
+  }
+
+  return position;
 }
 
 function hasPackageImport(
