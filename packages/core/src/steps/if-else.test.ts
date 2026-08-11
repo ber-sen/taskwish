@@ -1,13 +1,10 @@
 import { expect, test, describe } from "bun:test";
 import { Expect, Equal } from "../helpers";
 import { Action } from "../action";
-import { TW } from "../core";
 import { Step } from "./step";
 import { If, Else, ElseIf, Cond } from "./if-else";
 import { Loop, ForEach } from "./loop";
-
-const eventData = (value: unknown) =>
-  value instanceof TW.Trace || value instanceof TW.Signal ? value.data : value;
+import { eventData } from "@taskwish/wire";
 
 const eventDataList = (values: unknown[]) => values.map(eventData);
 

@@ -4,10 +4,7 @@ import { Action } from "../action";
 import { Step } from "./step";
 import { Loop, ForEach } from "./loop";
 import { If, Else, ElseIf, Cond } from "./if-else";
-import { TW } from "../core";
-
-const eventData = (value: unknown) =>
-  value instanceof TW.Trace || value instanceof TW.Signal ? value.data : value;
+import { eventData } from "@taskwish/wire";
 
 const eventDataList = (values: unknown[]) => values.map(eventData);
 

@@ -4,29 +4,32 @@ function normalizeName(name: string) {
   return name.trim();
 }
 
-const { lorem } = Actor("Lorem");
+const { greeter } = Actor("Greeter");
 
-export const { runSteps } = lorem()
-  .on("Command", "runSteps")
+export const { greet } = greeter()
+  .on("Command", "greet")
 
   .input({ name: "string" })
 
   .run(
-    Step("firstStep", function () {
-      return `Hello ${normalizeName(this.input.name)}`;
+    Step("salutation", function () {
+      return "Hello";
     }),
 
-    Step("lastStep", function () {
-      return this.firstStep.length;
+    Step("greet", function () {
+      return `${this.salutation} ${normalizeName(this.input.name)}.`
     }),
   );
 
-export const { Lorem } = lorem().service({ runSteps });
+export const { Greeter } = greeter().service({ greet });
 
 const main = async () => {
-  const result = await Lorem.runSteps({ name: "hello" });
+  const start = performance.now()
+  const result = await Greeter.greet({ name: "World" });
+  const end = performance.now()
 
   console.log(result);
+  console.log(end - start);
 };
 
 main();

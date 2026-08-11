@@ -1,5 +1,6 @@
 import { InferSchema, PascalCase, QualifiedEventName } from "../helpers";
 import { TW } from "../core";
+import { Signal } from "@taskwish/wire";
 
 type EventSpec<Name extends string> =
   Name extends `${infer Actor}::${infer Event}`
@@ -78,7 +79,7 @@ export function Event<
     [TW.Name]: runtimeName,
     [TW.Meta]: null,
     emit: async function* (signalData: unknown) {
-      const signal = new TW.Signal(eventKind[TW.Name], signalData);
+      const signal = new Signal(eventKind[TW.Name], signalData);
       yield signal;
       return signal;
     },

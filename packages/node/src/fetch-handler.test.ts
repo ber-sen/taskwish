@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
-import { Actor, Event, formatEvent, Logger, Step, TW } from "@taskwish/core";
+import { Actor, Event, Step, TW } from "@taskwish/core";
+import { Logger, formatEvent } from "@taskwish/wire";
 import { createFetchHandler, createNodeRegistry } from "./index";
 import { apiKey, auth } from "./test-helpers";
 

@@ -1,4 +1,5 @@
 import { RawLoggedStreamTag, RawStreamTag, TW } from "@taskwish/core";
+import { Signal } from "@taskwish/wire";
 import {
   flattenRouteInput,
   parseActionInput,
@@ -7,7 +8,7 @@ import {
 import { responseFrom, streamChunk } from "./response";
 import type { Action, NodeRegistry, RouteMeta } from "./types";
 
-function inputFromSignal(signal: TW.Signal<string, any>): unknown {
+function inputFromSignal(signal: Signal<string, any>): unknown {
   const input: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(signal.data)) {
     if (key !== "->") input[key] = value;
@@ -25,7 +26,7 @@ async function consumeAction(
   const stream = action.stream(...args);
   let item = await stream.next();
   while (!item.done) {
-    if (item.value instanceof TW.Signal) dispatchSignal(item.value, registry);
+    if (item.value instanceof Signal) dispatchSignal(item.value, registry);
     item = await stream.next();
   }
   return item.value;
@@ -76,7 +77,7 @@ function responseFromActionStream(
             return;
           }
 
-          if (item.value instanceof TW.Signal) {
+          if (item.value instanceof Signal) {
             dispatchSignal(item.value, registry);
           } else if (isStreamEvent(item.value)) {
             controller.enqueue(await streamChunk(item.value.data));
@@ -101,7 +102,7 @@ async function invokeAction(
 
   let item = await stream.next();
   while (!item.done) {
-    if (item.value instanceof TW.Signal) {
+    if (item.value instanceof Signal) {
       dispatchSignal(item.value, registry);
     } else if (isStreamEvent(item.value)) {
       return responseFromActionStream(stream, item.value, registry);
@@ -113,7 +114,7 @@ async function invokeAction(
 }
 
 function dispatchSignal(
-  signal: TW.Signal<string, any>,
+  signal: Signal<string, any>,
   registry: NodeRegistry,
 ): void {
   const handlers = registry.eventHandlers.get(signal.data["->"]) ?? [];

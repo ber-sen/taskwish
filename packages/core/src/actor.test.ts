@@ -6,11 +6,8 @@ import { Action } from "./action";
 import { TW } from "./core";
 import { Step } from "./steps";
 import { Event } from "./event";
-import { Logger, formatEvent } from "./use";
+import { Logger, Signal, Trace, eventData, formatEvent } from "@taskwish/wire";
 import { Trait } from "./trait";
-
-const eventData = (value: unknown) =>
-  value instanceof TW.Trace || value instanceof TW.Signal ? value.data : value;
 
 const eventDataList = (values: unknown[]) => values.map(eventData);
 
@@ -314,11 +311,11 @@ describe("Actor", () => {
 
     const emitted = yields.find(
       (value) =>
-        value instanceof TW.Signal &&
+        value instanceof Signal &&
         value.data["->"] === "Biller::InvoicePaid",
     );
 
-    expect(emitted).toBeInstanceOf(TW.Signal);
+    expect(emitted).toBeInstanceOf(Signal);
     expect(emitted).toMatchObject({
       data: {
         "->": "Biller::InvoicePaid",
@@ -392,11 +389,11 @@ describe("Actor", () => {
 
     const invoicePaid = emitted.find(
       (value) =>
-        value instanceof TW.Signal &&
+        value instanceof Signal &&
         value.data["->"] === "Biller::InvoicePaid",
     );
 
-    expect(invoicePaid).toBeInstanceOf(TW.Signal);
+    expect(invoicePaid).toBeInstanceOf(Signal);
     expect(invoicePaid).toMatchObject({
       data: {
         "->": "Biller::InvoicePaid",
@@ -854,7 +851,7 @@ describe("Actor", () => {
       yields.push(v);
     }
 
-    expect(yields[1]).toBeInstanceOf(TW.Signal);
+    expect(yields[1]).toBeInstanceOf(Signal);
     expect(eventDataList(yields)).toEqual([
       {
         ">>": "Emitter::emit",
@@ -1239,6 +1236,68 @@ describe("Actor", () => {
         );
 
       expect(await run({ message: "hello" })).toEqual(6);
+    });
+
+    test("service exposes run and stream helpers for public actions", async () => {
+      const { greeter } = Actor("Greeter");
+
+      const { greet } = greeter()
+        .on("Command", "greet")
+
+        .input({ name: "string" })
+
+        .run(
+          Step("salutation", function () {
+            return "Hello";
+          }),
+
+          Step("greet", function () {
+            return `${this.salutation} ${this.input.name}.`;
+          }),
+        );
+
+      const { Greeter } = greeter().service({ greet });
+
+      type RunCheck = Expect<
+        Equal<
+          Parameters<typeof Greeter.run.greet>[0],
+          { input: { name: string } }
+        >
+      >;
+
+      type StreamCheck = Expect<
+        Equal<
+          Awaited<ReturnType<typeof Greeter.stream.greet>>,
+          AsyncGenerator<
+            TW.ActionEvent<
+              "Greeter::greet",
+              string,
+              { name: string }
+            >,
+            string
+          >
+        >
+      >;
+
+      expect(
+        await Greeter.run.greet({
+          input: { name: "Ada" },
+        }),
+      ).toEqual("Hello Ada.");
+
+      const streamed: unknown[] = [];
+      for await (const event of Greeter.stream.greet({
+        input: { name: "Lin" },
+      })) {
+        streamed.push(event);
+      }
+
+      expect(eventDataList(streamed)).toEqual([
+        { ">>": "Greeter::greet", input: { name: "Lin" } },
+        { ">>": "Greeter::greet.salutation", result: "Hello" },
+        { ">>": "Greeter::greet.greet", result: "Hello Lin." },
+        { ">>": "Greeter::greet", result: "Hello Lin." },
+      ]);
     });
 
     test("same actor command can be injected with .use() on a second command", async () => {

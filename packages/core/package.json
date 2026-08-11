@@ -34,6 +34,7 @@
     "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --no-cache"
   },
   "dependencies": {
+    "@taskwish/wire": "^0.0.1",
     "@standard-schema/spec": "^1.0.0",
     "arktype": "^2.1.23",
     "ms": "^2.1.3",

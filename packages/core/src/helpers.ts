@@ -2,6 +2,7 @@ import { Type, type } from "arktype";
 import { StandardSchemaV1 } from "@standard-schema/spec";
 import type { TW } from "./core";
 import type { InferTypeConfig } from "./use";
+import type { Signal, Trace } from "@taskwish/wire";
 
 /** Walk the plugins tuple and return the filter type from the first InferTypeConfig found.
  *  - `never`     → no InferType plugin present
@@ -45,6 +46,34 @@ export type PickListeners<Actions> = Pretty<{
   [Key in keyof Actions as IsListenerAction<Actions[Key]> extends true
     ? Key
     : never]: Actions[Key];
+}>;
+
+export type ServiceRunParams<Handler extends (...args: any) => any> =
+  StreamInput<Handler> extends undefined ? {} : { input: StreamInput<Handler> };
+
+export type ServiceRunActions<Actions> = Pretty<{
+  [Key in keyof OmitListeners<Actions>]: OmitListeners<Actions>[Key] extends TW.Action<
+    any,
+    infer Handler,
+    any
+  >
+    ? (params: ServiceRunParams<Handler>) => Promise<StreamResult<Handler>>
+    : never;
+}>;
+
+export type ServiceStreamActions<Actions> = Pretty<{
+  [Key in keyof OmitListeners<Actions>]: OmitListeners<Actions>[Key] extends TW.Action<
+    infer Name,
+    infer Handler,
+    any
+  >
+    ? (
+        params: ServiceRunParams<Handler>,
+      ) => AsyncGenerator<
+        TW.ActionEvent<Name, StreamResult<Handler>, StreamInput<Handler>>,
+        StreamResult<Handler>
+      >
+    : never;
 }>;
 
 export type CamelCaseHelper<T extends string> =
@@ -235,8 +264,8 @@ export type ValidateTrigger<Schema> = Schema extends TW.EventKind<
   infer Input
 >
   ? TW.EventKind<any, Input>
-  : Schema extends TW.Signal<any, infer Input>
-  ? TW.Signal<any, Input>
+  : Schema extends Signal<any, infer Input>
+  ? Signal<any, Input>
   : Schema extends StandardSchemaV1<any>
   ? Schema
   : Schema extends object
@@ -251,27 +280,27 @@ type HasOnlyNeverValues<T> = keyof T extends infer K
     : never
   : never;
 
-export type InferTriggerScope<Schema> = Schema extends TW.Signal<
+export type InferTriggerScope<Schema> = Schema extends Signal<
   infer Name,
   infer Input
 >
   ? {
       input: Input;
-      event: TW.Signal<Name, Input>;
+      event: Signal<Name, Input>;
     }
   : Schema extends TW.EventKind<infer Name, infer Input>
   ? {
       input: Input;
-      event: TW.Signal<Name, Input>;
+      event: Signal<Name, Input>;
     }
   : HasOnlyNeverValues<type.instantiate<Schema>["infer"]> extends false
   ? {
       input: type.instantiate<Schema>["infer"];
-      event: TW.Signal<"Command", type.instantiate<Schema>["infer"]>;
+      event: Signal<"Command", type.instantiate<Schema>["infer"]>;
     }
   : {
       input: Schema;
-      event: TW.Signal<"Command", Schema>;
+      event: Signal<"Command", Schema>;
     };
 
 export type Apply<
@@ -311,7 +340,7 @@ export type PascalCase<S extends string> = HasSeparator<S> extends true
 
 // ── Action grouping type helpers ──────────────────────────────────────────────
 
-type ExtractActionNameFromYield<Yield> = Yield extends TW.Trace<
+type ExtractActionNameFromYield<Yield> = Yield extends Trace<
   infer N extends string,
   { input: any }
 >
