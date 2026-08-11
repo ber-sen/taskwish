@@ -1,7 +1,7 @@
 import { Node, SourceFile, SyntaxKind } from "ts-morph";
 
 import { inputSchemaToType } from "./schema";
-import { parseStep } from "./step";
+import { parseFunctionStep, parseStep } from "./step";
 import { isDefined, unwrapExpression } from "./syntax";
 import type {
   ActionSpec,
@@ -22,11 +22,14 @@ export function findActionSpecs(sourceFile: SourceFile): ActionSpec[] {
     }
 
     const variableStatement = declaration.getFirstAncestorByKindOrThrow(
-      SyntaxKind.VariableStatement,
+      SyntaxKind.VariableStatement
     );
     if (!variableStatement.isExported()) continue;
 
-    const exportedActionName = nameNode.getElements()[0]?.getNameNode().getText();
+    const exportedActionName = nameNode
+      .getElements()[0]
+      ?.getNameNode()
+      .getText();
     if (!exportedActionName) continue;
 
     const initializer = declaration.getInitializer();
@@ -48,8 +51,19 @@ export function findActionSpecs(sourceFile: SourceFile): ActionSpec[] {
     if (!actor) continue;
 
     const inputCall = chain.find((call) => call.methodName === "input");
+    const runArguments = runCall.getArguments();
+    const steps = runArguments.map(parseStep).filter(isDefined);
+    if (steps.length === 0) {
+      const directRunStep = parseFunctionStep(
+        exportedActionName,
+        runArguments[0]
+      );
+      if (directRunStep) steps.push(directRunStep);
+    }
     const inputType = inputCall
       ? inputSchemaToType(inputCall.call.getArguments()[0])
+      : usesThisInput(runArguments)
+      ? "any"
       : null;
 
     actions.push({
@@ -58,11 +72,24 @@ export function findActionSpecs(sourceFile: SourceFile): ActionSpec[] {
       inputType,
       actorDeclaration: actor.declaration,
       declaration: variableStatement,
-      steps: runCall.getArguments().map(parseStep).filter(isDefined),
+      steps,
     });
   }
 
   return actions;
+}
+
+function usesThisInput(nodes: Node[]): boolean {
+  return nodes.some((node) =>
+    node
+      .getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+      .some((propertyAccess) => {
+        if (propertyAccess.getName() !== "input") return false;
+
+        const expression = unwrapExpression(propertyAccess.getExpression());
+        return Node.isThisExpression(expression);
+      })
+  );
 }
 
 export function findServiceSpecs(sourceFile: SourceFile): ServiceSpec[] {
@@ -78,7 +105,7 @@ export function findServiceSpecs(sourceFile: SourceFile): ServiceSpec[] {
     }
 
     const variableStatement = declaration.getFirstAncestorByKindOrThrow(
-      SyntaxKind.VariableStatement,
+      SyntaxKind.VariableStatement
     );
     if (!variableStatement.isExported()) continue;
 
@@ -116,7 +143,7 @@ export function findServiceSpecs(sourceFile: SourceFile): ServiceSpec[] {
 
 function findPublicActionNames(
   sourceFile: SourceFile,
-  actors: Map<string, ActorBinding>,
+  actors: Map<string, ActorBinding>
 ): Set<string> {
   const actionNames = new Set<string>();
 
@@ -128,11 +155,14 @@ function findPublicActionNames(
     }
 
     const variableStatement = declaration.getFirstAncestorByKindOrThrow(
-      SyntaxKind.VariableStatement,
+      SyntaxKind.VariableStatement
     );
     if (!variableStatement.isExported()) continue;
 
-    const exportedActionName = nameNode.getElements()[0]?.getNameNode().getText();
+    const exportedActionName = nameNode
+      .getElements()[0]
+      ?.getNameNode()
+      .getText();
     if (!exportedActionName) continue;
 
     const initializer = declaration.getInitializer();
@@ -167,7 +197,7 @@ function isPublicActionChain(chain: CallChainItem[]): boolean {
   if (!Node.isStringLiteral(unwrapped)) return false;
 
   return ["Command", "GET", "POST", "PUT", "DELETE", "PATCH"].includes(
-    unwrapped.getLiteralText(),
+    unwrapped.getLiteralText()
   );
 }
 
@@ -191,7 +221,7 @@ function findActorBindings(sourceFile: SourceFile): Map<string, ActorBinding> {
     actors.set(factoryName, {
       actorName: actorNameArg.getLiteralText(),
       declaration: declaration.getFirstAncestorByKindOrThrow(
-        SyntaxKind.VariableStatement,
+        SyntaxKind.VariableStatement
       ),
     });
   }
@@ -200,31 +230,38 @@ function findActorBindings(sourceFile: SourceFile): Map<string, ActorBinding> {
 }
 
 function actorCallFromInitializer(
-  initializer: Node,
+  initializer: Node
 ): import("ts-morph").CallExpression | null {
   const call = unwrapExpression(initializer);
   if (!Node.isCallExpression(call)) return null;
 
-  const expression = unwrapExpression(call.getExpression());
-  if (Node.isIdentifier(expression) && expression.getText() === "Actor") {
-    return call;
-  }
+  const actorCall = findRootActorCall(call);
+  if (actorCall) return actorCall;
 
+  const expression = unwrapExpression(call.getExpression());
   if (!Node.isPropertyAccessExpression(expression)) return null;
   if (expression.getName() !== "def") return null;
 
   const receiver = unwrapExpression(expression.getExpression());
   if (!Node.isCallExpression(receiver)) return null;
 
-  const receiverExpression = unwrapExpression(receiver.getExpression());
-  if (
-    !Node.isIdentifier(receiverExpression) ||
-    receiverExpression.getText() !== "Actor"
-  ) {
-    return null;
+  return findRootActorCall(receiver);
+}
+
+function findRootActorCall(
+  call: import("ts-morph").CallExpression
+): import("ts-morph").CallExpression | null {
+  const expression = unwrapExpression(call.getExpression());
+  if (Node.isIdentifier(expression) && expression.getText() === "Actor") {
+    return call;
   }
 
-  return receiver;
+  if (!Node.isPropertyAccessExpression(expression)) return null;
+
+  const receiver = unwrapExpression(expression.getExpression());
+  if (!Node.isCallExpression(receiver)) return null;
+
+  return findRootActorCall(receiver);
 }
 
 function collectCallChain(call: Node): CallChainItem[] {
@@ -250,7 +287,7 @@ function collectCallChain(call: Node): CallChainItem[] {
 
 function parseServiceActions(
   serviceCall: import("ts-morph").CallExpression,
-  publicActionNames: Set<string>,
+  publicActionNames: Set<string>
 ): string[] {
   const config = serviceCall.getArguments()[0];
   if (!config || !Node.isObjectLiteralExpression(config)) return [];

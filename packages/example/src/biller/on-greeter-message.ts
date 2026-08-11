@@ -1,8 +1,6 @@
-import { Actor } from "taskwish";
+"use server";
 
-import { Greeter } from "./greeter";
-
-const { biller } = Actor("Biller").use(Greeter);
+import { biller } from "./biller";
 
 export const { onGreeterMessage } = biller()
   .on("Greeter::Message")
@@ -12,5 +10,3 @@ export const { onGreeterMessage } = biller()
       invoice: `Invoice created from greeter message: ${this.input.name}`,
     };
   });
-
-export const { Biller } = biller().service({ onGreeterMessage });

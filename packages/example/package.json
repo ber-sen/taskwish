@@ -3,9 +3,11 @@
   "version": "0.0.2",
   "author": "Bersen Pajaziti",
   "dependencies": {
+    "@taskwish/bare": "workspace:*",
     "@taskwish/console": "^0.0.1",
     "@taskwish/node": "^0.0.3",
     "@taskwish/symbolic": "^0.0.1",
+    "@taskwish/wire": "workspace:*",
     "playwright-core": "^1.61.1",
     "taskwish": "^0.0.8"
   },
@@ -13,10 +15,13 @@
   "license": "Elastic-2.0",
   "private": true,
   "scripts": {
+    "check": "tsc --noEmit",
+    "morph": "bun src/morph.ts",
     "start": "bun src/node.ts"
   },
   "type": "module",
   "devDependencies": {
-    "@types/bun": "^1.3.14"
+    "@types/bun": "^1.3.14",
+    "typescript": "^5.9.2"
   }
 }

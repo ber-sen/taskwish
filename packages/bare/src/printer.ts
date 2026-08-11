@@ -3,13 +3,18 @@ import type { ActionSpec, ServiceSpec } from "./types";
 
 export function printAction(action: ActionSpec): string {
   if (action.steps.length === 0) {
-    throw new Error(`${action.actorName}.${action.actionName} has no Step calls.`);
+    throw new Error(
+      `${action.actorName}.${action.actionName} has no Step calls.`
+    );
   }
 
   const actionEventName = `${action.actorName}::${action.actionName}`;
   const parameterText = action.inputType ? `input: ${action.inputType}` : "";
   const streamParamText = action.inputType ? "{ input }" : "{}";
-  const paramsType = action.inputType ? `{\n  input: ${action.inputType};\n}` : `{}`;
+  const paramsType = action.inputType
+    ? `{\n  input: ${action.inputType};\n}`
+    : `{}`;
+  const usesSignal = action.steps.some((step) => step.usesSignal);
   const lines: string[] = [
     `export async function ${action.actionName}(${parameterText}) {`,
     `  return consume(stream_${action.actionName}(${streamParamText}));`,
@@ -20,7 +25,14 @@ export function printAction(action: ActionSpec): string {
     `}`,
     ``,
     `async function* stream_${action.actionName}(params: ${paramsType}) {`,
-    action.inputType ? `  const input = params.input;` : `  const input = undefined;`,
+    action.inputType
+      ? `  const input = params.input;`
+      : `  const input = undefined;`,
+    ...(usesSignal
+      ? [
+          `  const signal = (name: string, input: unknown) => new Trace(name, { input });`,
+        ]
+      : []),
     ``,
     `  yield new Trace("${actionEventName}", { input });`,
     ``,
@@ -37,14 +49,14 @@ export function printAction(action: ActionSpec): string {
     }
     lines.push("");
     lines.push(
-      `  yield new Trace("${actionEventName}.${step.name}", { result: ${step.name} });`,
+      `  yield new Trace("${actionEventName}.${step.name}", { result: ${step.name} });`
     );
     lines.push("");
   }
 
   const lastStep = action.steps.at(-1)!;
   lines.push(
-    `  yield new Trace("${actionEventName}", { result: ${lastStep.name} });`,
+    `  yield new Trace("${actionEventName}", { result: ${lastStep.name} });`
   );
   lines.push("");
   lines.push(`  return ${lastStep.name};`);

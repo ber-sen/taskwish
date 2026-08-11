@@ -22,16 +22,25 @@ export function parseStep(node: Node): StepSpec | null {
   const [nameArg, handlerArg] = call.getArguments();
   if (!nameArg || !Node.isStringLiteral(nameArg) || !handlerArg) return null;
 
-  const handler = Array.isArray(handlerArg) ? null : unwrapExpression(handlerArg);
+  const handler = Array.isArray(handlerArg)
+    ? null
+    : unwrapExpression(handlerArg);
   if (!handler || !Node.isFunctionExpression(handler)) return null;
 
-  const name = nameArg.getLiteralText();
+  return parseFunctionStep(nameArg.getLiteralText(), handler);
+}
+
+export function parseFunctionStep(name: string, node: Node): StepSpec | null {
+  const handler = unwrapExpression(node);
+  if (!Node.isFunctionExpression(handler)) return null;
+
   const returnInfo = inferFunctionReturn(handler);
   const directExpressionText = rewriteDirectStepExpression(
     handler,
-    returnInfo.shouldAwait,
+    returnInfo.shouldAwait
   );
-  const useBreakBlock = directExpressionText === null && needsBreakBlock(handler);
+  const useBreakBlock =
+    directExpressionText === null && needsBreakBlock(handler);
   const blockLabel = useBreakBlock ? `${name}Block` : null;
 
   return {
@@ -42,9 +51,10 @@ export function parseStep(node: Node): StepSpec | null {
       handler,
       name,
       blockLabel,
-      returnInfo.shouldAwait,
+      returnInfo.shouldAwait
     ),
     useBreakBlock,
+    usesSignal: usesThisSignal(handler),
   };
 }
 
@@ -52,7 +62,7 @@ let stepBodyProbeId = 0;
 
 function rewriteDirectStepExpression(
   handler: import("ts-morph").FunctionExpression,
-  shouldAwait: boolean,
+  shouldAwait: boolean
 ): string | null {
   const body = handler.getBody();
   if (!body || !Node.isBlock(body)) return null;
@@ -68,11 +78,11 @@ function rewriteDirectStepExpression(
 
   const project = handler.getProject();
   const probe = project.createSourceFile(
-    `${handler.getSourceFile().getDirectoryPath()}/.taskwish-morph-step-expression-${
-      stepBodyProbeId++
-    }.ts`,
+    `${handler
+      .getSourceFile()
+      .getDirectoryPath()}/.taskwish-morph-step-expression-${stepBodyProbeId++}.ts`,
     `function __step__() {\n  return ${expression.getText()};\n}`,
-    { overwrite: true },
+    { overwrite: true }
   );
 
   try {
@@ -101,16 +111,16 @@ function rewriteStepBody(
   handler: import("ts-morph").FunctionExpression,
   stepName: string,
   blockLabel: string | null,
-  shouldAwait: boolean,
+  shouldAwait: boolean
 ): string {
   const bodyText = functionBodyText(handler);
   const project = handler.getProject();
   const probe = project.createSourceFile(
-    `${handler.getSourceFile().getDirectoryPath()}/.taskwish-morph-step-body-${
-      stepBodyProbeId++
-    }.ts`,
+    `${handler
+      .getSourceFile()
+      .getDirectoryPath()}/.taskwish-morph-step-body-${stepBodyProbeId++}.ts`,
     `function __step__() {\n${bodyText}\n}`,
-    { overwrite: true },
+    { overwrite: true }
   );
 
   try {
@@ -134,7 +144,10 @@ function rewriteStepBody(
           : "undefined";
         const lineStart =
           probeText.lastIndexOf("\n", returnStatement.getStart()) + 1;
-        const indentation = probeText.slice(lineStart, returnStatement.getStart());
+        const indentation = probeText.slice(
+          lineStart,
+          returnStatement.getStart()
+        );
 
         return {
           start: returnStatement.getStart() - contentStart,
@@ -160,7 +173,7 @@ function rewriteStepBody(
 
 function rewriteThisPropertyAccesses(root: Node, owner: Node): void {
   const propertyAccesses = root.getDescendantsOfKind(
-    SyntaxKind.PropertyAccessExpression,
+    SyntaxKind.PropertyAccessExpression
   );
   if (Node.isPropertyAccessExpression(root)) {
     propertyAccesses.unshift(root);
@@ -174,6 +187,17 @@ function rewriteThisPropertyAccesses(root: Node, owner: Node): void {
 
     propertyAccess.replaceWithText(propertyAccess.getName());
   }
+}
+
+function usesThisSignal(root: Node): boolean {
+  return root
+    .getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+    .some((propertyAccess) => {
+      if (propertyAccess.getName() !== "signal") return false;
+
+      const expression = unwrapExpression(propertyAccess.getExpression());
+      return Node.isThisExpression(expression);
+    });
 }
 
 function needsBreakBlock(fn: import("ts-morph").FunctionExpression): boolean {
@@ -198,17 +222,23 @@ function awaitOperandText(expression: Node): string {
   return `(${expression.getText()})`;
 }
 
-function assignmentExpressionText(expression: Node, shouldAwait: boolean): string {
+function assignmentExpressionText(
+  expression: Node,
+  shouldAwait: boolean
+): string {
   return shouldAwait && !Node.isAwaitExpression(unwrapExpression(expression))
     ? `await ${awaitOperandText(expression)}`
     : expression.getText();
 }
 
-function functionBodyText(
-  fn: import("ts-morph").FunctionExpression,
-): string {
+function functionBodyText(fn: import("ts-morph").FunctionExpression): string {
   const body = fn.getBody();
   if (!body) return "";
 
-  return normalizeBlock(body.getText().slice(1, -1).replace(/^\s*\n/, ""));
+  return normalizeBlock(
+    body
+      .getText()
+      .slice(1, -1)
+      .replace(/^\s*\n/, "")
+  );
 }

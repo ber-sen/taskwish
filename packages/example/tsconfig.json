@@ -13,5 +13,5 @@
     "customConditions": ["source"],
     "types": ["bun"]
   },
-  "include": ["src"]
+  "include": ["src", "bare"]
 }

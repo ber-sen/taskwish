@@ -7,7 +7,7 @@ export function applyBareMetalReplacements(
   sourceText: string,
   sourceFile: SourceFile,
   actions: ActionSpec[],
-  services: ServiceSpec[] = [],
+  services: ServiceSpec[] = []
 ): string {
   const edits: TextEdit[] = taskWishImportEdits(sourceText, sourceFile);
   const actorDeclarations = new Set<import("ts-morph").VariableStatement>();
@@ -16,9 +16,7 @@ export function applyBareMetalReplacements(
     const importLines: string[] = [];
 
     if (!hasPackageImport(sourceFile, "@taskwish/wire")) {
-      importLines.push(
-        `import { Trace, consume } from "@taskwish/wire";`,
-      );
+      importLines.push(`import { Trace, consume } from "@taskwish/wire";`);
     }
 
     if (importLines.length > 0) {
@@ -55,18 +53,21 @@ export function applyBareMetalReplacements(
   return applyTextEdits(sourceText, edits);
 }
 
-function hasPackageImport(sourceFile: SourceFile, packageName: string): boolean {
+function hasPackageImport(
+  sourceFile: SourceFile,
+  packageName: string
+): boolean {
   return sourceFile
     .getImportDeclarations()
     .some(
       (importDeclaration) =>
-        importDeclaration.getModuleSpecifierValue() === packageName,
+        importDeclaration.getModuleSpecifierValue() === packageName
     );
 }
 
 function taskWishImportEdits(
   sourceText: string,
-  sourceFile: SourceFile,
+  sourceFile: SourceFile
 ): TextEdit[] {
   const edits: TextEdit[] = [];
 
@@ -74,7 +75,7 @@ function taskWishImportEdits(
     const namedImports = importDeclaration.getNamedImports();
     const remainingImports = namedImports.filter((namedImport) => {
       const name = namedImport.getName();
-      return name !== "Actor" && name !== "Step";
+      return name !== "Actor" && name !== "Event" && name !== "Step";
     });
 
     if (remainingImports.length === namedImports.length) continue;
