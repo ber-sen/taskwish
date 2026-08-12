@@ -56,6 +56,7 @@ export function parseFunctionStep(name: string, node: Node): StepSpec | null {
     useBreakBlock,
     usesSignal: usesThisSignal(handler),
     usesAbortSignal: usesThisProperty(handler, "abortSignal"),
+    actionUses: collectActionUses(handler),
   };
 }
 
@@ -186,7 +187,11 @@ function rewriteThisPropertyAccesses(root: Node, owner: Node): void {
     const expression = unwrapExpression(propertyAccess.getExpression());
     if (!Node.isThisExpression(expression)) continue;
 
-    propertyAccess.replaceWithText(propertyAccess.getName());
+    propertyAccess.replaceWithText(
+      propertyAccess.getName() === "actions"
+        ? `scope.${propertyAccess.getName()}`
+        : propertyAccess.getName()
+    );
   }
 }
 
@@ -203,6 +208,34 @@ function usesThisProperty(root: Node, name: string): boolean {
       const expression = unwrapExpression(propertyAccess.getExpression());
       return Node.isThisExpression(expression);
     });
+}
+
+function collectActionUses(root: Node): import("./types").ActionUse[] {
+  const uniquePaths = new Set<string>();
+
+  for (const call of root.getDescendantsOfKind(SyntaxKind.CallExpression)) {
+    const path = thisActionsPath(call.getExpression());
+    if (path.length < 2) continue;
+
+    uniquePaths.add(path.join("."));
+  }
+
+  return [...uniquePaths].sort().map((path) => ({ path: path.split(".") }));
+}
+
+function thisActionsPath(node: Node): string[] {
+  const names: string[] = [];
+  let current = unwrapExpression(node);
+
+  while (Node.isPropertyAccessExpression(current)) {
+    names.unshift(current.getName());
+    current = unwrapExpression(current.getExpression());
+  }
+
+  if (!Node.isThisExpression(current)) return [];
+  if (names[0] !== "actions") return [];
+
+  return names.slice(1);
 }
 
 function needsBreakBlock(fn: import("ts-morph").FunctionExpression): boolean {

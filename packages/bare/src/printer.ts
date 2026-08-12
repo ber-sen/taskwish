@@ -14,9 +14,24 @@ export function printAction(action: ActionSpec): string {
   const inputArgText = action.inputType ? "input" : "";
   const usesSignal = action.steps.some((step) => step.usesSignal);
   const usesAbortSignal = action.steps.some((step) => step.usesAbortSignal);
-  const ctxParameterText = usesAbortSignal
-    ? "scope: { abortSignal?: unknown } = {}"
-    : "scope: {} = {}";
+  const scopeProperties = [
+    action.actionDependencies.length > 0
+      ? `actions: { ${action.actionDependencies
+          .map((dependency) => printActionDependencyType(dependency))
+          .join(" ")} }`
+      : null,
+    usesAbortSignal ? "abortSignal?: unknown" : null,
+  ].filter((property): property is string => property !== null);
+  const ctxParameterText =
+    scopeProperties.length > 0
+      ? `scope: { ${scopeProperties.join("; ")} } = ${
+          action.actionDependencies.length > 0
+            ? `{ actions: { ${action.actionDependencies
+                .map((dependency) => printActionDependencyDefault(dependency))
+                .join(", ")} } }`
+            : "{}"
+        }`
+      : "scope: {} = {}";
   const lines: string[] = [
     `export const ${action.actionName} = Object.assign(`,
     `  async function ${action.actionName}(${parameterText}) {`,
@@ -79,6 +94,22 @@ export function printAction(action: ActionSpec): string {
   lines.push("}");
 
   return lines.join("\n");
+}
+
+function printActionDependencyType(
+  dependency: import("./types").ActionDependency,
+): string {
+  return `${dependency.scopeName}: { ${dependency.actionNames
+    .map((actionName) => `${actionName}: typeof ${dependency.identifier}.${actionName};`)
+    .join(" ")} };`;
+}
+
+function printActionDependencyDefault(
+  dependency: import("./types").ActionDependency,
+): string {
+  return `${dependency.scopeName}: { ${dependency.actionNames
+    .map((actionName) => `${actionName}: ${dependency.identifier}.${actionName}`)
+    .join(", ")} }`;
 }
 
 export function printService(service: ServiceSpec): string {

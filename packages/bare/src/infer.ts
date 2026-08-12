@@ -88,7 +88,14 @@ function inferExpressionReturn(expression: Node): ExpressionReturnInfo {
     }
   }
   if (Node.isArrayLiteralExpression(node)) return expressionReturnInfo("unknown[]");
-  if (Node.isObjectLiteralExpression(node)) return expressionReturnInfo(node.getText());
+  if (Node.isObjectLiteralExpression(node)) return inferTypeReturn(node.getType(), node);
+  if (Node.isCallExpression(node) && usesThisActions(node.getExpression())) {
+    return {
+      propertyType: "unknown",
+      awaitedType: "unknown",
+      shouldAwait: true,
+    };
+  }
 
   return inferTypeReturn(node.getType(), node);
 }
@@ -118,6 +125,19 @@ function inferTypeReturn(
 function typeToText(type: import("ts-morph").Type, node: Node): string {
   const text = type.getText(node, ts.TypeFormatFlags.NoTruncation);
   return text === "any" ? "unknown" : text;
+}
+
+function usesThisActions(node: Node): boolean {
+  const current = unwrapExpression(node);
+
+  if (!Node.isPropertyAccessExpression(current)) return false;
+
+  const expression = unwrapExpression(current.getExpression());
+  if (Node.isThisExpression(expression) && current.getName() === "actions") {
+    return true;
+  }
+
+  return usesThisActions(expression);
 }
 
 function getAwaitedTypeText(

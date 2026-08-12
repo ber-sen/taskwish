@@ -1,7 +1,6 @@
-import { Actor, Step } from "taskwish";
-import { Browser } from "./browser";
+import { Step } from "taskwish";
 
-const { hackerNews } = Actor("HackerNews").use(Browser);
+import { hackerNews } from "./hacker-news";
 
 export const { openFirstPage } = hackerNews()
   .on("Command", "openFirstPage")
@@ -20,17 +19,18 @@ export const { openFirstPage } = hackerNews()
       await firstStory.waitFor({ state: "visible" });
 
       await Promise.all([
-        this.page.waitForURL((url) => url.href !== beforeUrl, {
+        this.page.waitForURL((url: URL) => url.href !== beforeUrl, {
           waitUntil: "domcontentloaded",
         }),
         firstStory.click(),
       ]);
 
+      const title = await this.page.title();
+      const url = this.page.url();
+
       return {
-        title: await this.page.title(),
-        url: this.page.url(),
+        title,
+        url,
       };
     }),
   );
-
-export const { HackerNews } = hackerNews().service({ openFirstPage });

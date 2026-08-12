@@ -192,6 +192,30 @@ export const { runSteps } = myActor()
     ]);
   });
 
+  test("infers object types for multi-expression step handlers", () => {
+    const source = `import { Actor, Step } from "../../src";
+
+const { myActor } = Actor("MyActor");
+
+export const { runSteps } = myActor()
+  .on("Command", "runSteps")
+
+  .run(
+    Step("result", function () {
+      const title = "Example";
+      const url = "https://example.com";
+
+      return { title, url };
+    }),
+  );
+`;
+
+    expectParts(morph(source), [
+      `let result: { title: string; url: string; };`,
+      `result = { title, url };`,
+    ]);
+  });
+
   test("leaves helper functions outside the actor untouched", () => {
     const source = `import { Actor, Step } from "../../src";
 
@@ -323,6 +347,31 @@ export const { runSteps } = myActor()
       `async function* stream(input: { name: string; })`,
       `const abortSignal = scope.abortSignal as AbortSignal | undefined;`,
       `const result = abortSignal?.aborted ?? false;`,
+    ]);
+  });
+
+  test("rewrites injected action calls to scope actions", () => {
+    const source = `import { Browser } from "./browser";
+import { Actor, Step } from "../../src";
+
+const { myActor } = Actor("MyActor").use(Browser);
+
+export const { runSteps } = myActor()
+  .on("Command", "runSteps")
+
+  .run(
+    Step("page", function () {
+      return this.actions.browser.browse({
+        url: "https://example.com",
+      });
+    }),
+  );
+`;
+
+    expectParts(morph(source), [
+      `import { Browser } from "./browser";`,
+      `function runStepsCtx(scope: { actions: { browser: { browse: typeof Browser.browse; }; } } = { actions: { browser: { browse: Browser.browse } } })`,
+      `const page = await scope.actions.browser.browse({`,
     ]);
   });
 

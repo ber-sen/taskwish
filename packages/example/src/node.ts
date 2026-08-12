@@ -2,7 +2,7 @@ import { Console } from "@taskwish/console";
 import { Node } from "taskwish";
 import { Accounting } from "./accounting-model";
 import { Browser } from "./browser";
-import { HackerNews } from "./hackerNews";
+import { HackerNews } from "./hacker-news";
 import { PipeSolver } from "./pipe-solver";
 import { Piper } from "./piper";
 import { PuzzleSolver } from "./puzzle-solver";

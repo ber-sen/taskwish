@@ -4,6 +4,7 @@ import { inputSchemaToType } from "./schema";
 import { parseFunctionStep, parseStep } from "./step";
 import { isDefined, unwrapExpression } from "./syntax";
 import type {
+  ActionDependency,
   ActionSpec,
   ActorBinding,
   CallChainItem,
@@ -78,10 +79,42 @@ export function findActionSpecs(sourceFile: SourceFile): ActionSpec[] {
       actorDeclaration: actor.declaration,
       declaration: variableStatement,
       steps,
+      actionDependencies: resolveActionDependencies(actor, steps),
     });
   }
 
   return actions;
+}
+
+function resolveActionDependencies(
+  actor: ActorBinding,
+  steps: import("./types").StepSpec[],
+): ActionDependency[] {
+  const actionsByScope = new Map<string, Set<string>>();
+
+  for (const step of steps) {
+    for (const use of step.actionUses) {
+      const [scopeName, actionName] = use.path;
+      if (!scopeName || !actionName) continue;
+
+      if (!actionsByScope.has(scopeName)) {
+        actionsByScope.set(scopeName, new Set());
+      }
+      actionsByScope.get(scopeName)!.add(actionName);
+    }
+  }
+
+  return [...actionsByScope.entries()].map(([scopeName, actionNames]) => {
+    const dependency = actor.dependencies.find(
+      (candidate) => candidate.scopeName === scopeName,
+    );
+
+    return {
+      scopeName,
+      actionNames: [...actionNames].sort(),
+      identifier: dependency?.identifier ?? scopeName,
+    };
+  });
 }
 
 function actionEventName(chain: CallChainItem[]): string | null {
@@ -325,10 +358,39 @@ function findActorBindings(sourceFile: SourceFile): Map<string, ActorBinding> {
       declaration: declaration.getFirstAncestorByKindOrThrow(
         SyntaxKind.VariableStatement
       ),
+      dependencies: collectActorDependencies(initializer),
     });
   }
 
   return actors;
+}
+
+function collectActorDependencies(initializer: Node): ActorBinding["dependencies"] {
+  const call = unwrapExpression(initializer);
+  if (!Node.isCallExpression(call)) return [];
+
+  const dependencies: ActorBinding["dependencies"] = [];
+
+  for (const item of collectCallChain(call)) {
+    if (item.methodName !== "use") continue;
+
+    for (const argument of item.call.getArguments()) {
+      const unwrapped = unwrapExpression(argument);
+      if (!Node.isIdentifier(unwrapped)) continue;
+
+      const identifier = unwrapped.getText();
+      dependencies.push({
+        identifier,
+        scopeName: lowerFirst(identifier),
+      });
+    }
+  }
+
+  return dependencies;
+}
+
+function lowerFirst(value: string): string {
+  return value.length === 0 ? value : `${value[0]!.toLowerCase()}${value.slice(1)}`;
 }
 
 function actorCallFromInitializer(

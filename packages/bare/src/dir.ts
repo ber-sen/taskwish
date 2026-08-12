@@ -62,10 +62,7 @@ export async function morphDir(
     await removeOutput(join(outputDirectory, actorModule.fileName));
   }
 
-  const localModules = [
-    ...actorModules.map((module) => module.moduleName),
-    ...actionModules.map((module) => module.moduleName),
-  ];
+  const localModules = actorModules.map((module) => module.moduleName);
   const actorSource = actorModules.map((module) => module.source).join("\n\n");
   const actorImports = new Set(importLines(actorSource));
 
@@ -260,12 +257,46 @@ function stripLocalImports(source: string, localModules: string[]): string {
 }
 
 function stripActorImports(source: string, actorImports: Set<string>): string {
-  return source
-    .split("\n")
-    .filter((line) => !actorImports.has(line.trim()))
+  const lines = source.split("\n");
+
+  return lines
+    .filter((line, index) => {
+      if (!actorImports.has(line.trim())) return true;
+
+      return importLineUsed(line, [
+        ...lines.slice(0, index),
+        ...lines.slice(index + 1),
+      ]);
+    })
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function importLineUsed(line: string, otherLines: string[]): boolean {
+  const localNames = importLocalNames(line);
+  if (localNames.length === 0) return false;
+
+  const source = otherLines.join("\n");
+  return localNames.some((name) => new RegExp(`\\b${escapeRegExp(name)}\\b`).test(source));
+}
+
+function importLocalNames(line: string): string[] {
+  const names: string[] = [];
+  const namedImports = line.match(/\{\s*([^}]+)\s*\}/)?.[1];
+
+  if (namedImports) {
+    for (const namedImport of namedImports.split(",")) {
+      const parts = namedImport.trim().split(/\s+as\s+/);
+      const name = parts.at(-1)?.trim();
+      if (name) names.push(name);
+    }
+  }
+
+  const defaultImport = line.match(/^import\s+([A-Za-z_$][\w$]*)\s*(?:,|\s+from)/)?.[1];
+  if (defaultImport) names.push(defaultImport);
+
+  return names;
 }
 
 function importLines(source: string): string[] {
