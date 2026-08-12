@@ -19,6 +19,7 @@ import {
   Pretty,
   ExtractActionName,
   ActionRecordName,
+  ActionCtx,
   AddActionsToCtx,
   DeepWriteable,
   QualifiedActionName,
@@ -190,7 +191,7 @@ interface TraitMethodFactoryFromTrait<
     [K in TraitMethodPart<TraitMethod>]: TW.Action<
       QualifiedActionName<Ctx["name"] & string, TraitMethodPart<TraitMethod>>,
       TraitActionHandler<Input, RuntimeResult<ReturnType<H>>>,
-      { trait: TraitMethod }
+      TW.ActionCtxMeta<{ trait: TraitMethod }, ActionCtx<Ctx["scope"]>>
     >;
   };
 }
@@ -235,13 +236,16 @@ type CommandResult<
   [key in CmdName]: TW.Action<
     QualifiedActionName<Service, CmdName>,
     (input: FlatIn) => Promise<RuntimeResult<ReturnType<Handler>>>,
-    {
-      route: [
-        Method,
-        Path,
-        Pretty<DeepWriteable<Schema> & DeepWriteable<Meta>>,
-      ];
-    }
+    TW.ActionCtxMeta<
+      {
+        route: [
+          Method,
+          Path,
+          Pretty<DeepWriteable<Schema> & DeepWriteable<Meta>>,
+        ];
+      },
+      ActionCtx<Scope>
+    >
   >;
 } & {
   meta<
@@ -286,22 +290,32 @@ interface CommandBody<
   ): CommandResult<CmdName, FlatIn, Method, Path, Schema, Scope, Service, H>;
 }
 
-type BuiltInEventScope = {
-  NewEmail: TW.EventKind<
-    "NewEmail",
-    { from: string; to: string; subject: string; body: string },
-    { thread: { from: string; to: string; subject: string; body: string } }
-  >;
-  NewMessage: TW.EventKind<
-    "NewMessage",
-    { sender: { name: string }; content: string; channel: string },
-    { thread: { sender: { name: string }; content: string; channel: string } }
-  >;
-  NewMention: TW.EventKind<
-    "NewMention",
-    { sender: { name: string }; text: string; channel: string }
-  >;
+type BuiltInEventMap = {
+  NewEmail: {
+    input: { from: string; to: string; subject: string; body: string };
+    scope: {
+      thread: { from: string; to: string; subject: string; body: string };
+    };
+  };
+  NewMessage: {
+    input: { sender: { name: string }; content: string; channel: string };
+    scope: {
+      thread: { sender: { name: string }; content: string; channel: string };
+    };
+  };
+  NewMention: {
+    input: { sender: { name: string }; text: string; channel: string };
+    scope: {};
+  };
 };
+
+type BuiltInEventName = keyof BuiltInEventMap & string;
+
+type BuiltInEventInput<EventName extends BuiltInEventName> =
+  BuiltInEventMap[EventName]["input"];
+
+type BuiltInEventExtraScope<EventName extends BuiltInEventName> =
+  BuiltInEventMap[EventName]["scope"];
 
 const builtInEventScope: Record<string, unknown> = {
   ...Event(
@@ -404,6 +418,21 @@ export interface Behavior<Ctx extends Record<any, any>> {
     ExtractTraitQualifiedName<TraitAction>,
     Ctx,
     ExtractTraitInput<TraitAction>
+  >;
+
+  on<const EventName extends BuiltInEventName>(
+    behavior: EventName,
+  ): ActionFactory<
+    EventHandlerName<EventName>,
+    {
+      name: EventHandlerName<EventName>;
+      service: Ctx["name"] & string;
+      meta: { event: EventName };
+      scope: {
+        input: BuiltInEventInput<EventName>;
+      } & BuiltInEventExtraScope<EventName> &
+        BaseScope<Ctx>;
+    }
   >;
 
   on<const EventName extends EventKeys<BaseScope<Ctx>>>(
@@ -784,11 +813,10 @@ function createBehavior(
           const runContext = WireCtx.new(context);
           const resolvedInitialScope = await resolveActionScope();
           const { args: modArgs, scope: behaviorScope } = mod(args);
-          const extra = {
-            ...runContext,
-            ...resolvedInitialScope,
-            ...behaviorScope,
-          };
+          const extra = mergeActorScope(
+            mergeActorScope(resolvedInitialScope, behaviorScope),
+            runContext as unknown as Record<string, unknown>,
+          );
           const gen = tap(
             unwrapStreamEvents(
               runAction(
@@ -818,11 +846,10 @@ function createBehavior(
           const runContext = WireCtx.new(context);
           const resolvedInitialScope = await resolveActionScope();
           const { args: modArgs, scope: behaviorScope } = mod(args);
-          const extra = {
-            ...runContext,
-            ...resolvedInitialScope,
-            ...behaviorScope,
-          };
+          const extra = mergeActorScope(
+            mergeActorScope(resolvedInitialScope, behaviorScope),
+            runContext as unknown as Record<string, unknown>,
+          );
           return yield* runAction(
             eventName,
             buildScope(inputMode, modArgs, extra),
@@ -846,7 +873,7 @@ function createBehavior(
           return tapRawStreamWith(rawStream(...args), dispatch(logger));
         }
 
-        function ctx(context: TW.ActionContext) {
+        function ctx(context: TW.ActionContext = WireCtx.new()) {
           const boundContext = WireCtx.new(context);
           return {
             run(...args: unknown[]) {
@@ -938,10 +965,14 @@ function createBehavior(
                   const resolvedInitialScope = await resolveActionScope();
                   return yield* runAction(
                     qualifiedCmdName,
-                    buildScope("first", [flatInput], {
-                      ...runContext,
-                      ...resolvedInitialScope,
-                    }),
+                    buildScope(
+                      "first",
+                      [flatInput],
+                      mergeActorScope(
+                        resolvedInitialScope,
+                        runContext as unknown as Record<string, unknown>,
+                      ),
+                    ),
                     handlers,
                   );
                 }
@@ -988,7 +1019,7 @@ function createBehavior(
                   return cmdRun(flatInput);
                 }
 
-                function ctx(context: TW.ActionContext) {
+                function ctx(context: TW.ActionContext = WireCtx.new()) {
                   const boundContext = WireCtx.new(context);
                   return {
                     run(flatInput: unknown) {
@@ -1517,7 +1548,7 @@ export const Actor = <
       actions: {
         generateText: (params: { model: "gpt5"; prompt: string }) => string;
       };
-    } & BuiltInEventScope;
+    };
   },
 >(
   name: PascalCase<Name>,

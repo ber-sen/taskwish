@@ -101,6 +101,53 @@ describe("Actor", () => {
     });
   });
 
+  test("Command — ctx can override injected actions", async () => {
+    const { anotherActor } = Actor("AnotherActor");
+    const { doWork } = anotherActor()
+      .on("Command", "doWork")
+
+      .input({ value: "string" })
+
+      .run(function () {
+        return `real:${this.input.value}`;
+      });
+
+    const { AnotherActor } = anotherActor().service({ doWork });
+
+    const { someActor } = Actor("SomeActor").use(AnotherActor);
+
+    const { command } = someActor()
+      .on("Command", "command")
+
+      .input({ value: "string" })
+
+      .run(function () {
+        return this.actions.anotherActor.doWork({
+          value: this.input.value,
+        });
+      });
+
+    const calls: unknown[] = [];
+    const mockDoWork = async (input: { value: string }) => {
+      calls.push(input);
+      return `mock:${input.value}`;
+    };
+
+    await expect(command({ value: "prod" })).resolves.toEqual("real:prod");
+    await expect(
+      command
+        .ctx({
+          actions: {
+            anotherActor: {
+              doWork: mockDoWork,
+            },
+          },
+        })
+        .run({ value: "test" }),
+    ).resolves.toEqual("mock:test");
+    expect(calls).toEqual([{ value: "test" }]);
+  });
+
   test("Command — no input", async () => {
     const { pinger } = Actor("Pinger");
 
@@ -373,8 +420,7 @@ describe("Actor", () => {
 
     const emitted = yields.find(
       (value) =>
-        value instanceof Signal &&
-        value.data["->"] === "Biller::InvoicePaid",
+        value instanceof Signal && value.data["->"] === "Biller::InvoicePaid",
     );
 
     expect(emitted).toBeInstanceOf(Signal);
@@ -426,19 +472,21 @@ describe("Actor", () => {
       });
 
     type T = typeof onBillerInvoicePaid;
+    type Meta = T[typeof TW.Meta];
     type check = Expect<
-      Equal<
-        TW.Action<
-          "Listener::on_biller_invoice_paid",
-          (input: {
-            invoiceId: string;
-            amount: number;
-            customer: string;
-          }) => Promise<string>,
-          { event: "Biller::InvoicePaid" }
-        >,
-        T
-      >
+      Meta extends {
+        event: "Biller::InvoicePaid";
+        ctx: {
+          abortSignal?: AbortSignal;
+          actions?: {
+            biller?: {
+              chargeCustomer?: typeof chargeCustomer.run;
+            };
+          };
+        };
+      }
+        ? true
+        : false
     >;
 
     const emitted: unknown[] = [];
@@ -451,8 +499,7 @@ describe("Actor", () => {
 
     const invoicePaid = emitted.find(
       (value) =>
-        value instanceof Signal &&
-        value.data["->"] === "Biller::InvoicePaid",
+        value instanceof Signal && value.data["->"] === "Biller::InvoicePaid",
     );
 
     expect(invoicePaid).toBeInstanceOf(Signal);
@@ -1288,10 +1335,7 @@ describe("Actor", () => {
         .run(
           Step("runSteps", function () {
             type Check = Expect<
-              Equal<
-                typeof this.actions.myActor.runSteps,
-                typeof runSteps.run
-              >
+              Equal<typeof this.actions.myActor.runSteps, typeof runSteps.run>
             >;
             return this.actions.myActor.runSteps({
               message: this.input.message,
@@ -1328,13 +1372,9 @@ describe("Actor", () => {
         typeof Greeter.greet.stream extends (input: {
           name: string;
         }) => AsyncGenerator<
-            TW.ActionEvent<
-              "Greeter::greet",
-              string,
-              { name: string }
-            >,
-            string
-          >
+          TW.ActionEvent<"Greeter::greet", string, { name: string }>,
+          string
+        >
           ? true
           : false
       >;

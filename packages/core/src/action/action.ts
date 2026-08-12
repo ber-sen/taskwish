@@ -1,6 +1,7 @@
 import {
   Apply,
   Append,
+  ActionCtx,
   ValidateTrigger,
   InferTriggerScope,
   Pretty,
@@ -104,14 +105,21 @@ type SignatureResult<
   Meta = null,
 > = {
   [key in Name]: Signature extends (...args: any) => any
-    ? TW.Action<ActionNameFor<Ctx, Name>, RuntimeHandler<Signature>, Meta>
+    ? TW.Action<
+        ActionNameFor<Ctx, Name>,
+        RuntimeHandler<Signature>,
+        TW.ActionCtxMeta<Meta, ActionCtx<Ctx["scope"]>>
+      >
     : Signature extends TW.Handler
     ? TW.Action<
         ActionNameFor<Ctx, Name>,
         RuntimeHandler<Apply<Signature, Ctx>>,
-        Meta extends null
-          ? Record<"handler", Signature>
-          : Meta & Record<"handler", Signature>
+        TW.ActionCtxMeta<
+          Meta extends null
+            ? Record<"handler", Signature>
+            : Meta & Record<"handler", Signature>,
+          ActionCtx<Ctx["scope"]>
+        >
       >
     : never;
 } & {
@@ -1047,6 +1055,50 @@ function bindContextualActions(
   return clone;
 }
 
+function mergeScopeActions(
+  existing: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...existing };
+
+  for (const [key, value] of Object.entries(incoming)) {
+    if (typeof value === "function") {
+      merged[key] = value;
+    } else {
+      merged[key] = {
+        ...(merged[key] as Record<string, unknown> | undefined),
+        ...(value as Record<string, unknown>),
+      };
+    }
+  }
+
+  return merged;
+}
+
+function mergeScope(
+  ...scopes: Record<string | symbol, unknown>[]
+): Record<string | symbol, unknown> {
+  return scopes.reduce<Record<string | symbol, unknown>>(
+    (existing, incoming) => {
+      const { actions: incomingActions, ...incomingScope } = incoming;
+      const next: Record<string | symbol, unknown> = {
+        ...existing,
+        ...incomingScope,
+      };
+
+      if (incomingActions !== null && typeof incomingActions === "object") {
+        next.actions = mergeScopeActions(
+          (existing.actions as Record<string, unknown> | undefined) ?? {},
+          incomingActions as Record<string, unknown>,
+        );
+      }
+
+      return next;
+    },
+    {},
+  );
+}
+
 export function buildScope(
   inputMode: "first" | "args",
   args: unknown[],
@@ -1319,11 +1371,11 @@ export function Action<const Name extends string>(
       ...args: unknown[]
     ) {
       const runContext = WireCtx.new(context);
-      const extra = {
-        ...runContext,
-        event: commandEvent(args[0]),
-        ...(await buildExtra()),
-      };
+      const extra = mergeScope(
+        await buildExtra(),
+        { event: commandEvent(args[0]) },
+        runContext as unknown as Record<string | symbol, unknown>,
+      );
       const gen = tap(
         unwrapStreamEvents(
           runAction(actionName, buildScope(inputMode, args, extra), handlers),
@@ -1347,11 +1399,11 @@ export function Action<const Name extends string>(
       ...args: unknown[]
     ) {
       const runContext = WireCtx.new(context);
-      const extra = {
-        ...runContext,
-        event: commandEvent(args[0]),
-        ...(await buildExtra()),
-      };
+      const extra = mergeScope(
+        await buildExtra(),
+        { event: commandEvent(args[0]) },
+        runContext as unknown as Record<string | symbol, unknown>,
+      );
       return yield* runAction(
         actionName,
         buildScope(inputMode, args, extra),
@@ -1375,7 +1427,7 @@ export function Action<const Name extends string>(
       return tapRawStreamWith(rawStream(...args), dispatch(logger));
     }
 
-    function ctx(context: TW.ActionContext) {
+    function ctx(context: TW.ActionContext = WireCtx.new()) {
       const boundContext = WireCtx.new(context);
       return {
         run(...args: unknown[]) {

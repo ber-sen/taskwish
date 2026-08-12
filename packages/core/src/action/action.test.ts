@@ -1,4 +1,4 @@
-import { expect, test, describe } from "bun:test";
+import { expect, test, describe, mock } from "bun:test";
 import { $ } from "@taskwish/expr";
 import { Expect, Equal, RawEntry } from "../helpers";
 import { Action } from "./action";
@@ -215,9 +215,7 @@ describe("Action", () => {
     const context = Ctx.new(controller.signal);
     expect(context).toBeInstanceOf(Ctx);
 
-    const stream = readAbortSignal
-      .ctx(context)
-      .stream({ name: "Stream" });
+    const stream = readAbortSignal.ctx(context).stream({ name: "Stream" });
     let item = await stream.next();
     while (!item.done) item = await stream.next();
 
@@ -233,6 +231,85 @@ describe("Action", () => {
     );
 
     expect(await hasDefaultAbortSignal()).toBe(true);
+  });
+
+  test("ctx accepts scoped action overrides", async () => {
+    const controller = new AbortController();
+    const { notifier } = Actor("Notifier");
+    const { notify } = notifier()
+      .on("Command", "notify")
+
+      .input({ message: "string" })
+
+      .run(function () {
+        return `real: ${this.input.message}`;
+      });
+
+    const { greet } = Action("greet")
+      .use(notify)
+
+      .input({ name: "string" })
+
+      .run(async function () {
+        return {
+          aborted: this.abortSignal === controller.signal,
+          message: await this.actions.notifier.notify({
+            message: this.input.name,
+          }),
+        };
+      });
+
+    // @ts-expect-error ctx() only accepts execution context, not handler input
+    greet.ctx({ input: { name: "Ada" } });
+
+    expect(
+      await greet
+        .ctx({
+          abortSignal: controller.signal,
+          actions: {
+            notifier: {
+              notify: async ({ message }) => `mock: ${message}`,
+            },
+          },
+        })
+        .run({ name: "Ada" }),
+    ).toEqual({
+      aborted: true,
+      message: "mock: Ada",
+    });
+  });
+
+  test("ctx accepts bare action overrides from use()", async () => {
+    const { someAction } = Action("someAction")
+      .input({ value: "string" })
+
+      .run(function () {
+        return `real: ${this.input.value}`;
+      });
+
+    const { caller } = Action("caller")
+      .use(someAction)
+
+      .input({ value: "string" })
+
+      .run(function () {
+        return this.actions.someAction({ value: this.input.value });
+      });
+
+    const someActionMock = mock(async ({ value }: { value: string }) => {
+      return `mock: ${value}`;
+    });
+
+    expect(
+      await caller
+        .ctx({
+          actions: {
+            someAction: someActionMock,
+          },
+        })
+        .run({ value: "Ada" }),
+    ).toEqual("mock: Ada");
+    expect(someActionMock).toHaveBeenCalledWith({ value: "Ada" });
   });
 
   test("generic function signature — this.input is args tuple", async () => {

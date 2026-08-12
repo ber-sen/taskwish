@@ -1,6 +1,6 @@
 export { wire } from "./bus";
 export { consume } from "./consume";
-export { Ctx, newContext } from "./context";
+export { Ctx, createContext, newContext } from "./context";
 export { Signal, Trace, eventData } from "./events";
 export { formatEvent, isActionEvent } from "./format";
 export { Logger, dispatch } from "./logger";

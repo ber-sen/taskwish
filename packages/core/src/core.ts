@@ -2,16 +2,17 @@ import {
   UUIDv7String,
   ValidateTrigger,
   InferTriggerScope,
+  Pretty,
   OmitListeners,
   PickListeners,
   StreamInput,
   StreamResult,
+  StripEventKinds,
 } from "./helpers";
 
 import { Type as ArkType } from "arktype";
 import type {
   Ctx as WireCtx,
-  CtxInput as WireCtxInput,
   Signal,
   Trace,
 } from "@taskwish/wire";
@@ -75,10 +76,6 @@ export namespace TW {
     ? N
     : K;
 
-  type StripEventKinds<S> = {
-    [K in keyof S as S[K] extends EventKind<any, any, any> ? never : K]: S[K];
-  };
-
   export type Scope<S> = StripEventKinds<S> & {
     abortSignal?: AbortSignal;
     self: <Return = any>(
@@ -126,11 +123,28 @@ export namespace TW {
     Meta = null,
   > = NoInfer<Handler> &
     ActionRuntime<Name, Handler> & {
-      ctx(context: WireCtxInput): ActionRuntime<Name, Handler>;
+      ctx(
+        context?: ActionContext<ActionContextScopeFromMeta<Meta>>,
+      ): ActionRuntime<Name, Handler>;
     } & Resource<Name> &
     Attributable<Meta>;
 
-  export type ActionContext = WireCtxInput;
+  export type ActionCtxMeta<
+    Meta,
+    Ctx extends Record<any, any>,
+  > = keyof Omit<Ctx, "abortSignal"> extends never
+    ? Meta
+    : Pretty<(Meta extends null ? {} : Meta) & { ctx: Ctx }>;
+
+  type ActionContextScopeFromMeta<Meta> = Meta extends {
+    ctx: infer Ctx extends Record<any, any>;
+  }
+    ? Ctx
+    : { abortSignal?: AbortSignal };
+
+  export type ActionContext<
+    Ctx extends Record<any, any> = { abortSignal?: AbortSignal },
+  > = WireCtx | AbortSignal | Ctx;
 
   export type ActionRuntime<
     Name extends string,

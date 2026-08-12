@@ -30,6 +30,10 @@ export type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
   ? true
   : false;
 
+export type StripEventKinds<S> = {
+  [K in keyof S as S[K] extends TW.EventKind<any, any, any> ? never : K]: S[K];
+};
+
 type IsListenerAction<Action> = Action extends TW.Attributable<infer Meta>
   ? Meta extends { event: string }
     ? true
@@ -458,6 +462,25 @@ export type AddActionsToCtx<Ctx extends Record<any, any>, U> = {
       } & EventsFromPlugin<U>
     : Ctx[K];
 };
+
+type DefaultContextActionKeys = "generateText";
+
+type DeepPartialContext<T> = T extends (...args: any[]) => any
+  ? T
+  : T extends object
+    ? { [K in keyof T]?: DeepPartialContext<T[K]> }
+    : T;
+
+export type ActionContextScope<Scope> = Scope extends {
+  actions: infer Actions;
+}
+  ? Exclude<keyof Actions, DefaultContextActionKeys> extends never
+    ? {}
+    : { actions?: DeepPartialContext<Omit<Actions, DefaultContextActionKeys>> }
+  : {};
+
+export type ActionCtx<Scope> = { abortSignal?: AbortSignal } &
+  ActionContextScope<Scope>;
 
 export type StreamInput<Handler extends (...args: any) => any> =
   Parameters<Handler> extends []

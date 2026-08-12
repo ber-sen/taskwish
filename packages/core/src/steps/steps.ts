@@ -1,6 +1,7 @@
 import { TW } from "../core";
 import {
   DeepWriteable,
+  ActionCtx,
   FindInferTypeFilter,
   Pretty,
   PrettyScope,
@@ -87,7 +88,10 @@ type RegularAction<
           >
         : () => Promise<ActionResult<Last>>
       : () => Promise<ActionResult<Last>>,
-    Meta
+    TW.ActionCtxMeta<
+      Meta,
+      "scope" extends keyof Ctx ? ActionCtx<Ctx["scope"]> : {}
+    >
   >;
 } & {
   meta<
