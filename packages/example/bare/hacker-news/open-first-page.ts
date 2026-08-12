@@ -1,4 +1,4 @@
-import { Trace, consume } from "@taskwish/wire";
+import { Trace, consume, mergeScope, type PartialScope } from "@taskwish/wire";
 
 import { Browser } from "../browser";
 
@@ -12,7 +12,8 @@ export const openFirstPage = Object.assign(
   },
 );
 
-function openFirstPageCtx(scope: { actions: { browser: { browse: typeof Browser.browse; }; } } = { actions: { browser: { browse: Browser.browse } } }) {
+function openFirstPageCtx(scope: PartialScope<{ actions: { browser: { browse: typeof Browser.browse; }; } }> = {}) {
+  const mergedScope = mergeScope({ actions: { browser: { browse: Browser.browse } } }, scope);
 
   async function run() {
     return consume(stream());
@@ -23,9 +24,9 @@ function openFirstPageCtx(scope: { actions: { browser: { browse: typeof Browser.
 
     yield new Trace("HackerNews::openFirstPage", { input });
 
-    const page = await scope.actions.browser.browse({
-        url: "https://news.ycombinator.com",
-      });
+    const page = await mergedScope.actions.browser.browse({
+      url: "https://news.ycombinator.com",
+    });
 
     yield new Trace("HackerNews::openFirstPage.page", { result: page });
 
@@ -46,10 +47,10 @@ function openFirstPageCtx(scope: { actions: { browser: { browse: typeof Browser.
       const title = await page.title();
       const url = page.url();
 
-      openFirstPage = await ({
+      openFirstPage = {
         title,
         url,
-      });
+      };
     }
 
     yield new Trace("HackerNews::openFirstPage.openFirstPage", { result: openFirstPage });

@@ -339,13 +339,15 @@ export const { runSteps } = myActor()
 `;
 
     expectParts(morph(source), [
+      `import { Trace, consume, mergeScope, type PartialScope } from "@taskwish/wire";`,
       `ctx: runStepsCtx,`,
-      `function runStepsCtx(scope: { abortSignal?: unknown } = {})`,
+      `function runStepsCtx(scope: PartialScope<{ abortSignal?: unknown }> = {})`,
+      `const mergedScope = mergeScope<{ abortSignal?: unknown }>({}, scope);`,
       `async function run(input: { name: string; }) {
     return consume(stream(input));
   }`,
       `async function* stream(input: { name: string; })`,
-      `const abortSignal = scope.abortSignal as AbortSignal | undefined;`,
+      `const abortSignal = mergedScope.abortSignal as AbortSignal | undefined;`,
       `const result = abortSignal?.aborted ?? false;`,
     ]);
   });
@@ -369,9 +371,43 @@ export const { runSteps } = myActor()
 `;
 
     expectParts(morph(source), [
+      `import { Trace, consume, mergeScope, type PartialScope } from "@taskwish/wire";`,
       `import { Browser } from "./browser";`,
-      `function runStepsCtx(scope: { actions: { browser: { browse: typeof Browser.browse; }; } } = { actions: { browser: { browse: Browser.browse } } })`,
-      `const page = await scope.actions.browser.browse({`,
+      `function runStepsCtx(scope: PartialScope<{ actions: { browser: { browse: typeof Browser.browse; }; } }> = {})`,
+      `const mergedScope = mergeScope({ actions: { browser: { browse: Browser.browse } } }, scope);`,
+      `const page = await mergedScope.actions.browser.browse({
+      url: "https://example.com",
+    });`,
+    ]);
+  });
+
+  test("ctx accepts partial action scope patches in generated bare output", () => {
+    const source = `import { Browser } from "./browser";
+import { Actor, Step } from "../../src";
+
+const { myActor } = Actor("MyActor").use(Browser);
+
+export const { runSteps } = myActor()
+  .on("Command", "runSteps")
+
+  .run(
+    Step("page", function () {
+      return this.actions.browser.browse({
+        url: "https://example.com",
+      });
+    }),
+
+    Step("closed", function () {
+      return this.actions.browser.close();
+    }),
+  );
+`;
+
+    expectParts(morph(source), [
+      `function runStepsCtx(scope: PartialScope<{ actions: { browser: { browse: typeof Browser.browse; close: typeof Browser.close; }; } }> = {})`,
+      `const mergedScope = mergeScope({ actions: { browser: { browse: Browser.browse, close: Browser.close } } }, scope);`,
+      `const page = await mergedScope.actions.browser.browse({`,
+      `const closed = await mergedScope.actions.browser.close();`,
     ]);
   });
 
@@ -428,6 +464,40 @@ export const { runSteps } = myActor()
       `async function loadGreeting(name: string)`,
       `const firstStep = await loadGreeting(input.name);`,
       `const lastStep = firstStep.length;`,
+    ]);
+  });
+
+  test("does not await object literals returned from async step handlers", () => {
+    const source = `import { Actor, Step } from "../../src";
+
+async function loadTitle() {
+  return "Hello";
+}
+
+const { myActor } = Actor("MyActor");
+
+export const { runSteps } = myActor()
+  .on("Command", "runSteps")
+
+  .run(
+    Step("result", async function () {
+      const title = await loadTitle();
+      const url = "https://example.com";
+
+      return {
+        title,
+        url,
+      };
+    }),
+  );
+`;
+
+    expectParts(morph(source), [
+      `const title = await loadTitle();`,
+      `result = {
+        title,
+        url,
+      };`,
     ]);
   });
 

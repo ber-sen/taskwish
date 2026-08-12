@@ -22,16 +22,21 @@ export function printAction(action: ActionSpec): string {
       : null,
     usesAbortSignal ? "abortSignal?: unknown" : null,
   ].filter((property): property is string => property !== null);
+  const scopeTypeText = `{ ${scopeProperties.join("; ")} }`;
+  const initialScopeText =
+    action.actionDependencies.length > 0
+      ? `{ actions: { ${action.actionDependencies
+          .map((dependency) => printActionDependencyDefault(dependency))
+          .join(", ")} } }`
+      : "{}";
+  const scopeReferenceName = scopeProperties.length > 0 ? "mergedScope" : "scope";
   const ctxParameterText =
     scopeProperties.length > 0
-      ? `scope: { ${scopeProperties.join("; ")} } = ${
-          action.actionDependencies.length > 0
-            ? `{ actions: { ${action.actionDependencies
-                .map((dependency) => printActionDependencyDefault(dependency))
-                .join(", ")} } }`
-            : "{}"
-        }`
+      ? `scope: PartialScope<${scopeTypeText}> = {}`
       : "scope: {} = {}";
+  const mergeScopeText = usesAbortSignal
+    ? `mergeScope<${scopeTypeText}>(${initialScopeText}, scope)`
+    : `mergeScope(${initialScopeText}, scope)`;
   const lines: string[] = [
     `export const ${action.actionName} = Object.assign(`,
     `  async function ${action.actionName}(${parameterText}) {`,
@@ -44,6 +49,9 @@ export function printAction(action: ActionSpec): string {
     `);`,
     ``,
     `function ${ctxName}(${ctxParameterText}) {`,
+    ...(scopeProperties.length > 0
+      ? [`  const ${scopeReferenceName} = ${mergeScopeText};`]
+      : []),
     ``,
     `  async function run(${parameterText}) {`,
     `    return consume(stream(${inputArgText}));`,
@@ -53,7 +61,7 @@ export function printAction(action: ActionSpec): string {
     action.inputType ? null : `    const input = undefined;`,
     ...(usesAbortSignal
       ? [
-          `    const abortSignal = scope.abortSignal as AbortSignal | undefined;`,
+          `    const abortSignal = ${scopeReferenceName}.abortSignal as AbortSignal | undefined;`,
         ]
       : []),
     ...(usesSignal
@@ -68,11 +76,13 @@ export function printAction(action: ActionSpec): string {
 
   for (const step of action.steps) {
     if (step.directExpressionText !== null) {
-      lines.push(`    const ${step.name} = ${step.directExpressionText};`);
+      lines.push(
+        `    const ${step.name} = ${scopeText(step.directExpressionText, scopeReferenceName)};`
+      );
     } else {
       lines.push(`    let ${step.name}: ${step.propertyType};`);
       lines.push(step.useBreakBlock ? `    ${step.name}Block: {` : "    {");
-      lines.push(indent(step.blockText, 6));
+      lines.push(indent(scopeText(step.blockText, scopeReferenceName), 6));
       lines.push("    }");
     }
     lines.push("");
@@ -94,6 +104,12 @@ export function printAction(action: ActionSpec): string {
   lines.push("}");
 
   return lines.join("\n");
+}
+
+function scopeText(value: string, scopeReferenceName: string): string {
+  return scopeReferenceName === "scope"
+    ? value
+    : value.replace(/\bscope\./g, `${scopeReferenceName}.`);
 }
 
 function printActionDependencyType(

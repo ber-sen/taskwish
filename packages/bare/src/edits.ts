@@ -16,7 +16,11 @@ export function applyBareMetalReplacements(
     const importLines: string[] = [];
 
     if (!hasPackageImport(sourceFile, "@taskwish/wire")) {
-      importLines.push(`import { Trace, consume } from "@taskwish/wire";`);
+      importLines.push(
+        actions.some(actionNeedsScope)
+          ? `import { Trace, consume, mergeScope, type PartialScope } from "@taskwish/wire";`
+          : `import { Trace, consume } from "@taskwish/wire";`
+      );
     }
 
     if (importLines.length > 0) {
@@ -53,6 +57,13 @@ export function applyBareMetalReplacements(
   }
 
   return applyTextEdits(sourceText, edits);
+}
+
+function actionNeedsScope(action: ActionSpec): boolean {
+  return (
+    action.actionDependencies.length > 0 ||
+    action.steps.some((step) => step.usesAbortSignal)
+  );
 }
 
 function importInsertionPosition(

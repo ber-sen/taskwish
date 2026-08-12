@@ -8,7 +8,6 @@ import { Step } from "../steps";
 import { InferType } from "../use";
 import {
   Logger,
-  Signal,
   Trace,
   eventData,
   formatEvent,

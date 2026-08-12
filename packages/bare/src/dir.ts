@@ -6,7 +6,7 @@ import { Node, Project, QuoteKind, ScriptTarget, SyntaxKind, ts } from "ts-morph
 
 import { applyBareMetalReplacements } from "./edits";
 import { findActionSpecs } from "./parser";
-import { unwrapExpression } from "./syntax";
+import { isDefined, unwrapExpression } from "./syntax";
 import type { MorphOptions } from "./types";
 
 export type MorphDirOptions = MorphOptions & {
@@ -58,32 +58,36 @@ export async function morphDir(
 
   await mkdir(outputDirectory, { recursive: true });
 
-  for (const actorModule of actorModules) {
-    await removeOutput(join(outputDirectory, actorModule.fileName));
-  }
+  await Promise.all(
+    actorModules.map((actorModule) =>
+      removeOutput(join(outputDirectory, actorModule.fileName))
+    )
+  );
 
   const localModules = actorModules.map((module) => module.moduleName);
   const actorSource = actorModules.map((module) => module.source).join("\n\n");
   const actorImports = new Set(importLines(actorSource));
 
-  for (const actionModule of actionModules) {
-    const actionSource = splitDirectivePrologue(actionModule.source);
-    const input = stripLocalImports(
-      `${actorSource}\n\n${actionSource.body}`,
-      localModules
-    );
-    const output = actionSource.directivePrologue + stripActorImports(
-      exportRunHelpers(
-        morphSource(input, {
-          ...options,
-          filePath: actionModule.filePath,
-        })
-      ),
-      actorImports
-    );
+  await Promise.all(
+    actionModules.map((actionModule) => {
+      const actionSource = splitDirectivePrologue(actionModule.source);
+      const input = stripLocalImports(
+        `${actorSource}\n\n${actionSource.body}`,
+        localModules
+      );
+      const output = actionSource.directivePrologue + stripActorImports(
+        exportRunHelpers(
+          morphSource(input, {
+            ...options,
+            filePath: actionModule.filePath,
+          })
+        ),
+        actorImports
+      );
 
-    await writeOutput(join(outputDirectory, actionModule.fileName), output);
-  }
+      return writeOutput(join(outputDirectory, actionModule.fileName), output);
+    })
+  );
 
   await writeOutput(
     join(outputDirectory, "index.ts"),
@@ -93,24 +97,26 @@ export async function morphDir(
 
 async function readSourceModules(directory: string): Promise<SourceModule[]> {
   const entries = await readdir(directory, { withFileTypes: true });
-  const modules: SourceModule[] = [];
+  const modules = await Promise.all(
+    entries.map(async (entry): Promise<SourceModule | null> => {
+      if (!entry.isFile()) return null;
+      if (entry.name === "index.ts") return null;
+      if (extname(entry.name) !== ".ts") return null;
+      if (entry.name.endsWith(".d.ts")) return null;
 
-  for (const entry of entries) {
-    if (!entry.isFile()) continue;
-    if (entry.name === "index.ts") continue;
-    if (extname(entry.name) !== ".ts") continue;
-    if (entry.name.endsWith(".d.ts")) continue;
+      const filePath = join(directory, entry.name);
+      return {
+        fileName: entry.name,
+        filePath,
+        moduleName: `./${entry.name.replace(/\.ts$/, "")}`,
+        source: await Bun.file(filePath).text(),
+      };
+    })
+  );
 
-    const filePath = join(directory, entry.name);
-    modules.push({
-      fileName: entry.name,
-      filePath,
-      moduleName: `./${entry.name.replace(/\.ts$/, "")}`,
-      source: await Bun.file(filePath).text(),
-    });
-  }
-
-  return modules.sort((a, b) => a.fileName.localeCompare(b.fileName));
+  return modules
+    .filter(isDefined)
+    .sort((a, b) => a.fileName.localeCompare(b.fileName));
 }
 
 function hasActorBinding(source: string): boolean {
