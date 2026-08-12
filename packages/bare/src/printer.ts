@@ -14,6 +14,9 @@ export function printAction(action: ActionSpec): string {
   const inputArgText = action.inputType ? "input" : "";
   const usesSignal = action.steps.some((step) => step.usesSignal);
   const usesAbortSignal = action.steps.some((step) => step.usesAbortSignal);
+  const ctxParameterText = usesAbortSignal
+    ? "scope: { abortSignal?: unknown } = {}"
+    : "scope: {} = {}";
   const lines: string[] = [
     `export const ${action.actionName} = Object.assign(`,
     `  async function ${action.actionName}(${parameterText}) {`,
@@ -25,8 +28,7 @@ export function printAction(action: ActionSpec): string {
     `  },`,
     `);`,
     ``,
-    `function ${ctxName}(scope: Ctx = Ctx.new()) {`,
-    `  scope = Ctx.new(scope);`,
+    `function ${ctxName}(${ctxParameterText}) {`,
     ``,
     `  async function run(${parameterText}) {`,
     `    return consume(stream(${inputArgText}));`,
@@ -34,7 +36,11 @@ export function printAction(action: ActionSpec): string {
     ``,
     `  async function* stream(${parameterText}) {`,
     action.inputType ? null : `    const input = undefined;`,
-    ...(usesAbortSignal ? [`    const abortSignal = scope.abortSignal;`] : []),
+    ...(usesAbortSignal
+      ? [
+          `    const abortSignal = scope.abortSignal as AbortSignal | undefined;`,
+        ]
+      : []),
     ...(usesSignal
       ? [
           `    const signal = (name: string, input: unknown) => new Trace(name, { input });`,

@@ -1,6 +1,6 @@
 "use server";
 
-import { Trace, consume, Ctx } from "@taskwish/wire";
+import { Trace, consume } from "@taskwish/wire";
 
 export const hello = Object.assign(
   async function hello(input: { name: string; }) {
@@ -12,8 +12,7 @@ export const hello = Object.assign(
   },
 );
 
-function helloCtx(scope: Ctx = Ctx.new()) {
-  scope = Ctx.new(scope);
+function helloCtx(scope: {} = {}) {
 
   async function run(input: { name: string; }) {
     return consume(stream(input));

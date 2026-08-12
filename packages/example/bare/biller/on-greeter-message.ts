@@ -1,6 +1,6 @@
 "use server";
 
-import { Trace, consume, Ctx } from "@taskwish/wire";
+import { Trace, consume } from "@taskwish/wire";
 
 export const onGreeterMessage = Object.assign(
   async function onGreeterMessage(input: { name: string; }) {
@@ -12,8 +12,7 @@ export const onGreeterMessage = Object.assign(
   },
 );
 
-function onGreeterMessageCtx(scope: Ctx = Ctx.new()) {
-  scope = Ctx.new(scope);
+function onGreeterMessageCtx(scope: {} = {}) {
 
   async function run(input: { name: string; }) {
     return consume(stream(input));

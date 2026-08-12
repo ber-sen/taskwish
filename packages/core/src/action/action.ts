@@ -14,7 +14,6 @@ import {
 import type { Steps, ActionResultKind } from "../steps";
 import { TW } from "../core";
 import {
-  Ctx as WireCtx,
   dispatch,
   type ConsoleLike,
   type LoggerConfig,
@@ -287,8 +286,11 @@ export async function* unwrapStreamEvents(
   }
 }
 
-export type Scope = WireCtx & {
+export type ExecutionContext = Record<string | symbol, unknown>;
+
+export type Scope = ExecutionContext & {
   input: unknown;
+  abortSignal?: AbortSignal;
   signal<T extends string, D extends Record<string, unknown>>(
     type: T,
     data: D,
@@ -297,10 +299,37 @@ export type Scope = WireCtx & {
 
 type ContextualAction = ((...args: unknown[]) => unknown) & {
   [ContextualActionTag]?: (
-    context: WireCtx,
+    context: ExecutionContext,
     ...args: unknown[]
   ) => unknown;
 };
+
+function isAbortSignal(value: unknown): value is AbortSignal {
+  return value instanceof AbortSignal;
+}
+
+export function normalizeActionContext(
+  context: TW.ActionContext = {},
+): ExecutionContext {
+  if (isAbortSignal(context)) return { abortSignal: context };
+
+  const normalized: ExecutionContext = {};
+  const contextRecord = context as Record<string | symbol, unknown>;
+
+  for (const key of Object.keys(contextRecord)) {
+    const value = contextRecord[key];
+    if (value === undefined) continue;
+    normalized[key] = value;
+  }
+
+  for (const key of Object.getOwnPropertySymbols(contextRecord)) {
+    const value = contextRecord[key];
+    if (value === undefined) continue;
+    normalized[key] = value;
+  }
+
+  return normalized;
+}
 
 // ── InferType action-step probe ───────────────────────────────────────────────
 
@@ -1019,7 +1048,7 @@ export async function* runAction(
 
 function bindContextualActions(
   value: unknown,
-  context: WireCtx,
+  context: ExecutionContext,
   visited = new WeakMap<object, unknown>(),
 ): unknown {
   if (typeof value === "function") {
@@ -1126,11 +1155,8 @@ export function buildScope(
     userExtra[key] = extra[key];
   }
 
-  const context = WireCtx.new(userExtra);
-
   const scope: Scope = {
     ...userExtra,
-    ...context,
     input: inputMode === "args" ? args : args[0],
     async *signal<T extends string, D extends Record<string, unknown>>(
       type: T,
@@ -1186,8 +1212,12 @@ export function Action<const Name extends string>(
         typeof (plugin as { ctx?: unknown }).ctx === "function"
       ) {
         Object.defineProperty(run, ContextualActionTag, {
-          value: (context: WireCtx, ...args: unknown[]) =>
-            (plugin as { ctx: (context: WireCtx) => { run: Function } })
+          value: (context: ExecutionContext, ...args: unknown[]) =>
+            (
+              plugin as {
+                ctx: (context: ExecutionContext) => { run: Function };
+              }
+            )
               .ctx(context)
               .run(...args),
         });
@@ -1370,11 +1400,11 @@ export function Action<const Name extends string>(
       context: TW.ActionContext,
       ...args: unknown[]
     ) {
-      const runContext = WireCtx.new(context);
+      const runContext = normalizeActionContext(context);
       const extra = mergeScope(
         await buildExtra(),
         { event: commandEvent(args[0]) },
-        runContext as unknown as Record<string | symbol, unknown>,
+        runContext,
       );
       const gen = tap(
         unwrapStreamEvents(
@@ -1387,7 +1417,7 @@ export function Action<const Name extends string>(
     }
 
     async function actionRun(...args: unknown[]) {
-      return actionRunCtx(WireCtx.new(), ...args);
+      return actionRunCtx({}, ...args);
     }
 
     async function consume(...args: unknown[]) {
@@ -1398,11 +1428,11 @@ export function Action<const Name extends string>(
       context: TW.ActionContext,
       ...args: unknown[]
     ) {
-      const runContext = WireCtx.new(context);
+      const runContext = normalizeActionContext(context);
       const extra = mergeScope(
         await buildExtra(),
         { event: commandEvent(args[0]) },
-        runContext as unknown as Record<string | symbol, unknown>,
+        runContext,
       );
       return yield* runAction(
         actionName,
@@ -1412,7 +1442,7 @@ export function Action<const Name extends string>(
     }
 
     async function* rawStream(...args: unknown[]) {
-      return yield* rawStreamCtx(WireCtx.new(), ...args);
+      return yield* rawStreamCtx({}, ...args);
     }
 
     function streamCtx(context: TW.ActionContext, ...args: unknown[]) {
@@ -1420,15 +1450,15 @@ export function Action<const Name extends string>(
     }
 
     function stream(...args: unknown[]) {
-      return streamCtx(WireCtx.new(), ...args);
+      return streamCtx({}, ...args);
     }
 
     function loggedRawStream(...args: unknown[]) {
       return tapRawStreamWith(rawStream(...args), dispatch(logger));
     }
 
-    function ctx(context: TW.ActionContext = WireCtx.new()) {
-      const boundContext = WireCtx.new(context);
+    function ctx(context: TW.ActionContext = {}) {
+      const boundContext = normalizeActionContext(context);
       return {
         run(...args: unknown[]) {
           return actionRunCtx(boundContext, ...args);

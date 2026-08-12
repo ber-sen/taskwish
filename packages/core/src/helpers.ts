@@ -476,10 +476,14 @@ export type ActionContextScope<Scope> = Scope extends {
 }
   ? Exclude<keyof Actions, DefaultContextActionKeys> extends never
     ? {}
-    : { actions?: DeepPartialContext<Omit<Actions, DefaultContextActionKeys>> }
+    : {
+        actions?: TW.Configurable<
+          DeepPartialContext<Omit<Actions, DefaultContextActionKeys>>
+        >;
+      }
   : {};
 
-export type ActionCtx<Scope> = { abortSignal?: AbortSignal } &
+export type ActionCtx<Scope> = { abortSignal?: TW.Configurable<AbortSignal> } &
   ActionContextScope<Scope>;
 
 export type StreamInput<Handler extends (...args: any) => any> =

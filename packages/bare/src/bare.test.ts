@@ -36,7 +36,7 @@ export const { runSteps } = myActor()
 export const { MyActor } = myActor().service({ runSteps });
 `;
     expect(morph(source))
-      .toBe(`import { Trace, consume, Ctx } from "@taskwish/wire";
+      .toBe(`import { Trace, consume } from "@taskwish/wire";
 
 export const runSteps = Object.assign(
   async function runSteps(input: { message: string; }) {
@@ -48,8 +48,7 @@ export const runSteps = Object.assign(
   },
 );
 
-function runStepsCtx(scope: Ctx = Ctx.new()) {
-  scope = Ctx.new(scope);
+function runStepsCtx(scope: {} = {}) {
 
   async function run(input: { message: string; }) {
     return consume(stream(input));
@@ -294,8 +293,7 @@ export const { runSteps } = myActor()
       `export const runSteps = Object.assign(`,
       `...runStepsCtx(),`,
       `ctx: runStepsCtx,`,
-      `function runStepsCtx(scope: Ctx = Ctx.new())`,
-      `scope = Ctx.new(scope);`,
+      `function runStepsCtx(scope: {} = {})`,
     ]);
   });
 
@@ -318,11 +316,12 @@ export const { runSteps } = myActor()
 
     expectParts(morph(source), [
       `ctx: runStepsCtx,`,
+      `function runStepsCtx(scope: { abortSignal?: unknown } = {})`,
       `async function run(input: { name: string; }) {
     return consume(stream(input));
   }`,
       `async function* stream(input: { name: string; })`,
-      `const abortSignal = scope.abortSignal;`,
+      `const abortSignal = scope.abortSignal as AbortSignal | undefined;`,
       `const result = abortSignal?.aborted ?? false;`,
     ]);
   });
@@ -461,7 +460,7 @@ export const { Greeter } = greeter().service({ hello });
       output.startsWith(
         `"use server";
 
-import { Trace, consume, Ctx } from "@taskwish/wire";`
+import { Trace, consume } from "@taskwish/wire";`
       )
     ).toBe(true);
   });

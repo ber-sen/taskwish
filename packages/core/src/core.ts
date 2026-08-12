@@ -12,7 +12,6 @@ import {
 
 import { Type as ArkType } from "arktype";
 import type {
-  Ctx as WireCtx,
   Signal,
   Trace,
 } from "@taskwish/wire";
@@ -45,6 +44,9 @@ export namespace TW {
   }
 
   export interface Resource<Name extends string> extends Named<Name> {}
+
+  export type Configurable<Type> = Type;
+
   export abstract class Handler {
     readonly ctx!: Record<"model", unknown>;
     run?: (...x: never[]) => Promise<any>;
@@ -77,7 +79,7 @@ export namespace TW {
     : K;
 
   export type Scope<S> = StripEventKinds<S> & {
-    abortSignal?: AbortSignal;
+    abortSignal?: Configurable<AbortSignal>;
     self: <Return = any>(
       input: S extends Record<any, any>
         ? S["input"] extends Record<any, any>
@@ -140,11 +142,13 @@ export namespace TW {
     ctx: infer Ctx extends Record<any, any>;
   }
     ? Ctx
-    : { abortSignal?: AbortSignal };
+    : { abortSignal?: Configurable<AbortSignal> };
 
   export type ActionContext<
-    Ctx extends Record<any, any> = { abortSignal?: AbortSignal },
-  > = WireCtx | AbortSignal | Ctx;
+    Ctx extends Record<any, any> = {
+      abortSignal?: Configurable<AbortSignal>;
+    },
+  > = AbortSignal | Ctx;
 
   export type ActionRuntime<
     Name extends string,

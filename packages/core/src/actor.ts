@@ -3,11 +3,13 @@ import {
   RawLoggedStreamTag,
   RawStreamTag,
   buildScope,
+  normalizeActionContext,
   runAction,
   tapRawStreamWith,
   tapWith,
   unwrapStreamEvents,
   type ActionFactory,
+  type ExecutionContext,
 } from "./action";
 import type { ActionMeta, ValidateActionMeta } from "./action/meta";
 import { Event } from "./event";
@@ -32,7 +34,6 @@ import {
 } from "./helpers";
 import { TW } from "./core";
 import {
-  Ctx as WireCtx,
   dispatch,
   Signal,
   type ConsoleLike,
@@ -810,12 +811,12 @@ function createBehavior(
           context: TW.ActionContext,
           ...args: unknown[]
         ) {
-          const runContext = WireCtx.new(context);
+          const runContext = normalizeActionContext(context);
           const resolvedInitialScope = await resolveActionScope();
           const { args: modArgs, scope: behaviorScope } = mod(args);
           const extra = mergeActorScope(
             mergeActorScope(resolvedInitialScope, behaviorScope),
-            runContext as unknown as Record<string, unknown>,
+            runContext as Record<string, unknown>,
           );
           const gen = tap(
             unwrapStreamEvents(
@@ -832,7 +833,7 @@ function createBehavior(
         }
 
         async function actionRun(...args: unknown[]) {
-          return actionRunCtx(WireCtx.new(), ...args);
+          return actionRunCtx({}, ...args);
         }
 
         async function consume(...args: unknown[]) {
@@ -843,12 +844,12 @@ function createBehavior(
           context: TW.ActionContext,
           ...args: unknown[]
         ) {
-          const runContext = WireCtx.new(context);
+          const runContext = normalizeActionContext(context);
           const resolvedInitialScope = await resolveActionScope();
           const { args: modArgs, scope: behaviorScope } = mod(args);
           const extra = mergeActorScope(
             mergeActorScope(resolvedInitialScope, behaviorScope),
-            runContext as unknown as Record<string, unknown>,
+            runContext as Record<string, unknown>,
           );
           return yield* runAction(
             eventName,
@@ -858,7 +859,7 @@ function createBehavior(
         }
 
         async function* rawStream(...args: unknown[]) {
-          return yield* rawStreamCtx(WireCtx.new(), ...args);
+          return yield* rawStreamCtx({}, ...args);
         }
 
         function streamCtx(context: TW.ActionContext, ...args: unknown[]) {
@@ -866,15 +867,15 @@ function createBehavior(
         }
 
         function stream(...args: unknown[]) {
-          return streamCtx(WireCtx.new(), ...args);
+          return streamCtx({}, ...args);
         }
 
         function loggedRawStream(...args: unknown[]) {
           return tapRawStreamWith(rawStream(...args), dispatch(logger));
         }
 
-        function ctx(context: TW.ActionContext = WireCtx.new()) {
-          const boundContext = WireCtx.new(context);
+        function ctx(context: TW.ActionContext = {}) {
+          const boundContext = normalizeActionContext(context);
           return {
             run(...args: unknown[]) {
               return actionRunCtx(boundContext, ...args);
@@ -961,7 +962,7 @@ function createBehavior(
                   context: TW.ActionContext,
                   flatInput: unknown,
                 ) {
-                  const runContext = WireCtx.new(context);
+                  const runContext = normalizeActionContext(context);
                   const resolvedInitialScope = await resolveActionScope();
                   return yield* runAction(
                     qualifiedCmdName,
@@ -970,7 +971,7 @@ function createBehavior(
                       [flatInput],
                       mergeActorScope(
                         resolvedInitialScope,
-                        runContext as unknown as Record<string, unknown>,
+                        runContext as Record<string, unknown>,
                       ),
                     ),
                     handlers,
@@ -978,7 +979,7 @@ function createBehavior(
                 }
 
                 async function* rawCmdStream(flatInput: unknown) {
-                  return yield* rawCmdStreamCtx(WireCtx.new(), flatInput);
+                  return yield* rawCmdStreamCtx({}, flatInput);
                 }
 
                 function cmdStreamCtx(
@@ -991,7 +992,7 @@ function createBehavior(
                 }
 
                 function cmdStream(flatInput: unknown) {
-                  return cmdStreamCtx(WireCtx.new(), flatInput);
+                  return cmdStreamCtx({}, flatInput);
                 }
 
                 function loggedRawCmdStream(flatInput: unknown) {
@@ -1012,15 +1013,15 @@ function createBehavior(
                 }
 
                 async function cmdRun(flatInput: unknown) {
-                  return cmdRunCtx(WireCtx.new(), flatInput);
+                  return cmdRunCtx({}, flatInput);
                 }
 
                 async function cmdConsume(flatInput: unknown) {
                   return cmdRun(flatInput);
                 }
 
-                function ctx(context: TW.ActionContext = WireCtx.new()) {
-                  const boundContext = WireCtx.new(context);
+                function ctx(context: TW.ActionContext = {}) {
+                  const boundContext = normalizeActionContext(context);
                   return {
                     run(flatInput: unknown) {
                       return cmdRunCtx(boundContext, flatInput);
@@ -1124,8 +1125,12 @@ function exposeAction(plugin: unknown) {
       typeof (plugin as { ctx?: unknown }).ctx === "function"
     ) {
       Object.defineProperty(run, ContextualActionTag, {
-        value: (context: WireCtx, ...args: unknown[]) =>
-          (plugin as { ctx: (context: WireCtx) => { run: Function } })
+        value: (context: ExecutionContext, ...args: unknown[]) =>
+          (
+            plugin as {
+              ctx: (context: ExecutionContext) => { run: Function };
+            }
+          )
             .ctx(context)
             .run(...args),
       });

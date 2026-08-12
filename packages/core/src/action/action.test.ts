@@ -7,7 +7,6 @@ import { TW } from "../core";
 import { Step } from "../steps";
 import { InferType } from "../use";
 import {
-  Ctx,
   Logger,
   Signal,
   Trace,
@@ -212,10 +211,9 @@ describe("Action", () => {
       await readAbortSignal.ctx(controller.signal).run({ name: "Test" }),
     ).toEqual({ name: "Test", direct: true });
 
-    const context = Ctx.new(controller.signal);
-    expect(context).toBeInstanceOf(Ctx);
-
-    const stream = readAbortSignal.ctx(context).stream({ name: "Stream" });
+    const stream = readAbortSignal
+      .ctx({ abortSignal: controller.signal })
+      .stream({ name: "Stream" });
     let item = await stream.next();
     while (!item.done) item = await stream.next();
 
@@ -224,13 +222,13 @@ describe("Action", () => {
       direct: true,
     });
 
-    const { hasDefaultAbortSignal } = Action("hasDefaultAbortSignal").run(
+    const { hasNoDefaultAbortSignal } = Action("hasNoDefaultAbortSignal").run(
       function () {
-        return this.abortSignal instanceof AbortSignal;
+        return this.abortSignal === undefined;
       },
     );
 
-    expect(await hasDefaultAbortSignal()).toBe(true);
+    expect(await hasNoDefaultAbortSignal()).toBe(true);
   });
 
   test("ctx accepts scoped action overrides", async () => {
