@@ -1,34 +1,45 @@
 "use server";
 
-import { Trace, consume } from "@taskwish/wire";
+import { Wire, createScope } from "@taskwish/wire";
 
-export const onGreeterMessage = Object.assign(
+interface OnGreeterMessageAction {
+  (input: { name: string; }): Promise<{ invoice: string; }>;
+  run(input: { name: string; }): Promise<{ invoice: string; }>;
+  stream(input: { name: string; }): Promise<{ invoice: string; }>;
+  ctx: typeof onGreeterMessageCtx;
+}
+
+export const onGreeterMessage: OnGreeterMessageAction = Object.assign(
   async function onGreeterMessage(input: { name: string; }) {
     return onGreeterMessageCtx().run(input);
   },
   {
-    ...onGreeterMessageCtx(),
+    run: onGreeterMessageCtx().run,
+    stream: onGreeterMessageCtx().stream,
     ctx: onGreeterMessageCtx,
   },
 );
 
-function onGreeterMessageCtx(scope: {} = {}) {
+function onGreeterMessageCtx(ctx = {}) {
+  const wire = new Wire({ threadId: "main", log: "console" });
+  const initialScope = { wire };
+  const scope: typeof initialScope = createScope(initialScope, ctx);
 
   async function run(input: { name: string; }) {
-    return consume(stream(input));
+    return stream(input);
   }
 
-  async function* stream(input: { name: string; }) {
+  async function stream(input: { name: string; }) {
 
-    yield new Trace("Biller::onGreeterMessage", { input });
+    scope.wire.trace("Biller::onGreeterMessage", { input });
 
     const onGreeterMessage = {
       invoice: `Invoice created from greeter message: ${input.name}`,
     };
 
-    yield new Trace("Biller::onGreeterMessage.onGreeterMessage", { result: onGreeterMessage });
+    scope.wire.trace("Biller::onGreeterMessage.onGreeterMessage", { result: onGreeterMessage });
 
-    yield new Trace("Biller::onGreeterMessage", { result: onGreeterMessage });
+    scope.wire.trace("Biller::onGreeterMessage", { result: onGreeterMessage });
 
     return onGreeterMessage;
   }

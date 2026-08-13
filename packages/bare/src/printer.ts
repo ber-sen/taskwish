@@ -10,54 +10,52 @@ export function printAction(action: ActionSpec): string {
 
   const actionEventName = `${action.actorName}::${action.actionName}`;
   const ctxName = `${action.actionName}Ctx`;
+  const interfaceName = `${upperFirst(action.actionName)}Action`;
   const parameterText = action.inputType ? `input: ${action.inputType}` : "";
   const inputArgText = action.inputType ? "input" : "";
   const usesSignal = action.steps.some((step) => step.usesSignal);
   const usesAbortSignal = action.steps.some((step) => step.usesAbortSignal);
-  const scopeProperties = [
+  const returnTypeText = action.steps.at(-1)!.propertyType;
+  const initialScopeProperties = [
+    `wire`,
+    usesAbortSignal ? `abortSignal: undefined as AbortSignal | undefined` : null,
     action.actionDependencies.length > 0
       ? `actions: { ${action.actionDependencies
-          .map((dependency) => printActionDependencyType(dependency))
-          .join(" ")} }`
-      : null,
-    usesAbortSignal ? "abortSignal?: unknown" : null,
-  ].filter((property): property is string => property !== null);
-  const scopeTypeText = `{ ${scopeProperties.join("; ")} }`;
-  const initialScopeText =
-    action.actionDependencies.length > 0
-      ? `{ actions: { ${action.actionDependencies
           .map((dependency) => printActionDependencyDefault(dependency))
-          .join(", ")} } }`
-      : "{}";
+          .join(", ")} }`
+      : null,
+  ].filter((property): property is string => property !== null);
+  const initialScopeText = `{ ${initialScopeProperties.join(", ")} }`;
   const scopeReferenceName = "scope";
-  const ctxParameterText =
-    scopeProperties.length > 0
-      ? `ctx: PartialScope<${scopeTypeText}> = {}`
-      : "scope: {} = {}";
-  const createScopeText = usesAbortSignal
-    ? `createScope<${scopeTypeText}>(${initialScopeText}, ctx)`
-    : `createScope(${initialScopeText}, ctx)`;
   const lines: string[] = [
-    `export const ${action.actionName} = Object.assign(`,
+    `interface ${interfaceName} {`,
+    `  (${parameterText}): Promise<${returnTypeText}>;`,
+    `  run(${parameterText}): Promise<${returnTypeText}>;`,
+    `  stream(${parameterText}): Promise<${returnTypeText}>;`,
+    `  ctx: typeof ${ctxName};`,
+    `}`,
+    ``,
+    `export const ${action.actionName}: ${interfaceName} = Object.assign(`,
     `  async function ${action.actionName}(${parameterText}) {`,
     `    return ${ctxName}().run(${inputArgText});`,
     `  },`,
     `  {`,
-    `    ...${ctxName}(),`,
+    `    run: ${ctxName}().run,`,
+    `    stream: ${ctxName}().stream,`,
     `    ctx: ${ctxName},`,
     `  },`,
     `);`,
     ``,
-    `function ${ctxName}(${ctxParameterText}) {`,
-    ...(scopeProperties.length > 0
-      ? [`  const ${scopeReferenceName} = ${createScopeText};`]
-      : []),
+    `function ${ctxName}(ctx = {}) {`,
+    `  const wire = new Wire({ threadId: "main", log: "console" });`,
+    `  const initialScope = ${initialScopeText};`,
+    `  const ${scopeReferenceName}: typeof initialScope = createScope(initialScope, ctx);`,
     ``,
     `  async function run(${parameterText}) {`,
-    `    return consume(stream(${inputArgText}));`,
+    `    return stream(${inputArgText});`,
     `  }`,
     ``,
-    `  async function* stream(${parameterText}) {`,
+    `  async function stream(${parameterText}) {`,
     action.inputType ? null : `    const input = undefined;`,
     ...(usesAbortSignal
       ? [
@@ -66,11 +64,11 @@ export function printAction(action: ActionSpec): string {
       : []),
     ...(usesSignal
       ? [
-          `    const signal = (name: string, input: unknown) => new Trace(name, { input });`,
+          `    const signal = (name: string, input: unknown): Record<string, unknown> => ({ ">>": name, input });`,
         ]
       : []),
     ``,
-    `    yield new Trace("${actionEventName}", { input });`,
+    `    scope.wire.trace("${actionEventName}", { input });`,
     ``,
   ].filter((line): line is string => line !== null);
 
@@ -87,14 +85,14 @@ export function printAction(action: ActionSpec): string {
     }
     lines.push("");
     lines.push(
-      `    yield new Trace("${actionEventName}.${step.name}", { result: ${step.name} });`
+      `    scope.wire.trace("${actionEventName}.${step.name}", { result: ${step.name} });`
     );
     lines.push("");
   }
 
   const lastStep = action.steps.at(-1)!;
   lines.push(
-    `    yield new Trace("${actionEventName}", { result: ${lastStep.name} });`
+    `    scope.wire.trace("${actionEventName}", { result: ${lastStep.name} });`
   );
   lines.push("");
   lines.push(`    return ${lastStep.name};`);
@@ -112,12 +110,8 @@ function scopeText(value: string, scopeReferenceName: string): string {
     : value.replace(/\bscope\./g, `${scopeReferenceName}.`);
 }
 
-function printActionDependencyType(
-  dependency: import("./types").ActionDependency,
-): string {
-  return `${dependency.scopeName}: { ${dependency.actionNames
-    .map((actionName) => `${actionName}: typeof ${dependency.identifier}.${actionName};`)
-    .join(" ")} };`;
+function upperFirst(value: string): string {
+  return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
 }
 
 function printActionDependencyDefault(

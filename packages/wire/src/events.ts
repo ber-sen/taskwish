@@ -1,19 +1,28 @@
 import type { Pretty } from "./types";
 
-export class Signal<const EventType extends string, const Data> {
-  readonly event = "TW::Signal";
-  data: Pretty<{ "->": EventType } & Data>;
+export class Signal<
+  const EventType extends string = string,
+  Data = Record<string, unknown>,
+> {
+  declare readonly event: "TW::Signal";
+  declare readonly type: string;
+  declare data: Pretty<{ "->": EventType } & Data>;
 
   constructor(type: EventType, data: Data) {
+    this.event = "TW::Signal";
+    this.type = type;
     this.data = Object.assign({ "->": type }, data);
   }
 }
 
-export class Trace<const EventType extends string, const Data extends object> {
-  readonly event = "TW::Trace";
-  data: Pretty<{ ">>": EventType } & Data>;
+export class Trace<const EventType extends string = string, Data extends object = Record<string, unknown>> {
+  declare readonly event: "TW::Trace";
+  declare readonly type: string;
+  declare data: Pretty<{ ">>": EventType } & Data>;
 
   constructor(type: EventType, data: Data) {
+    this.event = "TW::Trace";
+    this.type = type;
     this.data = Object.assign({ ">>": type }, data);
   }
 
@@ -23,7 +32,13 @@ export class Trace<const EventType extends string, const Data extends object> {
 }
 
 export function eventData(event: unknown): unknown {
-  return event instanceof Signal || event instanceof Trace
-    ? event.data
-    : event;
+  return isTaskWishEvent(event) ? event.data : event;
+}
+
+function isTaskWishEvent(event: unknown): event is Signal | Trace {
+  if (event === null || typeof event !== "object") return false;
+
+  const eventType = (event as { event?: unknown }).event;
+
+  return eventType === "TW::Signal" || eventType === "TW::Trace";
 }

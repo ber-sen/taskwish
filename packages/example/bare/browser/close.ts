@@ -1,33 +1,44 @@
-import { Trace, consume } from "@taskwish/wire";
+import { Wire, createScope } from "@taskwish/wire";
 
 import { closeBrowserContext } from "./browse";
 
-export const close = Object.assign(
+interface CloseAction {
+  (): Promise<{ closed: boolean; }>;
+  run(): Promise<{ closed: boolean; }>;
+  stream(): Promise<{ closed: boolean; }>;
+  ctx: typeof closeCtx;
+}
+
+export const close: CloseAction = Object.assign(
   async function close() {
     return closeCtx().run();
   },
   {
-    ...closeCtx(),
+    run: closeCtx().run,
+    stream: closeCtx().stream,
     ctx: closeCtx,
   },
 );
 
-function closeCtx(scope: {} = {}) {
+function closeCtx(ctx = {}) {
+  const wire = new Wire({ threadId: "main", log: "console" });
+  const initialScope = { wire };
+  const scope: typeof initialScope = createScope(initialScope, ctx);
 
   async function run() {
-    return consume(stream());
+    return stream();
   }
 
-  async function* stream() {
+  async function stream() {
     const input = undefined;
 
-    yield new Trace("Browser::close", { input });
+    scope.wire.trace("Browser::close", { input });
 
     const closeBrowser = await closeBrowserContext();
 
-    yield new Trace("Browser::close.closeBrowser", { result: closeBrowser });
+    scope.wire.trace("Browser::close.closeBrowser", { result: closeBrowser });
 
-    yield new Trace("Browser::close", { result: closeBrowser });
+    scope.wire.trace("Browser::close", { result: closeBrowser });
 
     return closeBrowser;
   }

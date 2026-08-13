@@ -36,37 +36,48 @@ export const { runSteps } = myActor()
 export const { MyActor } = myActor().service({ runSteps });
 `;
     expect(morph(source))
-      .toBe(`import { Trace, consume } from "@taskwish/wire";
+      .toBe(`import { Wire, createScope } from "@taskwish/wire";
 
-export const runSteps = Object.assign(
+interface RunStepsAction {
+  (input: { message: string; }): Promise<number>;
+  run(input: { message: string; }): Promise<number>;
+  stream(input: { message: string; }): Promise<number>;
+  ctx: typeof runStepsCtx;
+}
+
+export const runSteps: RunStepsAction = Object.assign(
   async function runSteps(input: { message: string; }) {
     return runStepsCtx().run(input);
   },
   {
-    ...runStepsCtx(),
+    run: runStepsCtx().run,
+    stream: runStepsCtx().stream,
     ctx: runStepsCtx,
   },
 );
 
-function runStepsCtx(scope: {} = {}) {
+function runStepsCtx(ctx = {}) {
+  const wire = new Wire({ threadId: "main", log: "console" });
+  const initialScope = { wire };
+  const scope: typeof initialScope = createScope(initialScope, ctx);
 
   async function run(input: { message: string; }) {
-    return consume(stream(input));
+    return stream(input);
   }
 
-  async function* stream(input: { message: string; }) {
+  async function stream(input: { message: string; }) {
 
-    yield new Trace("MyActor::runSteps", { input });
+    scope.wire.trace("MyActor::runSteps", { input });
 
     const firstStep = "step 1";
 
-    yield new Trace("MyActor::runSteps.firstStep", { result: firstStep });
+    scope.wire.trace("MyActor::runSteps.firstStep", { result: firstStep });
 
     const lastStep = firstStep.length;
 
-    yield new Trace("MyActor::runSteps.lastStep", { result: lastStep });
+    scope.wire.trace("MyActor::runSteps.lastStep", { result: lastStep });
 
-    yield new Trace("MyActor::runSteps", { result: lastStep });
+    scope.wire.trace("MyActor::runSteps", { result: lastStep });
 
     return lastStep;
   }
@@ -111,13 +122,12 @@ export const { Greeter } = greeter().service({
     const output = morph(source);
 
     expectParts(output, [
-      `export const hello = Object.assign(
-  async function hello()`,
-      `export const onNewEmail = Object.assign(
-  async function onNewEmail()`,
-      `ctx: helloCtx,`,
-      `yield new Trace("Greeter::hello", { input });`,
-      `yield new Trace("Greeter::onNewEmail", { input });`,
+      `interface HelloAction`,
+      `export const hello: HelloAction = Object.assign(`,
+      `interface OnNewEmailAction`,
+      `export const onNewEmail: OnNewEmailAction = Object.assign(`,
+      `scope.wire.trace("Greeter::hello", { input });`,
+      `scope.wire.trace("Greeter::onNewEmail", { input });`,
       `export const Greeter = {
   hello
 };`,
@@ -155,7 +165,7 @@ export const { runSteps } = myActor()
       `firstStepBlock: {`,
       `firstStep = "empty";
         break firstStepBlock;`,
-      `yield new Trace("MyActor::runSteps.firstStep", { result: firstStep });`,
+      `scope.wire.trace("MyActor::runSteps.firstStep", { result: firstStep });`,
       `const lastStep = firstStep.length;`,
     ]);
   });
@@ -188,7 +198,7 @@ export const { runSteps } = myActor()
       `const normalized = input.message.trim();`,
       `const upper = normalized.toUpperCase();`,
       `firstStep = upper;`,
-      `yield new Trace("MyActor::runSteps.firstStep", { result: firstStep });`,
+      `scope.wire.trace("MyActor::runSteps.firstStep", { result: firstStep });`,
     ]);
   });
 
@@ -280,7 +290,7 @@ main();
 `;
 
     expectParts(morph(source), [
-      `yield new Trace("MyActor::runSteps", { result: firstStep });`,
+      `scope.wire.trace("MyActor::runSteps", { result: firstStep });`,
       `const main = async () => {
   const result = await runSteps({ message: "hello" });
 
@@ -314,10 +324,10 @@ export const { runSteps } = myActor()
 
     expectParts(morph(source), [
       `async function runSteps(input: { name: string; })`,
-      `export const runSteps = Object.assign(`,
-      `...runStepsCtx(),`,
-      `ctx: runStepsCtx,`,
-      `function runStepsCtx(scope: {} = {})`,
+      `interface RunStepsAction`,
+      `export const runSteps: RunStepsAction = Object.assign(`,
+      `async function runSteps(input: { name: string; })`,
+      `function runStepsCtx(ctx = {})`,
     ]);
   });
 
@@ -339,14 +349,15 @@ export const { runSteps } = myActor()
 `;
 
     expectParts(morph(source), [
-      `import { Trace, consume, createScope, type PartialScope } from "@taskwish/wire";`,
-      `ctx: runStepsCtx,`,
-      `function runStepsCtx(ctx: PartialScope<{ abortSignal?: unknown }> = {})`,
-      `const scope = createScope<{ abortSignal?: unknown }>({}, ctx);`,
+      `import { Wire, createScope } from "@taskwish/wire";`,
+      `function runStepsCtx(ctx = {})`,
+      `const wire = new Wire({ threadId: "main", log: "console" });`,
+      `const initialScope = { wire, abortSignal: undefined as AbortSignal | undefined };
+  const scope: typeof initialScope = createScope(initialScope, ctx);`,
       `async function run(input: { name: string; }) {
-    return consume(stream(input));
+    return stream(input);
   }`,
-      `async function* stream(input: { name: string; })`,
+      `async function stream(input: { name: string; })`,
       `const abortSignal = scope.abortSignal as AbortSignal | undefined;`,
       `const result = abortSignal?.aborted ?? false;`,
     ]);
@@ -371,10 +382,11 @@ export const { runSteps } = myActor()
 `;
 
     expectParts(morph(source), [
-      `import { Trace, consume, createScope, type PartialScope } from "@taskwish/wire";`,
+      `import { Wire, createScope } from "@taskwish/wire";`,
       `import { Browser } from "./browser";`,
-      `function runStepsCtx(ctx: PartialScope<{ actions: { browser: { browse: typeof Browser.browse; }; } }> = {})`,
-      `const scope = createScope({ actions: { browser: { browse: Browser.browse } } }, ctx);`,
+      `function runStepsCtx(ctx = {})`,
+      `const initialScope = { wire, actions: { browser: { browse: Browser.browse } } };
+  const scope: typeof initialScope = createScope(initialScope, ctx);`,
       `const page = await scope.actions.browser.browse({
       url: "https://example.com",
     });`,
@@ -404,8 +416,9 @@ export const { runSteps } = myActor()
 `;
 
     expectParts(morph(source), [
-      `function runStepsCtx(ctx: PartialScope<{ actions: { browser: { browse: typeof Browser.browse; close: typeof Browser.close; }; } }> = {})`,
-      `const scope = createScope({ actions: { browser: { browse: Browser.browse, close: Browser.close } } }, ctx);`,
+      `function runStepsCtx(ctx = {})`,
+      `const initialScope = { wire, actions: { browser: { browse: Browser.browse, close: Browser.close } } };
+  const scope: typeof initialScope = createScope(initialScope, ctx);`,
       `const page = await scope.actions.browser.browse({`,
       `const closed = await scope.actions.browser.close();`,
     ]);
@@ -431,7 +444,7 @@ export const { runSteps } = myActor()
     expectParts(morph(source), [
       `input: { name: string; tags: string[]; age?: number | undefined; }`,
       `const firstStep = input.tags.length;`,
-      `yield new Trace("MyActor::runSteps.firstStep", { result: firstStep });`,
+      `scope.wire.trace("MyActor::runSteps.firstStep", { result: firstStep });`,
     ]);
   });
 
@@ -579,7 +592,7 @@ export const { Greeter } = greeter().service({ hello });
       output.startsWith(
         `"use server";
 
-import { Trace, consume } from "@taskwish/wire";`
+import { Wire, createScope } from "@taskwish/wire";`
       )
     ).toBe(true);
   });

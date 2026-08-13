@@ -1,4 +1,4 @@
-import { Trace, consume } from "@taskwish/wire";
+import { Wire, createScope } from "@taskwish/wire";
 
 import { access, mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -40,25 +40,36 @@ export async function closeBrowserContext() {
   return { closed: true };
 }
 
-export const browse = Object.assign(
+interface BrowseAction {
+  (input: { url: string; }): Promise<import("/Users/sparta/.projects/taskwish/node_modules/playwright-core/index").Page>;
+  run(input: { url: string; }): Promise<import("/Users/sparta/.projects/taskwish/node_modules/playwright-core/index").Page>;
+  stream(input: { url: string; }): Promise<import("/Users/sparta/.projects/taskwish/node_modules/playwright-core/index").Page>;
+  ctx: typeof browseCtx;
+}
+
+export const browse: BrowseAction = Object.assign(
   async function browse(input: { url: string; }) {
     return browseCtx().run(input);
   },
   {
-    ...browseCtx(),
+    run: browseCtx().run,
+    stream: browseCtx().stream,
     ctx: browseCtx,
   },
 );
 
-function browseCtx(scope: {} = {}) {
+function browseCtx(ctx = {}) {
+  const wire = new Wire({ threadId: "main", log: "console" });
+  const initialScope = { wire };
+  const scope: typeof initialScope = createScope(initialScope, ctx);
 
   async function run(input: { url: string; }) {
-    return consume(stream(input));
+    return stream(input);
   }
 
-  async function* stream(input: { url: string; }) {
+  async function stream(input: { url: string; }) {
 
-    yield new Trace("Browser::browse", { input });
+    scope.wire.trace("Browser::browse", { input });
 
     let openPage: import("/Users/sparta/.projects/taskwish/node_modules/playwright-core/index").Page;
     {
@@ -70,9 +81,9 @@ function browseCtx(scope: {} = {}) {
       openPage = await page;
     }
 
-    yield new Trace("Browser::browse.openPage", { result: openPage });
+    scope.wire.trace("Browser::browse.openPage", { result: openPage });
 
-    yield new Trace("Browser::browse", { result: openPage });
+    scope.wire.trace("Browser::browse", { result: openPage });
 
     return openPage;
   }

@@ -1,34 +1,44 @@
-import { Trace, consume, createScope, type PartialScope } from "@taskwish/wire";
+import { Wire, createScope } from "@taskwish/wire";
 
 import { Browser } from "../browser";
 
-export const openFirstPage = Object.assign(
+interface OpenFirstPageAction {
+  (): Promise<{ title: string; url: string; }>;
+  run(): Promise<{ title: string; url: string; }>;
+  stream(): Promise<{ title: string; url: string; }>;
+  ctx: typeof openFirstPageCtx;
+}
+
+export const openFirstPage: OpenFirstPageAction = Object.assign(
   async function openFirstPage() {
     return openFirstPageCtx().run();
   },
   {
-    ...openFirstPageCtx(),
+    run: openFirstPageCtx().run,
+    stream: openFirstPageCtx().stream,
     ctx: openFirstPageCtx,
   },
 );
 
-function openFirstPageCtx(ctx: PartialScope<{ actions: { browser: { browse: typeof Browser.browse; }; } }> = {}) {
-  const scope = createScope({ actions: { browser: { browse: Browser.browse } } }, ctx);
+function openFirstPageCtx(ctx = {}) {
+  const wire = new Wire({ threadId: "main", log: "console" });
+  const initialScope = { wire, actions: { browser: { browse: Browser.browse } } };
+  const scope: typeof initialScope = createScope(initialScope, ctx);
 
   async function run() {
-    return consume(stream());
+    return stream();
   }
 
-  async function* stream() {
+  async function stream() {
     const input = undefined;
 
-    yield new Trace("HackerNews::openFirstPage", { input });
+    scope.wire.trace("HackerNews::openFirstPage", { input });
 
     const page = await scope.actions.browser.browse({
       url: "https://news.ycombinator.com",
     });
 
-    yield new Trace("HackerNews::openFirstPage.page", { result: page });
+    scope.wire.trace("HackerNews::openFirstPage.page", { result: page });
 
     let openFirstPage: { title: string; url: string; };
     {
@@ -53,9 +63,9 @@ function openFirstPageCtx(ctx: PartialScope<{ actions: { browser: { browse: type
       };
     }
 
-    yield new Trace("HackerNews::openFirstPage.openFirstPage", { result: openFirstPage });
+    scope.wire.trace("HackerNews::openFirstPage.openFirstPage", { result: openFirstPage });
 
-    yield new Trace("HackerNews::openFirstPage", { result: openFirstPage });
+    scope.wire.trace("HackerNews::openFirstPage", { result: openFirstPage });
 
     return openFirstPage;
   }

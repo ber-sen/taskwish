@@ -4,7 +4,7 @@ const MAX_LOG_DEPTH = 3;
 
 function fmt(
   val: unknown,
-  seen: WeakSet<object> = new WeakSet(),
+  seen: object[] = [],
   depth: number = 0,
 ): string {
   if (val === null) return "null";
@@ -15,19 +15,19 @@ function fmt(
     return JSON.stringify(`[Function${val.name ? `: ${val.name}` : ""}]`);
   }
   if (typeof val !== "object") return JSON.stringify(val);
-  if (seen.has(val)) return JSON.stringify("[Circular]");
+  if (seen.includes(val)) return JSON.stringify("[Circular]");
 
   const constructorName = val.constructor?.name ?? "Object";
   if (depth >= MAX_LOG_DEPTH) return JSON.stringify(`[${constructorName}]`);
 
-  seen.add(val);
+  seen.push(val);
 
   const toJSON = (val as { toJSON?: unknown }).toJSON;
   if (typeof toJSON === "function") {
     try {
       const jsonValue = toJSON.call(val);
       if (jsonValue !== val) {
-        seen.delete(val);
+        seen.pop();
         return fmt(jsonValue, seen, depth);
       }
     } catch {
@@ -37,14 +37,14 @@ function fmt(
 
   if (Array.isArray(val)) {
     const items = val.map((item) => fmt(item, seen, depth + 1));
-    seen.delete(val);
+    seen.pop();
     return items.length ? `[ ${items.join(", ")} ]` : "[]";
   }
 
   const entries = Object.entries(val as object)
     .filter(([, v]) => v !== undefined)
     .map(([k, v]) => `"${k}": ${fmt(v, seen, depth + 1)}`);
-  seen.delete(val);
+  seen.pop();
   return entries.length ? `{ ${entries.join(", ")} }` : "{}";
 }
 
@@ -56,16 +56,16 @@ export function formatEvent(event: object): string {
   const name = e[kind];
   const entries = [
     `\x1b[2m"${kind}": \x1b[22m"\x1b[1m${name}\x1b[22m"`,
-    ...Object.entries(e)
-      .filter(([k]) => k !== kind)
-      .filter(([, v]) => v !== undefined)
-      .map(
-        ([k, v]) =>
-          `${BOLD_KEYS.has(k) ? `\x1b[2m"${k}": \x1b[22m` : `"${k}": `}${fmt(
-            v,
-          )}`,
-      ),
   ];
+
+  for (const [k, v] of Object.entries(e)) {
+    if (k === kind || v === undefined) continue;
+
+    entries.push(
+      `${BOLD_KEYS.has(k) ? `\x1b[2m"${k}": \x1b[22m` : `"${k}": `}${fmt(v)}`,
+    );
+  }
+
   return `\x1b[2m{\x1b[22m ${entries.join(", ")} \x1b[2m}\x1b[22m`;
 }
 

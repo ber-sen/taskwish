@@ -10,7 +10,7 @@ type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
   : false;
 
 describe("scope", () => {
-  test("createScope recursively patches action groups", async () => {
+  test("createScope applies shallow scope patches", async () => {
     const browse = async ({ url }: { url: string }) => `real:${url}`;
     const close = async () => "closed";
     const browseMock = async ({ url }: { url: string }) => `mock:${url}`;
@@ -35,10 +35,10 @@ describe("scope", () => {
     type check = Expect<Equal<typeof merged, typeof initial>>;
     expect(await merged.actions.browser.browse({ url: "https://example.com" }))
       .toBe("mock:https://example.com");
-    expect(merged.actions.browser.close).toBe(close);
+    expect(merged.actions.browser.close).toBeUndefined();
   });
 
-  test("createScope ignores undefined patch values", () => {
+  test("createScope applies undefined patch values", () => {
     const initial = {
       actions: {
         oneAction: () => "real",
@@ -52,7 +52,7 @@ describe("scope", () => {
     });
 
     type check = Expect<Equal<typeof merged, typeof initial>>;
-    expect(merged.actions.oneAction()).toBe("real");
+    expect(merged.actions.oneAction).toBeUndefined();
   });
 
   test("createScope infers its result from the initial scope", () => {
@@ -84,6 +84,8 @@ describe("scope", () => {
   });
 
   test("mergeScope remains an alias for createScope", () => {
-    expect(mergeScope).toBe(createScope);
+    const initial = { value: "real" };
+
+    expect(mergeScope(initial, { value: "mock" })).toEqual({ value: "mock" });
   });
 });

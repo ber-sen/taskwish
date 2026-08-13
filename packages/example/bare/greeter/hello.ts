@@ -1,37 +1,48 @@
 "use server";
 
-import { Trace, consume } from "@taskwish/wire";
+import { Wire, createScope } from "@taskwish/wire";
 
-export const hello = Object.assign(
+interface HelloAction {
+  (input: { name: string; }): Promise<string>;
+  run(input: { name: string; }): Promise<string>;
+  stream(input: { name: string; }): Promise<string>;
+  ctx: typeof helloCtx;
+}
+
+export const hello: HelloAction = Object.assign(
   async function hello(input: { name: string; }) {
     return helloCtx().run(input);
   },
   {
-    ...helloCtx(),
+    run: helloCtx().run,
+    stream: helloCtx().stream,
     ctx: helloCtx,
   },
 );
 
-function helloCtx(scope: {} = {}) {
+function helloCtx(ctx = {}) {
+  const wire = new Wire({ threadId: "main", log: "console" });
+  const initialScope = { wire };
+  const scope: typeof initialScope = createScope(initialScope, ctx);
 
   async function run(input: { name: string; }) {
-    return consume(stream(input));
+    return stream(input);
   }
 
-  async function* stream(input: { name: string; }) {
-    const signal = (name: string, input: unknown) => new Trace(name, { input });
+  async function stream(input: { name: string; }) {
+    const signal = (name: string, input: unknown): Record<string, unknown> => ({ ">>": name, input });
 
-    yield new Trace("Greeter::hello", { input });
+    scope.wire.trace("Greeter::hello", { input });
 
     const notify = signal("Greeter::Message", { name: input.name });
 
-    yield new Trace("Greeter::hello.notify", { result: notify });
+    scope.wire.trace("Greeter::hello.notify", { result: notify });
 
     const greet = `Hello ${input.name}`;
 
-    yield new Trace("Greeter::hello.greet", { result: greet });
+    scope.wire.trace("Greeter::hello.greet", { result: greet });
 
-    yield new Trace("Greeter::hello", { result: greet });
+    scope.wire.trace("Greeter::hello", { result: greet });
 
     return greet;
   }

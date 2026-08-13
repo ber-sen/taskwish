@@ -16,8 +16,8 @@ import { TW } from "../core";
 import {
   dispatch,
   type ConsoleLike,
+  type DispatchFn,
   type LoggerConfig,
-  type LogFn,
   Signal,
   Trace,
 } from "@taskwish/wire";
@@ -247,7 +247,7 @@ export const ContextualActionTag = Symbol.for("TW.ContextualAction");
 
 export async function* tapWith(
   gen: AsyncGenerator<unknown, unknown>,
-  log: LogFn,
+  log: DispatchFn,
 ): AsyncGenerator<unknown, unknown> {
   let next = await gen.next();
   while (!next.done) {
@@ -260,7 +260,7 @@ export async function* tapWith(
 
 export async function* tapRawStreamWith(
   gen: AsyncGenerator<unknown, unknown>,
-  log: LogFn,
+  log: DispatchFn,
 ): AsyncGenerator<unknown, unknown> {
   let next = await gen.next();
   while (!next.done) {
