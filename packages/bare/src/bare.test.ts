@@ -57,7 +57,7 @@ export const runSteps: RunStepsAction = Object.assign(
 );
 
 function runStepsCtx(ctx = {}) {
-  const wire = new Wire({ threadId: "main", log: "console" });
+  const wire = new Wire();
   const initialScope = { wire };
   const scope: typeof initialScope = createScope(initialScope, ctx);
 
@@ -351,7 +351,7 @@ export const { runSteps } = myActor()
     expectParts(morph(source), [
       `import { Wire, createScope } from "@taskwish/wire";`,
       `function runStepsCtx(ctx = {})`,
-      `const wire = new Wire({ threadId: "main", log: "console" });`,
+      `const wire = new Wire();`,
       `const initialScope = { wire, abortSignal: undefined as AbortSignal | undefined };
   const scope: typeof initialScope = createScope(initialScope, ctx);`,
       `async function run(input: { name: string; }) {

@@ -1,5 +1,9 @@
-import { hello } from "./greeter/hello";
+import { configureWire } from "@taskwish/wire";
 
-const result = await hello({ name: "world" });
+import { Greeter } from "./greeter";
+
+configureWire({ log: "console" });
+
+const result = await Greeter.hello({ name: "lorem" });
 
 console.log(result);

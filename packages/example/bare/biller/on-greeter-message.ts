@@ -21,7 +21,7 @@ export const onGreeterMessage: OnGreeterMessageAction = Object.assign(
 );
 
 function onGreeterMessageCtx(ctx = {}) {
-  const wire = new Wire({ threadId: "main", log: "console" });
+  const wire = new Wire();
   const initialScope = { wire };
   const scope: typeof initialScope = createScope(initialScope, ctx);
 

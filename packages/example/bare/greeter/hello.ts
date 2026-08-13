@@ -21,7 +21,7 @@ export const hello: HelloAction = Object.assign(
 );
 
 function helloCtx(ctx = {}) {
-  const wire = new Wire({ threadId: "main", log: "console" });
+  const wire = new Wire();
   const initialScope = { wire };
   const scope: typeof initialScope = createScope(initialScope, ctx);
 

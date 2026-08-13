@@ -1,11 +1,11 @@
-export { Wire, wire } from "./bus";
+export { Wire, configureWire, getWireConfig, ulid, wire } from "./bus";
 export { consume } from "./consume";
 export { Signal, Trace, eventData } from "./events";
 export { formatEvent, isActionEvent } from "./format";
 export { Logger, dispatch } from "./logger";
 export { createScope, mergeScope } from "./scope";
 export { Type } from "./symbols";
-export type { WireConfig } from "./bus";
+export type { WireConfig, WireGlobalConfig, WireLogConfig } from "./bus";
 export type { ConsoleLike, DispatchFn, LoggerConfig, LogFn } from "./logger";
 export type { PartialScope } from "./scope";
 export type { Pretty } from "./types";

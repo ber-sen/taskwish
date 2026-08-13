@@ -21,7 +21,7 @@ export const openFirstPage: OpenFirstPageAction = Object.assign(
 );
 
 function openFirstPageCtx(ctx = {}) {
-  const wire = new Wire({ threadId: "main", log: "console" });
+  const wire = new Wire();
   const initialScope = { wire, actions: { browser: { browse: Browser.browse } } };
   const scope: typeof initialScope = createScope(initialScope, ctx);
 

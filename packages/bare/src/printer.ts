@@ -47,7 +47,7 @@ export function printAction(action: ActionSpec): string {
     `);`,
     ``,
     `function ${ctxName}(ctx = {}) {`,
-    `  const wire = new Wire({ threadId: "main", log: "console" });`,
+    `  const wire = new Wire();`,
     `  const initialScope = ${initialScopeText};`,
     `  const ${scopeReferenceName}: typeof initialScope = createScope(initialScope, ctx);`,
     ``,

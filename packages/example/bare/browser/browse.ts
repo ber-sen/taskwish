@@ -59,7 +59,7 @@ export const browse: BrowseAction = Object.assign(
 );
 
 function browseCtx(ctx = {}) {
-  const wire = new Wire({ threadId: "main", log: "console" });
+  const wire = new Wire();
   const initialScope = { wire };
   const scope: typeof initialScope = createScope(initialScope, ctx);
 

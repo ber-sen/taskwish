@@ -21,7 +21,7 @@ export const close: CloseAction = Object.assign(
 );
 
 function closeCtx(ctx = {}) {
-  const wire = new Wire({ threadId: "main", log: "console" });
+  const wire = new Wire();
   const initialScope = { wire };
   const scope: typeof initialScope = createScope(initialScope, ctx);
 
