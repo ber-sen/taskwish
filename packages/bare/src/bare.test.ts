@@ -339,15 +339,15 @@ export const { runSteps } = myActor()
 `;
 
     expectParts(morph(source), [
-      `import { Trace, consume, mergeScope, type PartialScope } from "@taskwish/wire";`,
+      `import { Trace, consume, createScope, type PartialScope } from "@taskwish/wire";`,
       `ctx: runStepsCtx,`,
-      `function runStepsCtx(scope: PartialScope<{ abortSignal?: unknown }> = {})`,
-      `const mergedScope = mergeScope<{ abortSignal?: unknown }>({}, scope);`,
+      `function runStepsCtx(ctx: PartialScope<{ abortSignal?: unknown }> = {})`,
+      `const scope = createScope<{ abortSignal?: unknown }>({}, ctx);`,
       `async function run(input: { name: string; }) {
     return consume(stream(input));
   }`,
       `async function* stream(input: { name: string; })`,
-      `const abortSignal = mergedScope.abortSignal as AbortSignal | undefined;`,
+      `const abortSignal = scope.abortSignal as AbortSignal | undefined;`,
       `const result = abortSignal?.aborted ?? false;`,
     ]);
   });
@@ -371,11 +371,11 @@ export const { runSteps } = myActor()
 `;
 
     expectParts(morph(source), [
-      `import { Trace, consume, mergeScope, type PartialScope } from "@taskwish/wire";`,
+      `import { Trace, consume, createScope, type PartialScope } from "@taskwish/wire";`,
       `import { Browser } from "./browser";`,
-      `function runStepsCtx(scope: PartialScope<{ actions: { browser: { browse: typeof Browser.browse; }; } }> = {})`,
-      `const mergedScope = mergeScope({ actions: { browser: { browse: Browser.browse } } }, scope);`,
-      `const page = await mergedScope.actions.browser.browse({
+      `function runStepsCtx(ctx: PartialScope<{ actions: { browser: { browse: typeof Browser.browse; }; } }> = {})`,
+      `const scope = createScope({ actions: { browser: { browse: Browser.browse } } }, ctx);`,
+      `const page = await scope.actions.browser.browse({
       url: "https://example.com",
     });`,
     ]);
@@ -404,10 +404,10 @@ export const { runSteps } = myActor()
 `;
 
     expectParts(morph(source), [
-      `function runStepsCtx(scope: PartialScope<{ actions: { browser: { browse: typeof Browser.browse; close: typeof Browser.close; }; } }> = {})`,
-      `const mergedScope = mergeScope({ actions: { browser: { browse: Browser.browse, close: Browser.close } } }, scope);`,
-      `const page = await mergedScope.actions.browser.browse({`,
-      `const closed = await mergedScope.actions.browser.close();`,
+      `function runStepsCtx(ctx: PartialScope<{ actions: { browser: { browse: typeof Browser.browse; close: typeof Browser.close; }; } }> = {})`,
+      `const scope = createScope({ actions: { browser: { browse: Browser.browse, close: Browser.close } } }, ctx);`,
+      `const page = await scope.actions.browser.browse({`,
+      `const closed = await scope.actions.browser.close();`,
     ]);
   });
 

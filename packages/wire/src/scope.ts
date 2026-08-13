@@ -6,7 +6,7 @@ export type PartialScope<T> = T extends (...args: any[]) => any
       ? { [K in keyof T]?: PartialScope<T[K]> }
       : T;
 
-export function mergeScope<T>(initial: T, partial: PartialScope<NoInfer<T>>): T {
+export function createScope<T>(initial: T, partial: PartialScope<NoInfer<T>>): T {
   if (!isScopeRecord(initial) || !isScopeRecord(partial)) {
     return (partial === undefined ? initial : partial) as T;
   }
@@ -18,12 +18,14 @@ export function mergeScope<T>(initial: T, partial: PartialScope<NoInfer<T>>): T 
 
     const initialValue = next[key];
     next[key] = isScopeRecord(initialValue) && isScopeRecord(value)
-      ? mergeScope(initialValue, value)
+      ? createScope(initialValue, value)
       : value;
   }
 
   return next as T;
 }
+
+export const mergeScope = createScope;
 
 function isScopeRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);

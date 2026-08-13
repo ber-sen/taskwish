@@ -18,7 +18,7 @@ export function applyBareMetalReplacements(
     if (!hasPackageImport(sourceFile, "@taskwish/wire")) {
       importLines.push(
         actions.some(actionNeedsScope)
-          ? `import { Trace, consume, mergeScope, type PartialScope } from "@taskwish/wire";`
+          ? `import { Trace, consume, createScope, type PartialScope } from "@taskwish/wire";`
           : `import { Trace, consume } from "@taskwish/wire";`
       );
     }

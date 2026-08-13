@@ -1,4 +1,4 @@
-import { Trace, consume, mergeScope, type PartialScope } from "@taskwish/wire";
+import { Trace, consume, createScope, type PartialScope } from "@taskwish/wire";
 
 import { Browser } from "../browser";
 
@@ -12,8 +12,8 @@ export const openFirstPage = Object.assign(
   },
 );
 
-function openFirstPageCtx(scope: PartialScope<{ actions: { browser: { browse: typeof Browser.browse; }; } }> = {}) {
-  const mergedScope = mergeScope({ actions: { browser: { browse: Browser.browse } } }, scope);
+function openFirstPageCtx(ctx: PartialScope<{ actions: { browser: { browse: typeof Browser.browse; }; } }> = {}) {
+  const scope = createScope({ actions: { browser: { browse: Browser.browse } } }, ctx);
 
   async function run() {
     return consume(stream());
@@ -24,7 +24,7 @@ function openFirstPageCtx(scope: PartialScope<{ actions: { browser: { browse: ty
 
     yield new Trace("HackerNews::openFirstPage", { input });
 
-    const page = await mergedScope.actions.browser.browse({
+    const page = await scope.actions.browser.browse({
       url: "https://news.ycombinator.com",
     });
 

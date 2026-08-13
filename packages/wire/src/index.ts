@@ -3,7 +3,7 @@ export { consume } from "./consume";
 export { Signal, Trace, eventData } from "./events";
 export { formatEvent, isActionEvent } from "./format";
 export { Logger, dispatch } from "./logger";
-export { mergeScope } from "./scope";
+export { createScope, mergeScope } from "./scope";
 export { Type } from "./symbols";
 export type { ConsoleLike, LoggerConfig, LogFn } from "./logger";
 export type { PartialScope } from "./scope";

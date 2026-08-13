@@ -29,14 +29,14 @@ export function printAction(action: ActionSpec): string {
           .map((dependency) => printActionDependencyDefault(dependency))
           .join(", ")} } }`
       : "{}";
-  const scopeReferenceName = scopeProperties.length > 0 ? "mergedScope" : "scope";
+  const scopeReferenceName = "scope";
   const ctxParameterText =
     scopeProperties.length > 0
-      ? `scope: PartialScope<${scopeTypeText}> = {}`
+      ? `ctx: PartialScope<${scopeTypeText}> = {}`
       : "scope: {} = {}";
-  const mergeScopeText = usesAbortSignal
-    ? `mergeScope<${scopeTypeText}>(${initialScopeText}, scope)`
-    : `mergeScope(${initialScopeText}, scope)`;
+  const createScopeText = usesAbortSignal
+    ? `createScope<${scopeTypeText}>(${initialScopeText}, ctx)`
+    : `createScope(${initialScopeText}, ctx)`;
   const lines: string[] = [
     `export const ${action.actionName} = Object.assign(`,
     `  async function ${action.actionName}(${parameterText}) {`,
@@ -50,7 +50,7 @@ export function printAction(action: ActionSpec): string {
     ``,
     `function ${ctxName}(${ctxParameterText}) {`,
     ...(scopeProperties.length > 0
-      ? [`  const ${scopeReferenceName} = ${mergeScopeText};`]
+      ? [`  const ${scopeReferenceName} = ${createScopeText};`]
       : []),
     ``,
     `  async function run(${parameterText}) {`,
