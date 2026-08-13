@@ -35,59 +35,24 @@ export const { runSteps } = myActor()
 
 export const { MyActor } = myActor().service({ runSteps });
 `;
-    expect(morph(source))
-      .toBe(`import { Wire, createScope } from "@taskwish/wire";
-
-interface RunStepsAction {
-  (input: { message: string; }): Promise<number>;
-  run(input: { message: string; }): Promise<number>;
-  stream(input: { message: string; }): Promise<number>;
-  ctx: typeof runStepsCtx;
-}
-
-export const runSteps: RunStepsAction = Object.assign(
-  async function runSteps(input: { message: string; }) {
-    return runStepsCtx().run(input);
-  },
-  {
-    run: runStepsCtx().run,
-    stream: runStepsCtx().stream,
-    ctx: runStepsCtx,
-  },
-);
-
-function runStepsCtx(ctx = {}) {
-  const wire = new Wire();
-  const initialScope = { wire };
-  const scope: typeof initialScope = createScope(initialScope, ctx);
-
-  async function run(input: { message: string; }) {
-    return stream(input);
-  }
-
-  async function stream(input: { message: string; }) {
-
-    scope.wire.trace("MyActor::runSteps", { input });
-
-    const firstStep = "step 1";
-
-    scope.wire.trace("MyActor::runSteps.firstStep", { result: firstStep });
-
-    const lastStep = firstStep.length;
-
-    scope.wire.trace("MyActor::runSteps.lastStep", { result: lastStep });
-
-    scope.wire.trace("MyActor::runSteps", { result: lastStep });
-
-    return lastStep;
-  }
-
-  return { run, stream };
-}
-
-export const MyActor = {
+    expectParts(morph(source), [
+      `import { Wire } from "@taskwish/wire";`,
+      `interface RunStepsAction`,
+      `type RunStepsScope = { wire: Wire };`,
+      `type RunStepsScopePatch = { wire?: Wire };`,
+      `export const runSteps = async function runSteps(input: { message: string; })`,
+      `runSteps.run = runStepsCtx().run;`,
+      `runSteps.stream = runStepsCtx().stream;`,
+      `function runStepsCtx(ctx: RunStepsScopePatch = {})`,
+      `const initialScope: RunStepsScope = { wire };
+  const scope: RunStepsScope = initialScope;
+  if (ctx.wire !== undefined) scope.wire = ctx.wire;`,
+      `const firstStep = "step 1";`,
+      `const lastStep = firstStep.length;`,
+      `export const MyActor = {
   runSteps
-};`);
+};`,
+    ]);
   });
 
   test("keeps event listeners out of direct service exports", () => {
@@ -122,11 +87,11 @@ export const { Greeter } = greeter().service({
     const output = morph(source);
 
     expectParts(output, [
-      `import { Wire, addListener, createScope } from "@taskwish/wire";`,
+      `import { Wire, addListener } from "@taskwish/wire";`,
       `interface HelloAction`,
-      `export const hello: HelloAction = Object.assign(`,
+      `export const hello = async function hello()`,
       `interface OnNewEmailAction`,
-      `export const onNewEmail: OnNewEmailAction = Object.assign(`,
+      `export const onNewEmail = async function onNewEmail()`,
       `scope.wire.trace("Greeter::hello", { input });`,
       `scope.wire.trace("Greeter::onNewEmail", { input });`,
       `addListener("Greeter::NewEmail", onNewEmail);`,
@@ -327,9 +292,9 @@ export const { runSteps } = myActor()
     expectParts(morph(source), [
       `async function runSteps(input: { name: string; })`,
       `interface RunStepsAction`,
-      `export const runSteps: RunStepsAction = Object.assign(`,
+      `export const runSteps = async function runSteps(input: { name: string; })`,
       `async function runSteps(input: { name: string; })`,
-      `function runStepsCtx(ctx = {})`,
+      `function runStepsCtx(ctx: RunStepsScopePatch = {})`,
     ]);
   });
 
@@ -351,11 +316,13 @@ export const { runSteps } = myActor()
 `;
 
     expectParts(morph(source), [
-      `import { Wire, createScope } from "@taskwish/wire";`,
-      `function runStepsCtx(ctx = {})`,
+      `import { Wire } from "@taskwish/wire";`,
+      `function runStepsCtx(ctx: RunStepsScopePatch = {})`,
       `const wire = new Wire();`,
-      `const initialScope = { wire, abortSignal: undefined as AbortSignal | undefined };
-  const scope: typeof initialScope = createScope(initialScope, ctx);`,
+      `const initialScope: RunStepsScope = { wire, abortSignal: undefined as AbortSignal | undefined };
+  const scope: RunStepsScope = initialScope;
+  if (ctx.wire !== undefined) scope.wire = ctx.wire;
+  if (ctx.abortSignal !== undefined) scope.abortSignal = ctx.abortSignal;`,
       `async function run(input: { name: string; }) {
     return stream(input);
   }`,
@@ -384,11 +351,17 @@ export const { runSteps } = myActor()
 `;
 
     expectParts(morph(source), [
-      `import { Wire, createScope } from "@taskwish/wire";`,
+      `import { Wire } from "@taskwish/wire";`,
       `import { Browser } from "./browser";`,
-      `function runStepsCtx(ctx = {})`,
-      `const initialScope = { wire, actions: { browser: { browse: Browser.browse } } };
-  const scope: typeof initialScope = createScope(initialScope, ctx);`,
+      `function runStepsCtx(ctx: RunStepsScopePatch = {})`,
+      `const initialScope: RunStepsScope = { wire, actions: { browser: { browse: Browser.browse } } };
+  const scope: RunStepsScope = initialScope;
+  if (ctx.wire !== undefined) scope.wire = ctx.wire;
+  if (ctx.actions !== undefined) {
+    if (ctx.actions.browser !== undefined) {
+      if (ctx.actions.browser.browse !== undefined) scope.actions.browser.browse = ctx.actions.browser.browse;
+    }
+  }`,
       `const page = await scope.actions.browser.browse({
       url: "https://example.com",
     });`,
@@ -418,9 +391,16 @@ export const { runSteps } = myActor()
 `;
 
     expectParts(morph(source), [
-      `function runStepsCtx(ctx = {})`,
-      `const initialScope = { wire, actions: { browser: { browse: Browser.browse, close: Browser.close } } };
-  const scope: typeof initialScope = createScope(initialScope, ctx);`,
+      `function runStepsCtx(ctx: RunStepsScopePatch = {})`,
+      `const initialScope: RunStepsScope = { wire, actions: { browser: { browse: Browser.browse, close: Browser.close } } };
+  const scope: RunStepsScope = initialScope;
+  if (ctx.wire !== undefined) scope.wire = ctx.wire;
+  if (ctx.actions !== undefined) {
+    if (ctx.actions.browser !== undefined) {
+      if (ctx.actions.browser.browse !== undefined) scope.actions.browser.browse = ctx.actions.browser.browse;
+      if (ctx.actions.browser.close !== undefined) scope.actions.browser.close = ctx.actions.browser.close;
+    }
+  }`,
       `const page = await scope.actions.browser.browse({`,
       `const closed = await scope.actions.browser.close();`,
     ]);
@@ -619,7 +599,7 @@ export const { Greeter } = greeter().service({ hello });
       output.startsWith(
         `"use server";
 
-import { Wire, createScope } from "@taskwish/wire";`
+import { Wire } from "@taskwish/wire";`
       )
     ).toBe(true);
   });
@@ -702,7 +682,7 @@ export const { Biller } = biller().service({ onGreeterMessage });
     );
     expect(output).toContain(`input: { name: string; }`);
     expect(output).toContain(
-      `import { Wire, addListener, createScope } from "@taskwish/wire";`
+      `import { Wire, addListener } from "@taskwish/wire";`
     );
     expect(output).toContain(
       `addListener("Greeter::Message", onGreeterMessage);`

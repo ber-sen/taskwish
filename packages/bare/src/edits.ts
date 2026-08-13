@@ -21,7 +21,6 @@ export function applyBareMetalReplacements(
         actions.some((action) => action.listenEventName !== null)
           ? "addListener"
           : null,
-        "createScope",
       ].filter((value): value is string => value !== null);
 
       importLines.push(`import { ${imports.join(", ")} } from "@taskwish/wire";`);

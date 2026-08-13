@@ -11,10 +11,21 @@ export function printAction(action: ActionSpec): string {
   const actionEventName = `${action.actorName}::${action.actionName}`;
   const ctxName = `${action.actionName}Ctx`;
   const interfaceName = `${upperFirst(action.actionName)}Action`;
+  const scopeTypeName = `${upperFirst(action.actionName)}Scope`;
+  const scopePatchTypeName = `${upperFirst(action.actionName)}ScopePatch`;
   const parameterText = action.inputType ? `input: ${action.inputType}` : "";
   const inputArgText = action.inputType ? "input" : "";
   const usesAbortSignal = action.steps.some((step) => step.usesAbortSignal);
   const returnTypeText = action.steps.at(-1)!.propertyType;
+  const scopeTypeProperties = [
+    `wire: Wire`,
+    usesAbortSignal ? `abortSignal: AbortSignal | undefined` : null,
+    action.actionDependencies.length > 0
+      ? `actions: { ${action.actionDependencies
+          .map((dependency) => printActionDependencyType(dependency))
+          .join("; ")} }`
+      : null,
+  ].filter((property): property is string => property !== null);
   const initialScopeProperties = [
     `wire`,
     usesAbortSignal ? `abortSignal: undefined as AbortSignal | undefined` : null,
@@ -31,24 +42,22 @@ export function printAction(action: ActionSpec): string {
     `  (${parameterText}): Promise<${returnTypeText}>;`,
     `  run(${parameterText}): Promise<${returnTypeText}>;`,
     `  stream(${parameterText}): Promise<${returnTypeText}>;`,
-    `  ctx: typeof ${ctxName};`,
     `}`,
     ``,
-    `export const ${action.actionName}: ${interfaceName} = Object.assign(`,
-    `  async function ${action.actionName}(${parameterText}) {`,
-    `    return ${ctxName}().run(${inputArgText});`,
-    `  },`,
-    `  {`,
-    `    run: ${ctxName}().run,`,
-    `    stream: ${ctxName}().stream,`,
-    `    ctx: ${ctxName},`,
-    `  },`,
-    `);`,
+    `type ${scopeTypeName} = { ${scopeTypeProperties.join("; ")} };`,
+    `type ${scopePatchTypeName} = { ${printScopePatchTypeProperties(action).join("; ")} };`,
     ``,
-    `function ${ctxName}(ctx = {}) {`,
+    `export const ${action.actionName} = async function ${action.actionName}(${parameterText}) {`,
+    `    return ${ctxName}().run(${inputArgText});`,
+    `  } as ${interfaceName};`,
+    `${action.actionName}.run = ${ctxName}().run;`,
+    `${action.actionName}.stream = ${ctxName}().stream;`,
+    ``,
+    `function ${ctxName}(ctx: ${scopePatchTypeName} = {}) {`,
     `  const wire = new Wire();`,
-    `  const initialScope = ${initialScopeText};`,
-    `  const ${scopeReferenceName}: typeof initialScope = createScope(initialScope, ctx);`,
+    `  const initialScope: ${scopeTypeName} = ${initialScopeText};`,
+    `  const ${scopeReferenceName}: ${scopeTypeName} = initialScope;`,
+    ...printScopePatchLines(action, scopeReferenceName),
     ``,
     `  async function run(${parameterText}) {`,
     `    return stream(${inputArgText});`,
@@ -124,6 +133,73 @@ function printActionDependencyDefault(
   return `${dependency.scopeName}: { ${dependency.actionNames
     .map((actionName) => `${actionName}: ${dependency.identifier}.${actionName}`)
     .join(", ")} }`;
+}
+
+function printActionDependencyType(
+  dependency: import("./types").ActionDependency,
+): string {
+  return `${dependency.scopeName}: { ${dependency.actionNames
+    .map((actionName) => `${actionName}: typeof ${dependency.identifier}.${actionName}`)
+    .join("; ")} }`;
+}
+
+function printScopePatchTypeProperties(action: ActionSpec): string[] {
+  const properties = [
+    `wire?: Wire`,
+    action.steps.some((step) => step.usesAbortSignal)
+      ? `abortSignal?: AbortSignal | undefined`
+      : null,
+    action.actionDependencies.length > 0
+      ? `actions?: { ${action.actionDependencies
+          .map((dependency) => printActionDependencyPatchType(dependency))
+          .join("; ")} }`
+      : null,
+  ];
+
+  return properties.filter((property): property is string => property !== null);
+}
+
+function printActionDependencyPatchType(
+  dependency: import("./types").ActionDependency,
+): string {
+  return `${dependency.scopeName}?: { ${dependency.actionNames
+    .map((actionName) => `${actionName}?: typeof ${dependency.identifier}.${actionName}`)
+    .join("; ")} }`;
+}
+
+function printScopePatchLines(
+  action: ActionSpec,
+  scopeReferenceName: string,
+): string[] {
+  const lines = [
+    `  if (ctx.wire !== undefined) ${scopeReferenceName}.wire = ctx.wire;`,
+  ];
+
+  if (action.steps.some((step) => step.usesAbortSignal)) {
+    lines.push(
+      `  if (ctx.abortSignal !== undefined) ${scopeReferenceName}.abortSignal = ctx.abortSignal;`,
+    );
+  }
+
+  if (action.actionDependencies.length > 0) {
+    lines.push(`  if (ctx.actions !== undefined) {`);
+
+    for (const dependency of action.actionDependencies) {
+      lines.push(`    if (ctx.actions.${dependency.scopeName} !== undefined) {`);
+
+      for (const actionName of dependency.actionNames) {
+        lines.push(
+          `      if (ctx.actions.${dependency.scopeName}.${actionName} !== undefined) ${scopeReferenceName}.actions.${dependency.scopeName}.${actionName} = ctx.actions.${dependency.scopeName}.${actionName};`,
+        );
+      }
+
+      lines.push(`    }`);
+    }
+
+    lines.push(`  }`);
+  }
+
+  return lines;
 }
 
 export function printService(service: ServiceSpec): string {

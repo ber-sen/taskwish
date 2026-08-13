@@ -16,7 +16,7 @@
   "private": true,
   "scripts": {
     "check": "tsc --noEmit",
-    "cli": "bare cli",
+    "build-cli": "bare cli && scriptc build .bare/cli.ts -o cli --npm-static @taskwish/wire --no-keep-c",
     "start": "bun src/node.ts"
   },
   "type": "module",

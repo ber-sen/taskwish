@@ -12,7 +12,7 @@ function fmt(
   if (typeof val === "bigint") return `${val.toString()}n`;
   if (typeof val === "symbol") return JSON.stringify(String(val));
   if (typeof val === "function") {
-    return JSON.stringify(`[Function${val.name ? `: ${val.name}` : ""}]`);
+    return JSON.stringify("[Function]");
   }
   if (typeof val !== "object") return JSON.stringify(val);
   if (seen.includes(val)) return JSON.stringify("[Circular]");
@@ -52,7 +52,7 @@ const BOLD_KEYS = new Set(["result", "error", "input"]);
 
 export function formatEvent(event: object): string {
   const e = eventData(event) as Record<string, unknown>;
-  const kind = ">>" in e ? ">>" : "==" in e ? "==" : "->";
+  const kind = e[">>"] !== undefined ? ">>" : e["=="] !== undefined ? "==" : "->";
   const name = e[kind];
   const entries = [
     `\x1b[2m"${kind}": \x1b[22m"\x1b[1m${name}\x1b[22m"`,

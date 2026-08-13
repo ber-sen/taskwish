@@ -158,6 +158,7 @@ export class Wire {
 
   trace(type: string, data: Record<string, unknown>): Record<string, unknown> {
     const loggedEvent: Record<string, unknown> = { ">>": type };
+    const log = this.log;
 
     for (const key in data) {
       loggedEvent[key] = data[key];
@@ -165,12 +166,12 @@ export class Wire {
 
     loggedEvent.threadId = this.threadId;
 
-    if (this.log === undefined) {
+    if (log === undefined) {
       return loggedEvent;
-    } else if (this.log === "console") {
+    } else if (log === "console") {
       console.log(formatEvent(loggedEvent));
     } else {
-      this.log(loggedEvent);
+      log(loggedEvent);
     }
 
     return loggedEvent;
@@ -181,6 +182,7 @@ export class Wire {
     data: Record<string, unknown>,
   ): Record<string, unknown> {
     const loggedEvent: Record<string, unknown> = { "->": type };
+    const log = this.log;
 
     for (const key in data) {
       loggedEvent[key] = data[key];
@@ -188,10 +190,10 @@ export class Wire {
 
     loggedEvent.threadId = this.threadId;
 
-    if (this.log === "console") {
+    if (log === "console") {
       console.log(formatEvent(loggedEvent));
-    } else if (this.log !== undefined) {
-      this.log(loggedEvent);
+    } else if (log !== undefined) {
+      log(loggedEvent);
     }
 
     emit(type, data);
@@ -229,12 +231,11 @@ function encodeRandom(length: number): string {
 }
 
 function randomBytes(length: number): number[] {
-  const bytes = new Uint8Array(length);
+  const bytes: number[] = [];
 
-  if (globalThis.crypto?.getRandomValues) {
-    globalThis.crypto.getRandomValues(bytes);
-    return Array.from(bytes);
+  for (let index = 0; index < length; index++) {
+    bytes[index] = Math.floor(Math.random() * 256);
   }
 
-  return Array.from(bytes, () => Math.floor(Math.random() * 256));
+  return bytes;
 }
