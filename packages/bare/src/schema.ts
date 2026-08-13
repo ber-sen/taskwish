@@ -4,7 +4,7 @@ import { unwrapExpression } from "./syntax";
 
 export function inputSchemaToType(node: Node | undefined): string | null {
   if (!node) return null;
-  return inferArkTypeSchema(node) ?? inferLiteralSchema(node) ?? "unknown";
+  return inferLiteralSchema(node) ?? inferArkTypeSchema(node) ?? "unknown";
 }
 
 let arkTypeProbeId = 0;

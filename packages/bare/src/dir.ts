@@ -15,6 +15,7 @@ export type MorphDirOptions = MorphOptions & {
 };
 
 type SourceModule = {
+  actionNames: string[];
   fileName: string;
   filePath: string;
   moduleName: string;
@@ -35,17 +36,20 @@ export async function morphDir(
   directory: string | URL,
   options: MorphDirOptions = {}
 ): Promise<void> {
-  const inputDirectory = resolvePath(directory, defaultBaseDir(options.baseDir));
+  const baseDir = defaultBaseDir(options.baseDir);
+  const inputDirectory = resolvePath(directory, baseDir);
   const outputDirectory = options.outputDir
     ? resolvePath(options.outputDir, inputDirectory)
     : defaultOutputDirectory(inputDirectory);
+  const project = projectForBaseDir(baseDir);
   const modules = await readSourceModules(inputDirectory);
   const actorModules = modules.filter((module) => hasActorBinding(module.source));
-  const actionModules = modules.filter((module) => hasActionBinding(module.source));
+  const actionModules = modules.filter((module) => module.actionNames.length > 0);
   const indexSource = await Bun.file(join(inputDirectory, "index.ts")).text();
   const serviceIndexes = parseServiceIndexes(
     indexSource,
-    join(inputDirectory, "index.ts")
+    join(inputDirectory, "index.ts"),
+    project
   );
 
   if (actorModules.length === 0) {
@@ -80,7 +84,7 @@ export async function morphDir(
           morphSource(input, {
             ...options,
             filePath: actionModule.filePath,
-          })
+          }, project)
         ),
         actorImports
       );
@@ -105,11 +109,14 @@ async function readSourceModules(directory: string): Promise<SourceModule[]> {
       if (entry.name.endsWith(".d.ts")) return null;
 
       const filePath = join(directory, entry.name);
+      const source = await Bun.file(filePath).text();
+
       return {
+        actionNames: actionSpecsForSource(source),
         fileName: entry.name,
         filePath,
         moduleName: `./${entry.name.replace(/\.ts$/, "")}`,
-        source: await Bun.file(filePath).text(),
+        source,
       };
     })
   );
@@ -121,10 +128,6 @@ async function readSourceModules(directory: string): Promise<SourceModule[]> {
 
 function hasActorBinding(source: string): boolean {
   return source.includes("Actor(");
-}
-
-function hasActionBinding(source: string): boolean {
-  return actionSpecsForSource(source).length > 0;
 }
 
 function actionSpecsForSource(source: string): string[] {
@@ -154,8 +157,12 @@ function actionSpecsForSource(source: string): string[] {
   return actions;
 }
 
-function parseServiceIndexes(source: string, filePath: string): ServiceIndex[] {
-  const sourceFile = createSourceFile(filePath, source);
+function parseServiceIndexes(
+  source: string,
+  filePath: string,
+  project?: Project
+): ServiceIndex[] {
+  const sourceFile = createSourceFile(filePath, source, project);
   const services: ServiceIndex[] = [];
 
   for (const declaration of sourceFile.getVariableDeclarations()) {
@@ -331,7 +338,7 @@ function printServiceIndex(
   const actionFiles = new Map<string, string>();
 
   for (const actionModule of actionModules) {
-    for (const actionName of actionSpecsForSource(actionModule.source)) {
+    for (const actionName of actionModule.actionNames) {
       actionFiles.set(actionName, actionModule.moduleName);
     }
   }
@@ -361,8 +368,8 @@ function printServiceIndex(
   return lines.join("\n").trimEnd() + "\n";
 }
 
-function createSourceFile(filePath: string, source: string) {
-  const project = new Project({
+function createProject(): Project {
+  return new Project({
     compilerOptions: {
       allowJs: false,
       esModuleInterop: true,
@@ -377,12 +384,34 @@ function createSourceFile(filePath: string, source: string) {
       quoteKind: QuoteKind.Double,
     },
   });
+}
 
+const projectCache = new Map<string, Project>();
+
+function projectForBaseDir(baseDir: string): Project {
+  let project = projectCache.get(baseDir);
+  if (!project) {
+    project = createProject();
+    projectCache.set(baseDir, project);
+  }
+
+  return project;
+}
+
+function createSourceFile(filePath: string, source: string, project = createProject()) {
   return project.createSourceFile(filePath, source, { overwrite: true });
 }
 
-function morphSource(sourceText: string, options: MorphOptions = {}): string {
-  const sourceFile = createSourceFile(options.filePath ?? "actor.ts", sourceText);
+function morphSource(
+  sourceText: string,
+  options: MorphOptions = {},
+  project?: Project
+): string {
+  const sourceFile = createSourceFile(
+    options.filePath ?? "actor.ts",
+    sourceText,
+    project
+  );
   const actions = findActionSpecs(sourceFile);
 
   if (actions.length === 0) {
