@@ -1,4 +1,11 @@
-export { Wire, configureWire, getWireConfig, ulid, wire } from "./bus";
+export {
+  Wire,
+  addListener,
+  configureWire,
+  events,
+  getWireConfig,
+  ulid,
+} from "./bus";
 export { consume } from "./consume";
 export { Signal, Trace, eventData } from "./events";
 export { formatEvent, isActionEvent } from "./format";

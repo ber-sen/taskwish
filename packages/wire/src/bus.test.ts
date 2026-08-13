@@ -46,6 +46,44 @@ describe("Wire", () => {
     });
   });
 
+  test("logs and emits signal events with a stable thread id", async () => {
+    const loggedEvents: unknown[] = [];
+    const emittedEvents: unknown[] = [];
+    const { events } = await import("./bus");
+    const wire = new Wire({
+      threadId: "thread-1",
+      log: (event) => loggedEvents.push(event),
+    });
+    const listener = (event: unknown) => emittedEvents.push(event);
+
+    events.on("Greeter::Message", listener);
+
+    try {
+      const event = wire.signal("Greeter::Message", { name: "Ada" });
+
+      expect(loggedEvents).toEqual([event]);
+      expect(emittedEvents).toEqual([{ name: "Ada" }]);
+      expect(event).toEqual({
+        "->": "Greeter::Message",
+        threadId: "thread-1",
+        name: "Ada",
+      });
+    } finally {
+      events.off("Greeter::Message", listener);
+    }
+  });
+
+  test("accepts service references in global config", () => {
+    const service = { hello: () => "hello" };
+
+    configureWire({ services: [service] });
+
+    expect(getWireConfig()).toEqual({
+      threadId: undefined,
+      log: undefined,
+    });
+  });
+
   test("supports global logging config", () => {
     const events: unknown[] = [];
     configureWire({

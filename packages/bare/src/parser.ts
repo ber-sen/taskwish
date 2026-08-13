@@ -75,6 +75,12 @@ export function findActionSpecs(sourceFile: SourceFile): ActionSpec[] {
     actions.push({
       actorName: actor.actorName,
       actionName: exportedActionName,
+      listenEventName:
+        eventName && eventName !== "Command"
+          ? eventName.includes("::")
+            ? eventName
+            : `${actor.actorName}::${eventName}`
+          : null,
       inputType,
       actorDeclaration: actor.declaration,
       declaration: variableStatement,

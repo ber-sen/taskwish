@@ -30,11 +30,10 @@ function helloCtx(ctx = {}) {
   }
 
   async function stream(input: { name: string; }) {
-    const signal = (name: string, input: unknown): Record<string, unknown> => ({ ">>": name, input });
 
     scope.wire.trace("Greeter::hello", { input });
 
-    const notify = signal("Greeter::Message", { name: input.name });
+    const notify = scope.wire.signal("Greeter::Message", { name: input.name }) as Record<string, unknown>;
 
     scope.wire.trace("Greeter::hello.notify", { result: notify });
 

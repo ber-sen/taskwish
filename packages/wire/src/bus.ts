@@ -1,16 +1,110 @@
-import { EventEmitter } from "node:events";
 import { randomBytes } from "node:crypto";
 
 import { formatEvent } from "./format";
 import type { LogFn } from "./logger";
 
-export const wire = new EventEmitter();
+type WireEventListener<Data = unknown> = (data: Data) => unknown;
+
+const eventListeners: Record<string, WireEventListener[] | undefined> = {};
+
+export class WireEvents {
+  addListener<const EventType extends string, Data>(
+    type: EventType,
+    listener: WireEventListener<Data>,
+  ): this {
+    addListener(type, listener);
+
+    return this;
+  }
+
+  on<const EventType extends string, Data>(
+    type: EventType,
+    listener: WireEventListener<Data>,
+  ): this {
+    return this.addListener(type, listener);
+  }
+
+  removeListener<const EventType extends string, Data>(
+    type: EventType,
+    listener: WireEventListener<Data>,
+  ): this {
+    removeListener(type, listener);
+
+    return this;
+  }
+
+  off<const EventType extends string, Data>(
+    type: EventType,
+    listener: WireEventListener<Data>,
+  ): this {
+    return this.removeListener(type, listener);
+  }
+
+  emit<const EventType extends string, Data>(
+    type: EventType,
+    data: Data,
+  ): boolean {
+    return emit(type, data);
+  }
+}
+
+export const events = new WireEvents();
+
+export function addListener<const EventType extends string, Data>(
+  type: EventType,
+  listener: WireEventListener<Data>,
+): void {
+  let listeners = eventListeners[type];
+
+  if (listeners === undefined) {
+    listeners = [];
+    eventListeners[type] = listeners;
+  }
+
+  listeners[listeners.length] = listener as WireEventListener;
+}
+
+export function removeListener<const EventType extends string, Data>(
+  type: EventType,
+  listener: WireEventListener<Data>,
+): void {
+  const listeners = eventListeners[type];
+
+  if (listeners === undefined) return;
+
+  for (let index = 0; index < listeners.length; index++) {
+    if (listeners[index] === listener) {
+      listeners.splice(index, 1);
+      break;
+    }
+  }
+
+  if (listeners.length === 0) {
+    delete eventListeners[type];
+  }
+}
+
+export function emit<const EventType extends string, Data>(
+  type: EventType,
+  data: Data,
+): boolean {
+  const listeners = eventListeners[type];
+
+  if (listeners === undefined) return false;
+
+  for (const listener of listeners) {
+    listener(data);
+  }
+
+  return true;
+}
 
 export type WireLogConfig = "console" | LogFn;
 
 export type WireConfig = {
   threadId?: string;
   log?: WireLogConfig;
+  services?: unknown[];
 };
 
 export type WireGlobalConfig = WireConfig;
@@ -80,6 +174,29 @@ export class Wire {
     } else {
       this.log(loggedEvent);
     }
+
+    return loggedEvent;
+  }
+
+  signal<const EventType extends string>(
+    type: EventType,
+    data: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const loggedEvent: Record<string, unknown> = { "->": type };
+
+    for (const key in data) {
+      loggedEvent[key] = data[key];
+    }
+
+    loggedEvent.threadId = this.threadId;
+
+    if (this.log === "console") {
+      console.log(formatEvent(loggedEvent));
+    } else if (this.log !== undefined) {
+      this.log(loggedEvent);
+    }
+
+    emit(type, data);
 
     return loggedEvent;
   }

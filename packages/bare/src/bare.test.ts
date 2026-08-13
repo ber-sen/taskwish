@@ -122,12 +122,14 @@ export const { Greeter } = greeter().service({
     const output = morph(source);
 
     expectParts(output, [
+      `import { Wire, addListener, createScope } from "@taskwish/wire";`,
       `interface HelloAction`,
       `export const hello: HelloAction = Object.assign(`,
       `interface OnNewEmailAction`,
       `export const onNewEmail: OnNewEmailAction = Object.assign(`,
       `scope.wire.trace("Greeter::hello", { input });`,
       `scope.wire.trace("Greeter::onNewEmail", { input });`,
+      `addListener("Greeter::NewEmail", onNewEmail);`,
       `export const Greeter = {
   hello
 };`,
@@ -448,6 +450,31 @@ export const { runSteps } = myActor()
     ]);
   });
 
+  test("rewrites signals to the wire event bus", () => {
+    const source = `import { Actor, Step } from "../../src";
+
+const { greeter } = Actor("Greeter");
+
+export const { hello } = greeter()
+  .on("Command", "hello")
+
+  .input({ name: "string" })
+
+  .run(
+    Step("notify", function () {
+      return this.signal("Greeter::Message", { name: this.input.name });
+    }),
+  );
+`;
+
+    const output = morph(source);
+
+    expect(output).toContain(
+      `const notify = scope.wire.signal("Greeter::Message", { name: input.name }) as Record<string, unknown>;`
+    );
+    expect(output).not.toContain(`const signal =`);
+  });
+
   test("awaits async step handlers inline", () => {
     const source = `import { Actor, Step } from "../../src";
 
@@ -674,6 +701,12 @@ export const { Biller } = biller().service({ onGreeterMessage });
       `async function onGreeterMessage(input: { name: string; })`
     );
     expect(output).toContain(`input: { name: string; }`);
+    expect(output).toContain(
+      `import { Wire, addListener, createScope } from "@taskwish/wire";`
+    );
+    expect(output).toContain(
+      `addListener("Greeter::Message", onGreeterMessage);`
+    );
     expect(output).not.toContain(`input: any`);
   });
 });

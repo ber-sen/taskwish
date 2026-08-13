@@ -13,7 +13,6 @@ export function printAction(action: ActionSpec): string {
   const interfaceName = `${upperFirst(action.actionName)}Action`;
   const parameterText = action.inputType ? `input: ${action.inputType}` : "";
   const inputArgText = action.inputType ? "input" : "";
-  const usesSignal = action.steps.some((step) => step.usesSignal);
   const usesAbortSignal = action.steps.some((step) => step.usesAbortSignal);
   const returnTypeText = action.steps.at(-1)!.propertyType;
   const initialScopeProperties = [
@@ -62,11 +61,6 @@ export function printAction(action: ActionSpec): string {
           `    const abortSignal = ${scopeReferenceName}.abortSignal as AbortSignal | undefined;`,
         ]
       : []),
-    ...(usesSignal
-      ? [
-          `    const signal = (name: string, input: unknown): Record<string, unknown> => ({ ">>": name, input });`,
-        ]
-      : []),
     ``,
     `    scope.wire.trace("${actionEventName}", { input });`,
     ``,
@@ -74,8 +68,13 @@ export function printAction(action: ActionSpec): string {
 
   for (const step of action.steps) {
     if (step.directExpressionText !== null) {
+      const expressionText = scopeText(
+        step.directExpressionText,
+        scopeReferenceName
+      );
+
       lines.push(
-        `    const ${step.name} = ${scopeText(step.directExpressionText, scopeReferenceName)};`
+        `    const ${step.name} = ${step.usesSignal ? `${expressionText} as Record<string, unknown>` : expressionText};`
       );
     } else {
       lines.push(`    let ${step.name}: ${step.propertyType};`);
@@ -100,6 +99,11 @@ export function printAction(action: ActionSpec): string {
   lines.push("");
   lines.push("  return { run, stream };");
   lines.push("}");
+
+  if (action.listenEventName !== null) {
+    lines.push("");
+    lines.push(`addListener("${action.listenEventName}", ${action.actionName});`);
+  }
 
   return lines.join("\n");
 }

@@ -1,6 +1,8 @@
 "use server";
 
-import { Wire, createScope } from "@taskwish/wire";
+import { Wire, addListener, createScope } from "@taskwish/wire";
+
+import { Greeter } from "../greeter";
 
 interface OnGreeterMessageAction {
   (input: { name: string; }): Promise<{ invoice: string; }>;
@@ -46,3 +48,5 @@ function onGreeterMessageCtx(ctx = {}) {
 
   return { run, stream };
 }
+
+addListener("Greeter::Message", onGreeterMessage);

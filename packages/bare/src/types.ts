@@ -18,6 +18,7 @@ export type ActorDependency = {
 export type ActionSpec = {
   actorName: string;
   actionName: string;
+  listenEventName: string | null;
   inputType: string | null;
   actorDeclaration: VariableStatement;
   declaration: VariableStatement;
