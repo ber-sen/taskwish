@@ -1,5 +1,3 @@
-import { randomBytes } from "node:crypto";
-
 import { formatEvent } from "./format";
 import type { LogFn } from "./logger";
 
@@ -228,4 +226,15 @@ function encodeRandom(length: number): string {
   }
 
   return value;
+}
+
+function randomBytes(length: number): number[] {
+  const bytes = new Uint8Array(length);
+
+  if (globalThis.crypto?.getRandomValues) {
+    globalThis.crypto.getRandomValues(bytes);
+    return Array.from(bytes);
+  }
+
+  return Array.from(bytes, () => Math.floor(Math.random() * 256));
 }

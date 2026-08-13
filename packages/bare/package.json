@@ -6,7 +6,14 @@
       ".": {
         "import": "./dist/index.mjs",
         "require": "./dist/index.cjs"
+      },
+      "./cli": {
+        "import": "./dist/cli.mjs",
+        "require": "./dist/cli.cjs"
       }
+    },
+    "bin": {
+      "bare": "./dist/cli.mjs"
     },
     "main": "./dist/index.cjs",
     "types": "./dist/index.d.ts"
@@ -21,7 +28,16 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs",
       "types": "./dist/index.d.ts"
+    },
+    "./cli": {
+      "source": "./src/cli.ts",
+      "import": "./dist/cli.mjs",
+      "require": "./dist/cli.cjs",
+      "types": "./dist/cli.d.ts"
     }
+  },
+  "bin": {
+    "bare": "./dist/cli.mjs"
   },
   "main": "./dist/index.cjs",
   "types": "./dist/index.d.ts",

@@ -16,8 +16,7 @@
   "private": true,
   "scripts": {
     "check": "tsc --noEmit",
-    "cli": "scriptc run bare/cli.ts --npm-static @taskwish/wire",
-    "morph": "bun src/morph.ts",
+    "cli": "bare cli",
     "start": "bun src/node.ts"
   },
   "type": "module",
