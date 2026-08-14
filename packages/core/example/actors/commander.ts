@@ -1,14 +1,16 @@
 import { Actor, ScopeResultKind, Step, Steps, TW } from "../../src";
 
 interface Commander {
-  <
+  Bot<
     Ctx extends Record<string, any>,
     const Options extends {
       service: "telegram";
-      bot: string;
-      instructions?: string;
-      tools?: string[];
-      canEditActors?: Array<"self" | (string & {})>;
+      username: string;
+      agent: {
+        instructions?: string;
+        tools?: string[];
+        canEditActors?: Array<"self" | (string & {})>;
+      };
     },
   >(
     options: Options,
@@ -28,12 +30,14 @@ interface Commander {
 export const Commander: Commander = {} as never;
 
 const { commandedActor } = Actor("CommandedActor").scope(
-  Commander({
+  Commander.Bot({
     service: "telegram",
-    bot: "taskwish_bot",
-    instructions: "asdasdas",
-    tools: ["browse"],
-    canEditActors: ["self"],
+    username: "taskwish_bot",
+    agent: {
+      tools: ["browse"],
+      canEditActors: ["self"],
+      canCreateActor: true,
+    },
   }),
 );
 
