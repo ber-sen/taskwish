@@ -6,7 +6,9 @@ interface Commander {
     const Options extends {
       service: "telegram";
       bot: string;
-      rewriteItself?: boolean;
+      instructions?: string;
+      tools?: string[];
+      canEditActors?: Array<"self" | (string & {})>;
     },
   >(
     options: Options,
@@ -29,7 +31,9 @@ const { commandedActor } = Actor("CommandedActor").scope(
   Commander({
     service: "telegram",
     bot: "taskwish_bot",
-    rewriteItself: true,
+    instructions: "asdasdas",
+    tools: ["browse"],
+    canEditActors: ["self"],
   }),
 );
 
