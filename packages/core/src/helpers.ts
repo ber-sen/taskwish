@@ -30,6 +30,10 @@ export type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
   ? true
   : false;
 
+export type StripEventKinds<S> = {
+  [K in keyof S as S[K] extends TW.EventKind<any, any, any> ? never : K]: S[K];
+};
+
 type IsListenerAction<Action> = Action extends TW.Attributable<infer Meta>
   ? Meta extends { event: string }
     ? true
@@ -46,34 +50,6 @@ export type PickListeners<Actions> = Pretty<{
   [Key in keyof Actions as IsListenerAction<Actions[Key]> extends true
     ? Key
     : never]: Actions[Key];
-}>;
-
-export type ServiceRunParams<Handler extends (...args: any) => any> =
-  StreamInput<Handler> extends undefined ? {} : { input: StreamInput<Handler> };
-
-export type ServiceRunActions<Actions> = Pretty<{
-  [Key in keyof OmitListeners<Actions>]: OmitListeners<Actions>[Key] extends TW.Action<
-    any,
-    infer Handler,
-    any
-  >
-    ? (params: ServiceRunParams<Handler>) => Promise<StreamResult<Handler>>
-    : never;
-}>;
-
-export type ServiceStreamActions<Actions> = Pretty<{
-  [Key in keyof OmitListeners<Actions>]: OmitListeners<Actions>[Key] extends TW.Action<
-    infer Name,
-    infer Handler,
-    any
-  >
-    ? (
-        params: ServiceRunParams<Handler>,
-      ) => AsyncGenerator<
-        TW.ActionEvent<Name, StreamResult<Handler>, StreamInput<Handler>>,
-        StreamResult<Handler>
-      >
-    : never;
 }>;
 
 export type CamelCaseHelper<T extends string> =
@@ -349,7 +325,7 @@ type ExtractActionNameFromYield<Yield> = Yield extends Trace<
   ? N
   : never;
 
-/** Extract the action name from a TW.Action resource or exposed action stream. */
+/** Extract the action name from a TW.Action resource or exposed action function. */
 export type ExtractActionName<T> = T extends TW.Resource<infer N extends string>
   ? N
   : T extends (...args: any[]) => AsyncGenerator<infer Yield, any, any>
@@ -399,6 +375,10 @@ export type ActionMethod<N extends string> = QualifiedActionParts<N> extends [
   : N;
 
 type ExposedAction<T> = T extends {
+  run: infer Run extends (...args: any[]) => any;
+}
+  ? Run
+  : T extends {
   stream: infer Stream extends (...args: any[]) => any;
 }
   ? Stream
@@ -482,6 +462,29 @@ export type AddActionsToCtx<Ctx extends Record<any, any>, U> = {
       } & EventsFromPlugin<U>
     : Ctx[K];
 };
+
+type DefaultContextActionKeys = "generateText";
+
+type DeepPartialContext<T> = T extends (...args: any[]) => any
+  ? T
+  : T extends object
+    ? { [K in keyof T]?: DeepPartialContext<T[K]> }
+    : T;
+
+export type ActionContextScope<Scope> = Scope extends {
+  actions: infer Actions;
+}
+  ? Exclude<keyof Actions, DefaultContextActionKeys> extends never
+    ? {}
+    : {
+        actions?: TW.Configurable<
+          DeepPartialContext<Omit<Actions, DefaultContextActionKeys>>
+        >;
+      }
+  : {};
+
+export type ActionCtx<Scope> = { abortSignal?: TW.Configurable<AbortSignal> } &
+  ActionContextScope<Scope>;
 
 export type StreamInput<Handler extends (...args: any) => any> =
   Parameters<Handler> extends []

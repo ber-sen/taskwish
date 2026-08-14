@@ -1,4 +1,4 @@
-import { expect, test, describe } from "bun:test";
+import { expect, test, describe, mock } from "bun:test";
 import { $ } from "@taskwish/expr";
 import { Expect, Equal, RawEntry } from "../helpers";
 import { Action } from "./action";
@@ -6,7 +6,12 @@ import { Actor } from "../actor";
 import { TW } from "../core";
 import { Step } from "../steps";
 import { InferType } from "../use";
-import { Logger, Signal, Trace, eventData, formatEvent } from "@taskwish/wire";
+import {
+  Logger,
+  Trace,
+  eventData,
+  formatEvent,
+} from "@taskwish/wire";
 import { Event } from "../event";
 
 const eventDataList = (values: unknown[]) => values.map(eventData);
@@ -162,8 +167,146 @@ describe("Action", () => {
         ? true
         : false
     >;
+    type checkRunParams = Expect<
+      Equal<Parameters<typeof tsAction.run>, [{ name: string }]>
+    >;
+    type checkRunResult = Expect<
+      Equal<Awaited<ReturnType<typeof tsAction.run>>, string>
+    >;
 
     expect(await tsAction({ name: "Test" })).toEqual("Hello Test");
+    expect(await tsAction.run({ name: "Test" })).toEqual("Hello Test");
+  });
+
+  test("ctx binds context for run and stream", async () => {
+    const controller = new AbortController();
+    const { readAbortSignal } = Action("readAbortSignal")
+      .input<{ name: string }>()
+
+      .run(async function () {
+        return {
+          name: this.input.name,
+          direct: this.abortSignal === controller.signal,
+        };
+      });
+
+    type checkCtxRunParams = Expect<
+      Equal<
+        Parameters<ReturnType<typeof readAbortSignal.ctx>["run"]>,
+        [{ name: string }]
+      >
+    >;
+    type checkCtxRunResult = Expect<
+      Equal<
+        Awaited<ReturnType<ReturnType<typeof readAbortSignal.ctx>["run"]>>,
+        {
+          name: string;
+          direct: boolean;
+        }
+      >
+    >;
+
+    expect(
+      await readAbortSignal.ctx(controller.signal).run({ name: "Test" }),
+    ).toEqual({ name: "Test", direct: true });
+
+    const stream = readAbortSignal
+      .ctx({ abortSignal: controller.signal })
+      .stream({ name: "Stream" });
+    let item = await stream.next();
+    while (!item.done) item = await stream.next();
+
+    expect(item.value).toEqual({
+      name: "Stream",
+      direct: true,
+    });
+
+    const { hasNoDefaultAbortSignal } = Action("hasNoDefaultAbortSignal").run(
+      function () {
+        return this.abortSignal === undefined;
+      },
+    );
+
+    expect(await hasNoDefaultAbortSignal()).toBe(true);
+  });
+
+  test("ctx accepts scoped action overrides", async () => {
+    const controller = new AbortController();
+    const { notifier } = Actor("Notifier");
+    const { notify } = notifier()
+      .on("Command", "notify")
+
+      .input({ message: "string" })
+
+      .run(function () {
+        return `real: ${this.input.message}`;
+      });
+
+    const { greet } = Action("greet")
+      .use(notify)
+
+      .input({ name: "string" })
+
+      .run(async function () {
+        return {
+          aborted: this.abortSignal === controller.signal,
+          message: await this.actions.notifier.notify({
+            message: this.input.name,
+          }),
+        };
+      });
+
+    // @ts-expect-error ctx() only accepts execution context, not handler input
+    greet.ctx({ input: { name: "Ada" } });
+
+    expect(
+      await greet
+        .ctx({
+          abortSignal: controller.signal,
+          actions: {
+            notifier: {
+              notify: async ({ message }) => `mock: ${message}`,
+            },
+          },
+        })
+        .run({ name: "Ada" }),
+    ).toEqual({
+      aborted: true,
+      message: "mock: Ada",
+    });
+  });
+
+  test("ctx accepts bare action overrides from use()", async () => {
+    const { someAction } = Action("someAction")
+      .input({ value: "string" })
+
+      .run(function () {
+        return `real: ${this.input.value}`;
+      });
+
+    const { caller } = Action("caller")
+      .use(someAction)
+
+      .input({ value: "string" })
+
+      .run(function () {
+        return this.actions.someAction({ value: this.input.value });
+      });
+
+    const someActionMock = mock(async ({ value }: { value: string }) => {
+      return `mock: ${value}`;
+    });
+
+    expect(
+      await caller
+        .ctx({
+          actions: {
+            someAction: someActionMock,
+          },
+        })
+        .run({ value: "Ada" }),
+    ).toEqual("mock: Ada");
+    expect(someActionMock).toHaveBeenCalledWith({ value: "Ada" });
   });
 
   test("generic function signature — this.input is args tuple", async () => {
@@ -172,7 +315,6 @@ describe("Action", () => {
 
       .run(async function () {
         const [lorem] = this.input;
-        const a = this.get(AbortSignal);
 
         return lorem;
       });
@@ -733,7 +875,7 @@ describe("Action", () => {
 
     type T = ExactOmit<
       InferScope<typeof compute>,
-      "thread" | "actions" | "self" | "signal" | "get" | "event"
+      "thread" | "actions" | "abortSignal" | "self" | "signal" | "event"
     >;
 
     type check = Expect<
@@ -764,7 +906,7 @@ describe("Action", () => {
   });
 
   test("use(TW.Action) — bare Action (no Actor) injected directly as this.actions.<name>", async () => {
-    // Bare Action — no Actor wrapper; flat name → this.actions.notify stream
+    // Bare Action — no Actor wrapper; flat name → this.actions.notify run
     const { notify } = Action("notify")
       .input({ message: "string" })
 
@@ -779,9 +921,9 @@ describe("Action", () => {
 
       .run(
         Step("notify", function () {
-          // flat name → this.actions.notify is the action stream
+          // flat name → this.actions.notify is the action run function
           type Check = Expect<
-            Equal<typeof this.actions.notify, typeof notify.stream>
+            Equal<typeof this.actions.notify, typeof notify.run>
           >;
           return this.actions.notify({ message: this.input.name });
         }),
@@ -815,7 +957,7 @@ describe("Action", () => {
       .run(
         Step("notify", function () {
           type Check = Expect<
-            Equal<typeof this.actions.notifier.notify, typeof notify.stream>
+            Equal<typeof this.actions.notifier.notify, typeof notify.run>
           >;
           return this.actions.notifier.notify({
             message: this.input.name,
@@ -852,7 +994,7 @@ describe("Action", () => {
       .run(
         Step("notify", function () {
           type Check = Expect<
-            Equal<typeof this.actions.notify, typeof notify.stream>
+            Equal<typeof this.actions.notify, typeof notify.run>
           >;
           type HelperIsIgnored = "helper" extends keyof typeof this.actions
             ? false

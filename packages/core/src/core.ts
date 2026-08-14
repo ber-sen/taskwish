@@ -2,16 +2,19 @@ import {
   UUIDv7String,
   ValidateTrigger,
   InferTriggerScope,
+  Pretty,
   OmitListeners,
   PickListeners,
-  ServiceRunActions,
-  ServiceStreamActions,
   StreamInput,
   StreamResult,
+  StripEventKinds,
 } from "./helpers";
 
 import { Type as ArkType } from "arktype";
-import type { Signal, Trace } from "@taskwish/wire";
+import type {
+  Signal,
+  Trace,
+} from "@taskwish/wire";
 
 export namespace TW {
   export const Name = Symbol.for("TW.Name");
@@ -41,6 +44,9 @@ export namespace TW {
   }
 
   export interface Resource<Name extends string> extends Named<Name> {}
+
+  export type Configurable<Type> = Type;
+
   export abstract class Handler {
     readonly ctx!: Record<"model", unknown>;
     run?: (...x: never[]) => Promise<any>;
@@ -72,11 +78,8 @@ export namespace TW {
     ? N
     : K;
 
-  type StripEventKinds<S> = {
-    [K in keyof S as S[K] extends EventKind<any, any, any> ? never : K]: S[K];
-  };
-
   export type Scope<S> = StripEventKinds<S> & {
+    abortSignal?: Configurable<AbortSignal>;
     self: <Return = any>(
       input: S extends Record<any, any>
         ? S["input"] extends Record<any, any>
@@ -99,7 +102,6 @@ export namespace TW {
       >["data"],
       unknown
     >;
-    get<T>(Cls: new (...args: any[]) => T): T;
   };
 
   export type Inject<Type> = Type | null;
@@ -117,16 +119,42 @@ export namespace TW {
     | Trace<Name, { result: Result }>
     | Trace<Name, { error: unknown }>;
 
-  export type GetEvent<T = unknown> = {
-    "->": "get";
-    type: abstract new (...args: any[]) => T;
-  };
-
   export type Action<
     Name extends string,
     Handler extends (...args: any) => any,
     Meta = null,
-  > = NoInfer<Handler> & {
+  > = NoInfer<Handler> &
+    ActionRuntime<Name, Handler> & {
+      ctx(
+        context?: ActionContext<ActionContextScopeFromMeta<Meta>>,
+      ): ActionRuntime<Name, Handler>;
+    } & Resource<Name> &
+    Attributable<Meta>;
+
+  export type ActionCtxMeta<
+    Meta,
+    Ctx extends Record<any, any>,
+  > = keyof Omit<Ctx, "abortSignal"> extends never
+    ? Meta
+    : Pretty<(Meta extends null ? {} : Meta) & { ctx: Ctx }>;
+
+  type ActionContextScopeFromMeta<Meta> = Meta extends {
+    ctx: infer Ctx extends Record<any, any>;
+  }
+    ? Ctx
+    : { abortSignal?: Configurable<AbortSignal> };
+
+  export type ActionContext<
+    Ctx extends Record<any, any> = {
+      abortSignal?: Configurable<AbortSignal>;
+    },
+  > = AbortSignal | Ctx;
+
+  export type ActionRuntime<
+    Name extends string,
+    Handler extends (...args: any) => any,
+  > = {
+    run: NoInfer<Handler>;
     stream: ((
       ...args: Parameters<NoInfer<Handler>>
     ) => AsyncGenerator<
@@ -134,8 +162,7 @@ export namespace TW {
       StreamResult<Handler>
     >) &
       NoInfer<Handler>;
-  } & Resource<Name> &
-    Attributable<Meta>;
+  };
 
   export class IO {
     // threadId!: Message.ThreadId;
@@ -157,9 +184,6 @@ export namespace TW {
 
   export type Service<Name extends string, Actions, ServiceScope = {}> =
     OmitListeners<Actions> & {
-      run: ServiceRunActions<Actions>;
-      stream: ServiceStreamActions<Actions>;
-    } & {
     [Name]: Name;
     [Listeners]: PickListeners<Actions>;
     [Scope]: ServiceScope;

@@ -6,7 +6,7 @@ import { Node, Project, QuoteKind, ScriptTarget, SyntaxKind, ts } from "ts-morph
 
 import { applyBareMetalReplacements } from "./edits";
 import { findActionSpecs } from "./parser";
-import { unwrapExpression } from "./syntax";
+import { isDefined, unwrapExpression } from "./syntax";
 import type { MorphOptions } from "./types";
 
 export type MorphDirOptions = MorphOptions & {
@@ -15,6 +15,7 @@ export type MorphDirOptions = MorphOptions & {
 };
 
 type SourceModule = {
+  actionNames: string[];
   fileName: string;
   filePath: string;
   moduleName: string;
@@ -35,17 +36,20 @@ export async function morphDir(
   directory: string | URL,
   options: MorphDirOptions = {}
 ): Promise<void> {
-  const inputDirectory = resolvePath(directory, defaultBaseDir(options.baseDir));
+  const baseDir = defaultBaseDir(options.baseDir);
+  const inputDirectory = resolvePath(directory, baseDir);
   const outputDirectory = options.outputDir
     ? resolvePath(options.outputDir, inputDirectory)
     : defaultOutputDirectory(inputDirectory);
+  const project = projectForBaseDir(baseDir);
   const modules = await readSourceModules(inputDirectory);
   const actorModules = modules.filter((module) => hasActorBinding(module.source));
-  const actionModules = modules.filter((module) => hasActionBinding(module.source));
+  const actionModules = modules.filter((module) => module.actionNames.length > 0);
   const indexSource = await Bun.file(join(inputDirectory, "index.ts")).text();
   const serviceIndexes = parseServiceIndexes(
     indexSource,
-    join(inputDirectory, "index.ts")
+    join(inputDirectory, "index.ts"),
+    project
   );
 
   if (actorModules.length === 0) {
@@ -58,35 +62,36 @@ export async function morphDir(
 
   await mkdir(outputDirectory, { recursive: true });
 
-  for (const actorModule of actorModules) {
-    await removeOutput(join(outputDirectory, actorModule.fileName));
-  }
+  await Promise.all(
+    actorModules.map((actorModule) =>
+      removeOutput(join(outputDirectory, actorModule.fileName))
+    )
+  );
 
-  const localModules = [
-    ...actorModules.map((module) => module.moduleName),
-    ...actionModules.map((module) => module.moduleName),
-  ];
+  const localModules = actorModules.map((module) => module.moduleName);
   const actorSource = actorModules.map((module) => module.source).join("\n\n");
   const actorImports = new Set(importLines(actorSource));
 
-  for (const actionModule of actionModules) {
-    const actionSource = splitDirectivePrologue(actionModule.source);
-    const input = stripLocalImports(
-      `${actorSource}\n\n${actionSource.body}`,
-      localModules
-    );
-    const output = actionSource.directivePrologue + stripActorImports(
-      exportRunHelpers(
-        morphSource(input, {
-          ...options,
-          filePath: actionModule.filePath,
-        })
-      ),
-      actorImports
-    );
+  await Promise.all(
+    actionModules.map((actionModule) => {
+      const actionSource = splitDirectivePrologue(actionModule.source);
+      const input = stripLocalImports(
+        `${actorSource}\n\n${actionSource.body}`,
+        localModules
+      );
+      const output = actionSource.directivePrologue + stripActorImports(
+        exportRunHelpers(
+          morphSource(input, {
+            ...options,
+            filePath: actionModule.filePath,
+          }, project)
+        ),
+        actorImports
+      );
 
-    await writeOutput(join(outputDirectory, actionModule.fileName), output);
-  }
+      return writeOutput(join(outputDirectory, actionModule.fileName), output);
+    })
+  );
 
   await writeOutput(
     join(outputDirectory, "index.ts"),
@@ -96,32 +101,33 @@ export async function morphDir(
 
 async function readSourceModules(directory: string): Promise<SourceModule[]> {
   const entries = await readdir(directory, { withFileTypes: true });
-  const modules: SourceModule[] = [];
+  const modules = await Promise.all(
+    entries.map(async (entry): Promise<SourceModule | null> => {
+      if (!entry.isFile()) return null;
+      if (entry.name === "index.ts") return null;
+      if (extname(entry.name) !== ".ts") return null;
+      if (entry.name.endsWith(".d.ts")) return null;
 
-  for (const entry of entries) {
-    if (!entry.isFile()) continue;
-    if (entry.name === "index.ts") continue;
-    if (extname(entry.name) !== ".ts") continue;
-    if (entry.name.endsWith(".d.ts")) continue;
+      const filePath = join(directory, entry.name);
+      const source = await Bun.file(filePath).text();
 
-    const filePath = join(directory, entry.name);
-    modules.push({
-      fileName: entry.name,
-      filePath,
-      moduleName: `./${entry.name.replace(/\.ts$/, "")}`,
-      source: await Bun.file(filePath).text(),
-    });
-  }
+      return {
+        actionNames: actionSpecsForSource(source),
+        fileName: entry.name,
+        filePath,
+        moduleName: `./${entry.name.replace(/\.ts$/, "")}`,
+        source,
+      };
+    })
+  );
 
-  return modules.sort((a, b) => a.fileName.localeCompare(b.fileName));
+  return modules
+    .filter(isDefined)
+    .sort((a, b) => a.fileName.localeCompare(b.fileName));
 }
 
 function hasActorBinding(source: string): boolean {
   return source.includes("Actor(");
-}
-
-function hasActionBinding(source: string): boolean {
-  return actionSpecsForSource(source).length > 0;
 }
 
 function actionSpecsForSource(source: string): string[] {
@@ -151,8 +157,12 @@ function actionSpecsForSource(source: string): string[] {
   return actions;
 }
 
-function parseServiceIndexes(source: string, filePath: string): ServiceIndex[] {
-  const sourceFile = createSourceFile(filePath, source);
+function parseServiceIndexes(
+  source: string,
+  filePath: string,
+  project?: Project
+): ServiceIndex[] {
+  const sourceFile = createSourceFile(filePath, source, project);
   const services: ServiceIndex[] = [];
 
   for (const declaration of sourceFile.getVariableDeclarations()) {
@@ -260,12 +270,46 @@ function stripLocalImports(source: string, localModules: string[]): string {
 }
 
 function stripActorImports(source: string, actorImports: Set<string>): string {
-  return source
-    .split("\n")
-    .filter((line) => !actorImports.has(line.trim()))
+  const lines = source.split("\n");
+
+  return lines
+    .filter((line, index) => {
+      if (!actorImports.has(line.trim())) return true;
+
+      return importLineUsed(line, [
+        ...lines.slice(0, index),
+        ...lines.slice(index + 1),
+      ]);
+    })
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function importLineUsed(line: string, otherLines: string[]): boolean {
+  const localNames = importLocalNames(line);
+  if (localNames.length === 0) return false;
+
+  const source = otherLines.join("\n");
+  return localNames.some((name) => new RegExp(`\\b${escapeRegExp(name)}\\b`).test(source));
+}
+
+function importLocalNames(line: string): string[] {
+  const names: string[] = [];
+  const namedImports = line.match(/\{\s*([^}]+)\s*\}/)?.[1];
+
+  if (namedImports) {
+    for (const namedImport of namedImports.split(",")) {
+      const parts = namedImport.trim().split(/\s+as\s+/);
+      const name = parts.at(-1)?.trim();
+      if (name) names.push(name);
+    }
+  }
+
+  const defaultImport = line.match(/^import\s+([A-Za-z_$][\w$]*)\s*(?:,|\s+from)/)?.[1];
+  if (defaultImport) names.push(defaultImport);
+
+  return names;
 }
 
 function importLines(source: string): string[] {
@@ -294,7 +338,7 @@ function printServiceIndex(
   const actionFiles = new Map<string, string>();
 
   for (const actionModule of actionModules) {
-    for (const actionName of actionSpecsForSource(actionModule.source)) {
+    for (const actionName of actionModule.actionNames) {
       actionFiles.set(actionName, actionModule.moduleName);
     }
   }
@@ -308,26 +352,15 @@ function printServiceIndex(
         throw new Error(`No action file found for ${actionName}.`);
       }
 
-      lines.push(
-        `import { ${actionName}, ${actionName}Run, ${actionName}Stream } from "${actionModule}";`
-      );
+      lines.push(`import { ${actionName} } from "${actionModule}";`);
     }
 
     lines.push("");
     lines.push(`export const ${service.serviceName} = {`);
-    for (const actionName of service.actionNames) {
-      lines.push(`  ${actionName},`);
+    for (const [index, actionName] of service.actionNames.entries()) {
+      const separator = index === service.actionNames.length - 1 ? "" : ",";
+      lines.push(`  ${actionName}${separator}`);
     }
-    lines.push("  run: {");
-    for (const actionName of service.actionNames) {
-      lines.push(`    ${actionName}: ${actionName}Run,`);
-    }
-    lines.push("  },");
-    lines.push("  stream: {");
-    for (const actionName of service.actionNames) {
-      lines.push(`    ${actionName}: ${actionName}Stream,`);
-    }
-    lines.push("  }");
     lines.push("};");
     lines.push("");
   }
@@ -335,8 +368,8 @@ function printServiceIndex(
   return lines.join("\n").trimEnd() + "\n";
 }
 
-function createSourceFile(filePath: string, source: string) {
-  const project = new Project({
+function createProject(): Project {
+  return new Project({
     compilerOptions: {
       allowJs: false,
       esModuleInterop: true,
@@ -351,12 +384,34 @@ function createSourceFile(filePath: string, source: string) {
       quoteKind: QuoteKind.Double,
     },
   });
+}
 
+const projectCache = new Map<string, Project>();
+
+function projectForBaseDir(baseDir: string): Project {
+  let project = projectCache.get(baseDir);
+  if (!project) {
+    project = createProject();
+    projectCache.set(baseDir, project);
+  }
+
+  return project;
+}
+
+function createSourceFile(filePath: string, source: string, project = createProject()) {
   return project.createSourceFile(filePath, source, { overwrite: true });
 }
 
-function morphSource(sourceText: string, options: MorphOptions = {}): string {
-  const sourceFile = createSourceFile(options.filePath ?? "actor.ts", sourceText);
+function morphSource(
+  sourceText: string,
+  options: MorphOptions = {},
+  project?: Project
+): string {
+  const sourceFile = createSourceFile(
+    options.filePath ?? "actor.ts",
+    sourceText,
+    project
+  );
   const actions = findActionSpecs(sourceFile);
 
   if (actions.length === 0) {

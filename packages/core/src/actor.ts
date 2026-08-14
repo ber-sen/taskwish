@@ -1,12 +1,15 @@
 import {
+  ContextualActionTag,
   RawLoggedStreamTag,
   RawStreamTag,
   buildScope,
+  normalizeActionContext,
   runAction,
   tapRawStreamWith,
   tapWith,
   unwrapStreamEvents,
   type ActionFactory,
+  type ExecutionContext,
 } from "./action";
 import type { ActionMeta, ValidateActionMeta } from "./action/meta";
 import { Event } from "./event";
@@ -18,6 +21,7 @@ import {
   Pretty,
   ExtractActionName,
   ActionRecordName,
+  ActionCtx,
   AddActionsToCtx,
   DeepWriteable,
   QualifiedActionName,
@@ -188,7 +192,7 @@ interface TraitMethodFactoryFromTrait<
     [K in TraitMethodPart<TraitMethod>]: TW.Action<
       QualifiedActionName<Ctx["name"] & string, TraitMethodPart<TraitMethod>>,
       TraitActionHandler<Input, RuntimeResult<ReturnType<H>>>,
-      { trait: TraitMethod }
+      TW.ActionCtxMeta<{ trait: TraitMethod }, ActionCtx<Ctx["scope"]>>
     >;
   };
 }
@@ -233,13 +237,16 @@ type CommandResult<
   [key in CmdName]: TW.Action<
     QualifiedActionName<Service, CmdName>,
     (input: FlatIn) => Promise<RuntimeResult<ReturnType<Handler>>>,
-    {
-      route: [
-        Method,
-        Path,
-        Pretty<DeepWriteable<Schema> & DeepWriteable<Meta>>,
-      ];
-    }
+    TW.ActionCtxMeta<
+      {
+        route: [
+          Method,
+          Path,
+          Pretty<DeepWriteable<Schema> & DeepWriteable<Meta>>,
+        ];
+      },
+      ActionCtx<Scope>
+    >
   >;
 } & {
   meta<
@@ -284,22 +291,32 @@ interface CommandBody<
   ): CommandResult<CmdName, FlatIn, Method, Path, Schema, Scope, Service, H>;
 }
 
-type BuiltInEventScope = {
-  NewEmail: TW.EventKind<
-    "NewEmail",
-    { from: string; to: string; subject: string; body: string },
-    { thread: { from: string; to: string; subject: string; body: string } }
-  >;
-  NewMessage: TW.EventKind<
-    "NewMessage",
-    { sender: { name: string }; content: string; channel: string },
-    { thread: { sender: { name: string }; content: string; channel: string } }
-  >;
-  NewMention: TW.EventKind<
-    "NewMention",
-    { sender: { name: string }; text: string; channel: string }
-  >;
+type BuiltInEventMap = {
+  NewEmail: {
+    input: { from: string; to: string; subject: string; body: string };
+    scope: {
+      thread: { from: string; to: string; subject: string; body: string };
+    };
+  };
+  NewMessage: {
+    input: { sender: { name: string }; content: string; channel: string };
+    scope: {
+      thread: { sender: { name: string }; content: string; channel: string };
+    };
+  };
+  NewMention: {
+    input: { sender: { name: string }; text: string; channel: string };
+    scope: {};
+  };
 };
+
+type BuiltInEventName = keyof BuiltInEventMap & string;
+
+type BuiltInEventInput<EventName extends BuiltInEventName> =
+  BuiltInEventMap[EventName]["input"];
+
+type BuiltInEventExtraScope<EventName extends BuiltInEventName> =
+  BuiltInEventMap[EventName]["scope"];
 
 const builtInEventScope: Record<string, unknown> = {
   ...Event(
@@ -402,6 +419,21 @@ export interface Behavior<Ctx extends Record<any, any>> {
     ExtractTraitQualifiedName<TraitAction>,
     Ctx,
     ExtractTraitInput<TraitAction>
+  >;
+
+  on<const EventName extends BuiltInEventName>(
+    behavior: EventName,
+  ): ActionFactory<
+    EventHandlerName<EventName>,
+    {
+      name: EventHandlerName<EventName>;
+      service: Ctx["name"] & string;
+      meta: { event: EventName };
+      scope: {
+        input: BuiltInEventInput<EventName>;
+      } & BuiltInEventExtraScope<EventName> &
+        BaseScope<Ctx>;
+    }
   >;
 
   on<const EventName extends EventKeys<BaseScope<Ctx>>>(
@@ -775,10 +807,17 @@ function createBehavior(
         handlers: unknown[],
         inputSchema?: unknown,
       ) {
-        async function consume(...args: unknown[]) {
+        async function actionRunCtx(
+          context: TW.ActionContext,
+          ...args: unknown[]
+        ) {
+          const runContext = normalizeActionContext(context);
           const resolvedInitialScope = await resolveActionScope();
           const { args: modArgs, scope: behaviorScope } = mod(args);
-          const extra = { ...resolvedInitialScope, ...behaviorScope };
+          const extra = mergeActorScope(
+            mergeActorScope(resolvedInitialScope, behaviorScope),
+            runContext as Record<string, unknown>,
+          );
           const gen = tap(
             unwrapStreamEvents(
               runAction(
@@ -793,10 +832,25 @@ function createBehavior(
           return item.value;
         }
 
-        async function* rawStream(...args: unknown[]) {
+        async function actionRun(...args: unknown[]) {
+          return actionRunCtx({}, ...args);
+        }
+
+        async function consume(...args: unknown[]) {
+          return actionRun(...args);
+        }
+
+        async function* rawStreamCtx(
+          context: TW.ActionContext,
+          ...args: unknown[]
+        ) {
+          const runContext = normalizeActionContext(context);
           const resolvedInitialScope = await resolveActionScope();
           const { args: modArgs, scope: behaviorScope } = mod(args);
-          const extra = { ...resolvedInitialScope, ...behaviorScope };
+          const extra = mergeActorScope(
+            mergeActorScope(resolvedInitialScope, behaviorScope),
+            runContext as Record<string, unknown>,
+          );
           return yield* runAction(
             eventName,
             buildScope(inputMode, modArgs, extra),
@@ -804,12 +858,32 @@ function createBehavior(
           );
         }
 
+        async function* rawStream(...args: unknown[]) {
+          return yield* rawStreamCtx({}, ...args);
+        }
+
+        function streamCtx(context: TW.ActionContext, ...args: unknown[]) {
+          return tap(unwrapStreamEvents(rawStreamCtx(context, ...args)));
+        }
+
         function stream(...args: unknown[]) {
-          return tap(unwrapStreamEvents(rawStream(...args)));
+          return streamCtx({}, ...args);
         }
 
         function loggedRawStream(...args: unknown[]) {
           return tapRawStreamWith(rawStream(...args), dispatch(logger));
+        }
+
+        function ctx(context: TW.ActionContext = {}) {
+          const boundContext = normalizeActionContext(context);
+          return {
+            run(...args: unknown[]) {
+              return actionRunCtx(boundContext, ...args);
+            },
+            stream(...args: unknown[]) {
+              return streamCtx(boundContext, ...args);
+            },
+          };
         }
 
         const resolveMeta = () =>
@@ -822,7 +896,9 @@ function createBehavior(
             : null;
         const action = Object.assign(consume, {
           [TW.Name]: eventName,
+          run: actionRun,
           stream,
+          ctx,
           [TW.Meta]: resolveMeta(),
           [TW.InputSchema]: inputSchema,
           [RawStreamTag]: rawStream,
@@ -882,19 +958,41 @@ function createBehavior(
               run(...handlers: unknown[]) {
                 const qualifiedCmdName = qualifyActionName(actorName, cmdName);
 
-                async function* rawCmdStream(flatInput: unknown) {
+                async function* rawCmdStreamCtx(
+                  context: TW.ActionContext,
+                  flatInput: unknown,
+                ) {
+                  const runContext = normalizeActionContext(context);
                   const resolvedInitialScope = await resolveActionScope();
                   return yield* runAction(
                     qualifiedCmdName,
-                    buildScope("first", [flatInput], {
-                      ...resolvedInitialScope,
-                    }),
+                    buildScope(
+                      "first",
+                      [flatInput],
+                      mergeActorScope(
+                        resolvedInitialScope,
+                        runContext as Record<string, unknown>,
+                      ),
+                    ),
                     handlers,
                   );
                 }
 
+                async function* rawCmdStream(flatInput: unknown) {
+                  return yield* rawCmdStreamCtx({}, flatInput);
+                }
+
+                function cmdStreamCtx(
+                  context: TW.ActionContext,
+                  flatInput: unknown,
+                ) {
+                  return tap(
+                    unwrapStreamEvents(rawCmdStreamCtx(context, flatInput)),
+                  );
+                }
+
                 function cmdStream(flatInput: unknown) {
-                  return tap(unwrapStreamEvents(rawCmdStream(flatInput)));
+                  return cmdStreamCtx({}, flatInput);
                 }
 
                 function loggedRawCmdStream(flatInput: unknown) {
@@ -904,11 +1002,34 @@ function createBehavior(
                   );
                 }
 
-                async function cmdConsume(flatInput: unknown) {
-                  const gen = tap(unwrapStreamEvents(rawCmdStream(flatInput)));
+                async function cmdRunCtx(
+                  context: TW.ActionContext,
+                  flatInput: unknown,
+                ) {
+                  const gen = cmdStreamCtx(context, flatInput);
                   let item = await gen.next();
                   while (!item.done) item = await gen.next();
                   return item.value;
+                }
+
+                async function cmdRun(flatInput: unknown) {
+                  return cmdRunCtx({}, flatInput);
+                }
+
+                async function cmdConsume(flatInput: unknown) {
+                  return cmdRun(flatInput);
+                }
+
+                function ctx(context: TW.ActionContext = {}) {
+                  const boundContext = normalizeActionContext(context);
+                  return {
+                    run(flatInput: unknown) {
+                      return cmdRunCtx(boundContext, flatInput);
+                    },
+                    stream(flatInput: unknown) {
+                      return cmdStreamCtx(boundContext, flatInput);
+                    },
+                  };
                 }
 
                 const resolveMeta = () => ({
@@ -925,7 +1046,9 @@ function createBehavior(
                   [TW.Name]: qualifiedCmdName,
                   [TW.Meta]: resolveMeta(),
                   [TW.InputSchema]: schema,
+                  run: cmdRun,
                   stream: cmdStream,
+                  ctx,
                   [RawStreamTag]: rawCmdStream,
                   [RawLoggedStreamTag]: loggedRawCmdStream,
                 });
@@ -990,6 +1113,31 @@ function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
 }
 
 function exposeAction(plugin: unknown) {
+  if (
+    typeof plugin === "function" &&
+    "run" in plugin &&
+    typeof (plugin as { run?: unknown }).run === "function"
+  ) {
+    const run = (...args: unknown[]) =>
+      (plugin as { run: (...args: unknown[]) => unknown }).run(...args);
+    if (
+      "ctx" in plugin &&
+      typeof (plugin as { ctx?: unknown }).ctx === "function"
+    ) {
+      Object.defineProperty(run, ContextualActionTag, {
+        value: (context: ExecutionContext, ...args: unknown[]) =>
+          (
+            plugin as {
+              ctx: (context: ExecutionContext) => { run: Function };
+            }
+          )
+            .ctx(context)
+            .run(...args),
+      });
+    }
+    return run;
+  }
+
   return typeof plugin === "function" &&
     RawStreamTag in plugin &&
     typeof (plugin as { [RawStreamTag]?: unknown })[RawStreamTag] === "function"
@@ -1075,66 +1223,6 @@ function serviceActionName(action: unknown): string | null {
   return typeof action === "function" && action.name ? action.name : null;
 }
 
-function serviceArgs(params: unknown): unknown[] {
-  if (params !== null && typeof params === "object" && "input" in params) {
-    return [(params as { input: unknown }).input];
-  }
-
-  return [];
-}
-
-function serviceRunner(action: unknown) {
-  return async function run(params: unknown = {}) {
-    const args = serviceArgs(params);
-    const rawLoggedStream =
-      action !== null &&
-      (typeof action === "object" || typeof action === "function") &&
-      RawLoggedStreamTag in Object(action)
-        ? (action as {
-            [RawLoggedStreamTag]: (
-              ...args: unknown[]
-            ) => AsyncGenerator<unknown, unknown>;
-          })[RawLoggedStreamTag]
-        : null;
-    const gen = rawLoggedStream !== null ? rawLoggedStream(...args) : null;
-
-    if (gen === null) {
-      return typeof action === "function"
-        ? await (action as (...args: unknown[]) => unknown)(...args)
-        : undefined;
-    }
-
-    let item = await gen.next();
-    while (!item.done) item = await gen.next();
-    return item.value;
-  };
-}
-
-function serviceStreamer(action: unknown) {
-  return function stream(params: unknown = {}) {
-    const args = serviceArgs(params);
-    const rawStream =
-      action !== null &&
-      (typeof action === "object" || typeof action === "function") &&
-      RawStreamTag in Object(action)
-        ? (action as { [RawStreamTag]: (...args: unknown[]) => AsyncGenerator<
-            unknown,
-            unknown
-          > })[RawStreamTag]
-        : null;
-
-    if (rawStream !== null) {
-      return unwrapStreamEvents(rawStream(...args));
-    }
-
-    return (async function* () {
-      return typeof action === "function"
-        ? await (action as (...args: unknown[]) => unknown)(...args)
-        : undefined;
-    })();
-  };
-}
-
 function isServiceListenerAction(action: unknown): boolean {
   if (
     action === null ||
@@ -1178,8 +1266,6 @@ function createService(
   const service: Record<string | symbol, unknown> = {
     [TW.Name]: actorName,
     [TW.Scope]: collectOwnedEvents(actorName, scope),
-    run: {},
-    stream: {},
   };
 
   if (listenerActions.length > 0) {
@@ -1193,9 +1279,6 @@ function createService(
     const name = serviceActionName(action);
     if (name) {
       service[name] = action;
-      (service["run"] as Record<string, unknown>)[name] = serviceRunner(action);
-      (service["stream"] as Record<string, unknown>)[name] =
-        serviceStreamer(action);
     }
   }
 
@@ -1470,7 +1553,7 @@ export const Actor = <
       actions: {
         generateText: (params: { model: "gpt5"; prompt: string }) => string;
       };
-    } & BuiltInEventScope;
+    };
   },
 >(
   name: PascalCase<Name>,

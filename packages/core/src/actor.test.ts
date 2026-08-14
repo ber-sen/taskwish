@@ -39,6 +39,115 @@ describe("Actor", () => {
     expect(await greet({ name: "World" })).toEqual("Hello World");
   });
 
+  test("Command — ctx binds execution context", async () => {
+    const controller = new AbortController();
+
+    const { greeter } = Actor("Greeter");
+
+    const { greet } = greeter()
+      .on("Command", "greet")
+
+      .input({ name: "string" })
+
+      .run(function () {
+        return {
+          message: `Hello ${this.input.name}`,
+          aborted: this.abortSignal === controller.signal,
+        };
+      });
+
+    expect(
+      await greet.ctx({ abortSignal: controller.signal }).run({
+        name: "World",
+      }),
+    ).toEqual({
+      message: "Hello World",
+      aborted: true,
+    });
+  });
+
+  test("Command — passes context to actions injected with use()", async () => {
+    const controller = new AbortController();
+
+    const { readBareSignal } = Action("readBareSignal").run(function () {
+      return this.abortSignal === controller.signal;
+    });
+
+    const { worker } = Actor("Worker");
+    const { readSignal } = worker()
+      .on("Command", "readSignal")
+
+      .run(function () {
+        return this.abortSignal === controller.signal;
+      });
+    const { Worker } = worker().service({ readSignal });
+
+    const { parent } = Actor("Parent").use(readBareSignal).use(Worker);
+    const { checkSignals } = parent()
+      .on("Command", "checkSignals")
+
+      .run(async function () {
+        return {
+          bare: await this.actions.readBareSignal(),
+          actor: await this.actions.worker.readSignal(),
+        };
+      });
+
+    await expect(
+      checkSignals.ctx({ abortSignal: controller.signal }).run(),
+    ).resolves.toEqual({
+      bare: true,
+      actor: true,
+    });
+  });
+
+  test("Command — ctx can override injected actions", async () => {
+    const { anotherActor } = Actor("AnotherActor");
+    const { doWork } = anotherActor()
+      .on("Command", "doWork")
+
+      .input({ value: "string" })
+
+      .run(function () {
+        return `real:${this.input.value}`;
+      });
+
+    const { AnotherActor } = anotherActor().service({ doWork });
+
+    const { someActor } = Actor("SomeActor").use(AnotherActor);
+
+    const { command } = someActor()
+      .on("Command", "command")
+
+      .input({ value: "string" })
+
+      .run(function () {
+        return this.actions.anotherActor.doWork({
+          value: this.input.value,
+        });
+      });
+
+    const calls: unknown[] = [];
+    const mockDoWork = async (input: { value: string }) => {
+      calls.push(input);
+      return `mock:${input.value}`;
+    };
+
+    await expect(command({ value: "prod" })).resolves.toEqual("real:prod");
+    await expect(
+      command
+        .ctx({
+          actions: {
+            anotherActor: {
+              doWork: mockDoWork,
+            },
+          },
+        })
+        .run({ value: "test" }),
+    ).resolves.toEqual("mock:test");
+    expect(calls).toEqual([{ value: "test" }]);
+  });
+
   test("Command — no input", async () => {
     const { pinger } = Actor("Pinger");
 
@@ -311,8 +420,7 @@ describe("Actor", () => {
 
     const emitted = yields.find(
       (value) =>
-        value instanceof Signal &&
-        value.data["->"] === "Biller::InvoicePaid",
+        value instanceof Signal && value.data["->"] === "Biller::InvoicePaid",
     );
 
     expect(emitted).toBeInstanceOf(Signal);
@@ -364,19 +472,21 @@ describe("Actor", () => {
       });
 
     type T = typeof onBillerInvoicePaid;
+    type Meta = T[typeof TW.Meta];
     type check = Expect<
-      Equal<
-        TW.Action<
-          "Listener::on_biller_invoice_paid",
-          (input: {
-            invoiceId: string;
-            amount: number;
-            customer: string;
-          }) => Promise<string>,
-          { event: "Biller::InvoicePaid" }
-        >,
-        T
-      >
+      Meta extends {
+        event: "Biller::InvoicePaid";
+        ctx: {
+          abortSignal?: AbortSignal;
+          actions?: {
+            biller?: {
+              chargeCustomer?: typeof chargeCustomer.run;
+            };
+          };
+        };
+      }
+        ? true
+        : false
     >;
 
     const emitted: unknown[] = [];
@@ -389,8 +499,7 @@ describe("Actor", () => {
 
     const invoicePaid = emitted.find(
       (value) =>
-        value instanceof Signal &&
-        value.data["->"] === "Biller::InvoicePaid",
+        value instanceof Signal && value.data["->"] === "Biller::InvoicePaid",
     );
 
     expect(invoicePaid).toBeInstanceOf(Signal);
@@ -795,6 +904,8 @@ describe("Actor", () => {
     >;
 
     expect(Greeter.hello).toBe(hello);
+    expect("run" in Greeter).toBe(false);
+    expect("stream" in Greeter).toBe(false);
     expect("onNewEmail" in Greeter).toBe(false);
     expect((Greeter as any)[TW.Listeners]).toEqual([onNewEmail]);
     expect(Object.keys(Greeter)).not.toContain(String(TW.Listeners));
@@ -1181,9 +1292,9 @@ describe("Actor", () => {
 
         .run(
           Step("notify", function () {
-            // Type-check: this.actions.notifier.notify must be typed as the action stream
+            // Type-check: this.actions.notifier.notify must be typed as the action run function
             type Check = Expect<
-              Equal<typeof this.actions.notifier.notify, typeof notify.stream>
+              Equal<typeof this.actions.notifier.notify, typeof notify.run>
             >;
             return this.actions.notifier.notify({ message: this.input.text });
           }),
@@ -1224,10 +1335,7 @@ describe("Actor", () => {
         .run(
           Step("runSteps", function () {
             type Check = Expect<
-              Equal<
-                typeof this.actions.myActor.runSteps,
-                typeof runSteps.stream
-              >
+              Equal<typeof this.actions.myActor.runSteps, typeof runSteps.run>
             >;
             return this.actions.myActor.runSteps({
               message: this.input.message,
@@ -1238,7 +1346,7 @@ describe("Actor", () => {
       expect(await run({ message: "hello" })).toEqual(6);
     });
 
-    test("service exposes run and stream helpers for public actions", async () => {
+    test("service exposes public actions directly", async () => {
       const { greeter } = Actor("Greeter");
 
       const { greet } = greeter()
@@ -1258,37 +1366,23 @@ describe("Actor", () => {
 
       const { Greeter } = greeter().service({ greet });
 
-      type RunCheck = Expect<
-        Equal<
-          Parameters<typeof Greeter.run.greet>[0],
-          { input: { name: string } }
-        >
-      >;
+      type ActionCheck = Expect<Equal<typeof Greeter.greet, typeof greet>>;
 
       type StreamCheck = Expect<
-        Equal<
-          Awaited<ReturnType<typeof Greeter.stream.greet>>,
-          AsyncGenerator<
-            TW.ActionEvent<
-              "Greeter::greet",
-              string,
-              { name: string }
-            >,
-            string
-          >
+        typeof Greeter.greet.stream extends (input: {
+          name: string;
+        }) => AsyncGenerator<
+          TW.ActionEvent<"Greeter::greet", string, { name: string }>,
+          string
         >
+          ? true
+          : false
       >;
 
-      expect(
-        await Greeter.run.greet({
-          input: { name: "Ada" },
-        }),
-      ).toEqual("Hello Ada.");
+      expect(await Greeter.greet({ name: "Ada" })).toEqual("Hello Ada.");
 
       const streamed: unknown[] = [];
-      for await (const event of Greeter.stream.greet({
-        input: { name: "Lin" },
-      })) {
+      for await (const event of Greeter.greet.stream({ name: "Lin" })) {
         streamed.push(event);
       }
 
@@ -1331,7 +1425,7 @@ describe("Actor", () => {
             type Check = Expect<
               Equal<
                 typeof this.actions.slack.conversationsList,
-                typeof conversationsList.stream
+                typeof conversationsList.run
               >
             >;
             return await this.actions.slack.conversationsList({
@@ -1382,7 +1476,7 @@ describe("Actor", () => {
             type Check = Expect<
               Equal<
                 typeof this.actions.slack.conversationsList,
-                typeof conversationsList.stream
+                typeof conversationsList.run
               >
             >;
             return this.actions.slack.conversationsList({
@@ -1478,7 +1572,7 @@ describe("Actor", () => {
         .run(
           Step("notify", function () {
             type Check = Expect<
-              Equal<typeof this.actions.notifier.notify, typeof notify.stream>
+              Equal<typeof this.actions.notifier.notify, typeof notify.run>
             >;
             return this.actions.notifier.notify({ message: this.input.text });
           }),
@@ -1517,7 +1611,7 @@ describe("Actor", () => {
     });
 
     test("bare Action (no Actor) — use(action) injects directly as this.actions.<name>", async () => {
-      // Flat name: TW.Name = "notify" → this.actions.notify stream
+      // Flat name: TW.Name = "notify" → this.actions.notify run
       const { notify } = Action("notify")
         .input({ message: "string" })
 
@@ -1535,7 +1629,7 @@ describe("Actor", () => {
         .run(
           Step("notify", function () {
             type Check = Expect<
-              Equal<typeof this.actions.notify, typeof notify.stream>
+              Equal<typeof this.actions.notify, typeof notify.run>
             >;
             return this.actions.notify({ message: this.input.text });
           }),
@@ -1795,7 +1889,7 @@ describe("Actor", () => {
         });
 
       type check = Expect<
-        Equal<Awaited<ReturnType<typeof smth>>, typeof Logger.log.stream>
+        Equal<Awaited<ReturnType<typeof smth>>, typeof Logger.log.run>
       >;
     });
 

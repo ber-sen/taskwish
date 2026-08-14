@@ -35,48 +35,24 @@ export const { runSteps } = myActor()
 
 export const { MyActor } = myActor().service({ runSteps });
 `;
-    expect(morph(source))
-      .toBe(`import { Trace, consume } from "@taskwish/wire";
-
-export async function runSteps(input: { message: string; }) {
-  return consume(runStepsStream({ input }));
-}
-
-async function runStepsRun(params: {
-  input: { message: string; };
-}) {
-  return consume(runStepsStream(params));
-}
-
-async function* runStepsStream(params: {
-  input: { message: string; };
-}) {
-  const input = params.input;
-
-  yield new Trace("MyActor::runSteps", { input });
-
-  const firstStep = "step 1";
-
-  yield new Trace("MyActor::runSteps.firstStep", { result: firstStep });
-
-  const lastStep = firstStep.length;
-
-  yield new Trace("MyActor::runSteps.lastStep", { result: lastStep });
-
-  yield new Trace("MyActor::runSteps", { result: lastStep });
-
-  return lastStep;
-}
-
-export const MyActor = {
-  runSteps,
-  run: {
-    runSteps: runStepsRun
-  },
-  stream: {
-    runSteps: runStepsStream
-  }
-};`);
+    expectParts(morph(source), [
+      `import { Wire } from "@taskwish/wire";`,
+      `interface RunStepsAction`,
+      `type RunStepsScope = { wire: Wire };`,
+      `type RunStepsScopePatch = { wire?: Wire };`,
+      `export const runSteps = async function runSteps(input: { message: string; })`,
+      `runSteps.run = runStepsCtx().run;`,
+      `runSteps.stream = runStepsCtx().stream;`,
+      `function runStepsCtx(ctx: RunStepsScopePatch = {})`,
+      `const initialScope: RunStepsScope = { wire };
+  const scope: RunStepsScope = initialScope;
+  if (ctx.wire !== undefined) scope.wire = ctx.wire;`,
+      `const firstStep = "step 1";`,
+      `const lastStep = firstStep.length;`,
+      `export const MyActor = {
+  runSteps
+};`,
+    ]);
   });
 
   test("keeps event listeners out of direct service exports", () => {
@@ -111,22 +87,20 @@ export const { Greeter } = greeter().service({
     const output = morph(source);
 
     expectParts(output, [
-      `export async function hello()`,
-      `export async function onNewEmail()`,
-      `yield new Trace("Greeter::hello", { input });`,
-      `yield new Trace("Greeter::onNewEmail", { input });`,
+      `import { Wire, addListener } from "@taskwish/wire";`,
+      `interface HelloAction`,
+      `export const hello = async function hello()`,
+      `interface OnNewEmailAction`,
+      `export const onNewEmail = async function onNewEmail()`,
+      `scope.wire.trace("Greeter::hello", { input });`,
+      `scope.wire.trace("Greeter::onNewEmail", { input });`,
+      `addListener("Greeter::NewEmail", onNewEmail);`,
       `export const Greeter = {
-  hello,
-  run: {
-    hello: helloRun
-  },
-  stream: {
-    hello: helloStream
-  }
+  hello
 };`,
     ]);
-    expect(output).not.toContain(`onNewEmail: onNewEmailRun`);
-    expect(output).not.toContain(`onNewEmail: onNewEmailStream`);
+    expect(output).not.toContain(`onNewEmail: onNewEmail.run`);
+    expect(output).not.toContain(`onNewEmail: onNewEmail.stream`);
   });
 
   test("preserves early returns by breaking out of the step block", () => {
@@ -157,8 +131,8 @@ export const { runSteps } = myActor()
     expectParts(morph(source), [
       `firstStepBlock: {`,
       `firstStep = "empty";
-      break firstStepBlock;`,
-      `yield new Trace("MyActor::runSteps.firstStep", { result: firstStep });`,
+        break firstStepBlock;`,
+      `scope.wire.trace("MyActor::runSteps.firstStep", { result: firstStep });`,
       `const lastStep = firstStep.length;`,
     ]);
   });
@@ -191,7 +165,31 @@ export const { runSteps } = myActor()
       `const normalized = input.message.trim();`,
       `const upper = normalized.toUpperCase();`,
       `firstStep = upper;`,
-      `yield new Trace("MyActor::runSteps.firstStep", { result: firstStep });`,
+      `scope.wire.trace("MyActor::runSteps.firstStep", { result: firstStep });`,
+    ]);
+  });
+
+  test("infers object types for multi-expression step handlers", () => {
+    const source = `import { Actor, Step } from "../../src";
+
+const { myActor } = Actor("MyActor");
+
+export const { runSteps } = myActor()
+  .on("Command", "runSteps")
+
+  .run(
+    Step("result", function () {
+      const title = "Example";
+      const url = "https://example.com";
+
+      return { title, url };
+    }),
+  );
+`;
+
+    expectParts(morph(source), [
+      `let result: { title: string; url: string; };`,
+      `result = { title, url };`,
     ]);
   });
 
@@ -259,7 +257,7 @@ main();
 `;
 
     expectParts(morph(source), [
-      `yield new Trace("MyActor::runSteps", { result: firstStep });`,
+      `scope.wire.trace("MyActor::runSteps", { result: firstStep });`,
       `const main = async () => {
   const result = await runSteps({ message: "hello" });
 
@@ -292,9 +290,119 @@ export const { runSteps } = myActor()
 `;
 
     expectParts(morph(source), [
-      `export async function runSteps(input: { name: string; })`,
-      `async function runStepsRun(params: {`,
-      `async function* runStepsStream(params: {`,
+      `async function runSteps(input: { name: string; })`,
+      `interface RunStepsAction`,
+      `export const runSteps = async function runSteps(input: { name: string; })`,
+      `async function runSteps(input: { name: string; })`,
+      `function runStepsCtx(ctx: RunStepsScopePatch = {})`,
+    ]);
+  });
+
+  test("generates context-bound run and stream wrappers", () => {
+    const source = `import { Actor, Step } from "../../src";
+
+const { myActor } = Actor("MyActor");
+
+export const { runSteps } = myActor()
+  .on("Command", "Run steps")
+
+  .input({ name: "string" })
+
+  .run(
+    Step("result", function () {
+      return this.abortSignal?.aborted ?? false;
+    }),
+  );
+`;
+
+    expectParts(morph(source), [
+      `import { Wire } from "@taskwish/wire";`,
+      `function runStepsCtx(ctx: RunStepsScopePatch = {})`,
+      `const wire = new Wire();`,
+      `const initialScope: RunStepsScope = { wire, abortSignal: undefined as AbortSignal | undefined };
+  const scope: RunStepsScope = initialScope;
+  if (ctx.wire !== undefined) scope.wire = ctx.wire;
+  if (ctx.abortSignal !== undefined) scope.abortSignal = ctx.abortSignal;`,
+      `async function run(input: { name: string; }) {
+    return stream(input);
+  }`,
+      `async function stream(input: { name: string; })`,
+      `const abortSignal = scope.abortSignal as AbortSignal | undefined;`,
+      `const result = abortSignal?.aborted ?? false;`,
+    ]);
+  });
+
+  test("rewrites injected action calls to scope actions", () => {
+    const source = `import { Browser } from "./browser";
+import { Actor, Step } from "../../src";
+
+const { myActor } = Actor("MyActor").use(Browser);
+
+export const { runSteps } = myActor()
+  .on("Command", "runSteps")
+
+  .run(
+    Step("page", function () {
+      return this.actions.browser.browse({
+        url: "https://example.com",
+      });
+    }),
+  );
+`;
+
+    expectParts(morph(source), [
+      `import { Wire } from "@taskwish/wire";`,
+      `import { Browser } from "./browser";`,
+      `function runStepsCtx(ctx: RunStepsScopePatch = {})`,
+      `const initialScope: RunStepsScope = { wire, actions: { browser: { browse: Browser.browse } } };
+  const scope: RunStepsScope = initialScope;
+  if (ctx.wire !== undefined) scope.wire = ctx.wire;
+  if (ctx.actions !== undefined) {
+    if (ctx.actions.browser !== undefined) {
+      if (ctx.actions.browser.browse !== undefined) scope.actions.browser.browse = ctx.actions.browser.browse;
+    }
+  }`,
+      `const page = await scope.actions.browser.browse({
+      url: "https://example.com",
+    });`,
+    ]);
+  });
+
+  test("ctx accepts partial action scope patches in generated bare output", () => {
+    const source = `import { Browser } from "./browser";
+import { Actor, Step } from "../../src";
+
+const { myActor } = Actor("MyActor").use(Browser);
+
+export const { runSteps } = myActor()
+  .on("Command", "runSteps")
+
+  .run(
+    Step("page", function () {
+      return this.actions.browser.browse({
+        url: "https://example.com",
+      });
+    }),
+
+    Step("closed", function () {
+      return this.actions.browser.close();
+    }),
+  );
+`;
+
+    expectParts(morph(source), [
+      `function runStepsCtx(ctx: RunStepsScopePatch = {})`,
+      `const initialScope: RunStepsScope = { wire, actions: { browser: { browse: Browser.browse, close: Browser.close } } };
+  const scope: RunStepsScope = initialScope;
+  if (ctx.wire !== undefined) scope.wire = ctx.wire;
+  if (ctx.actions !== undefined) {
+    if (ctx.actions.browser !== undefined) {
+      if (ctx.actions.browser.browse !== undefined) scope.actions.browser.browse = ctx.actions.browser.browse;
+      if (ctx.actions.browser.close !== undefined) scope.actions.browser.close = ctx.actions.browser.close;
+    }
+  }`,
+      `const page = await scope.actions.browser.browse({`,
+      `const closed = await scope.actions.browser.close();`,
     ]);
   });
 
@@ -316,10 +424,35 @@ export const { runSteps } = myActor()
 `;
 
     expectParts(morph(source), [
-      `input: { name: string; tags: string[]; age?: number | undefined; };`,
+      `input: { name: string; tags: string[]; age?: number | undefined; }`,
       `const firstStep = input.tags.length;`,
-      `yield new Trace("MyActor::runSteps.firstStep", { result: firstStep });`,
+      `scope.wire.trace("MyActor::runSteps.firstStep", { result: firstStep });`,
     ]);
+  });
+
+  test("rewrites signals to the wire event bus", () => {
+    const source = `import { Actor, Step } from "../../src";
+
+const { greeter } = Actor("Greeter");
+
+export const { hello } = greeter()
+  .on("Command", "hello")
+
+  .input({ name: "string" })
+
+  .run(
+    Step("notify", function () {
+      return this.signal("Greeter::Message", { name: this.input.name });
+    }),
+  );
+`;
+
+    const output = morph(source);
+
+    expect(output).toContain(
+      `const notify = scope.wire.signal("Greeter::Message", { name: input.name }) as Record<string, unknown>;`
+    );
+    expect(output).not.toContain(`const signal =`);
   });
 
   test("awaits async step handlers inline", () => {
@@ -351,6 +484,40 @@ export const { runSteps } = myActor()
       `async function loadGreeting(name: string)`,
       `const firstStep = await loadGreeting(input.name);`,
       `const lastStep = firstStep.length;`,
+    ]);
+  });
+
+  test("does not await object literals returned from async step handlers", () => {
+    const source = `import { Actor, Step } from "../../src";
+
+async function loadTitle() {
+  return "Hello";
+}
+
+const { myActor } = Actor("MyActor");
+
+export const { runSteps } = myActor()
+  .on("Command", "runSteps")
+
+  .run(
+    Step("result", async function () {
+      const title = await loadTitle();
+      const url = "https://example.com";
+
+      return {
+        title,
+        url,
+      };
+    }),
+  );
+`;
+
+    expectParts(morph(source), [
+      `const title = await loadTitle();`,
+      `result = {
+        title,
+        url,
+      };`,
     ]);
   });
 
@@ -432,8 +599,94 @@ export const { Greeter } = greeter().service({ hello });
       output.startsWith(
         `"use server";
 
-import { Trace, consume } from "@taskwish/wire";`
+import { Wire } from "@taskwish/wire";`
       )
     ).toBe(true);
+  });
+
+  test("morphDir resolves listener input from imported service events", async () => {
+    const root = await mkdtemp(join(tmpdir(), "taskwish-bare-"));
+    const greeterDir = join(root, "src", "greeter");
+    const billerDir = join(root, "src", "biller");
+
+    await mkdir(greeterDir, { recursive: true });
+    await mkdir(billerDir, { recursive: true });
+    await writeFile(
+      join(greeterDir, "greeter.ts"),
+      `import { Actor, Event } from "taskwish";
+
+export const { greeter } = Actor("Greeter").scope(
+  Event("Message", { name: "string" }),
+);
+`
+    );
+    await writeFile(
+      join(greeterDir, "hello.ts"),
+      `import { greeter } from "./greeter";
+
+export const { hello } = greeter()
+  .on("Command", "hello")
+  .input({ name: "string" })
+  .run(function () {
+    return this.signal("Greeter::Message", { name: this.input.name });
+  });
+`
+    );
+    await writeFile(
+      join(greeterDir, "index.ts"),
+      `import { greeter } from "./greeter";
+import { hello } from "./hello";
+
+export const { Greeter } = greeter().service({ hello });
+`
+    );
+    await writeFile(
+      join(billerDir, "biller.ts"),
+      `import { Actor } from "taskwish";
+import { Greeter } from "../greeter";
+
+export const { biller } = Actor("Biller").use(Greeter);
+`
+    );
+    await writeFile(
+      join(billerDir, "on-greeter-message.ts"),
+      `import { biller } from "./biller";
+
+export const { onGreeterMessage } = biller()
+  .on("Greeter::Message")
+  .run(function () {
+    return {
+      invoice: \`Invoice created from greeter message: \${this.input.name}\`,
+    };
+  });
+`
+    );
+    await writeFile(
+      join(billerDir, "index.ts"),
+      `import { biller } from "./biller";
+import { onGreeterMessage } from "./on-greeter-message";
+
+export const { Biller } = biller().service({ onGreeterMessage });
+`
+    );
+
+    await morphDir("./biller", { baseDir: join(root, "src") });
+
+    const output = await readFile(
+      join(root, "bare", "biller", "on-greeter-message.ts"),
+      "utf8"
+    );
+
+    expect(output).toContain(
+      `async function onGreeterMessage(input: { name: string; })`
+    );
+    expect(output).toContain(`input: { name: string; }`);
+    expect(output).toContain(
+      `import { Wire, addListener } from "@taskwish/wire";`
+    );
+    expect(output).toContain(
+      `addListener("Greeter::Message", onGreeterMessage);`
+    );
+    expect(output).not.toContain(`input: any`);
   });
 });

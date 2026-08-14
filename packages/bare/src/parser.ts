@@ -4,6 +4,7 @@ import { inputSchemaToType } from "./schema";
 import { parseFunctionStep, parseStep } from "./step";
 import { isDefined, unwrapExpression } from "./syntax";
 import type {
+  ActionDependency,
   ActionSpec,
   ActorBinding,
   CallChainItem,
@@ -12,6 +13,7 @@ import type {
 
 export function findActionSpecs(sourceFile: SourceFile): ActionSpec[] {
   const actors = findActorBindings(sourceFile);
+  const eventInputTypes = collectEventInputTypes(sourceFile);
   const actions: ActionSpec[] = [];
 
   for (const declaration of sourceFile.getVariableDeclarations()) {
@@ -51,6 +53,7 @@ export function findActionSpecs(sourceFile: SourceFile): ActionSpec[] {
     if (!actor) continue;
 
     const inputCall = chain.find((call) => call.methodName === "input");
+    const eventName = actionEventName(chain);
     const runArguments = runCall.getArguments();
     const steps = runArguments.map(parseStep).filter(isDefined);
     if (steps.length === 0) {
@@ -62,6 +65,9 @@ export function findActionSpecs(sourceFile: SourceFile): ActionSpec[] {
     }
     const inputType = inputCall
       ? inputSchemaToType(inputCall.call.getArguments()[0])
+      : eventName
+      ? eventInputTypes.get(eventName) ??
+        (usesThisInput(runArguments) ? "any" : null)
       : usesThisInput(runArguments)
       ? "any"
       : null;
@@ -69,14 +75,149 @@ export function findActionSpecs(sourceFile: SourceFile): ActionSpec[] {
     actions.push({
       actorName: actor.actorName,
       actionName: exportedActionName,
+      listenEventName:
+        eventName && eventName !== "Command"
+          ? eventName.includes("::")
+            ? eventName
+            : `${actor.actorName}::${eventName}`
+          : null,
       inputType,
       actorDeclaration: actor.declaration,
       declaration: variableStatement,
       steps,
+      actionDependencies: resolveActionDependencies(actor, steps),
     });
   }
 
   return actions;
+}
+
+function resolveActionDependencies(
+  actor: ActorBinding,
+  steps: import("./types").StepSpec[],
+): ActionDependency[] {
+  const actionsByScope = new Map<string, Set<string>>();
+
+  for (const step of steps) {
+    for (const use of step.actionUses) {
+      const [scopeName, actionName] = use.path;
+      if (!scopeName || !actionName) continue;
+
+      if (!actionsByScope.has(scopeName)) {
+        actionsByScope.set(scopeName, new Set());
+      }
+      actionsByScope.get(scopeName)!.add(actionName);
+    }
+  }
+
+  return [...actionsByScope.entries()].map(([scopeName, actionNames]) => {
+    const dependency = actor.dependencies.find(
+      (candidate) => candidate.scopeName === scopeName,
+    );
+
+    return {
+      scopeName,
+      actionNames: [...actionNames].sort(),
+      identifier: dependency?.identifier ?? scopeName,
+    };
+  });
+}
+
+function actionEventName(chain: CallChainItem[]): string | null {
+  const onCall = chain.find((call) => call.methodName === "on")?.call;
+  const eventArg = onCall?.getArguments()[0];
+  if (!eventArg) return null;
+
+  const event = unwrapExpression(eventArg);
+  return Node.isStringLiteral(event) ? event.getLiteralText() : null;
+}
+
+function collectEventInputTypes(
+  sourceFile: SourceFile,
+  visited = new Set<string>(),
+): Map<string, string> {
+  const filePath = sourceFile.getFilePath();
+  if (visited.has(filePath)) return new Map();
+  visited.add(filePath);
+
+  const eventInputTypes = collectLocalEventInputTypes(sourceFile);
+
+  for (const importDeclaration of sourceFile.getImportDeclarations()) {
+    if (!importDeclaration.getModuleSpecifierValue().startsWith(".")) continue;
+
+    const importedSourceFile = importDeclaration.getModuleSpecifierSourceFile();
+    if (!importedSourceFile) continue;
+
+    for (const [name, inputType] of collectEventInputTypes(
+      importedSourceFile,
+      visited,
+    )) {
+      eventInputTypes.set(name, inputType);
+    }
+  }
+
+  return eventInputTypes;
+}
+
+function collectLocalEventInputTypes(sourceFile: SourceFile): Map<string, string> {
+  const eventInputTypes = new Map<string, string>();
+
+  for (const declaration of sourceFile.getVariableDeclarations()) {
+    const nameNode = declaration.getNameNode();
+    const initializer = declaration.getInitializer();
+    if (!Node.isObjectBindingPattern(nameNode) || !initializer) continue;
+
+    const actorCall = actorCallFromInitializer(initializer);
+    if (!actorCall) continue;
+
+    const actorNameArg = actorCall.getArguments()[0];
+    if (!actorNameArg || !Node.isStringLiteral(actorNameArg)) continue;
+
+    const actorName = actorNameArg.getLiteralText();
+    const call = unwrapExpression(initializer);
+    if (!Node.isCallExpression(call)) continue;
+
+    for (const item of collectCallChain(call)) {
+      if (item.methodName !== "scope") continue;
+
+      for (const arg of item.call.getArguments()) {
+        const event = parseEventInputType(actorName, arg);
+        if (!event) continue;
+
+        eventInputTypes.set(event.name, event.inputType);
+        if (!event.name.includes("::")) {
+          eventInputTypes.set(`${actorName}::${event.name}`, event.inputType);
+        }
+      }
+    }
+  }
+
+  return eventInputTypes;
+}
+
+function parseEventInputType(
+  actorName: string,
+  node: Node,
+): { name: string; inputType: string } | null {
+  const call = unwrapExpression(node);
+  if (!Node.isCallExpression(call)) return null;
+
+  const expression = unwrapExpression(call.getExpression());
+  if (!Node.isIdentifier(expression) || expression.getText() !== "Event") {
+    return null;
+  }
+
+  const eventNameArg = call.getArguments()[0];
+  if (!eventNameArg || !Node.isStringLiteral(eventNameArg)) return null;
+
+  const eventName = eventNameArg.getLiteralText();
+  const inputType = inputSchemaToType(call.getArguments()[1]);
+  if (!inputType) return null;
+
+  return {
+    name: eventName.includes("::") ? eventName : `${actorName}::${eventName}`,
+    inputType,
+  };
 }
 
 function usesThisInput(nodes: Node[]): boolean {
@@ -223,10 +364,39 @@ function findActorBindings(sourceFile: SourceFile): Map<string, ActorBinding> {
       declaration: declaration.getFirstAncestorByKindOrThrow(
         SyntaxKind.VariableStatement
       ),
+      dependencies: collectActorDependencies(initializer),
     });
   }
 
   return actors;
+}
+
+function collectActorDependencies(initializer: Node): ActorBinding["dependencies"] {
+  const call = unwrapExpression(initializer);
+  if (!Node.isCallExpression(call)) return [];
+
+  const dependencies: ActorBinding["dependencies"] = [];
+
+  for (const item of collectCallChain(call)) {
+    if (item.methodName !== "use") continue;
+
+    for (const argument of item.call.getArguments()) {
+      const unwrapped = unwrapExpression(argument);
+      if (!Node.isIdentifier(unwrapped)) continue;
+
+      const identifier = unwrapped.getText();
+      dependencies.push({
+        identifier,
+        scopeName: lowerFirst(identifier),
+      });
+    }
+  }
+
+  return dependencies;
+}
+
+function lowerFirst(value: string): string {
+  return value.length === 0 ? value : `${value[0]!.toLowerCase()}${value.slice(1)}`;
 }
 
 function actorCallFromInitializer(

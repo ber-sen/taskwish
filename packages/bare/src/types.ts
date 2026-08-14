@@ -7,15 +7,23 @@ export type MorphOptions = {
 export type ActorBinding = {
   actorName: string;
   declaration: VariableStatement;
+  dependencies: ActorDependency[];
+};
+
+export type ActorDependency = {
+  identifier: string;
+  scopeName: string;
 };
 
 export type ActionSpec = {
   actorName: string;
   actionName: string;
+  listenEventName: string | null;
   inputType: string | null;
   actorDeclaration: VariableStatement;
   declaration: VariableStatement;
   steps: StepSpec[];
+  actionDependencies: ActionDependency[];
 };
 
 export type ServiceSpec = {
@@ -32,6 +40,18 @@ export type StepSpec = {
   directExpressionText: string | null;
   useBreakBlock: boolean;
   usesSignal: boolean;
+  usesAbortSignal: boolean;
+  actionUses: ActionUse[];
+};
+
+export type ActionUse = {
+  path: string[];
+};
+
+export type ActionDependency = {
+  actionNames: string[];
+  identifier: string;
+  scopeName: string;
 };
 
 export type FunctionReturnInfo = {

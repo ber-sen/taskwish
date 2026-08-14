@@ -9,84 +9,206 @@ export function printAction(action: ActionSpec): string {
   }
 
   const actionEventName = `${action.actorName}::${action.actionName}`;
-  const runName = `${action.actionName}Run`;
-  const streamName = `${action.actionName}Stream`;
+  const ctxName = `${action.actionName}Ctx`;
+  const interfaceName = `${upperFirst(action.actionName)}Action`;
+  const scopeTypeName = `${upperFirst(action.actionName)}Scope`;
+  const scopePatchTypeName = `${upperFirst(action.actionName)}ScopePatch`;
   const parameterText = action.inputType ? `input: ${action.inputType}` : "";
-  const streamParamText = action.inputType ? "{ input }" : "{}";
-  const paramsType = action.inputType
-    ? `{\n  input: ${action.inputType};\n}`
-    : `{}`;
-  const usesSignal = action.steps.some((step) => step.usesSignal);
+  const inputArgText = action.inputType ? "input" : "";
+  const usesAbortSignal = action.steps.some((step) => step.usesAbortSignal);
+  const returnTypeText = action.steps.at(-1)!.propertyType;
+  const scopeTypeProperties = [
+    `wire: Wire`,
+    usesAbortSignal ? `abortSignal: AbortSignal | undefined` : null,
+    action.actionDependencies.length > 0
+      ? `actions: { ${action.actionDependencies
+          .map((dependency) => printActionDependencyType(dependency))
+          .join("; ")} }`
+      : null,
+  ].filter((property): property is string => property !== null);
+  const initialScopeProperties = [
+    `wire`,
+    usesAbortSignal ? `abortSignal: undefined as AbortSignal | undefined` : null,
+    action.actionDependencies.length > 0
+      ? `actions: { ${action.actionDependencies
+          .map((dependency) => printActionDependencyDefault(dependency))
+          .join(", ")} }`
+      : null,
+  ].filter((property): property is string => property !== null);
+  const initialScopeText = `{ ${initialScopeProperties.join(", ")} }`;
+  const scopeReferenceName = "scope";
   const lines: string[] = [
-    `export async function ${action.actionName}(${parameterText}) {`,
-    `  return consume(${streamName}(${streamParamText}));`,
+    `interface ${interfaceName} {`,
+    `  (${parameterText}): Promise<${returnTypeText}>;`,
+    `  run(${parameterText}): Promise<${returnTypeText}>;`,
+    `  stream(${parameterText}): Promise<${returnTypeText}>;`,
     `}`,
     ``,
-    `async function ${runName}(params: ${paramsType}) {`,
-    `  return consume(${streamName}(params));`,
-    `}`,
+    `type ${scopeTypeName} = { ${scopeTypeProperties.join("; ")} };`,
+    `type ${scopePatchTypeName} = { ${printScopePatchTypeProperties(action).join("; ")} };`,
     ``,
-    `async function* ${streamName}(params: ${paramsType}) {`,
-    action.inputType
-      ? `  const input = params.input;`
-      : `  const input = undefined;`,
-    ...(usesSignal
+    `export const ${action.actionName} = async function ${action.actionName}(${parameterText}) {`,
+    `    return ${ctxName}().run(${inputArgText});`,
+    `  } as ${interfaceName};`,
+    `${action.actionName}.run = ${ctxName}().run;`,
+    `${action.actionName}.stream = ${ctxName}().stream;`,
+    ``,
+    `function ${ctxName}(ctx: ${scopePatchTypeName} = {}) {`,
+    `  const wire = new Wire();`,
+    `  const initialScope: ${scopeTypeName} = ${initialScopeText};`,
+    `  const ${scopeReferenceName}: ${scopeTypeName} = initialScope;`,
+    ...printScopePatchLines(action, scopeReferenceName),
+    ``,
+    `  async function run(${parameterText}) {`,
+    `    return stream(${inputArgText});`,
+    `  }`,
+    ``,
+    `  async function stream(${parameterText}) {`,
+    action.inputType ? null : `    const input = undefined;`,
+    ...(usesAbortSignal
       ? [
-          `  const signal = (name: string, input: unknown) => new Trace(name, { input });`,
+          `    const abortSignal = ${scopeReferenceName}.abortSignal as AbortSignal | undefined;`,
         ]
       : []),
     ``,
-    `  yield new Trace("${actionEventName}", { input });`,
+    `    scope.wire.trace("${actionEventName}", { input });`,
     ``,
-  ];
+  ].filter((line): line is string => line !== null);
 
   for (const step of action.steps) {
     if (step.directExpressionText !== null) {
-      lines.push(`  const ${step.name} = ${step.directExpressionText};`);
+      const expressionText = scopeText(
+        step.directExpressionText,
+        scopeReferenceName
+      );
+
+      lines.push(
+        `    const ${step.name} = ${step.usesSignal ? `${expressionText} as Record<string, unknown>` : expressionText};`
+      );
     } else {
-      lines.push(`  let ${step.name}: ${step.propertyType};`);
-      lines.push(step.useBreakBlock ? `  ${step.name}Block: {` : "  {");
-      lines.push(indent(step.blockText, 4));
-      lines.push("  }");
+      lines.push(`    let ${step.name}: ${step.propertyType};`);
+      lines.push(step.useBreakBlock ? `    ${step.name}Block: {` : "    {");
+      lines.push(indent(scopeText(step.blockText, scopeReferenceName), 6));
+      lines.push("    }");
     }
     lines.push("");
     lines.push(
-      `  yield new Trace("${actionEventName}.${step.name}", { result: ${step.name} });`
+      `    scope.wire.trace("${actionEventName}.${step.name}", { result: ${step.name} });`
     );
     lines.push("");
   }
 
   const lastStep = action.steps.at(-1)!;
   lines.push(
-    `  yield new Trace("${actionEventName}", { result: ${lastStep.name} });`
+    `    scope.wire.trace("${actionEventName}", { result: ${lastStep.name} });`
   );
   lines.push("");
-  lines.push(`  return ${lastStep.name};`);
+  lines.push(`    return ${lastStep.name};`);
+  lines.push("  }");
+  lines.push("");
+  lines.push("  return { run, stream };");
   lines.push("}");
 
+  if (action.listenEventName !== null) {
+    lines.push("");
+    lines.push(`addListener("${action.listenEventName}", ${action.actionName});`);
+  }
+
   return lines.join("\n");
+}
+
+function scopeText(value: string, scopeReferenceName: string): string {
+  return scopeReferenceName === "scope"
+    ? value
+    : value.replace(/\bscope\./g, `${scopeReferenceName}.`);
+}
+
+function upperFirst(value: string): string {
+  return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
+}
+
+function printActionDependencyDefault(
+  dependency: import("./types").ActionDependency,
+): string {
+  return `${dependency.scopeName}: { ${dependency.actionNames
+    .map((actionName) => `${actionName}: ${dependency.identifier}.${actionName}`)
+    .join(", ")} }`;
+}
+
+function printActionDependencyType(
+  dependency: import("./types").ActionDependency,
+): string {
+  return `${dependency.scopeName}: { ${dependency.actionNames
+    .map((actionName) => `${actionName}: typeof ${dependency.identifier}.${actionName}`)
+    .join("; ")} }`;
+}
+
+function printScopePatchTypeProperties(action: ActionSpec): string[] {
+  const properties = [
+    `wire?: Wire`,
+    action.steps.some((step) => step.usesAbortSignal)
+      ? `abortSignal?: AbortSignal | undefined`
+      : null,
+    action.actionDependencies.length > 0
+      ? `actions?: { ${action.actionDependencies
+          .map((dependency) => printActionDependencyPatchType(dependency))
+          .join("; ")} }`
+      : null,
+  ];
+
+  return properties.filter((property): property is string => property !== null);
+}
+
+function printActionDependencyPatchType(
+  dependency: import("./types").ActionDependency,
+): string {
+  return `${dependency.scopeName}?: { ${dependency.actionNames
+    .map((actionName) => `${actionName}?: typeof ${dependency.identifier}.${actionName}`)
+    .join("; ")} }`;
+}
+
+function printScopePatchLines(
+  action: ActionSpec,
+  scopeReferenceName: string,
+): string[] {
+  const lines = [
+    `  if (ctx.wire !== undefined) ${scopeReferenceName}.wire = ctx.wire;`,
+  ];
+
+  if (action.steps.some((step) => step.usesAbortSignal)) {
+    lines.push(
+      `  if (ctx.abortSignal !== undefined) ${scopeReferenceName}.abortSignal = ctx.abortSignal;`,
+    );
+  }
+
+  if (action.actionDependencies.length > 0) {
+    lines.push(`  if (ctx.actions !== undefined) {`);
+
+    for (const dependency of action.actionDependencies) {
+      lines.push(`    if (ctx.actions.${dependency.scopeName} !== undefined) {`);
+
+      for (const actionName of dependency.actionNames) {
+        lines.push(
+          `      if (ctx.actions.${dependency.scopeName}.${actionName} !== undefined) ${scopeReferenceName}.actions.${dependency.scopeName}.${actionName} = ctx.actions.${dependency.scopeName}.${actionName};`,
+        );
+      }
+
+      lines.push(`    }`);
+    }
+
+    lines.push(`  }`);
+  }
+
+  return lines;
 }
 
 export function printService(service: ServiceSpec): string {
   const lines = [`export const ${service.serviceName} = {`];
 
-  for (const actionName of service.actionNames) {
-    lines.push(`  ${actionName},`);
-  }
-
-  lines.push("  run: {");
   for (const [index, actionName] of service.actionNames.entries()) {
     const separator = index === service.actionNames.length - 1 ? "" : ",";
-    lines.push(`    ${actionName}: ${actionName}Run${separator}`);
+    lines.push(`  ${actionName}${separator}`);
   }
-  lines.push("  },");
-
-  lines.push("  stream: {");
-  for (const [index, actionName] of service.actionNames.entries()) {
-    const separator = index === service.actionNames.length - 1 ? "" : ",";
-    lines.push(`    ${actionName}: ${actionName}Stream${separator}`);
-  }
-  lines.push("  }");
 
   lines.push("};");
 

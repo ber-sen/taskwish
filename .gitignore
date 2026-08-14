@@ -1,4 +1,7 @@
 .turbo
+.scriptc/
+.bare/
+packages/example/cli
 .cache
 .DS_Store
 .idea

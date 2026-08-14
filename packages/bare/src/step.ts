@@ -55,6 +55,8 @@ export function parseFunctionStep(name: string, node: Node): StepSpec | null {
     ),
     useBreakBlock,
     usesSignal: usesThisSignal(handler),
+    usesAbortSignal: usesThisProperty(handler, "abortSignal"),
+    actionUses: collectActionUses(handler),
   };
 }
 
@@ -101,7 +103,9 @@ function rewriteDirectStepExpression(
     const rewrittenExpression = returnStatement.getExpression();
     if (!rewrittenExpression) return null;
 
-    return assignmentExpressionText(rewrittenExpression, shouldAwait);
+    return normalizeDirectExpressionText(
+      assignmentExpressionText(rewrittenExpression, shouldAwait)
+    );
   } finally {
     project.removeSourceFile(probe);
   }
@@ -185,19 +189,57 @@ function rewriteThisPropertyAccesses(root: Node, owner: Node): void {
     const expression = unwrapExpression(propertyAccess.getExpression());
     if (!Node.isThisExpression(expression)) continue;
 
-    propertyAccess.replaceWithText(propertyAccess.getName());
+    propertyAccess.replaceWithText(
+      propertyAccess.getName() === "actions"
+        ? `scope.${propertyAccess.getName()}`
+        : propertyAccess.getName() === "signal"
+        ? "scope.wire.signal"
+        : propertyAccess.getName()
+    );
   }
 }
 
 function usesThisSignal(root: Node): boolean {
+  return usesThisProperty(root, "signal");
+}
+
+function usesThisProperty(root: Node, name: string): boolean {
   return root
     .getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
     .some((propertyAccess) => {
-      if (propertyAccess.getName() !== "signal") return false;
+      if (propertyAccess.getName() !== name) return false;
 
       const expression = unwrapExpression(propertyAccess.getExpression());
       return Node.isThisExpression(expression);
     });
+}
+
+function collectActionUses(root: Node): import("./types").ActionUse[] {
+  const uniquePaths = new Set<string>();
+
+  for (const call of root.getDescendantsOfKind(SyntaxKind.CallExpression)) {
+    const path = thisActionsPath(call.getExpression());
+    if (path.length < 2) continue;
+
+    uniquePaths.add(path.join("."));
+  }
+
+  return [...uniquePaths].sort().map((path) => ({ path: path.split(".") }));
+}
+
+function thisActionsPath(node: Node): string[] {
+  const names: string[] = [];
+  let current = unwrapExpression(node);
+
+  while (Node.isPropertyAccessExpression(current)) {
+    names.unshift(current.getName());
+    current = unwrapExpression(current.getExpression());
+  }
+
+  if (!Node.isThisExpression(current)) return [];
+  if (names[0] !== "actions") return [];
+
+  return names.slice(1);
 }
 
 function needsBreakBlock(fn: import("ts-morph").FunctionExpression): boolean {
@@ -226,9 +268,37 @@ function assignmentExpressionText(
   expression: Node,
   shouldAwait: boolean
 ): string {
-  return shouldAwait && !Node.isAwaitExpression(unwrapExpression(expression))
+  return shouldAwait &&
+    !Node.isAwaitExpression(unwrapExpression(expression)) &&
+    !isDirectSynchronousReturnExpression(expression)
     ? `await ${awaitOperandText(expression)}`
     : expression.getText();
+}
+
+function isDirectSynchronousReturnExpression(expression: Node): boolean {
+  const node = unwrapExpression(expression);
+
+  return Node.isObjectLiteralExpression(node) || Node.isArrayLiteralExpression(node);
+}
+
+function normalizeDirectExpressionText(value: string): string {
+  const lines = value.split("\n");
+  if (lines.length === 1) return value;
+
+  const continuationLines = lines.slice(1);
+  const indents = continuationLines
+    .filter((line) => line.trim())
+    .map((line) => line.match(/^\s*/)?.[0].length ?? 0);
+  const minIndent = indents.length > 0 ? Math.min(...indents) : 0;
+  const targetIndent = 4;
+  const shift = Math.max(0, minIndent - targetIndent);
+
+  return [
+    lines[0]!,
+    ...continuationLines.map((line) =>
+      line.trim() ? line.slice(shift) : line
+    ),
+  ].join("\n");
 }
 
 function functionBodyText(fn: import("ts-morph").FunctionExpression): string {
