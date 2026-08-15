@@ -6,10 +6,12 @@ interface Commander {
     const Options extends {
       service: "telegram";
       username: string;
+      allow?: {
+        users?: string[]
+      }
       agent: {
         instructions?: string;
         tools?: string[];
-        canEditActors?: Array<"self" | (string & {})>;
       };
     },
   >(
@@ -33,10 +35,11 @@ const { commandedActor } = Actor("CommandedActor").scope(
   Commander.Bot({
     service: "telegram",
     username: "taskwish_bot",
+    allow: {
+      users: ["+38344123456"],
+    },
     agent: {
       tools: ["browse"],
-      canEditActors: ["self"],
-      canCreateActor: true,
     },
   }),
 );
