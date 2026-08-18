@@ -2,9 +2,9 @@
   "$": "Actor",
   "=": "SwiftWrangler",
   "color": "#c42e5b",
-  "behaviors": [
+  "role": [
     {
-      "->": "ChatMessage",
+      "on": "ChatMessage",
       "run": [
         {
           "$": "Slack.sendMessage",
