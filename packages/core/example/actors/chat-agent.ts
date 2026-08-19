@@ -19,15 +19,14 @@ export const { chat } = chatBot()
         return { temperature: 72, conditions: "sunny" };
       },
     }),
-    
-    Agent("chatAgent", {
+
+    Agent({
       model: "anthropic/claude-sonnet-4.5",
       instructions: "You are an expert software engineer.",
       tools: ["weather"],
     }),
 
     Step("run", function () {
-      return this.chatAgent({ prompt: this.input.prompt });
+      return this.agent({ prompt: this.input.prompt });
     }),
   );
-  
