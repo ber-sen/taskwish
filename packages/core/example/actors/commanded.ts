@@ -1,4 +1,12 @@
-import { Actor, ScopeResultKind, Step, Steps, TW } from "../../src";
+import {
+  Actor,
+  ScopeResultKind,
+  Step,
+  Steps,
+  SubSteps,
+  SubStepsResultKind,
+  TW,
+} from "../../src";
 
 interface Commander {
   Bot<
@@ -26,7 +34,9 @@ interface Commander {
       plugins: Ctx["plugins"];
     };
   };
-  Notify: <Ctx extends Record<string, any>>(msg: string) => {
+  Notify: <Ctx extends Record<string, any>>(
+    msg: string,
+  ) => {
     [TW.Step]: (ctx: Ctx) => {
       name: Ctx["name"];
       steps: Ctx["steps"];
@@ -36,6 +46,7 @@ interface Commander {
       plugins: Ctx["plugins"];
     };
   };
+  NeedsApproval: Steps<typeof SubSteps, SubStepsResultKind>;
 }
 
 export const Commander: Commander = {} as never;
@@ -53,15 +64,21 @@ const { commanded } = Actor("Commanded").scope(
   }),
 );
 
-export const { chat } = commanded()
-  .on("Command", "chat")
+export const { refundPayment } = commanded()
+  .on("Command", "refundPayment")
 
-  .input({ name: "string" })
+  .input({
+    paymentId: "string",
+    amount: "number",
+  })
 
   .run(
-    Commander.Notify("Doing smth"),
-
-    Step("run", function () {
-      return this.abortSignal;
-    }),
+    Commander.NeedsApproval(
+      Step("refund", function () {
+        return this.actions.stripe.refund({
+          paymentId: this.input.paymentId,
+          amount: this.input.amount,
+        });
+      }),
+    ),
   );
