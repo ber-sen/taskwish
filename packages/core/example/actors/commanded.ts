@@ -7,8 +7,8 @@ interface Commander {
       service: "telegram";
       username: string;
       allow?: {
-        users?: string[]
-      }
+        users?: string[];
+      };
       agent: {
         instructions?: string;
         tools?: string[];
@@ -26,12 +26,21 @@ interface Commander {
       plugins: Ctx["plugins"];
     };
   };
-  NeedsApproval: Steps<{}, ScopeResultKind>;
+  Notify: <Ctx extends Record<string, any>>(msg: string) => {
+    [TW.Step]: (ctx: Ctx) => {
+      name: Ctx["name"];
+      steps: Ctx["steps"];
+      step: Ctx["step"];
+      scope: Ctx["scope"];
+      last: Ctx["last"];
+      plugins: Ctx["plugins"];
+    };
+  };
 }
 
 export const Commander: Commander = {} as never;
 
-const { commandedActor } = Actor("CommandedActor").scope(
+const { commanded } = Actor("Commanded").scope(
   Commander.Bot({
     service: "telegram",
     username: "taskwish_bot",
@@ -44,15 +53,15 @@ const { commandedActor } = Actor("CommandedActor").scope(
   }),
 );
 
-export const { chat } = commandedActor()
+export const { chat } = commanded()
   .on("Command", "chat")
 
   .input({ name: "string" })
 
   .run(
-    Commander.NeedsApproval(
-      Step("run", function () {
-        return this.abortSignal;
-      }),
-    ),
+    Commander.Notify("Doing smth"),
+
+    Step("run", function () {
+      return this.abortSignal;
+    }),
   );
