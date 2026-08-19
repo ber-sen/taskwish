@@ -17,3 +17,4 @@ export const { hello } = greeter()
       return `Hello ${this.input.name}`;
     }),
   );
+
