@@ -3,6 +3,8 @@ import { Actor, Step } from "../../src";
 
 const { myActor } = Actor("MyActor");
 
+const onElicit = () => {};
+
 export const { runSteps } = myActor()
   .use(Slack)
 
@@ -14,6 +16,7 @@ export const { runSteps } = myActor()
     Step("firstStep", function () {
       return this.actions.slack.postMessage({
         "🔑": "work",
+        "❓": onElicit,
         channel: "#general",
         text: "asdasd",
       });
