@@ -19,7 +19,7 @@ export const { postMessage }: { postMessage: PostMessageAction } = slack()
 
   .run(
     Step("send", function (): Promise<ChatPostMessageResponse> {
-      const client = new SlackAPIClient(this.config("🔑") ?? process.env.TW_SLACK_API_KEY);
+      const client = new SlackAPIClient(this.config("🔑"));
 
       return client.chat.postMessage(this.input);
     }),
