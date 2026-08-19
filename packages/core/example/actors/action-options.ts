@@ -3,8 +3,6 @@ import { Actor, Step } from "../../src";
 
 const { myActor } = Actor("MyActor");
 
-const onElicit = () => {};
-
 export const { runSteps } = myActor()
   .use(Slack)
 
