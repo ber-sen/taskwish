@@ -16,7 +16,6 @@ export const { runSteps } = myActor()
     Step("firstStep", function () {
       return this.actions.slack.postMessage({
         "🔑": "work",
-        "❓": onElicit,
         channel: "#general",
         text: "asdasd",
       });

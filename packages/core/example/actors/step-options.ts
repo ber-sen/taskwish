@@ -1,7 +1,7 @@
 import { Actor, Step } from "../../src";
 
-const Options = {
-  retry:
+const StepOptions = {
+  Retry:
     (times: number) =>
     <T>(R: T) =>
       R,
@@ -22,7 +22,7 @@ export const { withOptions } = myActor()
           message: this.input.message,
         });
       },
-      Options.retry(5),
+      StepOptions.Retry(5),
     ]),
 
     Step("last step", function () {
