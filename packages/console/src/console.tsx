@@ -46,6 +46,7 @@ export function Console() {
   const [isActionRunning, setIsActionRunning] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
   const [isActionHeaderCollapsed, setIsActionHeaderCollapsed] = useState(false);
+  const [actionRunResetToken, setActionRunResetToken] = useState(0);
   const [selectedValue, setSelectedValue] = useState("");
   const commandRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -77,6 +78,7 @@ export function Console() {
     setIsActionHeaderCollapsed(false);
     setIsActionChatMode(false);
     setIsActionRunning(false);
+    setActionRunResetToken(0);
   }, [selectedAction]);
 
   const actions = useMemo(
@@ -149,6 +151,13 @@ export function Console() {
     form?.requestSubmit();
   };
 
+  const startNewRun = () => {
+    setIsActionChatMode(false);
+    setIsActionRunning(false);
+    setIsActionHeaderCollapsed(false);
+    setActionRunResetToken((token) => token + 1);
+  };
+
   const cancelSelectedAction = () => {
     actionFormRef.current?.cancel();
   };
@@ -157,6 +166,8 @@ export function Console() {
     setIsActionChatMode(enabled);
     if (enabled) setIsActionHeaderCollapsed(false);
   }, []);
+
+  const isActionFinalized = isActionChatMode && !isActionRunning;
 
   if (loadState.status === "loading") {
     return (
@@ -256,8 +267,10 @@ export function Console() {
                 showLogs={showLogs}
                 canRun={!isActionChatMode}
                 isRunning={isActionRunning}
+                isFinalized={isActionFinalized}
                 onLogsChange={setShowLogs}
                 onRun={submitSelectedAction}
+                onNewRun={startNewRun}
                 onCancel={cancelSelectedAction}
               />
 
@@ -275,6 +288,7 @@ export function Console() {
                   ref={actionFormRef}
                   action={selectedAction}
                   config={loadState.config}
+                  resetToken={actionRunResetToken}
                   showLogs={showLogs}
                   onChatModeChange={handleActionChatModeChange}
                   onRunStateChange={setIsActionRunning}
@@ -282,20 +296,43 @@ export function Console() {
               </div>
 
               <DrawerFooter className="shrink-0 flex-row border-t bg-background mini-app:hidden">
-                {!isActionChatMode ? (
-                  <Button type="submit" form="console-action-form">
-                    Run
-                  </Button>
-                ) : null}
-                <DrawerClose asChild>
+                {isActionRunning ? (
                   <Button
+                    key="cancel-run"
                     type="button"
                     variant="outline"
                     onClick={cancelSelectedAction}
                   >
                     Cancel
                   </Button>
-                </DrawerClose>
+                ) : isActionFinalized ? (
+                  <Button
+                    key="new-run"
+                    type="button"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      startNewRun();
+                    }}
+                  >
+                    New run
+                  </Button>
+                ) : (
+                  <Button
+                    key="run"
+                    type="submit"
+                    form="console-action-form"
+                  >
+                    Run
+                  </Button>
+                )}
+                {!isActionRunning ? (
+                  <DrawerClose asChild>
+                    <Button type="button" variant="outline">
+                      Close
+                    </Button>
+                  </DrawerClose>
+                ) : null}
               </DrawerFooter>
             </>
           ) : null}

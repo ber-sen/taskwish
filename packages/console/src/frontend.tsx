@@ -13,7 +13,18 @@ if (!rootElement) {
 const app = (
   <StrictMode>
     <AppPage />
-    <Toaster closeButton position="bottom-left" />
+    <Toaster
+      closeButton
+      position="bottom-left"
+      theme="dark"
+      toastOptions={{
+        style: {
+          background: "#000",
+          borderColor: "#262626",
+          color: "#fff",
+        },
+      }}
+    />
   </StrictMode>
 );
 

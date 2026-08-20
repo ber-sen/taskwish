@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -11,8 +12,10 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "../ui/button";
+import { actionTitle } from "../../lib/command-actions";
 import {
   buildPayload,
+  formatActionResultBody,
   formDefaultValues,
   streamActionResponse,
   type ActionRunResult,
@@ -21,6 +24,12 @@ import {
 import type { ConsoleAction, ConsoleConfig } from "../../types";
 import { ActionInputField } from "./action-input-field";
 import { ActionResult } from "./action-result";
+
+function toastResultDescription(result: ActionRunResult): string {
+  const body = formatActionResultBody(result.body).trim();
+  const summary = body || `${result.status}`;
+  return `Result: ${summary.length > 140 ? `${summary.slice(0, 137)}...` : summary}`;
+}
 
 export type ActionFormHandle = {
   cancel: () => void;
@@ -31,6 +40,7 @@ export const ActionForm = forwardRef<
   {
     action: ConsoleAction;
     config: ConsoleConfig;
+    resetToken: number;
     showLogs: boolean;
     onChatModeChange?: (enabled: boolean) => void;
     onRunStateChange?: (running: boolean) => void;
@@ -39,6 +49,7 @@ export const ActionForm = forwardRef<
   {
     action,
     config,
+    resetToken,
     showLogs,
     onChatModeChange,
     onRunStateChange,
@@ -52,6 +63,7 @@ export const ActionForm = forwardRef<
   const [isChatMode, setIsChatMode] = useState(false);
   const [showOptionalFields, setShowOptionalFields] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const suppressSubmitRef = useRef(false);
   const onChatModeChangeRef = useRef(onChatModeChange);
   const onRunStateChangeRef = useRef(onRunStateChange);
   const form = useForm<CommandFormValues>({
@@ -67,9 +79,9 @@ export const ActionForm = forwardRef<
     abortControllerRef.current?.abort();
   }, []);
 
-  useImperativeHandle(ref, () => ({ cancel }), [cancel]);
-
-  useEffect(() => {
+  const resetRun = useCallback(() => {
+    suppressSubmitRef.current = true;
+    setIsRunning(false);
     setError(null);
     setResult(null);
     setSubmittedPayload(null);
@@ -80,7 +92,16 @@ export const ActionForm = forwardRef<
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
     form.reset(formDefaultValues(action.input));
-  }, [action.id, action.input, form]);
+    window.setTimeout(() => {
+      suppressSubmitRef.current = false;
+    }, 0);
+  }, [action.input, form]);
+
+  useImperativeHandle(ref, () => ({ cancel }), [cancel]);
+
+  useLayoutEffect(() => {
+    resetRun();
+  }, [action.id, resetToken, resetRun]);
 
   const requiredFields = action.input.filter((field) => field.required);
   const optionalFields = action.input.filter((field) => !field.required);
@@ -89,8 +110,13 @@ export const ActionForm = forwardRef<
     : requiredFields.length
     ? requiredFields
     : [];
+  const commandName = actionTitle(action);
 
   const submit: SubmitHandler<CommandFormValues> = async (values) => {
+    if (suppressSubmitRef.current) {
+      return;
+    }
+
     setIsRunning(true);
     onRunStateChangeRef.current?.(true);
     setError(null);
@@ -120,12 +146,12 @@ export const ActionForm = forwardRef<
         setResult(result);
       }
       if (finalResult?.ok) {
-        toast.success(`${action.label} finished`, {
-          description: `${finalResult.status}`,
+        toast.success(commandName, {
+          description: toastResultDescription(finalResult),
         });
       } else if (finalResult) {
-        toast.error(`${action.label} failed`, {
-          description: `${finalResult.status}`,
+        toast.error(commandName, {
+          description: toastResultDescription(finalResult),
         });
       }
     } catch (error) {
@@ -148,8 +174,8 @@ export const ActionForm = forwardRef<
         contentType: "text/plain",
         body: message,
       });
-      toast.error(`${action.label} failed`, {
-        description: message,
+      toast.error(commandName, {
+        description: `Result: ${message}`,
       });
     } finally {
       if (abortControllerRef.current === abortController) {

@@ -2866,6 +2866,21 @@
   .scrollbar-minimal::-webkit-scrollbar-track {
     background: transparent;
   }
+  .scrollbar-tiny {
+    scrollbar-color: hsl(var(--border)) transparent;
+    scrollbar-width: thin;
+  }
+  .scrollbar-tiny::-webkit-scrollbar {
+    height: 1px;
+    width: 1px;
+  }
+  .scrollbar-tiny::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 9999px;
+  }
+  .scrollbar-tiny::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 @layer base {
   * {

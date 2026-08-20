@@ -19,8 +19,10 @@ export function ActionDrawerHeader({
   showLogs,
   canRun,
   isRunning,
+  isFinalized,
   onLogsChange,
   onRun,
+  onNewRun,
   onCancel,
 }: {
   action: ConsoleAction;
@@ -28,8 +30,10 @@ export function ActionDrawerHeader({
   showLogs: boolean;
   canRun: boolean;
   isRunning: boolean;
+  isFinalized: boolean;
   onLogsChange: (enabled: boolean) => void;
   onRun: () => void;
+  onNewRun: () => void;
   onCancel: () => void;
 }) {
   const logsId = `logs-${action.id}`;
@@ -56,15 +60,7 @@ export function ActionDrawerHeader({
               />
             </div>
           ) : null}
-          {canRun ? (
-            <Button
-              type="button"
-              className="h-9 rounded-full px-4"
-              onClick={onRun}
-            >
-              Run
-            </Button>
-          ) : isRunning ? (
+          {isRunning ? (
             <Button
               type="button"
               variant="outline"
@@ -72,6 +68,27 @@ export function ActionDrawerHeader({
               onClick={onCancel}
             >
               Cancel
+            </Button>
+          ) : canRun ? (
+            <Button
+              type="button"
+              className="h-9 rounded-full px-4"
+              onClick={onRun}
+            >
+              Run
+            </Button>
+          ) : isFinalized ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 rounded-full px-4"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onNewRun();
+              }}
+            >
+              New run
             </Button>
           ) : null}
         </div>
@@ -81,7 +98,7 @@ export function ActionDrawerHeader({
             variant="ghost"
             size="icon"
             className="absolute -right-2 -top-2 h-9 w-9 rounded-full mini-app:hidden"
-            aria-label="Cancel"
+            aria-label="Close"
             onClick={onCancel}
           >
             <X className="h-4 w-4" />

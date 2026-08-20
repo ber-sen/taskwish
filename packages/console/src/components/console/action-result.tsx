@@ -205,6 +205,18 @@ function yamlValue(value: unknown, depth = 0): string {
 }
 
 function inputBody(input: unknown): string {
+  if (
+    input === null ||
+    input === undefined ||
+    (typeof input === "string" && !input.trim()) ||
+    (Array.isArray(input) && !input.length) ||
+    (typeof input === "object" &&
+      !Array.isArray(input) &&
+      !Object.keys(input).length)
+  ) {
+    return "Empty";
+  }
+
   return yamlValue(input);
 }
 
@@ -258,7 +270,7 @@ export function ActionResult({
                     bubble.type === "result" &&
                       "rounded-lg border border-border bg-action px-4 py-3 text-foreground",
                     bubble.type === "error" &&
-                      "border border-destructive/30 bg-destructive/10 text-destructive"
+                      "rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive"
                   )}
                   style={{ overflowWrap: "anywhere" }}
                 >
