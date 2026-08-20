@@ -1,4 +1,8 @@
+import { CheckIcon, CopyIcon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
 import { cn } from "../../lib/utils";
+import { Button } from "../ui/button";
 import {
   Conversation,
   ConversationContent,
@@ -220,6 +224,53 @@ function inputBody(input: unknown): string {
   return yamlValue(input);
 }
 
+function ResultCopyButton({
+  text,
+  timeout = 2000,
+}: {
+  text: string;
+  timeout?: number;
+}) {
+  const [isCopied, setIsCopied] = useState(false);
+  const timeoutRef = useRef<number>(0);
+
+  const copyToClipboard = useCallback(async () => {
+    if (typeof window === "undefined" || !navigator?.clipboard?.writeText) {
+      return;
+    }
+
+    if (isCopied) return;
+
+    await navigator.clipboard.writeText(text);
+    setIsCopied(true);
+    timeoutRef.current = window.setTimeout(() => setIsCopied(false), timeout);
+  }, [isCopied, text, timeout]);
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(timeoutRef.current);
+    },
+    []
+  );
+
+  const Icon = isCopied ? CheckIcon : CopyIcon;
+
+  return (
+    <Button
+      aria-label={isCopied ? "Copied" : "Copy result"}
+      className="h-6 w-6 bg-transparent text-muted-foreground hover:bg-transparent hover:text-foreground focus:bg-transparent focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 active:bg-transparent"
+      disabled={!text}
+      onClick={copyToClipboard}
+      size="icon-sm"
+      title={isCopied ? "Copied" : "Copy result"}
+      type="button"
+      variant="ghost"
+    >
+      <Icon className="size-3.5" size={14} />
+    </Button>
+  );
+}
+
 export function ActionResult({
   className,
   input,
@@ -237,13 +288,13 @@ export function ActionResult({
     <Conversation className={cn("relative min-h-0 flex-1", className)}>
       <ConversationContent className="space-y-4 px-0 py-4 pb-12">
         <Message from="user">
+          <div className="self-end text-[11px] font-semibold text-muted-foreground">
+            Input
+          </div>
           <MessageContent
             className="space-y-2"
             style={{ overflowWrap: "anywhere" }}
           >
-            <div className="text-[11px] font-semibold text-primary-foreground/70">
-              Input
-            </div>
             <MessageResponse className="text-primary-foreground">
               {inputBody(input)}
             </MessageResponse>
@@ -263,10 +314,27 @@ export function ActionResult({
               </Message>
             ) : (
               <Message key={bubble.id} from="assistant">
+                <div className="flex max-w-full items-center gap-1">
+                  <div
+                    className={cn(
+                      "text-[11px] font-semibold text-muted-foreground",
+                      bubble.type === "error" && "text-destructive"
+                    )}
+                  >
+                    {bubble.type === "wire"
+                      ? bubble.title
+                      : bubble.type === "error"
+                      ? "Error"
+                      : "Result"}
+                  </div>
+                  {bubble.type === "result" || bubble.type === "error" ? (
+                    <ResultCopyButton text={bubble.body} />
+                  ) : null}
+                </div>
                 <MessageContent
                   className={cn(
                     bubble.type === "wire" &&
-                      "border-l border-border px-4 py-3 text-muted-foreground",
+                      "border-l-[1.5px] border-border px-4 py-3 text-muted-foreground",
                     bubble.type === "result" &&
                       "rounded-lg border border-border bg-action px-4 py-3 text-foreground",
                     bubble.type === "error" &&
@@ -274,15 +342,8 @@ export function ActionResult({
                   )}
                   style={{ overflowWrap: "anywhere" }}
                 >
-                  <div className="mb-1 text-[11px] font-semibold text-muted-foreground">
-                    {bubble.type === "wire"
-                      ? bubble.title
-                      : bubble.type === "error"
-                      ? "Error"
-                      : "Result"}
-                  </div>
                   {bubble.type === "wire" ? (
-                    <pre className="whitespace-pre-wrap font-mono text-xs leading-5 text-black">
+                    <pre className="whitespace-pre-wrap font-mono text-[11px] leading-4 text-black">
                       {bubble.body || "Done"}
                     </pre>
                   ) : (

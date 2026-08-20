@@ -55,6 +55,8 @@ export function ActionDrawerHeader({
               <Switch
                 id={miniLogsId}
                 size="sm"
+                className="shadow-none"
+                thumbClassName="shadow-none"
                 checked={showLogs}
                 onCheckedChange={onLogsChange}
               />
@@ -131,6 +133,8 @@ export function ActionDrawerHeader({
             <Switch
               id={logsId}
               size="sm"
+              className="shadow-none"
+              thumbClassName="shadow-none"
               checked={showLogs}
               onCheckedChange={onLogsChange}
             />

@@ -667,6 +667,9 @@
   .w-4 {
     width: calc(var(--spacing) * 4);
   }
+  .w-6 {
+    width: calc(var(--spacing) * 6);
+  }
   .w-7 {
     width: calc(var(--spacing) * 7);
   }
@@ -1046,6 +1049,10 @@
   .border-l-2 {
     border-left-style: var(--tw-border-style);
     border-left-width: 2px;
+  }
+  .border-l-\[1\.5px\] {
+    border-left-style: var(--tw-border-style);
+    border-left-width: 1.5px;
   }
   .border-dashed {
     --tw-border-style: dashed;
@@ -1448,9 +1455,9 @@
   .text-\[11px\] {
     font-size: 11px;
   }
-  .leading-5 {
-    --tw-leading: calc(var(--spacing) * 5);
-    line-height: calc(var(--spacing) * 5);
+  .leading-4 {
+    --tw-leading: calc(var(--spacing) * 4);
+    line-height: calc(var(--spacing) * 4);
   }
   .leading-none {
     --tw-leading: 1;
@@ -1590,12 +1597,6 @@
   }
   .text-primary-foreground {
     color: hsl(var(--primary-foreground));
-  }
-  .text-primary-foreground\/70 {
-    color: hsl(var(--primary-foreground));
-    @supports (color: color-mix(in lab, red, red)) {
-      color: color-mix(in oklab, hsl(var(--primary-foreground)) 70%, transparent);
-    }
   }
   .text-red-600 {
     color: var(--color-red-600);
@@ -2049,6 +2050,9 @@
   .focus\:bg-accent:focus {
     background-color: hsl(var(--accent));
   }
+  .focus\:bg-transparent:focus {
+    background-color: transparent;
+  }
   .focus\:text-accent-foreground:focus {
     color: hsl(var(--accent-foreground));
   }
@@ -2097,6 +2101,9 @@
   .focus-visible\:outline-none:focus-visible {
     --tw-outline-style: none;
     outline-style: none;
+  }
+  .active\:bg-transparent:active {
+    background-color: transparent;
   }
   .disabled\:pointer-events-none:disabled {
     pointer-events: none;

@@ -7,12 +7,13 @@ export type SwitchProps = React.ComponentPropsWithoutRef<
   typeof SwitchPrimitive.Root
 > & {
   size?: "default" | "sm";
+  thumbClassName?: string;
 };
 
 const Switch = React.forwardRef<
   React.ElementRef<typeof SwitchPrimitive.Root>,
   SwitchProps
->(({ className, size = "default", ...props }, ref) => (
+>(({ className, size = "default", thumbClassName, ...props }, ref) => (
   <SwitchPrimitive.Root
     ref={ref}
     className={cn(
@@ -27,7 +28,8 @@ const Switch = React.forwardRef<
         "pointer-events-none block rounded-full bg-background shadow-lg ring-0 transition-transform data-[unchecked]:translate-x-0",
         size === "sm"
           ? "h-3 w-3 data-[checked]:translate-x-3"
-          : "h-4 w-4 data-[checked]:translate-x-4"
+          : "h-4 w-4 data-[checked]:translate-x-4",
+        thumbClassName
       )}
     />
   </SwitchPrimitive.Root>
