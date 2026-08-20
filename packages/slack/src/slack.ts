@@ -1,5 +1,3 @@
 import { Actor } from "@taskwish/core";
 
-export const { slack } = Actor("Slack").scope(
-  Option("🔑", "string"),
-);
+export const { slack } = Actor("Slack");
