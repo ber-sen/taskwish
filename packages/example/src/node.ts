@@ -10,6 +10,7 @@ import { Solver } from "./solver";
 import { Streamer } from "./streamer";
 import { Greeter } from "./greeter";
 import { Biller } from "./biller";
+import { AIAgent } from "./ai-agent";
 
 await Node("example", {
   apiKey: process.env.TW_API_KEY,
@@ -26,5 +27,6 @@ await Node("example", {
     PipeSolver,
     PuzzleSolver,
     Accounting,
+    AIAgent,
   ],
 });
