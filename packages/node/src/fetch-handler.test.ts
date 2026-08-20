@@ -184,6 +184,49 @@ test("streams command yields and wire traces as SSE for commander requests", asy
   expect(body).toContain('data: "4\\n"');
 });
 
+test("streams wire trace error messages as SSE for commander requests", async () => {
+  const { crasher } = Actor("Crasher");
+  const boom = new Error("boom");
+
+  const { fail } = crasher()
+    .on("Command", "fail")
+
+    .run(
+      Step("bad", function () {
+        throw boom;
+      }),
+    );
+  const { Crasher } = crasher().service({ fail });
+
+  const fetch = createFetchHandler(
+    createNodeRegistry([Promise.resolve({ Crasher, fail })]),
+    { apiKey },
+  );
+
+  const response = await fetch(
+    new Request("http://localhost/tw/Crasher/fail", {
+      headers: {
+        ...auth,
+        Accept: "text/event-stream",
+        wire: "commander",
+      },
+    }),
+  );
+
+  expect(response.status).toBe(200);
+
+  const body = await response.text();
+  expect(body).toContain("event: wire");
+  expect(body).toContain(
+    'data: {">>":"Crasher::fail.bad","error":{"message":"boom"}}',
+  );
+  expect(body).toContain(
+    'data: {">>":"Crasher::fail","error":{"message":"boom"}}',
+  );
+  expect(body).toContain('event: error');
+  expect(body).toContain('data: {"error":"boom"}');
+});
+
 test("logs traces when invoking command actions through fetch handlers", async () => {
   const logged: unknown[] = [];
   const spy = {

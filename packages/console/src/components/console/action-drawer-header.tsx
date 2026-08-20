@@ -36,8 +36,8 @@ export function ActionDrawerHeader({
   onNewRun: () => void;
   onCancel: () => void;
 }) {
-  const logsId = `logs-${action.id}`;
-  const miniLogsId = `mini-logs-${action.id}`;
+  const logsId = `trace-${action.id}`;
+  const miniLogsId = `mini-trace-${action.id}`;
 
   return (
     <DrawerHeader
@@ -50,7 +50,7 @@ export function ActionDrawerHeader({
           {!collapsed ? (
             <div className="flex h-9 items-center gap-2 rounded-full border border-input px-3">
               <Label htmlFor={miniLogsId} className="text-xs">
-                Logs
+                Trace
               </Label>
               <Switch
                 id={miniLogsId}
@@ -128,7 +128,7 @@ export function ActionDrawerHeader({
         {!collapsed ? (
           <div className="ml-auto flex h-8 items-center gap-2 mini-app:hidden">
             <Label htmlFor={logsId} className="text-xs">
-              Logs
+              Trace
             </Label>
             <Switch
               id={logsId}

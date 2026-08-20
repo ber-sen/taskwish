@@ -87,13 +87,21 @@ function invokeOptionsFromRequest(request: Request): InvokeOptions {
 }
 
 function ssePayload(event: string, data: unknown): Uint8Array {
-  const raw = JSON.stringify(data) ?? String(data);
+  const raw = JSON.stringify(data, serializeSseValue) ?? String(data);
   const lines = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
   const message =
     [`event: ${event}`, ...lines.map((line) => `data: ${line}`), ""].join(
       "\n",
     ) + "\n";
   return new TextEncoder().encode(message);
+}
+
+function serializeSseValue(_key: string, value: unknown): unknown {
+  if (value instanceof Error) {
+    return { message: value.message };
+  }
+
+  return value;
 }
 
 function responseFromActionStream(

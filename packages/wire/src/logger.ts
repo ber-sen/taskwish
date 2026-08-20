@@ -7,7 +7,8 @@ export type LogFn = (event: Record<string, unknown>) => void;
 export type WireLogEvent = Trace | Record<string, unknown>;
 export type DispatchFn = (event: unknown) => void;
 
-export type ConsoleLike = Pick<typeof console, "log" | "info" | "error">;
+export type ConsoleLike = Pick<typeof console, "log" | "info" | "error"> &
+  Partial<Pick<typeof console, "trace">>;
 
 export function dispatch(target: ConsoleLike): DispatchFn {
   return (event) => {
@@ -23,6 +24,8 @@ export function dispatch(target: ConsoleLike): DispatchFn {
       const out = formatEvent(formattedEvent as object);
       if ("error" in e) {
         target.error(out);
+      } else if (">>" in e && target.trace) {
+        target.trace(out);
       } else {
         target.info(out);
       }

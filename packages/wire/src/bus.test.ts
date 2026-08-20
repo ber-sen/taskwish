@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { Wire, configureWire, getWireConfig, ulid } from "./bus";
+import { dispatch } from "./logger";
 
 describe("Wire", () => {
   test("generates a ULID thread id by default", () => {
@@ -112,8 +113,8 @@ describe("Wire", () => {
 
   test("supports console logging shorthand", () => {
     const events: unknown[] = [];
-    const originalLog = console.log;
-    console.log = (event: unknown) => {
+    const originalTrace = console.trace;
+    console.trace = (event?: unknown) => {
       events.push(event);
     };
 
@@ -133,8 +134,27 @@ describe("Wire", () => {
         input: { name: "Ada" },
       });
     } finally {
-      console.log = originalLog;
+      console.trace = originalTrace;
     }
+  });
+
+  test("dispatches trace events to console trace when available", () => {
+    const calls: unknown[] = [];
+    const logger = dispatch({
+      log: (event) => calls.push(["log", event]),
+      info: (event) => calls.push(["info", event]),
+      error: (event) => calls.push(["error", event]),
+      trace: (event) => calls.push(["trace", event]),
+    });
+
+    logger({ ">>": "Greeter::hello", input: { name: "Ada" } });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toBeArray();
+    expect((calls[0] as unknown[])[0]).toBe("trace");
+    expect(stripAnsi(String((calls[0] as unknown[])[1]))).toContain(
+      `">>": "Greeter::hello"`,
+    );
   });
 
   test("generates canonical ULIDs", () => {
