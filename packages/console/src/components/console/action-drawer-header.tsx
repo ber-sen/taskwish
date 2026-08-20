@@ -114,7 +114,7 @@ export function ActionDrawerHeader({
         {collapsed && (
           <ActorArtwork
             name={action.actor}
-            className="h-[40px] w-[40px] shrink-0"
+            className="h-[60px] w-[60px] shrink-0"
           />
         )}
         <div className="flex min-w-0 flex-col gap-0.5">

@@ -57,7 +57,7 @@ export function ActionCommandItem({
         <span className="flex min-w-0 flex-col items-start gap-0.5 truncate text-xs font-semibold">
           <ActorArtwork
             name={action.actor}
-            className="h-[40px] w-[40px] shrink-0"
+            className="h-[60px] w-[60px] shrink-0"
           />
           {action.actor}
         </span>

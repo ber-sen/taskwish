@@ -7,7 +7,7 @@ type ActorArtworkProps = {
 
 export default function ActorArtwork({
   name,
-  className = "h-[40px] w-[40px]",
+  className = "h-[60px] w-[60px]",
 }: ActorArtworkProps) {
   return (
     <Blobatar
