@@ -2,7 +2,7 @@ import type { Control, UseFormRegister } from "react-hook-form";
 
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Textarea } from "../ui/textarea";
+import { PromptInputTextarea } from "../ai-elements/prompt-input";
 import {
   enumValue,
   fieldPlaceholder,
@@ -122,7 +122,7 @@ export function ActionInputField({
   return (
     <div className="space-y-2">
       {label}
-      <Textarea
+      <PromptInputTextarea
         id={id}
         placeholder={fieldPlaceholder(field)}
         className="min-h-[110px] resize-none"

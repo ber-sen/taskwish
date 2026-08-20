@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Command as CommandPrimitive } from "cmdk";
 import { Search } from "lucide-react";
 
 import { ActionCommandItem } from "./components/console/action-command-item";
 import { ActionDrawerHeader } from "./components/console/action-drawer-header";
-import { ActionForm } from "./components/console/action-form";
+import {
+  ActionForm,
+  type ActionFormHandle,
+} from "./components/console/action-form";
 import { TaskWishLogo } from "./components/console/taskwish-logo";
 import {
   Drawer,
@@ -39,10 +42,14 @@ export function Console() {
   const [selectedAction, setSelectedAction] = useState<ConsoleAction | null>(
     null
   );
+  const [isActionChatMode, setIsActionChatMode] = useState(false);
+  const [isActionRunning, setIsActionRunning] = useState(false);
+  const [showLogs, setShowLogs] = useState(false);
   const [isActionHeaderCollapsed, setIsActionHeaderCollapsed] = useState(false);
   const [selectedValue, setSelectedValue] = useState("");
   const commandRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const actionFormRef = useRef<ActionFormHandle>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,6 +75,8 @@ export function Console() {
 
   useEffect(() => {
     setIsActionHeaderCollapsed(false);
+    setIsActionChatMode(false);
+    setIsActionRunning(false);
   }, [selectedAction]);
 
   const actions = useMemo(
@@ -133,6 +142,22 @@ export function Console() {
     }
   };
 
+  const submitSelectedAction = () => {
+    const form = document.getElementById(
+      "console-action-form"
+    ) as HTMLFormElement | null;
+    form?.requestSubmit();
+  };
+
+  const cancelSelectedAction = () => {
+    actionFormRef.current?.cancel();
+  };
+
+  const handleActionChatModeChange = useCallback((enabled: boolean) => {
+    setIsActionChatMode(enabled);
+    if (enabled) setIsActionHeaderCollapsed(false);
+  }, []);
+
   if (loadState.status === "loading") {
     return (
       <main className="mx-auto grid min-h-screen place-items-center bg-background p-4 text-sm text-muted-foreground">
@@ -151,12 +176,6 @@ export function Console() {
       </main>
     );
   }
-
-  const submitSelectedAction = () => {
-    document
-      .getElementById("console-action-form")
-      ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-  };
 
   return (
     <main className="relative min-h-screen bg-background px-4 pb-16 pt-14 text-foreground">
@@ -219,7 +238,10 @@ export function Console() {
         swipeDirection="right"
         disableGestures
         onOpenChange={(open) => {
-          if (!open) setSelectedAction(null);
+          if (!open) {
+            cancelSelectedAction();
+            setSelectedAction(null);
+          }
         }}
       >
         <DrawerContent
@@ -231,24 +253,46 @@ export function Console() {
               <ActionDrawerHeader
                 action={selectedAction}
                 collapsed={isActionHeaderCollapsed}
+                showLogs={showLogs}
+                canRun={!isActionChatMode}
+                isRunning={isActionRunning}
+                onLogsChange={setShowLogs}
                 onRun={submitSelectedAction}
+                onCancel={cancelSelectedAction}
               />
 
               <div
-                className="scrollbar-minimal min-h-0 flex-1 overflow-y-auto p-4"
+                className={
+                  isActionChatMode
+                    ? "min-h-0 flex flex-1 flex-col overflow-hidden"
+                    : "scrollbar-minimal min-h-0 flex-1 overflow-y-auto p-4"
+                }
                 onScroll={(event) =>
                   setIsActionHeaderCollapsed(event.currentTarget.scrollTop > 8)
                 }
               >
-                <ActionForm action={selectedAction} config={loadState.config} />
+                <ActionForm
+                  ref={actionFormRef}
+                  action={selectedAction}
+                  config={loadState.config}
+                  showLogs={showLogs}
+                  onChatModeChange={handleActionChatModeChange}
+                  onRunStateChange={setIsActionRunning}
+                />
               </div>
 
               <DrawerFooter className="shrink-0 flex-row border-t bg-background mini-app:hidden">
-                <Button type="submit" form="console-action-form">
-                  Run
-                </Button>
+                {!isActionChatMode ? (
+                  <Button type="submit" form="console-action-form">
+                    Run
+                  </Button>
+                ) : null}
                 <DrawerClose asChild>
-                  <Button type="button" variant="outline">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={cancelSelectedAction}
+                  >
                     Cancel
                   </Button>
                 </DrawerClose>

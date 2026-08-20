@@ -1,5 +1,5 @@
 import { RawLoggedStreamTag, RawStreamTag, TW } from "@taskwish/core";
-import { Signal } from "@taskwish/wire";
+import { Signal, Trace } from "@taskwish/wire";
 import {
   flattenRouteInput,
   parseActionInput,
@@ -7,6 +7,11 @@ import {
 } from "./request";
 import { responseFrom, streamChunk } from "./response";
 import type { Action, NodeRegistry, RouteMeta } from "./types";
+
+type InvokeOptions = {
+  includeWire: boolean;
+  responseMode: "default" | "sse";
+};
 
 function inputFromSignal(signal: Signal<string, any>): unknown {
   const input: Record<string, unknown> = {};
@@ -53,6 +58,44 @@ function isStreamEvent(value: unknown): value is TW.Stream<unknown> {
   return value instanceof TW.Stream;
 }
 
+function acceptsServerSentEvents(request: Request): boolean {
+  return (
+    request.headers
+      .get("Accept")
+      ?.split(",")
+      .some((value) =>
+        value.trim().toLowerCase().startsWith("text/event-stream"),
+      ) ?? false
+  );
+}
+
+function includesWireEvents(request: Request): boolean {
+  const value = request.headers.get("wire");
+  if (value === null) return false;
+
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized === "" || !["0", "false", "off", "none"].includes(normalized)
+  );
+}
+
+function invokeOptionsFromRequest(request: Request): InvokeOptions {
+  return {
+    includeWire: includesWireEvents(request),
+    responseMode: acceptsServerSentEvents(request) ? "sse" : "default",
+  };
+}
+
+function ssePayload(event: string, data: unknown): Uint8Array {
+  const raw = JSON.stringify(data) ?? String(data);
+  const lines = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  const message =
+    [`event: ${event}`, ...lines.map((line) => `data: ${line}`), ""].join(
+      "\n",
+    ) + "\n";
+  return new TextEncoder().encode(message);
+}
+
 function responseFromActionStream(
   stream: AsyncGenerator<unknown, unknown, unknown>,
   firstChunk: TW.Stream<unknown>,
@@ -92,13 +135,78 @@ function responseFromActionStream(
   );
 }
 
+function responseFromActionSseStream(
+  stream: AsyncGenerator<unknown, unknown, unknown>,
+  registry: NodeRegistry,
+  options: InvokeOptions,
+): Response {
+  return new Response(
+    new ReadableStream({
+      async pull(controller) {
+        try {
+          while (true) {
+            const item = await stream.next();
+            if (item.done) {
+              if (item.value !== undefined) {
+                controller.enqueue(ssePayload("result", item.value));
+              }
+              controller.close();
+              return;
+            }
+
+            if (item.value instanceof Signal) {
+              dispatchSignal(item.value, registry);
+              if (options.includeWire) {
+                controller.enqueue(ssePayload("wire", item.value.data));
+                return;
+              }
+            } else if (item.value instanceof Trace) {
+              if (options.includeWire) {
+                controller.enqueue(ssePayload("wire", item.value.data));
+                return;
+              }
+            } else if (isStreamEvent(item.value)) {
+              controller.enqueue(ssePayload("yield", item.value.data));
+              return;
+            } else {
+              controller.enqueue(ssePayload("yield", item.value));
+              return;
+            }
+          }
+        } catch (error) {
+          controller.enqueue(
+            ssePayload("error", {
+              error: error instanceof Error ? error.message : String(error),
+            }),
+          );
+          controller.close();
+        }
+      },
+      async cancel() {
+        await stream.return?.(undefined);
+      },
+    }),
+    {
+      headers: {
+        "Cache-Control": "no-cache",
+        "Content-Type": "text/event-stream; charset=utf-8",
+      },
+    },
+  );
+}
+
 async function invokeAction(
   action: Action,
   args: unknown[],
   registry: NodeRegistry,
+  options: InvokeOptions,
 ): Promise<Response> {
   const stream = rawActionStream(action, args);
   if (!stream) return responseFrom(await action(...args));
+
+  if (options.responseMode === "sse") {
+    return responseFromActionSseStream(stream, registry, options);
+  }
 
   let item = await stream.next();
   while (!item.done) {
@@ -132,7 +240,7 @@ export async function invoke(
   registry: NodeRegistry,
 ): Promise<Response> {
   const args = await parseActionInput(request);
-  return invokeAction(action, args, registry);
+  return invokeAction(action, args, registry, invokeOptionsFromRequest(request));
 }
 
 export async function invokeRouteAction(
@@ -143,5 +251,10 @@ export async function invokeRouteAction(
 ): Promise<Response> {
   const [, routePath] = route;
   const rawInput = await routeInputFromRequest(routePath, request);
-  return invokeAction(action, [flattenRouteInput(rawInput)], registry);
+  return invokeAction(
+    action,
+    [flattenRouteInput(rawInput)],
+    registry,
+    invokeOptionsFromRequest(request),
+  );
 }

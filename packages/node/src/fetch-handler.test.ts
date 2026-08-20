@@ -133,6 +133,57 @@ test("streams Step pipe chunks from command actions", async () => {
   expect(await reader.read()).toEqual({ done: true, value: undefined });
 });
 
+test("streams command yields and wire traces as SSE for commander requests", async () => {
+  const { piper } = Actor("Piper");
+
+  const { count } = piper()
+    .on("Command", "count")
+
+    .input({ total: "number" })
+
+    .run(
+      Step("count", async function* () {
+        for (let count = 1; count <= this.input.total; count++) {
+          yield count;
+        }
+      }),
+
+      Step(["|>", "double"], async function* (source) {
+        for await (const chunk of source) {
+          yield `${chunk * 2}\n`;
+        }
+      }),
+    );
+  const { Piper } = piper().service({ count });
+
+  const fetch = createFetchHandler(
+    createNodeRegistry([Promise.resolve({ Piper, count })]),
+    { apiKey },
+  );
+
+  const response = await fetch(
+    new Request("http://localhost/tw/Piper/count?total=2", {
+      headers: {
+        ...auth,
+        Accept: "text/event-stream",
+        wire: "commander",
+      },
+    }),
+  );
+
+  expect(response.status).toBe(200);
+  expect(response.headers.get("Content-Type")).toStartWith(
+    "text/event-stream",
+  );
+
+  const body = await response.text();
+  expect(body).toContain("event: wire");
+  expect(body).toContain('data: {">>":"Piper::count"');
+  expect(body).toContain("event: yield");
+  expect(body).toContain('data: "2\\n"');
+  expect(body).toContain('data: "4\\n"');
+});
+
 test("logs traces when invoking command actions through fetch handlers", async () => {
   const logged: unknown[] = [];
   const spy = {

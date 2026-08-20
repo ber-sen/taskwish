@@ -6,10 +6,16 @@ export type ActionRunResult = {
   ok: boolean;
   contentType: string;
   body: unknown;
+  events?: ActionRunEvent[];
+  streaming?: boolean;
 };
 
 export type CommandFormValues = Record<string, unknown>;
 export type ListItemValue = Record<string, unknown>;
+export type ActionRunEvent = {
+  type: string;
+  data: unknown;
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -233,10 +239,122 @@ export function buildPayload(
   return payload;
 }
 
-export async function parseActionResponse(
+function parseSseData(value: string): unknown {
+  if (!value) return "";
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+function appendEventBody(
+  currentBody: unknown,
+  event: ActionRunEvent
+): unknown {
+  if (event.type === "yield") {
+    const chunk =
+      typeof event.data === "string"
+        ? event.data
+        : JSON.stringify(event.data) ?? String(event.data);
+    return `${typeof currentBody === "string" ? currentBody : ""}${chunk}`;
+  }
+
+  return currentBody;
+}
+
+function parseSseMessage(message: string): ActionRunEvent | null {
+  let eventType = "message";
+  const data: string[] = [];
+
+  for (const line of message.split("\n")) {
+    if (line.startsWith("event:")) {
+      eventType = line.slice("event:".length).trim() || eventType;
+    } else if (line.startsWith("data:")) {
+      data.push(line.slice("data:".length).replace(/^ /, ""));
+    }
+  }
+
+  if (!data.length) return null;
+  return {
+    type: eventType,
+    data: parseSseData(data.join("\n")),
+  };
+}
+
+function actionRunResultSnapshot(result: ActionRunResult): ActionRunResult {
+  return {
+    ...result,
+    events: result.events ? [...result.events] : undefined,
+  };
+}
+
+async function* streamSseResponse(
   response: Response
-): Promise<ActionRunResult> {
+): AsyncGenerator<ActionRunResult> {
   const contentType = response.headers.get("Content-Type") ?? "";
+  const result: ActionRunResult = {
+    status: response.status,
+    ok: response.ok,
+    contentType,
+    body: "",
+    events: [],
+    streaming: true,
+  };
+  yield actionRunResultSnapshot(result);
+
+  if (!response.body) {
+    result.streaming = false;
+    yield actionRunResultSnapshot(result);
+    return;
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let pending = "";
+
+  const publish = (event: ActionRunEvent): ActionRunResult => {
+    result.events!.push(event);
+    result.body = appendEventBody(result.body, event);
+    return actionRunResultSnapshot(result);
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    pending += decoder.decode(value, { stream: !done });
+
+    let separatorIndex = pending.search(/\n\n/);
+    while (separatorIndex !== -1) {
+      const rawMessage = pending.slice(0, separatorIndex);
+      pending = pending.slice(separatorIndex + 2);
+      const event = parseSseMessage(rawMessage);
+      if (event) yield publish(event);
+      separatorIndex = pending.search(/\n\n/);
+    }
+
+    if (done) break;
+  }
+
+  const remaining = pending.trim();
+  if (remaining) {
+    const event = parseSseMessage(remaining);
+    if (event) yield publish(event);
+  }
+
+  result.streaming = false;
+  yield actionRunResultSnapshot(result);
+}
+
+export async function* streamActionResponse(
+  response: Response
+): AsyncGenerator<ActionRunResult> {
+  const contentType = response.headers.get("Content-Type") ?? "";
+
+  if (contentType.includes("text/event-stream")) {
+    yield* streamSseResponse(response);
+    return;
+  }
+
   const body =
     response.status === 204
       ? null
@@ -244,7 +362,7 @@ export async function parseActionResponse(
       ? await response.json()
       : await response.text();
 
-  return {
+  yield {
     status: response.status,
     ok: response.ok,
     contentType,
@@ -252,9 +370,52 @@ export async function parseActionResponse(
   };
 }
 
+export async function parseActionResponse(
+  response: Response
+): Promise<ActionRunResult> {
+  let result: ActionRunResult | undefined;
+
+  for await (const update of streamActionResponse(response)) {
+    result = update;
+  }
+
+  return (
+    result ?? {
+      status: response.status,
+      ok: response.ok,
+      contentType: response.headers.get("Content-Type") ?? "",
+      body: null,
+    }
+  );
+}
+
 export function formatActionResultBody(body: unknown): string {
   if (body === null) return "null";
   if (body === undefined) return "";
   if (typeof body === "string") return body;
   return JSON.stringify(body, null, 2);
+}
+
+export function formatActionRunEvents(events: ActionRunEvent[]): string {
+  let output = "";
+
+  for (const event of events) {
+    if (event.type === "yield") {
+      output +=
+        typeof event.data === "string"
+          ? event.data
+          : JSON.stringify(event.data, null, 2) ?? String(event.data);
+      continue;
+    }
+
+    if (output && !output.endsWith("\n")) output += "\n";
+    const label = event.type === "wire" ? "wire" : event.type;
+    const data =
+      typeof event.data === "string"
+        ? event.data
+        : JSON.stringify(event.data, null, 2) ?? String(event.data);
+    output += `[${label}] ${data}\n`;
+  }
+
+  return output;
 }

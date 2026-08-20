@@ -2,6 +2,8 @@ import { X } from "lucide-react";
 
 import ActorArtwork from "../console/actor-artwork";
 import { Button } from "../ui/button";
+import { Label } from "../ui/label";
+import { Switch } from "../ui/switch";
 import {
   DrawerClose,
   DrawerDescription,
@@ -14,12 +16,25 @@ import type { ConsoleAction } from "../../types";
 export function ActionDrawerHeader({
   action,
   collapsed,
+  showLogs,
+  canRun,
+  isRunning,
+  onLogsChange,
   onRun,
+  onCancel,
 }: {
   action: ConsoleAction;
   collapsed: boolean;
+  showLogs: boolean;
+  canRun: boolean;
+  isRunning: boolean;
+  onLogsChange: (enabled: boolean) => void;
   onRun: () => void;
+  onCancel: () => void;
 }) {
+  const logsId = `logs-${action.id}`;
+  const miniLogsId = `mini-logs-${action.id}`;
+
   return (
     <DrawerHeader
       className={`relative shrink-0 text-left transition-all duration-200 mini-app:pt-[100px] ${
@@ -27,20 +42,47 @@ export function ActionDrawerHeader({
       }`}
     >
       <div className="relative">
-        <Button
-          type="button"
-          className="absolute top-0.5 right-0 hidden h-9 rounded-full px-4 mini-app:inline-flex"
-          onClick={onRun}
-        >
-          Run
-        </Button>
+        <div className="absolute top-0.5 right-0 hidden items-center gap-2 mini-app:flex">
+          {!collapsed ? (
+            <div className="flex h-9 items-center gap-2 rounded-full border border-input px-3">
+              <Label htmlFor={miniLogsId} className="text-xs">
+                Logs
+              </Label>
+              <Switch
+                id={miniLogsId}
+                size="sm"
+                checked={showLogs}
+                onCheckedChange={onLogsChange}
+              />
+            </div>
+          ) : null}
+          {canRun ? (
+            <Button
+              type="button"
+              className="h-9 rounded-full px-4"
+              onClick={onRun}
+            >
+              Run
+            </Button>
+          ) : isRunning ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 rounded-full px-4"
+              onClick={onCancel}
+            >
+              Cancel
+            </Button>
+          ) : null}
+        </div>
         <DrawerClose asChild>
           <Button
             type="button"
             variant="ghost"
             size="icon"
             className="absolute -right-2 -top-2 h-9 w-9 rounded-full mini-app:hidden"
-            aria-label="Close"
+            aria-label="Cancel"
+            onClick={onCancel}
           >
             <X className="h-4 w-4" />
           </Button>
@@ -64,6 +106,19 @@ export function ActionDrawerHeader({
             {collapsed ? action.actor : actionDescription(action)}
           </DrawerDescription>
         </div>
+        {!collapsed ? (
+          <div className="ml-auto flex h-8 items-center gap-2 mini-app:hidden">
+            <Label htmlFor={logsId} className="text-xs">
+              Logs
+            </Label>
+            <Switch
+              id={logsId}
+              size="sm"
+              checked={showLogs}
+              onCheckedChange={onLogsChange}
+            />
+          </div>
+        ) : null}
       </div>
     </DrawerHeader>
   );

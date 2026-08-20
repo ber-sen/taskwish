@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { Toaster } from "sonner";
 import AppPage from "./app/page";
 import "./styles.generated.css";
 
@@ -12,6 +13,7 @@ if (!rootElement) {
 const app = (
   <StrictMode>
     <AppPage />
+    <Toaster closeButton position="bottom-left" />
   </StrictMode>
 );
 
