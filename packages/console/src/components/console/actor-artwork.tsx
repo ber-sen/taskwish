@@ -1,25 +1,21 @@
+import { Blobatar } from "blobatar/react";
+
 type ActorArtworkProps = {
-  color: string;
+  name: string;
   className?: string;
 };
 
 export default function ActorArtwork({
-  color,
-  className = "h-[32px] w-[32px]",
+  name,
+  className = "h-[40px] w-[40px]",
 }: ActorArtworkProps) {
   return (
-    <svg
+    <Blobatar
       className={className}
-      style={{ color }}
-      viewBox="0 0 204 172"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
+      name={name}
+      animate="always"
+      background={false}
       aria-hidden="true"
-    >
-      <path
-        d="M148 0C178.928 0 204 25.0721 204 56C204 57.1755 203.964 88.3423 203.893 89.5C202.726 108.414 192.17 124.787 176.829 134.018L177 134C154.833 146.107 126.6 160.122 117 167.322C107.4 174.522 103 170.322 102 167.322V142H56C26.2476 142 1.91412 118.798 0.107422 89.5C0.0360424 88.3423 7.8353e-08 57.1755 0 56C0 25.0721 25.0721 1.4818e-06 56 0H148ZM57.5 59C49.4919 59 43 65.4919 43 73.5V82.5C43 90.5081 49.4919 97 57.5 97H66.5C74.5081 97 81 90.5081 81 82.5V73.5C81 65.4919 74.5081 59 66.5 59H57.5ZM128.5 59C120.492 59 114 65.4919 114 73.5V82.5C114 90.5081 120.492 97 128.5 97H137.5C145.508 97 152 90.5081 152 82.5V73.5C152 65.4919 145.508 59 137.5 59H128.5Z"
-        fill="currentColor"
-      />
-    </svg>
+    />
   );
 }

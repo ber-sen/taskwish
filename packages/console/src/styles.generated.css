@@ -595,11 +595,11 @@
   .h-\[1px\] {
     height: 1px;
   }
-  .h-\[32px\] {
-    height: 32px;
-  }
   .h-\[38px\] {
     height: 38px;
+  }
+  .h-\[40px\] {
+    height: 40px;
   }
   .h-\[var\(--radix-select-trigger-height\)\] {
     height: var(--radix-select-trigger-height);
@@ -691,11 +691,11 @@
   .w-\[1px\] {
     width: 1px;
   }
-  .w-\[32px\] {
-    width: 32px;
-  }
   .w-\[38px\] {
     width: 38px;
+  }
+  .w-\[40px\] {
+    width: 40px;
   }
   .w-\[100px\] {
     width: 100px;

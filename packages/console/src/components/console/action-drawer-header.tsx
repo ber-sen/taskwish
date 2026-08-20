@@ -107,14 +107,14 @@ export function ActionDrawerHeader({
       </div>
       {!collapsed && (
         <div className="flex items-center gap-3 text-sm font-semibold text-foreground/80">
-          <ActorArtwork color={action.color} />
+          <ActorArtwork name={action.actor} />
         </div>
       )}
       <div className="flex gap-3">
         {collapsed && (
           <ActorArtwork
-            color={action.color}
-            className="h-[32px] w-[32px] shrink-0"
+            name={action.actor}
+            className="h-[40px] w-[40px] shrink-0"
           />
         )}
         <div className="flex min-w-0 flex-col gap-0.5">

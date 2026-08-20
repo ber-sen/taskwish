@@ -56,8 +56,8 @@ export function ActionCommandItem({
       <div className=" mt-auto flex min-w-0 items-end justify-between gap-2 pt-3">
         <span className="flex min-w-0 flex-col items-start gap-0.5 truncate text-xs font-semibold">
           <ActorArtwork
-            color={action.color}
-            className="h-[32px] w-[32px] shrink-0"
+            name={action.actor}
+            className="h-[40px] w-[40px] shrink-0"
           />
           {action.actor}
         </span>

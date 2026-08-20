@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { Toaster } from "sonner";
 import AppPage from "./app/page";
+import "blobatar/motion.css";
 import "./styles.generated.css";
 
 const rootElement = document.getElementById("root");
