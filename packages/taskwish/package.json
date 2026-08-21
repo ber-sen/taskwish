@@ -4,7 +4,7 @@
     "access": "public"
   },
   "version": "0.0.8",
-  "description": "TaskWish public API",
+  "description": "The framework for building autonomous companies",
   "license": "Elastic-2.0",
   "author": "Bersen Pajaziti",
   "exports": {

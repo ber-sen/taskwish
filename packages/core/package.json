@@ -12,7 +12,7 @@
     "types": "./dist/index.d.ts"
   },
   "version": "0.0.6",
-  "description": "Opinionated edge-first library for TypeScript",
+  "description": "The framework for building autonomous companies",
   "license": "Elastic-2.0",
   "author": "Bersen Pajaziti",
   "exports": {
