@@ -2911,6 +2911,15 @@
     font: inherit;
   }
 }
+.mo-bob > g:first-child path {
+  fill: transparent !important;
+  stroke: #888;
+  stroke-width: 1px;
+}
+.mo-eyes path {
+  fill: #000 !important;
+  stroke: none;
+}
 @property --tw-translate-x {
   syntax: "*";
   inherits: false;
