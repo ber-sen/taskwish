@@ -169,7 +169,7 @@ export class Wire {
     if (log === undefined) {
       return loggedEvent;
     } else if (log === "console") {
-      console.trace(formatEvent(loggedEvent));
+      console.log(formatEvent(loggedEvent));
     } else {
       log(loggedEvent);
     }
@@ -191,7 +191,7 @@ export class Wire {
     loggedEvent.threadId = this.threadId;
 
     if (log === "console") {
-      console.info(formatEvent(loggedEvent));
+      console.log(formatEvent(loggedEvent));
     } else if (log !== undefined) {
       log(loggedEvent);
     }
