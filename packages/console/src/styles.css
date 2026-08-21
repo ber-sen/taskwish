@@ -103,7 +103,7 @@
 .mo-bob > g:first-child {
   fill: hsl(var(--neutral-background)) !important;
   stroke: none;
-  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.35));
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.8));
 }
 
 .mo-eyes path {
