@@ -2911,10 +2911,10 @@
     font: inherit;
   }
 }
-.mo-bob > g:first-child path {
-  fill: transparent !important;
-  stroke: #888;
-  stroke-width: 1px;
+.mo-bob > g:first-child {
+  fill: hsl(var(--neutral-background)) !important;
+  stroke: none;
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.35));
 }
 .mo-eyes path {
   fill: #000 !important;
