@@ -12,8 +12,17 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "../ui/button";
-import { actionTitle } from "../../lib/command-actions";
 import {
+  PromptInput,
+  PromptInputBody,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputTools,
+} from "../ai-elements/prompt-input";
+import { actionTitle, isChatAction } from "../../lib/command-actions";
+import {
+  buildChatPayload,
   buildPayload,
   formatActionResultBody,
   formDefaultValues,
@@ -28,7 +37,15 @@ import { ActionResult } from "./action-result";
 function toastResultDescription(result: ActionRunResult): string {
   const body = formatActionResultBody(result.body).trim();
   const summary = body || `${result.status}`;
-  return `Result: ${summary.length > 140 ? `${summary.slice(0, 137)}...` : summary}`;
+  return `Result: ${
+    summary.length > 140 ? `${summary.slice(0, 137)}...` : summary
+  }`;
+}
+
+function createChatThreadId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 export type ActionFormHandle = {
@@ -44,6 +61,7 @@ export const ActionForm = forwardRef<
     showLogs: boolean;
     onChatModeChange?: (enabled: boolean) => void;
     onRunStateChange?: (running: boolean) => void;
+    onResultScrollChange?: (scrollTop: number) => void;
   }
 >(function ActionForm(
   {
@@ -53,6 +71,7 @@ export const ActionForm = forwardRef<
     showLogs,
     onChatModeChange,
     onRunStateChange,
+    onResultScrollChange,
   },
   ref
 ) {
@@ -61,6 +80,10 @@ export const ActionForm = forwardRef<
   const [result, setResult] = useState<ActionRunResult | null>(null);
   const [submittedPayload, setSubmittedPayload] = useState<unknown>(null);
   const [isChatMode, setIsChatMode] = useState(false);
+  const [chatThreadId, setChatThreadId] = useState(createChatThreadId);
+  const [chatRuns, setChatRuns] = useState<
+    { id: string; input: unknown; result: ActionRunResult | null }[]
+  >([]);
   const [showOptionalFields, setShowOptionalFields] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const suppressSubmitRef = useRef(false);
@@ -80,13 +103,16 @@ export const ActionForm = forwardRef<
   }, []);
 
   const resetRun = useCallback(() => {
+    const chatAction = isChatAction(action);
     suppressSubmitRef.current = true;
     setIsRunning(false);
     setError(null);
     setResult(null);
     setSubmittedPayload(null);
-    setIsChatMode(false);
-    onChatModeChangeRef.current?.(false);
+    setIsChatMode(chatAction);
+    setChatThreadId(createChatThreadId());
+    setChatRuns([]);
+    onChatModeChangeRef.current?.(chatAction);
     onRunStateChangeRef.current?.(false);
     setShowOptionalFields(false);
     abortControllerRef.current?.abort();
@@ -95,7 +121,7 @@ export const ActionForm = forwardRef<
     window.setTimeout(() => {
       suppressSubmitRef.current = false;
     }, 0);
-  }, [action.input, form]);
+  }, [action, form]);
 
   useImperativeHandle(ref, () => ({ cancel }), [cancel]);
 
@@ -111,6 +137,121 @@ export const ActionForm = forwardRef<
     ? requiredFields
     : [];
   const commandName = actionTitle(action);
+  const chatAction = isChatAction(action);
+
+  const runPayload = async (
+    payload: unknown,
+    options: {
+      onResult: (result: ActionRunResult) => void;
+      signal: AbortSignal;
+    }
+  ) => {
+    const response = await fetch(action.route, {
+      method: "POST",
+      headers: {
+        Accept: "text/event-stream, application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+        "Content-Type": "application/json",
+        wire: "commander",
+      },
+      signal: options.signal,
+      body: JSON.stringify(payload),
+    });
+
+    let finalResult: ActionRunResult | null = null;
+    for await (const result of streamActionResponse(response)) {
+      finalResult = result;
+      options.onResult(result);
+    }
+    return finalResult;
+  };
+
+  const submitChatMessage = async (input: string) => {
+    if (isRunning) return;
+
+    const message = input.trim();
+    if (!message) return;
+
+    const payload = buildChatPayload(message, action.input, chatThreadId);
+    const runId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}`;
+
+    setIsRunning(true);
+    onRunStateChangeRef.current?.(true);
+    setError(null);
+    setChatRuns((runs) => [
+      ...runs,
+      { id: runId, input: payload, result: null },
+    ]);
+
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    try {
+      const finalResult = await runPayload(payload, {
+        signal: abortController.signal,
+        onResult: (result) => {
+          setChatRuns((runs) =>
+            runs.map((run) => (run.id === runId ? { ...run, result } : run))
+          );
+        },
+      });
+
+      if (finalResult && !finalResult.ok) {
+        toast.error(commandName, {
+          description: toastResultDescription(finalResult),
+        });
+      }
+    } catch (error) {
+      if (abortController.signal.aborted) {
+        setChatRuns((runs) =>
+          runs.map((run) =>
+            run.id === runId
+              ? {
+                  ...run,
+                  result: {
+                    status: 0,
+                    ok: false,
+                    contentType: "text/plain",
+                    body: "Cancelled",
+                  },
+                }
+              : run
+          )
+        );
+        return;
+      }
+
+      const message = error instanceof Error ? error.message : String(error);
+      setError(message);
+      setChatRuns((runs) =>
+        runs.map((run) =>
+          run.id === runId
+            ? {
+                ...run,
+                result: {
+                  status: 0,
+                  ok: false,
+                  contentType: "text/plain",
+                  body: message,
+                },
+              }
+            : run
+        )
+      );
+      toast.error(commandName, {
+        description: `Result: ${message}`,
+      });
+    } finally {
+      if (abortControllerRef.current === abortController) {
+        abortControllerRef.current = null;
+      }
+      setIsRunning(false);
+      onRunStateChangeRef.current?.(false);
+    }
+  };
 
   const submit: SubmitHandler<CommandFormValues> = async (values) => {
     if (suppressSubmitRef.current) {
@@ -129,22 +270,10 @@ export const ActionForm = forwardRef<
       setSubmittedPayload(payload);
       setIsChatMode(true);
       onChatModeChangeRef.current?.(true);
-      let finalResult: ActionRunResult | null = null;
-      const response = await fetch(action.route, {
-        method: "POST",
-        headers: {
-          Accept: "text/event-stream, application/json",
-          Authorization: `Bearer ${config.apiKey}`,
-          "Content-Type": "application/json",
-          wire: "commander",
-        },
+      const finalResult = await runPayload(payload, {
         signal: abortController.signal,
-        body: JSON.stringify(payload),
+        onResult: setResult,
       });
-      for await (const result of streamActionResponse(response)) {
-        finalResult = result;
-        setResult(result);
-      }
       if (finalResult?.ok) {
         toast.success(commandName, {
           description: toastResultDescription(finalResult),
@@ -227,12 +356,49 @@ export const ActionForm = forwardRef<
         <input type="submit" hidden disabled={isRunning} />
       </form>
       {isChatMode ? (
-        <ActionResult
-          className="h-full min-h-0 flex-1"
-          input={submittedPayload}
-          result={result}
-          showLogs={showLogs}
-        />
+        <div className="flex h-full min-h-0 flex-1 flex-col">
+          <ActionResult
+            className="h-full min-h-0 flex-1"
+            input={chatAction ? undefined : submittedPayload}
+            result={chatAction ? undefined : result}
+            runs={chatAction ? chatRuns : undefined}
+            chat={chatAction}
+            showLogs={showLogs}
+            onScrollChange={onResultScrollChange}
+          />
+          {chatAction ? (
+            <div className="shrink-0 bg-background p-3">
+              {error ? (
+                <p className="mb-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {error}
+                </p>
+              ) : null}
+              <PromptInput
+                onSubmit={({ text }) => {
+                  void submitChatMessage(text);
+                }}
+                className="rounded-lg border border-input bg-background focus-within:ring-0 focus-within:ring-transparent focus-within:ring-offset-0"
+              >
+                <PromptInputBody>
+                  <PromptInputTextarea
+                    placeholder="Message..."
+                    disabled={isRunning}
+                    className="max-h-36 min-h-11"
+                    autoFocus
+                  />
+                </PromptInputBody>
+                <PromptInputFooter>
+                  <PromptInputTools />
+                  <PromptInputSubmit
+                    disabled={isRunning}
+                    aria-label="Send message"
+                    title="Send message"
+                  />
+                </PromptInputFooter>
+              </PromptInput>
+            </div>
+          ) : null}
+        </div>
       ) : null}
     </>
   );

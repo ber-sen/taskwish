@@ -219,8 +219,8 @@ type ServiceActions<Config extends Record<string, unknown>> = Pretty<{
   -readonly [Key in keyof Config as Key extends "public" | "listeners"
     ? never
     : ExtractActionName<Config[Key]> extends infer Name extends string
-      ? ActionRecordName<Name>
-      : never]: Config[Key];
+    ? ActionRecordName<Name>
+    : never]: Config[Key];
 }>;
 
 type CommandResult<
@@ -292,6 +292,12 @@ interface CommandBody<
 }
 
 type BuiltInEventMap = {
+  Message: {
+    input: { threadId: string; content: string };
+    scope: {
+      thread: { id: string; content: string };
+    };
+  };
   NewEmail: {
     input: { from: string; to: string; subject: string; body: string };
     scope: {
@@ -319,6 +325,9 @@ type BuiltInEventExtraScope<EventName extends BuiltInEventName> =
   BuiltInEventMap[EventName]["scope"];
 
 const builtInEventScope: Record<string, unknown> = {
+  ...Event("Message", { threadId: "string", content: "string" }, (input) => ({
+    thread: { id: input.threadId, content: input.content },
+  })),
   ...Event(
     "NewEmail",
     { from: "string", to: "string", subject: "string", body: "string" },

@@ -16,7 +16,7 @@ import {
   DrawerFooter,
 } from "./components/ui/drawer";
 import { Button } from "./components/ui/button";
-import { normalizeActions } from "./lib/command-actions";
+import { isChatAction, normalizeActions } from "./lib/command-actions";
 import type { ConsoleAction, ConsoleConfig } from "./types";
 
 type LoadState =
@@ -167,7 +167,11 @@ export function Console() {
     if (enabled) setIsActionHeaderCollapsed(false);
   }, []);
 
-  const isActionFinalized = isActionChatMode && !isActionRunning;
+  const selectedActionIsChat = selectedAction
+    ? isChatAction(selectedAction)
+    : false;
+  const isActionFinalized =
+    isActionChatMode && !selectedActionIsChat && !isActionRunning;
 
   if (loadState.status === "loading") {
     return (
@@ -224,7 +228,7 @@ export function Console() {
               onValueChange={setSearch}
               placeholder="Search actions..."
               autoFocus
-              className="flex h-11 w-full rounded-lg border border-input bg-background py-1 pl-9 pr-2 text-base transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-11 w-full rounded-lg border border-input bg-background py-1 pl-9 pr-2 text-base transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
         </div>
@@ -265,7 +269,7 @@ export function Console() {
                 action={selectedAction}
                 collapsed={isActionHeaderCollapsed}
                 showLogs={showLogs}
-                canRun={!isActionChatMode}
+                canRun={!isActionChatMode && !selectedActionIsChat}
                 isRunning={isActionRunning}
                 isFinalized={isActionFinalized}
                 onLogsChange={setShowLogs}
@@ -276,7 +280,7 @@ export function Console() {
 
               <div
                 className={
-                  isActionChatMode
+                  isActionChatMode || selectedActionIsChat
                     ? "min-h-0 flex flex-1 flex-col overflow-hidden"
                     : "scrollbar-minimal min-h-0 flex-1 overflow-y-auto p-4"
                 }
@@ -292,48 +296,41 @@ export function Console() {
                   showLogs={showLogs}
                   onChatModeChange={handleActionChatModeChange}
                   onRunStateChange={setIsActionRunning}
+                  onResultScrollChange={(scrollTop) =>
+                    setIsActionHeaderCollapsed(scrollTop > 8)
+                  }
                 />
               </div>
 
-              <DrawerFooter className="shrink-0 flex-row border-t bg-background mini-app:hidden">
-                {isActionRunning ? (
-                  <Button
-                    key="cancel-run"
-                    type="button"
-                    variant="outline"
-                    onClick={cancelSelectedAction}
-                  >
-                    Cancel
-                  </Button>
-                ) : isActionFinalized ? (
-                  <Button
-                    key="new-run"
-                    type="button"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      startNewRun();
-                    }}
-                  >
-                    New run
-                  </Button>
-                ) : (
-                  <Button
-                    key="run"
-                    type="submit"
-                    form="console-action-form"
-                  >
-                    Run
-                  </Button>
-                )}
-                {!isActionRunning ? (
-                  <DrawerClose asChild>
-                    <Button type="button" variant="outline">
-                      Close
+              {!selectedActionIsChat ? (
+                <DrawerFooter className="shrink-0 flex-row bg-background mini-app:hidden">
+                  {isActionRunning ? (
+                    <Button
+                      key="cancel-run"
+                      type="button"
+                      variant="outline"
+                      onClick={cancelSelectedAction}
+                    >
+                      Cancel
                     </Button>
-                  </DrawerClose>
-                ) : null}
-              </DrawerFooter>
+                  ) : isActionFinalized ? (
+                    <Button key="new-run" type="button" onClick={startNewRun}>
+                      New run
+                    </Button>
+                  ) : (
+                    <Button key="run" type="submit" form="console-action-form">
+                      Run
+                    </Button>
+                  )}
+                  {!isActionRunning ? (
+                    <DrawerClose asChild>
+                      <Button type="button" variant="outline">
+                        Close
+                      </Button>
+                    </DrawerClose>
+                  ) : null}
+                </DrawerFooter>
+              ) : null}
             </>
           ) : null}
         </DrawerContent>

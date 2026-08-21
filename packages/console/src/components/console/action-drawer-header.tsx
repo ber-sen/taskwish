@@ -41,8 +41,8 @@ export function ActionDrawerHeader({
 
   return (
     <DrawerHeader
-      className={`relative shrink-0 text-left transition-all duration-200 mini-app:pt-[100px] ${
-        collapsed && "pb-2"
+      className={`sticky top-0 z-10 shrink-0 bg-background text-left transition-all duration-200 mini-app:pt-[100px] ${
+        collapsed && "py-2 mini-app:pt-2"
       }`}
     >
       <div className="relative">
@@ -114,10 +114,7 @@ export function ActionDrawerHeader({
       )}
       <div className="flex gap-3">
         {collapsed && (
-          <ActorArtwork
-            name={action.actor}
-            className="h-[60px] w-[60px] shrink-0"
-          />
+          <ActorArtwork name={action.actor} className="h-10 w-10 shrink-0" />
         )}
         <div className="flex min-w-0 flex-col gap-0.5">
           <DrawerTitle className="truncate">{actionTitle(action)}</DrawerTitle>

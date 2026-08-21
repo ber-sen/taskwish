@@ -57,7 +57,7 @@ function ObjectPropertyInput({
           disabled={disabled}
           autoFocus={autoFocus}
           {...register(name)}
-          className="flex h-[38px] w-full rounded-md border border-input bg-transparent px-2 py-1 text-base transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-[38px] w-full rounded-md border border-input bg-transparent px-2 py-1 text-base transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {!field.required ? <option value="">Select...</option> : null}
           {enumValues.map((value) => (
@@ -216,7 +216,7 @@ export function ListInputField({
                       disabled={disabled}
                       autoFocus={autoFocus && index === 0}
                       {...register(itemName)}
-                      className="flex h-[38px] w-full rounded-md border border-input bg-transparent px-2 py-1 text-base transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex h-[38px] w-full rounded-md border border-input bg-transparent px-2 py-1 text-base transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {!field.required ? (
                         <option value="">Select...</option>

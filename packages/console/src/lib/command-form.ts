@@ -22,7 +22,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function schemaType(
-  schema: ConsoleJsonSchema | undefined
+  schema: ConsoleJsonSchema | undefined,
 ): string | undefined {
   if (Array.isArray(schema?.type)) {
     return schema.type.find((value) => value !== "null");
@@ -31,13 +31,13 @@ export function schemaType(
 }
 
 export function arrayItemSchema(
-  schema: ConsoleJsonSchema | undefined
+  schema: ConsoleJsonSchema | undefined,
 ): ConsoleJsonSchema | undefined {
   return Array.isArray(schema?.items) ? schema.items[0] : schema?.items;
 }
 
 export function objectSchemaFields(
-  schema: ConsoleJsonSchema | undefined
+  schema: ConsoleJsonSchema | undefined,
 ): ConsoleInputField[] {
   if (!isRecord(schema?.properties)) return [];
 
@@ -68,7 +68,7 @@ export function listItemDefaultValue(field: ConsoleInputField): ListItemValue {
       objectSchemaFields(itemSchema).map((property) => [
         property.name,
         rawFieldDefaultValue(property),
-      ])
+      ]),
     );
   }
   if (itemType === "boolean") return { value: false };
@@ -106,10 +106,10 @@ function fieldFormDefaultValue(field: ConsoleInputField): unknown {
 }
 
 export function formDefaultValues(
-  fields: ConsoleInputField[]
+  fields: ConsoleInputField[],
 ): CommandFormValues {
   return Object.fromEntries(
-    fields.map((field) => [field.name, fieldFormDefaultValue(field)])
+    fields.map((field) => [field.name, fieldFormDefaultValue(field)]),
   );
 }
 
@@ -201,7 +201,7 @@ function parseListItemValue(field: ConsoleInputField, value: unknown): unknown {
 
 function parseListValue(
   field: ConsoleInputField,
-  value: unknown
+  value: unknown,
 ): unknown[] | undefined {
   const rows = Array.isArray(value) ? value : [];
   const parsedRows = rows
@@ -215,7 +215,7 @@ function parseListValue(
 
 function parseCommandFieldValue(
   field: ConsoleInputField,
-  value: unknown
+  value: unknown,
 ): unknown {
   return schemaType(field.schema) === "array"
     ? parseListValue(field, value)
@@ -224,7 +224,7 @@ function parseCommandFieldValue(
 
 export function buildPayload(
   values: CommandFormValues,
-  fields: ConsoleInputField[]
+  fields: ConsoleInputField[],
 ) {
   if (fields.length === 1 && fields[0]?.name === "input") {
     const parsed = parseCommandFieldValue(fields[0], values.input);
@@ -239,6 +239,27 @@ export function buildPayload(
   return payload;
 }
 
+export function buildChatPayload(
+  message: string,
+  fields: ConsoleInputField[],
+  threadId?: string,
+): unknown {
+  const content = message.trim();
+  if (!fields.length) return { threadId, content };
+
+  const preferredField =
+    fields.find((field) =>
+      ["prompt", "message", "content", "text", "input"].includes(field.name),
+    ) ?? (fields.length === 1 ? fields[0] : undefined);
+
+  if (!preferredField) return { threadId, content };
+  if (fields.length === 1 && preferredField.name === "input") return content;
+  return {
+    ...(threadId ? { threadId } : {}),
+    [preferredField.name]: content,
+  };
+}
+
 function parseSseData(value: string): unknown {
   if (!value) return "";
   try {
@@ -248,10 +269,7 @@ function parseSseData(value: string): unknown {
   }
 }
 
-function appendEventBody(
-  currentBody: unknown,
-  event: ActionRunEvent
-): unknown {
+function appendEventBody(currentBody: unknown, event: ActionRunEvent): unknown {
   if (event.type === "yield") {
     const chunk =
       typeof event.data === "string"
@@ -290,7 +308,7 @@ function actionRunResultSnapshot(result: ActionRunResult): ActionRunResult {
 }
 
 async function* streamSseResponse(
-  response: Response
+  response: Response,
 ): AsyncGenerator<ActionRunResult> {
   const contentType = response.headers.get("Content-Type") ?? "";
   const result: ActionRunResult = {
@@ -346,7 +364,7 @@ async function* streamSseResponse(
 }
 
 export async function* streamActionResponse(
-  response: Response
+  response: Response,
 ): AsyncGenerator<ActionRunResult> {
   const contentType = response.headers.get("Content-Type") ?? "";
 
@@ -371,7 +389,7 @@ export async function* streamActionResponse(
 }
 
 export async function parseActionResponse(
-  response: Response
+  response: Response,
 ): Promise<ActionRunResult> {
   let result: ActionRunResult | undefined;
 

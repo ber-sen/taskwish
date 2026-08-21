@@ -921,7 +921,9 @@ export const PromptInput = ({
         ref={formRef}
         {...props}
       >
-        <InputGroup className="overflow-hidden">{children}</InputGroup>
+        <InputGroup className="overflow-hidden focus-within:ring-0 focus-within:ring-transparent focus-within:ring-offset-0">
+          {children}
+        </InputGroup>
       </form>
     </>
   );
@@ -1055,7 +1057,10 @@ export const PromptInputTextarea = ({
 
   return (
     <InputGroupTextarea
-      className={cn("field-sizing-content max-h-48 min-h-16", className)}
+      className={cn(
+        "field-sizing-content max-h-48 min-h-16",
+        className
+      )}
       name="message"
       onCompositionEnd={handleCompositionEnd}
       onCompositionStart={handleCompositionStart}
@@ -1151,7 +1156,7 @@ export const PromptInputButton = ({
   const tooltipContent =
     typeof tooltip === "string" ? tooltip : tooltip.content;
   const shortcut = typeof tooltip === "string" ? undefined : tooltip.shortcut;
-  const side = typeof tooltip === "string" ? "top" : (tooltip.side ?? "top");
+  const side = typeof tooltip === "string" ? "top" : tooltip.side ?? "top";
 
   return (
     <Tooltip>

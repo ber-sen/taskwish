@@ -1,5 +1,6 @@
 import { CheckIcon, CopyIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useStickToBottomContext } from "use-stick-to-bottom";
 
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
@@ -144,7 +145,7 @@ function wireLogTitle(event: ActionRunEvent): string {
 }
 
 function isWireTreeEvent(
-  event: ActionRunEvent
+  event: ActionRunEvent,
 ): event is ActionRunEvent & { data: Record<string, unknown> } {
   return (
     event.type === "wire" &&
@@ -172,8 +173,8 @@ function tracePayloadLine(data: Record<string, unknown>): string | null {
         key !== WIRE_TITLE_KEY &&
         key !== WIRE_SIGNAL_KEY &&
         key !== WIRE_THREAD_KEY &&
-        value !== undefined
-    )
+        value !== undefined,
+    ),
   );
   const keys = Object.keys(body);
 
@@ -218,8 +219,8 @@ function signalPayloadLine(data: Record<string, unknown>): string {
       ([key, value]) =>
         key !== WIRE_SIGNAL_KEY &&
         key !== WIRE_THREAD_KEY &&
-        value !== undefined
-    )
+        value !== undefined,
+    ),
   );
   const suffix = Object.keys(body).length ? ` ${traceValue(body)}` : "";
 
@@ -228,10 +229,10 @@ function signalPayloadLine(data: Record<string, unknown>): string {
 
 function ensureTraceNode(
   entries: TraceTreeEntry[],
-  name: string
+  name: string,
 ): TraceTreeNode {
   const existing = entries.find(
-    (entry) => entry.type === "node" && entry.node.name === name
+    (entry) => entry.type === "node" && entry.node.name === name,
   );
   if (existing?.type === "node") return existing.node;
 
@@ -252,7 +253,7 @@ function buildTraceTree(events: ActionRunEvent[]): string {
         currentRoot ??
         ensureTraceNode(
           roots,
-          tracePath(String(event.data[WIRE_SIGNAL_KEY]))[0] ?? "Trace"
+          tracePath(String(event.data[WIRE_SIGNAL_KEY]))[0] ?? "Trace",
         );
       node.entries.push({ type: "line", text: signalPayloadLine(event.data) });
       continue;
@@ -285,7 +286,7 @@ function buildTraceTree(events: ActionRunEvent[]): string {
 function renderTraceEntries(
   entries: TraceTreeEntry[],
   prefix: string,
-  lines: string[]
+  lines: string[],
 ) {
   entries.forEach((entry, index) => {
     const isLast = index === entries.length - 1;
@@ -319,7 +320,7 @@ function isTraceErrorLine(line: string): boolean {
 
 function buildRunBubbles(
   result: ActionRunResult | null,
-  showLogs: boolean
+  showLogs: boolean,
 ): RunBubble[] {
   if (!result) return [];
 
@@ -424,7 +425,10 @@ function yamlValue(value: unknown, depth = 0): string {
     if (!value.length) return "[]";
     return value
       .map((item) => {
-        if (Array.isArray(item) || (typeof item === "object" && item !== null)) {
+        if (
+          Array.isArray(item) ||
+          (typeof item === "object" && item !== null)
+        ) {
           return `${indent}-\n${yamlValue(item, depth + 1)}`;
         }
         return `${indent}- ${yamlScalar(item)}`;
@@ -437,12 +441,18 @@ function yamlValue(value: unknown, depth = 0): string {
     if (!entries.length) return "{}";
     return entries
       .map(([key, item]) => {
-        if (Array.isArray(item) || (typeof item === "object" && item !== null)) {
+        if (
+          Array.isArray(item) ||
+          (typeof item === "object" && item !== null)
+        ) {
           return `${indent}${key}:\n${yamlValue(item, depth + 1)}`;
         }
         const scalar = yamlScalar(item);
         if (scalar.startsWith("|\n")) {
-          return `${indent}${key}: ${scalar.replace(/\n/g, `\n${childIndent}`)}`;
+          return `${indent}${key}: ${scalar.replace(
+            /\n/g,
+            `\n${childIndent}`,
+          )}`;
         }
         return `${indent}${key}: ${scalar}`;
       })
@@ -466,6 +476,17 @@ function inputBody(input: unknown): string {
   }
 
   return yamlValue(input);
+}
+
+function chatInputBody(input: unknown): string {
+  if (input !== null && typeof input === "object" && !Array.isArray(input)) {
+    for (const key of ["content", "prompt", "message", "text"]) {
+      const value = (input as Record<string, unknown>)[key];
+      if (typeof value === "string") return value;
+    }
+  }
+
+  return inputBody(input);
 }
 
 function ResultCopyButton({
@@ -494,7 +515,7 @@ function ResultCopyButton({
     () => () => {
       window.clearTimeout(timeoutRef.current);
     },
-    []
+    [],
   );
 
   const Icon = isCopied ? CheckIcon : CopyIcon;
@@ -519,98 +540,130 @@ export function ActionResult({
   className,
   input,
   result,
+  runs,
+  chat,
   showLogs,
+  onScrollChange,
 }: {
   className?: string;
-  input: unknown;
-  result: ActionRunResult | null;
+  input?: unknown;
+  result?: ActionRunResult | null;
+  runs?: { id: string; input: unknown; result: ActionRunResult | null }[];
+  chat?: boolean;
   showLogs: boolean;
+  onScrollChange?: (scrollTop: number) => void;
 }) {
-  const bubbles = buildRunBubbles(result, showLogs);
+  const runItems =
+    runs ??
+    (input !== undefined ? [{ id: "run", input, result: result ?? null }] : []);
 
   return (
     <Conversation className={cn("relative min-h-0 flex-1", className)}>
+      <ActionResultScrollObserver onScrollChange={onScrollChange} />
       <ConversationContent className="space-y-4 px-4 py-4 pb-12">
-        <Message from="user">
-          <div className="self-end text-[11px] font-semibold text-muted-foreground">
-            Input
-          </div>
-          <MessageContent
-            className="space-y-2"
-            style={{ overflowWrap: "anywhere" }}
-          >
-            <MessageResponse className="text-primary-foreground">
-              {inputBody(input)}
-            </MessageResponse>
-          </MessageContent>
-        </Message>
-
-        {bubbles.length ? (
-          bubbles.map((bubble) =>
-            bubble.type === "yield" ? (
-              <Message key={bubble.id} from="assistant">
-                <div
-                  className="max-w-[88%] px-1 py-1 text-foreground"
-                  style={{ overflowWrap: "anywhere" }}
-                >
-                  <MessageResponse>{bubble.body}</MessageResponse>
-                </div>
-              </Message>
-            ) : (
-              <Message key={bubble.id} from="assistant">
-                <div className="flex max-w-full items-center gap-1">
-                  <div
-                    className={cn(
-                      "text-[11px] font-semibold text-muted-foreground",
-                      bubble.type === "error" && "text-destructive"
-                    )}
-                  >
-                    {bubble.type === "wire"
-                      ? bubble.title
-                      : bubble.type === "error"
-                      ? "Error"
-                      : "Result"}
+        {runItems.length ? (
+          runItems.flatMap((run) => {
+            const bubbles = buildRunBubbles(run.result, showLogs).filter(
+              (bubble) => !chat || bubble.type !== "result",
+            );
+            const waiting = !run.result || run.result.streaming;
+            return [
+              <Message key={`${run.id}-input`} from="user">
+                {!chat ? (
+                  <div className="self-end text-[11px] font-semibold text-muted-foreground">
+                    Input
                   </div>
-                  {bubble.type === "result" || bubble.type === "error" ? (
-                    <ResultCopyButton text={bubble.body} />
-                  ) : null}
-                </div>
+                ) : null}
                 <MessageContent
-                  className={cn(
-                    bubble.type === "wire" &&
-                      "border-l-[1.5px] border-border px-4 py-3 text-muted-foreground",
-                    bubble.type === "result" &&
-                      "rounded-lg border border-border bg-action px-4 py-3 text-foreground",
-                    bubble.type === "error" &&
-                      "rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive"
-                  )}
+                  className="space-y-2"
                   style={{ overflowWrap: "anywhere" }}
                 >
-                  {bubble.type === "wire" ? (
-                    <pre className="whitespace-pre-wrap font-mono text-[11px] leading-4 text-black">
-                      {(bubble.body || "Done").split("\n").map((line, index) => (
-                        <span
-                          key={`${bubble.id}-line-${index}`}
-                          className={cn(
-                            "block",
-                            isTraceErrorLine(line) && "text-destructive"
-                          )}
-                        >
-                          {line}
-                        </span>
-                      ))}
-                    </pre>
-                  ) : (
-                    <MessageResponse>{bubble.body}</MessageResponse>
-                  )}
+                  <MessageResponse className="text-primary-foreground">
+                    {chat ? chatInputBody(run.input) : inputBody(run.input)}
+                  </MessageResponse>
                 </MessageContent>
-              </Message>
-            )
-          )
+              </Message>,
+              ...(bubbles.length
+                ? bubbles.map((bubble) =>
+                    bubble.type === "yield" ? (
+                      <Message key={`${run.id}-${bubble.id}`} from="assistant">
+                        <div
+                          className="max-w-[88%] px-1 py-1 text-foreground"
+                          style={{ overflowWrap: "anywhere" }}
+                        >
+                          <MessageResponse>{bubble.body}</MessageResponse>
+                        </div>
+                      </Message>
+                    ) : (
+                      <Message key={`${run.id}-${bubble.id}`} from="assistant">
+                        <div className="flex max-w-full items-center gap-1">
+                          <div
+                            className={cn(
+                              "text-[11px] font-semibold text-muted-foreground",
+                              bubble.type === "error" && "text-destructive",
+                            )}
+                          >
+                            {bubble.type === "wire"
+                              ? bubble.title
+                              : bubble.type === "error"
+                              ? "Error"
+                              : "Result"}
+                          </div>
+                          {bubble.type === "result" ||
+                          bubble.type === "error" ? (
+                            <ResultCopyButton text={bubble.body} />
+                          ) : null}
+                        </div>
+                        <MessageContent
+                          className={cn(
+                            bubble.type === "wire" &&
+                              "border-l-[1.5px] border-border px-4 py-3 text-muted-foreground",
+                            bubble.type === "result" &&
+                              "rounded-lg border border-border bg-action px-4 py-3 text-foreground",
+                            bubble.type === "error" &&
+                              "rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive",
+                          )}
+                          style={{ overflowWrap: "anywhere" }}
+                        >
+                          {bubble.type === "wire" ? (
+                            <pre className="whitespace-pre-wrap font-mono text-[11px] leading-4 text-black">
+                              {(bubble.body || "Done")
+                                .split("\n")
+                                .map((line, index) => (
+                                  <span
+                                    key={`${run.id}-${bubble.id}-line-${index}`}
+                                    className={cn(
+                                      "block",
+                                      isTraceErrorLine(line) &&
+                                        "text-destructive",
+                                    )}
+                                  >
+                                    {line}
+                                  </span>
+                                ))}
+                            </pre>
+                          ) : (
+                            <MessageResponse>{bubble.body}</MessageResponse>
+                          )}
+                        </MessageContent>
+                      </Message>
+                    ),
+                  )
+                : waiting
+                ? [
+                    <Message key={`${run.id}-waiting`} from="assistant">
+                      <MessageContent className="border-dashed text-muted-foreground">
+                        Waiting for output
+                      </MessageContent>
+                    </Message>,
+                  ]
+                : []),
+            ];
+          })
         ) : (
           <Message from="assistant">
             <MessageContent className="border-dashed text-muted-foreground">
-              Waiting for output
+              Send a message to start chatting
             </MessageContent>
           </Message>
         )}
@@ -618,4 +671,24 @@ export function ActionResult({
       <ConversationScrollButton />
     </Conversation>
   );
+}
+
+function ActionResultScrollObserver({
+  onScrollChange,
+}: {
+  onScrollChange?: (scrollTop: number) => void;
+}) {
+  const { scrollRef } = useStickToBottomContext();
+
+  useEffect(() => {
+    const scrollElement = scrollRef.current;
+    if (!scrollElement || !onScrollChange) return;
+
+    const notify = () => onScrollChange(scrollElement.scrollTop);
+    notify();
+    scrollElement.addEventListener("scroll", notify, { passive: true });
+    return () => scrollElement.removeEventListener("scroll", notify);
+  }, [onScrollChange, scrollRef]);
+
+  return null;
 }
