@@ -4,10 +4,6 @@ import { createFetchHandler, createNodeRegistry } from "./index";
 import { apiKey, auth } from "./test-helpers";
 
 test("dispatches stream signal events to registered handlers without waiting", async () => {
-  const { greeter } = Actor("Greeter").scope(
-    Event("Message", { content: "string" }),
-  );
-
   let resolveReceived!: (value: string) => void;
   const received = new Promise<string>((resolve) => {
     resolveReceived = resolve;
@@ -17,7 +13,9 @@ test("dispatches stream signal events to registered handlers without waiting", a
     releaseHandler = resolve;
   });
 
-  const { hello } = greeter()
+  const { hello } = Actor("Greeter")
+    .scope(Event("Message", { content: "string" }))
+    .actor()
     .on("Command", "hello")
 
     .input({ name: "string" })
@@ -29,13 +27,17 @@ test("dispatches stream signal events to registered handlers without waiting", a
 
       Step("notify", function () {
         return `Hello ${this.input.name}`;
-      }),
+      })
     );
 
-  const { Greeter } = greeter().service({ hello });
-  const { biller } = Actor("Biller").use(Greeter);
+  const { Greeter } = Actor("Greeter")
+    .scope(Event("Message", { content: "string" }))
+    .actor()
+    .service({ hello });
 
-  const { onGreeterMessage } = biller()
+  const { onGreeterMessage } = Actor("Biller")
+    .use(Greeter)
+    .actor()
     .on("Greeter::Message")
 
     .run(async function () {
@@ -46,13 +48,14 @@ test("dispatches stream signal events to registered handlers without waiting", a
       return { received: this.input.content };
     });
 
-  const { Biller } = biller().service({ onGreeterMessage });
+  const { Biller } = Actor("Biller")
+    .use(Greeter)
+    .actor()
+    .service({ onGreeterMessage });
 
   const fetch = createFetchHandler(
-    createNodeRegistry([
-      Promise.resolve({ Greeter, Biller, hello }),
-    ]),
-    { apiKey },
+    createNodeRegistry([Promise.resolve({ Greeter, Biller, hello })]),
+    { apiKey }
   );
 
   const response = await fetch(
@@ -60,7 +63,7 @@ test("dispatches stream signal events to registered handlers without waiting", a
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Ada" }),
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -70,14 +73,14 @@ test("dispatches stream signal events to registered handlers without waiting", a
 });
 
 test("dispatches built-in event listeners registered on a service", async () => {
-  const { greeter } = Actor("Greeter");
+  const { actor } = Actor("Greeter");
 
   let resolveReceived!: (value: string) => void;
   const received = new Promise<string>((resolve) => {
     resolveReceived = resolve;
   });
 
-  const { hello } = greeter()
+  const { hello } = actor()
     .on("Command", "hello")
 
     .input({ name: "string" })
@@ -94,10 +97,10 @@ test("dispatches built-in event listeners registered on a service", async () => 
 
       Step("greet", function () {
         return `Hello ${this.input.name}`;
-      }),
+      })
     );
 
-  const { onNewEmail } = greeter()
+  const { onNewEmail } = actor()
     .on("NewEmail")
 
     .run(function () {
@@ -105,15 +108,14 @@ test("dispatches built-in event listeners registered on a service", async () => 
       return { received: this.input.subject };
     });
 
-  const { Greeter } = greeter().service({
+  const { Greeter } = actor().service({
     hello,
     onNewEmail,
   });
-  
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Greeter })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
@@ -121,7 +123,7 @@ test("dispatches built-in event listeners registered on a service", async () => 
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Ada" }),
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -130,12 +132,11 @@ test("dispatches built-in event listeners registered on a service", async () => 
 });
 
 test("ignores non-Event objects yielded with signal shape", async () => {
-  const { greeter } = Actor("Greeter").scope(
-    Event("Message", { content: "string" }),
-  );
   const received: string[] = [];
 
-  const { hello } = greeter()
+  const { hello } = Actor("Greeter")
+    .scope(Event("Message", { content: "string" }))
+    .actor()
     .on("Command", "hello")
 
     .run(async function* () {
@@ -144,30 +145,35 @@ test("ignores non-Event objects yielded with signal shape", async () => {
       return "Hello Ada";
     });
 
-  const { Greeter } = greeter().service({ hello });
-  const { biller } = Actor("Biller").use(Greeter);
+  const { Greeter } = Actor("Greeter")
+    .scope(Event("Message", { content: "string" }))
+    .actor()
+    .service({ hello });
 
-  const { onGreeterMessage } = biller()
+  const { onGreeterMessage } = Actor("Biller")
+    .use(Greeter)
+    .actor()
     .on("Greeter::Message")
 
     .run(function () {
       received.push(this.input.content);
     });
 
-  const { Biller } = biller().service({ onGreeterMessage });
+  const { Biller } = Actor("Biller")
+    .use(Greeter)
+    .actor()
+    .service({ onGreeterMessage });
 
   const fetch = createFetchHandler(
-    createNodeRegistry([
-      Promise.resolve({ Greeter, Biller, hello }),
-    ]),
-    { apiKey },
+    createNodeRegistry([Promise.resolve({ Greeter, Biller, hello })]),
+    { apiKey }
   );
 
   const response = await fetch(
     new Request("http://localhost/tw/Greeter/hello", {
       method: "POST",
       headers: auth,
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -176,9 +182,9 @@ test("ignores non-Event objects yielded with signal shape", async () => {
 });
 
 test("returns the stream final value instead of a yielded value", async () => {
-  const { greeter } = Actor("Greeter");
+  const { actor } = Actor("Greeter");
 
-  const { streamed } = greeter()
+  const { streamed } = actor()
     .on("Command", "streamed")
 
     .run(async function* () {
@@ -189,14 +195,14 @@ test("returns the stream final value instead of a yielded value", async () => {
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ streamed })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
     new Request("http://localhost/tw/Greeter/streamed", {
       method: "POST",
       headers: auth,
-    }),
+    })
   );
 
   expect(response.status).toBe(200);

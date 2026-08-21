@@ -21,9 +21,9 @@ interface Commander {
         instructions?: string;
         tools?: string[];
       };
-    },
+    }
   >(
-    options: Options,
+    options: Options
   ): {
     [TW.Step]: (ctx: Ctx) => {
       name: Ctx["name"];
@@ -35,7 +35,7 @@ interface Commander {
     };
   };
   Notify: <Ctx extends Record<string, any>>(
-    msg: string,
+    msg: string
   ) => {
     [TW.Step]: (ctx: Ctx) => {
       name: Ctx["name"];
@@ -51,7 +51,7 @@ interface Commander {
 
 export const Commander: Commander = {} as never;
 
-const { commanded } = Actor("Commanded").scope(
+const { actor } = Actor("Commanded").scope(
   Commander.Bot({
     service: "telegram",
     username: "taskwish_bot",
@@ -61,10 +61,10 @@ const { commanded } = Actor("Commanded").scope(
     agent: {
       tools: ["browse"],
     },
-  }),
+  })
 );
 
-export const { refundPayment } = commanded()
+export const { refundPayment } = actor()
   .on("Command", "refundPayment")
 
   .input({
@@ -79,6 +79,6 @@ export const { refundPayment } = commanded()
           paymentId: this.input.paymentId,
           amount: this.input.amount,
         });
-      }),
-    ),
+      })
+    )
   );

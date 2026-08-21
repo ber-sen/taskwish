@@ -2,11 +2,11 @@
 
 import { Actor, Step, Event } from "../../src";
 
-const { greeter } = Actor("Greeter").scope(
-  Event("UserWelcomed", { name: "string" }),
+const { actor } = Actor("Greeter").scope(
+  Event("UserWelcomed", { name: "string" })
 );
 
-export const { hello } = greeter()
+export const { hello } = actor()
   .on("Command", "hello")
 
   .input({ name: "string" })
@@ -21,19 +21,19 @@ export const { hello } = greeter()
 
     Step("notify", function () {
       return this.signal("UserWelcomed", { name: this.input.name });
-    }),
+    })
   );
 
-const { onNewEmail } = greeter()
+const { onNewEmail } = actor()
   .on("NewEmail")
 
   .run(
     Step("greet", function () {
       return this.thread.reply(`Hello ${this.thread.sender.name}!`);
-    }),
+    })
   );
 
-export const { Greeter } = greeter().service({
+export const { Greeter } = actor().service({
   hello,
   onNewEmail,
 });

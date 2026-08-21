@@ -1,9 +1,9 @@
 import { Int, Model } from "@taskwish/symbolic";
 import { Actor, Step } from "taskwish";
 
-const { pipeSolver } = Actor("PipeSolver");
+const { actor } = Actor("PipeSolver");
 
-export const { solveAll } = pipeSolver()
+export const { solveAll } = actor()
   .on("Command", "solveAll")
 
   .run(
@@ -13,7 +13,7 @@ export const { solveAll } = pipeSolver()
       "integerRange",
 
       ({ x }) => x < 100000000,
-      ({ x }) => x > 3,
+      ({ x }) => x > 3
     ),
 
     Step("solutions", function () {
@@ -24,7 +24,7 @@ export const { solveAll } = pipeSolver()
       for await (const model of source) {
         yield `${model.x}\n`;
       }
-    }),
+    })
   );
 
-export const { PipeSolver } = pipeSolver().service({ solveAll });
+export const { PipeSolver } = actor().service({ solveAll });

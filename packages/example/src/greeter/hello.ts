@@ -1,9 +1,9 @@
 "use server";
 
 import { Step } from "taskwish";
-import { greeter } from "./greeter";
+import { actor } from "./greeter";
 
-export const { hello } = greeter()
+export const { hello } = actor()
   .on("Command", "hello")
 
   .input({ name: "string" })
@@ -15,6 +15,5 @@ export const { hello } = greeter()
 
     Step("greet", function () {
       return `Hello ${this.input.name}`;
-    }),
+    })
   );
-

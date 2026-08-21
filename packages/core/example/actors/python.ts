@@ -1,7 +1,7 @@
 import { Actor, Step, TW } from "../../src";
 import { CamelCase } from "../../src/helpers";
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("Example");
 
 type FFITypeName =
   | "void"
@@ -38,12 +38,12 @@ type FFISchema = FFITypeName | { [key: string]: FFISchema };
 type FFITypeNameToTS<T extends FFITypeName> = T extends "bool"
   ? boolean
   : T extends "int64_t" | "i64" | "uint64_t" | "u64"
-    ? bigint
-    : T extends "void"
-      ? void
-      : T extends "char" | "cstring"
-        ? string
-        : number;
+  ? bigint
+  : T extends "void"
+  ? void
+  : T extends "char" | "cstring"
+  ? string
+  : number;
 
 type InferFFISchema<T> = T extends FFITypeName
   ? FFITypeNameToTS<T & FFITypeName>
@@ -55,12 +55,12 @@ type PythonSchema = PythonTypeName | { [key: string]: PythonSchema };
 type PythonTypeNameToTS<T extends PythonTypeName> = T extends "bool"
   ? boolean
   : T extends "None"
-    ? void
-    : T extends "str"
-      ? string
-      : T extends "bytes"
-        ? Uint8Array
-        : number;
+  ? void
+  : T extends "str"
+  ? string
+  : T extends "bytes"
+  ? Uint8Array
+  : number;
 
 type InferPythonSchema<T> = T extends PythonTypeName
   ? PythonTypeNameToTS<T & PythonTypeName>
@@ -80,7 +80,7 @@ export const FFI = {
     const Ctx extends Record<any, any>,
     const Name extends string,
     const Runtime extends "python" | undefined = undefined,
-    const Result extends RuntimeSchema<Runtime> = RuntimeSchema<Runtime>,
+    const Result extends RuntimeSchema<Runtime> = RuntimeSchema<Runtime>
   >(
     ...args:
       | [
@@ -91,11 +91,11 @@ export const FFI = {
             install?: string[];
             input?: (ctx: TW.Scope<Ctx["scope"]>) => any[];
             output?: Result;
-          },
+          }
         ]
       | [
           name: CamelCase<Name>,
-          run: ((ctx: TW.Scope<Ctx["scope"]>) => string) | string,
+          run: ((ctx: TW.Scope<Ctx["scope"]>) => string) | string
         ]
   ): {
     [TW.Step]: (ctx: Ctx) => {
@@ -110,7 +110,7 @@ export const FFI = {
   },
 };
 
-export const { runPython } = myActor()
+export const { runPython } = actor()
   .on("Command", "runPython")
 
   .run(
@@ -151,12 +151,12 @@ export const { runPython } = myActor()
           public_repos: "str",
           followers: "int",
         },
-      },
+      }
     ),
 
     Step("return", function () {
       return this.pyStep.company;
-    }),
+    })
   );
 
-export const { MyActor } = myActor().service({ runPython });
+export const { Example } = actor().service({ runPython });

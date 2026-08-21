@@ -1,5 +1,5 @@
 import { Step, type TW } from "@taskwish/core";
-import { slack } from "./slack";
+import { actor } from "./slack";
 
 import { SlackAPIClient } from "slack-web-api-client";
 import type {
@@ -12,16 +12,15 @@ type PostMessageAction = TW.Action<
   (input: ChatPostMessageRequest) => Promise<ChatPostMessageResponse>
 >;
 
-export const { postMessage }: { postMessage: PostMessageAction } = slack()
+export const { postMessage }: { postMessage: PostMessageAction } = actor()
   .on("Command", "postMessage")
 
   .input<ChatPostMessageRequest>()
 
   .run(
     Step("send", function (): Promise<ChatPostMessageResponse> {
-      const client = new SlackAPIClient( process.env.TW_SLACK_API_KEY,
-      );
+      const client = new SlackAPIClient(process.env.TW_SLACK_API_KEY);
 
       return client.chat.postMessage(this.input);
-    }),
+    })
   );

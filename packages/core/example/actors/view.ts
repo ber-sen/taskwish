@@ -2,8 +2,8 @@
 
 import { Actor, Step, Event } from "../../src";
 
-const { greeter } = Actor("Greeter").scope(
-  Event("UserWelcomed", { name: "string" }),
+const { actor } = Actor("Greeter").scope(
+  Event("UserWelcomed", { name: "string" })
 );
 
 const Card = {} as any;
@@ -16,7 +16,7 @@ const List = {} as any;
 const Node = {} as any;
 const Widget = {} as any;
 
-export const { hello } = greeter()
+export const { hello } = actor()
   .on("Command", "hello")
 
   .input({ name: "string" })
@@ -30,10 +30,10 @@ export const { hello } = greeter()
         Cta: { id: "approve", label: "Approve", style: "primary" },
         Button: { id: "cancel", label: "Cancel" },
       });
-    }),
+    })
   );
 
-export const { Greeter } = greeter().service({ hello });
+export const { Greeter } = actor().service({ hello });
 
 const { ConnectionsView } = App("Connections", {
   "/": Screen(List()),
@@ -47,7 +47,7 @@ const { Connections } = ConnectionsView({
 const { QuickConnections } = Widget(
   "QuickConnections",
 
-  Card("Lorem", Text("Header")),
+  Card("Lorem", Text("Header"))
 )({
   Lorem: { Header: "Hello" },
 });

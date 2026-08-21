@@ -1,8 +1,8 @@
 import { Actor } from "taskwish";
 
-const { streamer } = Actor("Streamer");
+const { actor } = Actor("Streamer");
 
-export const { count } = streamer()
+export const { count } = actor()
   .on("Command", "count")
 
   .input({ total: "number" })
@@ -14,4 +14,4 @@ export const { count } = streamer()
     }
   });
 
-export const { Streamer } = streamer().service({ count });
+export const { Streamer } = actor().service({ count });

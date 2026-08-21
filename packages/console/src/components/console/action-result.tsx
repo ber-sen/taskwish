@@ -85,16 +85,26 @@ function traceValue(value: unknown): string {
 }
 
 function traceErrorValue(value: unknown): string {
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+    const error = value as Record<string, unknown>;
+    if (typeof error.content === "string") return error.content;
+    if (typeof error.message === "string") return error.message;
+  }
+
+  return traceValue(value);
+}
+
+function errorBubbleBody(value: unknown): string {
   if (
     value !== null &&
     typeof value === "object" &&
     !Array.isArray(value) &&
-    typeof (value as Record<string, unknown>).message === "string"
+    "error" in value
   ) {
-    return String((value as Record<string, unknown>).message);
+    return traceErrorValue((value as Record<string, unknown>).error);
   }
 
-  return traceValue(value);
+  return traceErrorValue(value);
 }
 
 function traceKey(key: string): string {
@@ -382,7 +392,10 @@ function buildRunBubbles(
     bubbles.push({
       id: `${event.type}-${index}`,
       type: event.type === "error" ? "error" : "result",
-      body: eventBody(event.data),
+      body:
+        event.type === "error"
+          ? errorBubbleBody(event.data)
+          : eventBody(event.data),
     });
   });
 

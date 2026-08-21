@@ -1,9 +1,9 @@
 import { Slack } from "@taskwish/slack";
 import { Actor, Step } from "../../src";
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("Example");
 
-export const { runSteps } = myActor()
+export const { runSteps } = actor()
   .use(Slack)
 
   .on("Command", "runSteps")
@@ -21,7 +21,7 @@ export const { runSteps } = myActor()
 
     Step("lastStep", function () {
       return this.firstStep.length;
-    }),
+    })
   );
 
-export const { MyActor } = myActor().service({ runSteps });
+export const { Example } = actor().service({ runSteps });

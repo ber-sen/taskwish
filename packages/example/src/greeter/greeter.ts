@@ -1,5 +1,5 @@
 import { Actor, Event } from "taskwish";
 
-export const { greeter } = Actor("Greeter").scope(
-  Event("Message", { name: "string" }),
+export const { actor } = Actor("Greeter").scope(
+  Event("Message", { name: "string" })
 );

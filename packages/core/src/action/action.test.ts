@@ -6,12 +6,7 @@ import { Actor } from "../actor";
 import { TW } from "../core";
 import { Step } from "../steps";
 import { InferType } from "../use";
-import {
-  Logger,
-  Trace,
-  eventData,
-  formatEvent,
-} from "@taskwish/wire";
+import { Logger, Trace, eventData, formatEvent } from "@taskwish/wire";
 import { Event } from "../event";
 
 const eventDataList = (values: unknown[]) => values.map(eventData);
@@ -68,7 +63,7 @@ describe("Action", () => {
             callId: this.input.callId,
             from: this.input.from,
           });
-        }),
+        })
       );
 
     const yields: unknown[] = [];
@@ -119,7 +114,7 @@ describe("Action", () => {
 
         Step("secondStep", function () {
           return this.fistStep > 0;
-        }),
+        })
       );
 
     type T = typeof hello;
@@ -207,7 +202,7 @@ describe("Action", () => {
     >;
 
     expect(
-      await readAbortSignal.ctx(controller.signal).run({ name: "Test" }),
+      await readAbortSignal.ctx(controller.signal).run({ name: "Test" })
     ).toEqual({ name: "Test", direct: true });
 
     const stream = readAbortSignal
@@ -224,7 +219,7 @@ describe("Action", () => {
     const { hasNoDefaultAbortSignal } = Action("hasNoDefaultAbortSignal").run(
       function () {
         return this.abortSignal === undefined;
-      },
+      }
     );
 
     expect(await hasNoDefaultAbortSignal()).toBe(true);
@@ -232,8 +227,8 @@ describe("Action", () => {
 
   test("ctx accepts scoped action overrides", async () => {
     const controller = new AbortController();
-    const { notifier } = Actor("Notifier");
-    const { notify } = notifier()
+    const { actor } = Actor("Notifier");
+    const { notify } = actor()
       .on("Command", "notify")
 
       .input({ message: "string" })
@@ -269,7 +264,7 @@ describe("Action", () => {
             },
           },
         })
-        .run({ name: "Ada" }),
+        .run({ name: "Ada" })
     ).toEqual({
       aborted: true,
       message: "mock: Ada",
@@ -304,7 +299,7 @@ describe("Action", () => {
             someAction: someActionMock,
           },
         })
-        .run({ value: "Ada" }),
+        .run({ value: "Ada" })
     ).toEqual("mock: Ada");
     expect(someActionMock).toHaveBeenCalledWith({ value: "Ada" });
   });
@@ -378,7 +373,7 @@ describe("Action", () => {
 
         Step("third", function () {
           return true;
-        }),
+        })
       );
 
     const yields: unknown[] = [];
@@ -411,7 +406,7 @@ describe("Action", () => {
 
         Step("second", function () {
           return 2;
-        }),
+        })
       );
 
     const yields: unknown[] = [];
@@ -467,10 +462,10 @@ describe("Action", () => {
           async function* () {
             yield "raw";
             return 2;
-          },
-        ),
+          }
+        )
     ).toThrow(
-      "Action.run cannot mix Step(...) handlers with raw function handlers",
+      "Action.run cannot mix Step(...) handlers with raw function handlers"
     );
   });
 
@@ -500,7 +495,7 @@ describe("Action", () => {
         Step("afterPromised", function () {
           type Check = Expect<Equal<typeof this.promised, number>>;
           return this.promised + 1;
-        }),
+        })
       );
 
     expect(await run({ value: 3 })).toEqual(15);
@@ -537,7 +532,7 @@ describe("Action", () => {
           for await (const chunk of source) {
             yield chunk * 2;
           }
-        }),
+        })
       );
 
     const yields: unknown[] = [];
@@ -572,7 +567,7 @@ describe("Action", () => {
 
     const streamed = Step<Ctx, "streamed", typeof handler, never, "streamed">(
       "streamed",
-      handler,
+      handler
     );
 
     type Output = ReturnType<(typeof streamed)[typeof TW.Step]>;
@@ -598,7 +593,7 @@ describe("Action", () => {
 
         Step("never", function () {
           return 3;
-        }),
+        })
       );
 
     const yields: unknown[] = [];
@@ -649,7 +644,7 @@ describe("Action", () => {
     cyclic.self = cyclic;
 
     expect(formatEvent({ ">>": "cyclic", result: cyclic })).toBe(
-      '\x1b[2m{\x1b[22m \x1b[2m">>": \x1b[22m"\x1b[1mcyclic\x1b[22m", \x1b[2m"result": \x1b[22m{ "name": "cycle", "self": "[Circular]" } \x1b[2m}\x1b[22m',
+      '\x1b[2m{\x1b[22m \x1b[2m">>": \x1b[22m"\x1b[1mcyclic\x1b[22m", \x1b[2m"result": \x1b[22m{ "name": "cycle", "self": "[Circular]" } \x1b[2m}\x1b[22m'
     );
   });
 
@@ -662,7 +657,7 @@ describe("Action", () => {
     };
 
     expect(formatEvent({ ">>": "page", result: page })).toBe(
-      '\x1b[2m{\x1b[22m \x1b[2m">>": \x1b[22m"\x1b[1mpage\x1b[22m", \x1b[2m"result": \x1b[22m"page" \x1b[2m}\x1b[22m',
+      '\x1b[2m{\x1b[22m \x1b[2m">>": \x1b[22m"\x1b[1mpage\x1b[22m", \x1b[2m"result": \x1b[22m"page" \x1b[2m}\x1b[22m'
     );
   });
 
@@ -670,7 +665,7 @@ describe("Action", () => {
     const nested = { a: { b: { c: { d: "hidden" } } } };
 
     expect(formatEvent({ ">>": "nested", result: nested })).toBe(
-      '\x1b[2m{\x1b[22m \x1b[2m">>": \x1b[22m"\x1b[1mnested\x1b[22m", \x1b[2m"result": \x1b[22m{ "a": { "b": { "c": "[Object]" } } } \x1b[2m}\x1b[22m',
+      '\x1b[2m{\x1b[22m \x1b[2m">>": \x1b[22m"\x1b[1mnested\x1b[22m", \x1b[2m"result": \x1b[22m{ "a": { "b": { "c": "[Object]" } } } \x1b[2m}\x1b[22m'
     );
   });
 
@@ -710,7 +705,7 @@ describe("Action", () => {
         const items: unknown[] = [];
         items.push(out);
         return items;
-      }),
+      })
     );
   });
 
@@ -734,7 +729,7 @@ describe("Action", () => {
 
         Step("positive", function () {
           return this.double > 0;
-        }),
+        })
       );
 
     await compute({ value: 3 });
@@ -774,7 +769,7 @@ describe("Action", () => {
 
         Step("done", function () {
           return this.reply === this.input.name;
-        }),
+        })
       );
 
     type T = typeof compute;
@@ -797,7 +792,7 @@ describe("Action", () => {
               { model: "gpt5"; prompt: string }
             >,
             TW.ScriptStep<"positive", () => boolean>,
-            TW.ScriptStep<"done", () => boolean>,
+            TW.ScriptStep<"done", () => boolean>
           ];
         }
       >
@@ -860,7 +855,7 @@ describe("Action", () => {
 
         Step("done", function () {
           return this.reply === this.input.name;
-        }),
+        })
       );
 
     type InferScope<A> = A extends TW.ScriptStep<any, infer H>
@@ -930,7 +925,7 @@ describe("Action", () => {
 
         Step("message", function () {
           return `Hello, ${this.notify}`;
-        }),
+        })
       );
 
     expect(await greet({ name: "World" })).toEqual("Hello, sent: World");
@@ -938,9 +933,9 @@ describe("Action", () => {
 
   test("use(TW.Action) — Actor-service action injected into this.actions.<service>.<method>", async () => {
     // Actor-created: TW.Name = "Notifier::notify" → this.actions.notifier.notify
-    const { notifier } = Actor("Notifier");
+    const { actor } = Actor("Notifier");
 
-    const { notify } = notifier()
+    const { notify } = actor()
       .on("Command", "notify")
 
       .input({ message: "string" })
@@ -966,7 +961,7 @@ describe("Action", () => {
 
         Step("message", function () {
           return `Hello, ${this.notify}`;
-        }),
+        })
       );
 
     expect(await greet({ name: "World" })).toEqual("Hello, sent: World");
@@ -986,7 +981,7 @@ describe("Action", () => {
           notify,
           helper: () => "ignored",
           version: "1.0.0",
-        }),
+        })
       )
 
       .input({ name: "string" })
@@ -1002,7 +997,7 @@ describe("Action", () => {
           type HelperCheck = Expect<Equal<HelperIsIgnored, true>>;
 
           return this.actions.notify({ message: this.input.name });
-        }),
+        })
       );
 
     expect(await greet({ name: "World" })).toEqual("sent: World");
@@ -1115,14 +1110,14 @@ describe("Action", () => {
 
         Step("message", function () {
           const selected = this.channels.channels.find(
-            (item) => item.id === this.input.channel,
+            (item) => item.id === this.input.channel
           );
 
           return {
             channel: selected,
             text: this.input.text,
           };
-        }),
+        })
       )
 
       .meta({
@@ -1250,7 +1245,7 @@ describe("Action", () => {
     });
     expect(meta.output.channel).toEqual("The selected channel");
     expect(
-      await postMessage({ channel: "C456", text: "Deploy completed" }),
+      await postMessage({ channel: "C456", text: "Deploy completed" })
     ).toEqual({
       channel: { id: "C456", name: "engineering" },
       text: "Deploy completed",
@@ -1295,7 +1290,7 @@ describe("Action", () => {
       .run(
         Step("double", function () {
           return this.input.value * 2;
-        }),
+        })
       );
 
     const stream = compute.stream({ value: 4 });

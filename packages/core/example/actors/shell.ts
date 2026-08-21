@@ -9,7 +9,7 @@ export const Shell = {
   Step: <
     const Ctx extends Record<any, any>,
     const Name extends string,
-    const Result,
+    const Result
   >(
     ...args:
       | [
@@ -17,11 +17,11 @@ export const Shell = {
           run: ((ctx: TW.Scope<Ctx["scope"]>) => string) | string,
           options: {
             output?: ValidateSchema<Result>;
-          },
+          }
         ]
       | [
           name: CamelCase<Name>,
-          run: ((ctx: TW.Scope<Ctx["scope"]>) => string) | string,
+          run: ((ctx: TW.Scope<Ctx["scope"]>) => string) | string
         ]
   ): {
     [TW.Step]: (ctx: Ctx) => {
@@ -36,9 +36,9 @@ export const Shell = {
   },
 };
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("Example");
 
-export const { getFileSize } = myActor()
+export const { getFileSize } = actor()
   .on("Command", "getFileSize")
 
   .input({ fileName: "string" })
@@ -57,7 +57,7 @@ export const { getFileSize } = myActor()
 
     Step("return", function () {
       return this.fileSize;
-    }),
+    })
   );
 
-export const { MyActor } = myActor().service({ getFileSize });
+export const { Example } = actor().service({ getFileSize });

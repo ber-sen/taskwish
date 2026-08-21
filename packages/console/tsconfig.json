@@ -1,7 +1,6 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "lib": ["esnext", "DOM", "DOM.Iterable"],
     "baseUrl": ".",

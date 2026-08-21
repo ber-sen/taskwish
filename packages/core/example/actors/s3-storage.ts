@@ -1,20 +1,20 @@
 import { Actor } from "../../src";
 import { Storage } from "./storage";
 
-const { s3Storage } = Actor("S3Storage");
+const { actor } = Actor("S3Storage");
 
-export const { read } = s3Storage()
+export const { read } = actor()
   .on(Storage.read)
 
   .run(function () {
     return `data:${this.input}`;
   });
 
-export const { write } = s3Storage()
+export const { write } = actor()
   .on(Storage.write)
 
   .run(function () {
     return `wrote:${this.input.key}`;
   });
 
-export const { S3Storage } = s3Storage().service({ read, write });
+export const { S3Storage } = actor().service({ read, write });

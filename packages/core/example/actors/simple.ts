@@ -1,8 +1,8 @@
 import { Actor, Step } from "../../src";
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("Example");
 
-export const { sendMessage } = myActor()
+export const { sendMessage } = actor()
   .on("Command", "sendMessage")
 
   .run(
@@ -11,7 +11,7 @@ export const { sendMessage } = myActor()
         channel: "#general",
         message: `Hello World`,
       });
-    }),
+    })
   );
 
-export const { MyActor } = myActor().service({ sendMessage });
+export const { Example } = actor().service({ sendMessage });

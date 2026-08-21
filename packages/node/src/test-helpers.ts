@@ -5,23 +5,23 @@ export const apiKey = "test-api-key";
 export const auth = { Authorization: `Bearer ${apiKey}` };
 
 export async function fetchActionResult(result: unknown): Promise<Response> {
-  const { responder } = Actor("Responder");
-  const { value } = responder()
+  const { actor } = Actor("Responder");
+  const { value } = actor()
     .on("Command", "value")
     .run(function () {
       return result;
     });
-  const { Responder } = responder().service({ value });
+  const { Responder } = actor().service({ value });
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Responder, value })]),
-    { apiKey },
+    { apiKey }
   );
 
   return fetch(
     new Request("http://localhost/tw/Responder/value", {
       method: "POST",
       headers: auth,
-    }),
+    })
   );
 }

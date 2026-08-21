@@ -1,8 +1,8 @@
 import { Step } from "taskwish";
 
-import { hackerNews } from "./hacker-news";
+import { actor } from "./hacker-news";
 
-export const { openFirstPage } = hackerNews()
+export const { openFirstPage } = actor()
   .on("Command", "openFirstPage")
 
   .run(
@@ -32,5 +32,5 @@ export const { openFirstPage } = hackerNews()
         title,
         url,
       };
-    }),
+    })
   );

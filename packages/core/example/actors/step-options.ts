@@ -7,11 +7,11 @@ const StepOptions = {
       R,
 };
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("Example");
 
-export const { withOptions } = myActor()
+export const { withOptions } = actor()
   .on("Command", "withOptions")
-  
+
   .input({ message: "string" })
 
   .run(
@@ -27,7 +27,7 @@ export const { withOptions } = myActor()
 
     Step("last step", function () {
       return this.firstStep.length;
-    }),
+    })
   );
 
-export const { MyActor } = myActor().service({ withOptions });
+export const { Example } = actor().service({ withOptions });

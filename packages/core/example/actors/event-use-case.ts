@@ -11,7 +11,7 @@ export default Actor("SayHello")
   })
 
   .meta({
-    description: "Send hello message to slack",
+    description: "Send hello message to Slack",
   });
 
 type UnionToIntersection<U> = (U extends any ? (x: U) => void : never) extends (
@@ -21,12 +21,11 @@ type UnionToIntersection<U> = (U extends any ? (x: U) => void : never) extends (
   : never;
 
 // Turn a union into an overloaded function, then extract its parameter tuple
-type UnionToTuple<U> =
-  UnionToIntersection<U extends any ? (x: U) => void : never> extends (
-    x: infer I
-  ) => void
-    ? [...UnionToTuple<Exclude<U, I>>, I]
-    : [];
+type UnionToTuple<U> = UnionToIntersection<
+  U extends any ? (x: U) => void : never
+> extends (x: infer I) => void
+  ? [...UnionToTuple<Exclude<U, I>>, I]
+  : [];
 
 // Count the number of keys
 type KeyCount<T> = UnionToTuple<keyof T>["length"];

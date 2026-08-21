@@ -5,9 +5,9 @@ import { createFetchHandler, createNodeRegistry } from "./index";
 import { apiKey, auth } from "./test-helpers";
 
 test("serves command actions with POST under /tw/<Actor>/<method>", async () => {
-  const { greeter } = Actor("Greeter");
+  const { actor } = Actor("Greeter");
 
-  const { hello } = greeter()
+  const { hello } = actor()
     .on("Command", "hello")
 
     .input({ name: "string" })
@@ -15,11 +15,11 @@ test("serves command actions with POST under /tw/<Actor>/<method>", async () => 
     .run(function () {
       return `Hello ${this.input.name}`;
     });
-  const { Greeter } = greeter().service({ hello });
+  const { Greeter } = actor().service({ hello });
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Greeter, hello })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
@@ -27,7 +27,7 @@ test("serves command actions with POST under /tw/<Actor>/<method>", async () => 
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Ada" }),
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -35,9 +35,9 @@ test("serves command actions with POST under /tw/<Actor>/<method>", async () => 
 });
 
 test("serves command actions with GET under /tw/<Actor>/<method>", async () => {
-  const { greeter } = Actor("Greeter");
+  const { actor } = Actor("Greeter");
 
-  const { hello } = greeter()
+  const { hello } = actor()
     .on("Command", "hello")
 
     .input({ name: "string" })
@@ -45,17 +45,17 @@ test("serves command actions with GET under /tw/<Actor>/<method>", async () => {
     .run(function () {
       return `Hello ${this.input.name}`;
     });
-  const { Greeter } = greeter().service({ hello });
+  const { Greeter } = actor().service({ hello });
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Greeter, hello })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
     new Request("http://localhost/tw/Greeter/hello?name=Ada", {
       headers: auth,
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -63,13 +63,13 @@ test("serves command actions with GET under /tw/<Actor>/<method>", async () => {
 });
 
 test("streams Step pipe chunks from command actions", async () => {
-  const { piper } = Actor("Piper");
+  const { actor } = Actor("Piper");
   let releaseSecondChunk!: () => void;
   const waitForRelease = new Promise<void>((resolve) => {
     releaseSecondChunk = resolve;
   });
 
-  const { count } = piper()
+  const { count } = actor()
     .on("Command", "count")
 
     .input({ total: "number" })
@@ -85,20 +85,20 @@ test("streams Step pipe chunks from command actions", async () => {
         for await (const chunk of source) {
           yield `${Number(chunk) * 2}\n`;
         }
-      }),
+      })
     );
-  const { Piper } = piper().service({ count });
+  const { Piper } = actor().service({ count });
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Piper, count })]),
-    { apiKey },
+    { apiKey }
   );
 
   const responseOrTimeout = await Promise.race([
     fetch(
       new Request("http://localhost/tw/Piper/count?total=2", {
         headers: auth,
-      }),
+      })
     ),
     Bun.sleep(50).then(() => "timeout" as const),
   ]);
@@ -134,9 +134,9 @@ test("streams Step pipe chunks from command actions", async () => {
 });
 
 test("streams command yields and wire traces as SSE for commander requests", async () => {
-  const { piper } = Actor("Piper");
+  const { actor } = Actor("Piper");
 
-  const { count } = piper()
+  const { count } = actor()
     .on("Command", "count")
 
     .input({ total: "number" })
@@ -152,13 +152,13 @@ test("streams command yields and wire traces as SSE for commander requests", asy
         for await (const chunk of source) {
           yield `${chunk * 2}\n`;
         }
-      }),
+      })
     );
-  const { Piper } = piper().service({ count });
+  const { Piper } = actor().service({ count });
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Piper, count })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
@@ -168,13 +168,11 @@ test("streams command yields and wire traces as SSE for commander requests", asy
         Accept: "text/event-stream",
         wire: "commander",
       },
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
-  expect(response.headers.get("Content-Type")).toStartWith(
-    "text/event-stream",
-  );
+  expect(response.headers.get("Content-Type")).toStartWith("text/event-stream");
 
   const body = await response.text();
   expect(body).toContain("event: wire");
@@ -185,22 +183,22 @@ test("streams command yields and wire traces as SSE for commander requests", asy
 });
 
 test("streams wire trace error messages as SSE for commander requests", async () => {
-  const { crasher } = Actor("Crasher");
+  const { actor } = Actor("Crasher");
   const boom = new Error("boom");
 
-  const { fail } = crasher()
+  const { fail } = actor()
     .on("Command", "fail")
 
     .run(
       Step("bad", function () {
         throw boom;
-      }),
+      })
     );
-  const { Crasher } = crasher().service({ fail });
+  const { Crasher } = actor().service({ fail });
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Crasher, fail })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
@@ -210,7 +208,7 @@ test("streams wire trace error messages as SSE for commander requests", async ()
         Accept: "text/event-stream",
         wire: "commander",
       },
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -218,12 +216,12 @@ test("streams wire trace error messages as SSE for commander requests", async ()
   const body = await response.text();
   expect(body).toContain("event: wire");
   expect(body).toContain(
-    'data: {">>":"Crasher::fail.bad","error":{"message":"boom"}}',
+    'data: {">>":"Crasher::fail.bad","error":{"message":"boom"}}'
   );
   expect(body).toContain(
-    'data: {">>":"Crasher::fail","error":{"message":"boom"}}',
+    'data: {">>":"Crasher::fail","error":{"message":"boom"}}'
   );
-  expect(body).toContain('event: error');
+  expect(body).toContain("event: error");
   expect(body).toContain('data: {"error":"boom"}');
 });
 
@@ -234,11 +232,11 @@ test("logs traces when invoking command actions through fetch handlers", async (
     info: logged.push.bind(logged),
     error: logged.push.bind(logged),
   };
-  const { greeter } = Actor("Greeter");
+  const { actor } = Actor("Greeter");
 
-  const { hello } = greeter()
+  const { hello } = actor()
     .use(Logger(spy))
-    
+
     .on("Command", "hello")
 
     .input({ name: "string" })
@@ -250,19 +248,19 @@ test("logs traces when invoking command actions through fetch handlers", async (
 
       Step("greet", function () {
         return `Hello ${this.prepare}`;
-      }),
+      })
     );
-  const { Greeter } = greeter().service({ hello });
+  const { Greeter } = actor().service({ hello });
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Greeter, hello })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
     new Request("http://localhost/tw/Greeter/hello?name=Ada", {
       headers: auth,
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -276,28 +274,30 @@ test("logs traces when invoking command actions through fetch handlers", async (
 });
 
 test("serves actor event handlers with POST under /tw/<Actor>/<handler>", async () => {
-  const { greeter } = Actor("Greeter").scope(
-    Event("Message", { content: "string" }),
-  );
-  const { Greeter } = greeter().service();
-  const { biller } = Actor("Biller").use(Greeter);
+  const { Greeter } = Actor("Greeter")
+    .scope(Event("Message", { content: "string" }))
+    .actor()
+    .service();
 
-  const { onGreeterMessage } = biller()
+  const { onGreeterMessage } = Actor("Biller")
+    .use(Greeter)
+    .actor()
     .on("Greeter::Message")
 
     .run(function () {
       return { received: this.input.content };
     });
-  const { Biller } = biller().service({ onGreeterMessage });
+  const { Biller } = Actor("Biller")
+    .use(Greeter)
+    .actor()
+    .service({ onGreeterMessage });
   expect("onGreeterMessage" in Biller).toBe(false);
 
   expect(onGreeterMessage[TW.Meta]).toEqual({ event: "Greeter::Message" });
 
   const fetch = createFetchHandler(
-    createNodeRegistry([
-      Promise.resolve({ Greeter, Biller }),
-    ]),
-    { apiKey },
+    createNodeRegistry([Promise.resolve({ Greeter, Biller })]),
+    { apiKey }
   );
 
   const response = await fetch(
@@ -305,7 +305,7 @@ test("serves actor event handlers with POST under /tw/<Actor>/<handler>", async 
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ content: "hi" }),
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -313,32 +313,33 @@ test("serves actor event handlers with POST under /tw/<Actor>/<handler>", async 
 });
 
 test("serves actor event handlers with GET under /tw/<Actor>/<handler>", async () => {
-  const { greeter } = Actor("Greeter").scope(
-    Event("Message", { content: "string" }),
-  );
+  const { Greeter } = Actor("Greeter")
+    .scope(Event("Message", { content: "string" }))
+    .actor()
+    .service();
 
-  const { Greeter } = greeter().service();
-  const { biller } = Actor("Biller").use(Greeter);
-
-  const { onGreeterMessage } = biller()
+  const { onGreeterMessage } = Actor("Biller")
+    .use(Greeter)
+    .actor()
     .on("Greeter::Message")
 
     .run(function () {
       return { received: this.input.content };
     });
-  const { Biller } = biller().service({ onGreeterMessage });
+  const { Biller } = Actor("Biller")
+    .use(Greeter)
+    .actor()
+    .service({ onGreeterMessage });
 
   const fetch = createFetchHandler(
-    createNodeRegistry([
-      Promise.resolve({ Greeter, Biller }),
-    ]),
-    { apiKey },
+    createNodeRegistry([Promise.resolve({ Greeter, Biller })]),
+    { apiKey }
   );
 
   const response = await fetch(
     new Request("http://localhost/tw/Biller/on-greeter-message?content=hi", {
       headers: auth,
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -346,9 +347,9 @@ test("serves actor event handlers with GET under /tw/<Actor>/<handler>", async (
 });
 
 test("serves route actions from node fetch handlers", async () => {
-  const { invoiceProvider } = Actor("InvoiceProvider");
+  const { actor } = Actor("InvoiceProvider");
 
-  const { getInvoices } = invoiceProvider()
+  const { getInvoices } = actor()
     .on("GET", "/invoices/:id", {
       params: { id: "string" },
       query: { page: "string" },
@@ -357,19 +358,19 @@ test("serves route actions from node fetch handlers", async () => {
     .run(function () {
       return { id: this.input.id, page: this.input.page };
     });
-  const { InvoiceProvider } = invoiceProvider().service({ getInvoices });
+  const { InvoiceProvider } = actor().service({ getInvoices });
 
   expect("fetch" in getInvoices).toBe(false);
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ InvoiceProvider, getInvoices })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
     new Request("http://localhost/invoices/inv-42?page=2", {
       headers: auth,
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -377,9 +378,9 @@ test("serves route actions from node fetch handlers", async () => {
 });
 
 test("serves route action JSON body input from node fetch handlers", async () => {
-  const { invoiceProvider } = Actor("InvoiceProvider");
+  const { actor } = Actor("InvoiceProvider");
 
-  const { createInvoice } = invoiceProvider()
+  const { createInvoice } = actor()
     .on("POST", "/invoices", {
       body: { id: "string", status: "string" },
     })
@@ -387,11 +388,11 @@ test("serves route action JSON body input from node fetch handlers", async () =>
     .run(function () {
       return { id: this.input.id, status: this.input.status };
     });
-  const { InvoiceProvider } = invoiceProvider().service({ createInvoice });
+  const { InvoiceProvider } = actor().service({ createInvoice });
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ InvoiceProvider, createInvoice })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
@@ -399,7 +400,7 @@ test("serves route action JSON body input from node fetch handlers", async () =>
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ id: "inv-42", status: "paid" }),
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -408,8 +409,8 @@ test("serves route action JSON body input from node fetch handlers", async () =>
 });
 
 test("rejects requests without the configured API key", async () => {
-  const { greeter } = Actor("Greeter");
-  const { hello } = greeter()
+  const { actor } = Actor("Greeter");
+  const { hello } = actor()
     .on("Command", "hello")
 
     .input({ name: "string" })
@@ -417,11 +418,11 @@ test("rejects requests without the configured API key", async () => {
     .run(function () {
       return `Hello ${this.input.name}`;
     });
-  const { Greeter } = greeter().service({ hello });
+  const { Greeter } = actor().service({ hello });
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Greeter, hello })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
@@ -429,7 +430,7 @@ test("rejects requests without the configured API key", async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Ada" }),
-    }),
+    })
   );
 
   expect(response.status).toBe(401);

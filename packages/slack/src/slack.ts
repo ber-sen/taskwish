@@ -1,3 +1,3 @@
 import { Actor } from "@taskwish/core";
 
-export const { slack } = Actor("Slack");
+export const { actor } = Actor("Slack");

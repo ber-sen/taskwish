@@ -9,9 +9,9 @@ const eventDataList = (values: unknown[]) => values.map(eventData);
 
 describe("Symbolic", () => {
   test("Model.prove runs as an actor step and returns status with model", async () => {
-    const { solver } = Actor("Solver");
+    const { actor } = Actor("Solver");
 
-    const { solve } = solver()
+    const { solve } = actor()
       .on("Command", "solve")
 
       .run(
@@ -27,12 +27,12 @@ describe("Symbolic", () => {
           ({ x, y }) => x + 2 * y == 7,
           ({ x }) => x == 3,
           ({ y }) => y ** 2 == 4,
-          ({ z }) => z == 1.5,
+          ({ z }) => z == 1.5
         ),
 
         Step("result", function () {
           return this.equationModel.prove();
-        }),
+        })
       );
 
     type T = typeof solve;
@@ -51,9 +51,9 @@ describe("Symbolic", () => {
   });
 
   test("Model.solve returns the model directly", async () => {
-    const { solver } = Actor("Solver");
+    const { actor } = Actor("Solver");
 
-    const { solve } = solver()
+    const { solve } = actor()
       .on("Command", "solve")
 
       .run(
@@ -63,16 +63,16 @@ describe("Symbolic", () => {
 
         Step("result", function () {
           return this.constantModel.solve();
-        }),
+        })
       );
 
     await expect(solve()).resolves.toEqual({ x: 4 });
   });
 
   test("Model.solve supports optional fixed inputs", async () => {
-    const { solver } = Actor("Solver");
+    const { actor } = Actor("Solver");
 
-    const { solve } = solver()
+    const { solve } = actor()
       .on("Command", "solve")
 
       .run(
@@ -82,21 +82,21 @@ describe("Symbolic", () => {
           "sumModel",
 
           ({ x, y }) => x + y == 10,
-          ({ x, y }) => x + 3 >= y - 4,
+          ({ x, y }) => x + 3 >= y - 4
         ),
 
         Step("model", function () {
           return this.sumModel.solve({ x: 2 });
-        }),
+        })
       );
 
     await expect(solve()).resolves.toEqual({ x: 2, y: 8 });
   });
 
   test("Model validates fixed inputs against declarations", async () => {
-    const { solver } = Actor("Solver");
+    const { actor } = Actor("Solver");
 
-    const { solve } = solver()
+    const { solve } = actor()
       .on("Command", "solve")
 
       .run(
@@ -107,18 +107,18 @@ describe("Symbolic", () => {
         Step("model", function () {
           //@ts-ignore
           return this.positiveModel.solve({ y: 1 });
-        }),
+        })
       );
 
     await expect(solve()).rejects.toThrow(
-      'Cannot solve symbolic model with unknown variable "y"',
+      'Cannot solve symbolic model with unknown variable "y"'
     );
   });
 
   test("Model.solve throws when the constraints are not sat", async () => {
-    const { solver } = Actor("Solver");
+    const { actor } = Actor("Solver");
 
-    const { solve } = solver()
+    const { solve } = actor()
       .on("Command", "solve")
 
       .run(
@@ -126,23 +126,23 @@ describe("Symbolic", () => {
 
         Model(
           "contradictionModel",
-          
+
           ({ x }) => x == 1,
-          ({ x }) => x == 2,
+          ({ x }) => x == 2
         ),
 
         Step("model", function () {
           return this.contradictionModel.solve();
-        }),
+        })
       );
 
     await expect(solve()).rejects.toThrow("Expected sat, got unsat");
   });
 
   test("Model.solveAll yields each model as a pipeable async generator", async () => {
-    const { solver } = Actor("Solver");
+    const { actor } = Actor("Solver");
 
-    const { solve } = solver()
+    const { solve } = actor()
       .on("Command", "solve")
 
       .run(
@@ -152,7 +152,7 @@ describe("Symbolic", () => {
           "rangeModel",
 
           ({ x }) => x > 0,
-          ({ x }) => x < 3,
+          ({ x }) => x < 3
         ),
 
         Step("solutions", function () {
@@ -163,22 +163,22 @@ describe("Symbolic", () => {
           for await (const model of source) {
             yield model.x;
           }
-        }),
+        })
       );
 
     const values: unknown[] = [];
     for await (const value of solve.stream()) values.push(value);
 
     const models = eventDataList(values).filter(
-      (value): value is number => typeof value === "number",
+      (value): value is number => typeof value === "number"
     );
     expect(models.sort()).toEqual([1, 2]);
   });
 
   test("Model emits step traces inside an actor stream", async () => {
-    const { solver } = Actor("Solver");
+    const { actor } = Actor("Solver");
 
-    const { solve } = solver()
+    const { solve } = actor()
       .on("Command", "solve")
 
       .run(
@@ -188,7 +188,7 @@ describe("Symbolic", () => {
 
         Step("model", function () {
           return this.unitModel.solve();
-        }),
+        })
       );
 
     const yields: unknown[] = [];
@@ -204,7 +204,7 @@ describe("Symbolic", () => {
   });
 
   test("Model.prove returns accounting status from known line items", async () => {
-    const { accounting } = Actor("Accounting").scope(
+    const { actor } = Actor("Accounting").scope(
       Int(
         "grossRevenue",
         "refunds",
@@ -213,7 +213,7 @@ describe("Symbolic", () => {
         "operatingExpenses",
         "taxableIncome",
         "tax",
-        "netIncome",
+        "netIncome"
       ),
 
       Model(
@@ -227,11 +227,11 @@ describe("Symbolic", () => {
 
         ({ taxableIncome, tax }) => tax == taxableIncome / 5,
 
-        ({ taxableIncome, tax, netIncome }) => netIncome == taxableIncome - tax,
-      ),
+        ({ taxableIncome, tax, netIncome }) => netIncome == taxableIncome - tax
+      )
     );
 
-    const { forecast } = accounting()
+    const { forecast } = actor()
       .on("Command", "forecast")
 
       .run(
@@ -242,7 +242,7 @@ describe("Symbolic", () => {
             costOfGoods: 45000,
             operatingExpenses: 25000,
           });
-        }),
+        })
       );
 
     const result = await forecast();
@@ -263,7 +263,7 @@ describe("Symbolic", () => {
   });
 
   test("Model solves a missing accounting input from a desired outcome", async () => {
-    const { accounting } = Actor("Accounting").scope(
+    const { actor } = Actor("Accounting").scope(
       Int(
         "grossRevenue",
         "refunds",
@@ -272,7 +272,7 @@ describe("Symbolic", () => {
         "operatingExpenses",
         "taxableIncome",
         "tax",
-        "netIncome",
+        "netIncome"
       ),
 
       Model(
@@ -285,12 +285,12 @@ describe("Symbolic", () => {
           taxableIncome == netRevenue - costOfGoods - operatingExpenses,
 
         ({ taxableIncome, tax }) => tax == taxableIncome / 5,
-        
-        ({ taxableIncome, tax, netIncome }) => netIncome == taxableIncome - tax,
-      ),
+
+        ({ taxableIncome, tax, netIncome }) => netIncome == taxableIncome - tax
+      )
     );
 
-    const { forecast } = accounting()
+    const { forecast } = actor()
       .on("Command", "forecast")
 
       .run(
@@ -301,7 +301,7 @@ describe("Symbolic", () => {
             costOfGoods: 45000,
             netIncome: 40000,
           });
-        }),
+        })
       );
 
     await expect(forecast()).resolves.toMatchObject({

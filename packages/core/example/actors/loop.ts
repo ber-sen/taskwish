@@ -1,8 +1,8 @@
 import { Loop, ForEach, Actor, Step } from "../../src";
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("Example");
 
-export const { loop } = myActor()
+export const { loop } = actor()
   .on("Command", "loop")
 
   .input({ user: { name: "string", age: "number" } })
@@ -30,7 +30,7 @@ export const { loop } = myActor()
           channel: "#general",
           message: this.gt,
         });
-      }),
+      })
     ),
 
     Step("last step", function () {
@@ -38,7 +38,7 @@ export const { loop } = myActor()
         channel: "#general",
         message: "Hello World",
       });
-    }),
+    })
   );
 
-export const { MyActor } = myActor().service({ loop });
+export const { Example } = actor().service({ loop });

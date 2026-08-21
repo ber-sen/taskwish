@@ -16,9 +16,9 @@ describe("morph", () => {
   test("converts a TaskWish actor step chain to traced runners and service helpers", () => {
     const source = `import { Actor, Step } from "../../src";
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("MyActor");
 
-export const { runSteps } = myActor()
+export const { runSteps } = actor()
   .on("Command", "runSteps")
 
   .input({ message: "string" })
@@ -33,7 +33,7 @@ export const { runSteps } = myActor()
     }),
   );
 
-export const { MyActor } = myActor().service({ runSteps });
+export const { MyActor } = actor().service({ runSteps });
 `;
     expectParts(morph(source), [
       `import { Wire } from "@taskwish/wire";`,
@@ -58,9 +58,9 @@ export const { MyActor } = myActor().service({ runSteps });
   test("keeps event listeners out of direct service exports", () => {
     const source = `import { Actor, Step } from "../../src";
 
-const { greeter } = Actor("Greeter");
+const { actor } = Actor("Greeter");
 
-export const { hello } = greeter()
+export const { hello } = actor()
   .on("Command", "hello")
 
   .run(
@@ -69,7 +69,7 @@ export const { hello } = greeter()
     }),
   );
 
-export const { onNewEmail } = greeter()
+export const { onNewEmail } = actor()
   .on("NewEmail")
 
   .run(
@@ -78,7 +78,7 @@ export const { onNewEmail } = greeter()
     }),
   );
 
-export const { Greeter } = greeter().service({
+export const { Greeter } = actor().service({
   hello,
   onNewEmail,
 });
@@ -106,9 +106,9 @@ export const { Greeter } = greeter().service({
   test("preserves early returns by breaking out of the step block", () => {
     const source = `import { Actor, Step } from "../../src";
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("MyActor");
 
-export const { runSteps } = myActor()
+export const { runSteps } = actor()
   .on("Command", "runSteps")
 
   .input({ message: "string" })
@@ -140,9 +140,9 @@ export const { runSteps } = myActor()
   test("keeps blocks for multi-expression step handlers", () => {
     const source = `import { Actor, Step } from "../../src";
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("MyActor");
 
-export const { runSteps } = myActor()
+export const { runSteps } = actor()
   .on("Command", "runSteps")
 
   .input({ message: "string" })
@@ -172,9 +172,9 @@ export const { runSteps } = myActor()
   test("infers object types for multi-expression step handlers", () => {
     const source = `import { Actor, Step } from "../../src";
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("MyActor");
 
-export const { runSteps } = myActor()
+export const { runSteps } = actor()
   .on("Command", "runSteps")
 
   .run(
@@ -200,9 +200,9 @@ function normalizeMessage(message: string) {
   return message.trim().toUpperCase();
 }
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("MyActor");
 
-export const { runSteps } = myActor()
+export const { runSteps } = actor()
   .on("Command", "runSteps")
 
   .input({ message: "string" })
@@ -234,9 +234,9 @@ function normalizeMessage(message: string) {
   return message.trim().toUpperCase();
 }
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("MyActor");
 
-export const { runSteps } = myActor()
+export const { runSteps } = actor()
   .on("Command", "runSteps")
 
   .input({ message: "string" })
@@ -271,9 +271,9 @@ main();`,
   test("exports a wrapper with the original action binding name", () => {
     const source = `import { Actor, Step } from "../../src";
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("MyActor");
 
-export const { runSteps } = myActor()
+export const { runSteps } = actor()
   .on("Command", "Run steps")
 
   .input({ name: "string" })
@@ -301,9 +301,9 @@ export const { runSteps } = myActor()
   test("generates context-bound run and stream wrappers", () => {
     const source = `import { Actor, Step } from "../../src";
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("MyActor");
 
-export const { runSteps } = myActor()
+export const { runSteps } = actor()
   .on("Command", "Run steps")
 
   .input({ name: "string" })
@@ -336,9 +336,9 @@ export const { runSteps } = myActor()
     const source = `import { Browser } from "./browser";
 import { Actor, Step } from "../../src";
 
-const { myActor } = Actor("MyActor").use(Browser);
+const { actor } = Actor("MyActor").use(Browser);
 
-export const { runSteps } = myActor()
+export const { runSteps } = actor()
   .on("Command", "runSteps")
 
   .run(
@@ -372,9 +372,9 @@ export const { runSteps } = myActor()
     const source = `import { Browser } from "./browser";
 import { Actor, Step } from "../../src";
 
-const { myActor } = Actor("MyActor").use(Browser);
+const { actor } = Actor("MyActor").use(Browser);
 
-export const { runSteps } = myActor()
+export const { runSteps } = actor()
   .on("Command", "runSteps")
 
   .run(
@@ -409,9 +409,9 @@ export const { runSteps } = myActor()
   test("uses ArkType inference for input schemas", () => {
     const source = `import { Actor, Step } from "../../src";
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("MyActor");
 
-export const { runSteps } = myActor()
+export const { runSteps } = actor()
   .on("Command", "runSteps")
 
   .input({ name: "string", tags: "string[]", "age?": "number" })
@@ -433,9 +433,9 @@ export const { runSteps } = myActor()
   test("rewrites signals to the wire event bus", () => {
     const source = `import { Actor, Step } from "../../src";
 
-const { greeter } = Actor("Greeter");
+const { actor } = Actor("Greeter");
 
-export const { hello } = greeter()
+export const { hello } = actor()
   .on("Command", "hello")
 
   .input({ name: "string" })
@@ -462,9 +462,9 @@ async function loadGreeting(name: string) {
   return \`Hello \${name}\`;
 }
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("MyActor");
 
-export const { runSteps } = myActor()
+export const { runSteps } = actor()
   .on("Command", "runSteps")
 
   .input({ name: "string" })
@@ -494,9 +494,9 @@ async function loadTitle() {
   return "Hello";
 }
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("MyActor");
 
-export const { runSteps } = myActor()
+export const { runSteps } = actor()
   .on("Command", "runSteps")
 
   .run(
@@ -528,9 +528,9 @@ function loadGreeting(name: string) {
   return Promise.resolve(\`Hello \${name}\`);
 }
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("MyActor");
 
-export const { runSteps } = myActor()
+export const { runSteps } = actor()
   .on("Command", "runSteps")
 
   .input({ name: "string" })
@@ -562,16 +562,16 @@ export const { runSteps } = myActor()
       join(sourceDir, "greeter.ts"),
       `import { Actor } from "taskwish";
 
-export const { greeter } = Actor("Greeter");
+export const { actor } = Actor("Greeter");
 `
     );
     await writeFile(
       join(sourceDir, "hello.ts"),
       `"use server";
 
-import { greeter } from "./greeter";
+import { actor } from "./greeter";
 
-export const { hello } = greeter()
+export const { hello } = actor()
   .on("Command", "hello")
 
   .run(function () {
@@ -581,10 +581,10 @@ export const { hello } = greeter()
     );
     await writeFile(
       join(sourceDir, "index.ts"),
-      `import { greeter } from "./greeter";
+      `import { actor } from "./greeter";
 import { hello } from "./hello";
 
-export const { Greeter } = greeter().service({ hello });
+export const { Greeter } = actor().service({ hello });
 `
     );
 
@@ -615,16 +615,16 @@ import { Wire } from "@taskwish/wire";`
       join(greeterDir, "greeter.ts"),
       `import { Actor, Event } from "taskwish";
 
-export const { greeter } = Actor("Greeter").scope(
+export const { actor } = Actor("Greeter").scope(
   Event("Message", { name: "string" }),
 );
 `
     );
     await writeFile(
       join(greeterDir, "hello.ts"),
-      `import { greeter } from "./greeter";
+      `import { actor } from "./greeter";
 
-export const { hello } = greeter()
+export const { hello } = actor()
   .on("Command", "hello")
   .input({ name: "string" })
   .run(function () {
@@ -634,10 +634,10 @@ export const { hello } = greeter()
     );
     await writeFile(
       join(greeterDir, "index.ts"),
-      `import { greeter } from "./greeter";
+      `import { actor } from "./greeter";
 import { hello } from "./hello";
 
-export const { Greeter } = greeter().service({ hello });
+export const { Greeter } = actor().service({ hello });
 `
     );
     await writeFile(
@@ -645,14 +645,14 @@ export const { Greeter } = greeter().service({ hello });
       `import { Actor } from "taskwish";
 import { Greeter } from "../greeter";
 
-export const { biller } = Actor("Biller").use(Greeter);
+export const { actor } = Actor("Biller").use(Greeter);
 `
     );
     await writeFile(
       join(billerDir, "on-greeter-message.ts"),
-      `import { biller } from "./biller";
+      `import { actor } from "./biller";
 
-export const { onGreeterMessage } = biller()
+export const { onGreeterMessage } = actor()
   .on("Greeter::Message")
   .run(function () {
     return {
@@ -663,10 +663,10 @@ export const { onGreeterMessage } = biller()
     );
     await writeFile(
       join(billerDir, "index.ts"),
-      `import { biller } from "./biller";
+      `import { actor } from "./biller";
 import { onGreeterMessage } from "./on-greeter-message";
 
-export const { Biller } = biller().service({ onGreeterMessage });
+export const { Biller } = actor().service({ onGreeterMessage });
 `
     );
 

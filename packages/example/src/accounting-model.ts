@@ -1,7 +1,7 @@
 import { Int, Model } from "@taskwish/symbolic";
 import { Actor, Step } from "taskwish";
 
-const { accounting } = Actor("Accounting").scope(
+const { actor } = Actor("Accounting").scope(
   Int(
     "grossRevenue",
     "refunds",
@@ -10,7 +10,7 @@ const { accounting } = Actor("Accounting").scope(
     "operatingExpenses",
     "taxableIncome",
     "tax",
-    "netIncome",
+    "netIncome"
   ),
 
   Model(
@@ -21,11 +21,11 @@ const { accounting } = Actor("Accounting").scope(
     ({ netRevenue, costOfGoods, operatingExpenses, taxableIncome }) =>
       taxableIncome == netRevenue - costOfGoods - operatingExpenses,
     ({ taxableIncome, tax }) => tax == taxableIncome / 5,
-    ({ taxableIncome, tax, netIncome }) => netIncome == taxableIncome - tax,
-  ),
+    ({ taxableIncome, tax, netIncome }) => netIncome == taxableIncome - tax
+  )
 );
 
-export const { forecast } = accounting()
+export const { forecast } = actor()
   .on("Command", "forecast")
 
   .run(
@@ -36,7 +36,7 @@ export const { forecast } = accounting()
         costOfGoods: 45000,
         operatingExpenses: 25000,
       });
-    }),
+    })
   );
 
-export const { Accounting } = accounting().service({ forecast });
+export const { Accounting } = actor().service({ forecast });
