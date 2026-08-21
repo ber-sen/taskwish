@@ -27,6 +27,7 @@ export type ConsoleAction = {
   actor: string;
   action: string;
   label: string;
+  mode?: "form" | "chat";
   description?: string;
   color: string;
   route: string;

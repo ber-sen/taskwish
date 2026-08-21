@@ -5,10 +5,10 @@ export const Pipeline = {} as Steps<{}, ScopeResultKind>;
 
 const SpeechToText: <
   const Name extends string,
-  Ctx extends Record<string, any>,
+  Ctx extends Record<string, any>
 >(
   name: Name,
-  args: any,
+  args: any
 ) => {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
@@ -22,10 +22,10 @@ const SpeechToText: <
 
 const TextToSpeech: <
   const Name extends string,
-  Ctx extends Record<string, any>,
+  Ctx extends Record<string, any>
 >(
   name: Name,
-  args: any,
+  args: any
 ) => {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
@@ -45,18 +45,18 @@ const VoiceCall = Trait({
   onConnect: <Result>(input: { sessionId: string }) => Result;
 }>();
 
-const { assistant } = Actor("Assistant");
+const { actor } = Actor("Assistant");
 
-export const { onVoiceCallConnect } = assistant()
+export const { onVoiceCallConnect } = actor()
   .on(VoiceCall.Connect)
 
   .run(
     Step("log", function () {
       console.log(this.input);
-    }),
+    })
   );
 
-export const { voiceCall } = assistant()
+export const { voiceCall } = actor()
   .on(VoiceCall)
 
   .run(
@@ -69,11 +69,11 @@ export const { voiceCall } = assistant()
       }),
       TextToSpeech("speech", {
         model: "sadasd",
-      }),
-    ),
+      })
+    )
   );
 
-export const { Assistant } = assistant().service({
+export const { Assistant } = actor().service({
   onVoiceCallConnect,
   voiceCall,
 });

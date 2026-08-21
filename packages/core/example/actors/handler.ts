@@ -1,8 +1,8 @@
 import { Actor } from "../../src";
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("Example");
 
-export const { handle } = myActor()
+export const { handle } = actor()
   .on("Command", "handle")
 
   .run(function () {
@@ -12,4 +12,4 @@ export const { handle } = myActor()
     });
   });
 
-export const { MyActor } = myActor().service({ handle });
+export const { Example } = actor().service({ handle });

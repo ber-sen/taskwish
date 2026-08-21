@@ -1,17 +1,17 @@
 import { Actor, Agent, Desc, Step, Tool, Type } from "../../src";
 import { Coordinator } from "../../src/coordinator";
 
-const { handler } = Actor(Coordinator("Handler"));
+const { actor } = actor(Coordinator("Handler"));
 
-export const { chat } = handler()
+export const { chat } = actor()
   .action("chat")
 
   .input({ prompt: "string" })
 
   .run(
     Step("run", function () {
-      return this.input
-    }),
+      return this.input;
+    })
   );
 
-export const { Handler } = handler().service({ chat });
+export const { Handler } = actor().service({ chat });

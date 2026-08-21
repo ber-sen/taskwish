@@ -1,4 +1,4 @@
-import { hackerNews } from "./hacker-news";
+import { actor } from "./hacker-news";
 import { openFirstPage } from "./open-first-page";
 
-export const { HackerNews } = hackerNews().service({ openFirstPage });
+export const { HackerNews } = actor().service({ openFirstPage });

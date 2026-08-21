@@ -2,7 +2,7 @@ import type { Control, UseFormRegister } from "react-hook-form";
 
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Textarea } from "../ui/textarea";
+import { PromptInputTextarea } from "../ai-elements/prompt-input";
 import {
   enumValue,
   fieldPlaceholder,
@@ -60,7 +60,7 @@ export function ActionInputField({
           disabled={disabled}
           autoFocus={autoFocus}
           {...register(field.name)}
-          className="flex h-[38px] w-full rounded-md border border-input bg-transparent px-2 py-1 text-base transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-[38px] w-full rounded-md border border-input bg-transparent px-2 py-1 text-base transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {!field.required ? <option value="">Select...</option> : null}
           {enumValues.map((value) => (
@@ -122,7 +122,7 @@ export function ActionInputField({
   return (
     <div className="space-y-2">
       {label}
-      <Textarea
+      <PromptInputTextarea
         id={id}
         placeholder={fieldPlaceholder(field)}
         className="min-h-[110px] resize-none"

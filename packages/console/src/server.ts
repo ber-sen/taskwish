@@ -89,6 +89,7 @@ function uppercaseFirst(value: string): string {
 }
 
 function isVisibleAction(action: ConsoleAction): boolean {
+  if (action.mode === "chat") return true;
   return !action.action.toLowerCase().startsWith("on");
 }
 
@@ -109,7 +110,7 @@ function isArkSchemaString(value: string): boolean {
 }
 
 function jsonSchemaFromArkSchema(
-  schema: unknown
+  schema: unknown,
 ): ConsoleJsonSchema | undefined {
   if (schema === undefined) return undefined;
 
@@ -122,7 +123,7 @@ function jsonSchemaFromArkSchema(
 
 function fieldExample(
   schema: ConsoleJsonSchema | undefined,
-  metadata: Record<string, unknown> | undefined
+  metadata: Record<string, unknown> | undefined,
 ): unknown {
   if (metadata && "example" in metadata) return metadata.example;
   return schema?.examples?.[0];
@@ -135,7 +136,7 @@ function fieldDefaultValue(schema: ConsoleJsonSchema | undefined): unknown {
 function fieldDescription(
   schema: ConsoleJsonSchema | undefined,
   meta: unknown,
-  metadata: Record<string, unknown> | undefined
+  metadata: Record<string, unknown> | undefined,
 ): string | undefined {
   if (metadata && typeof metadata.description === "string") {
     return metadata.description;
@@ -166,7 +167,7 @@ function fieldFromMeta(name: string, meta: unknown): ConsoleInputField {
 
 function fieldsFromJsonSchema(
   schema: ConsoleJsonSchema | undefined,
-  metadata: Record<string, unknown>
+  metadata: Record<string, unknown>,
 ): ConsoleInputField[] {
   if (!schema) return [];
 
@@ -199,24 +200,24 @@ function fieldsFromJsonSchema(
 }
 
 function inputFieldsFromActionMeta(
-  meta: Record<string, unknown>
+  meta: Record<string, unknown>,
 ): ConsoleInputField[] {
   const input = meta.input;
   if (!isRecord(input)) return [];
 
   return Object.entries(input).map(([name, field]) =>
-    fieldFromMeta(name, field)
+    fieldFromMeta(name, field),
   );
 }
 
 function actionInputMetadata(
-  meta: Record<string, unknown>
+  meta: Record<string, unknown>,
 ): Record<string, unknown> {
   return isRecord(meta.input) ? meta.input : {};
 }
 
 function inputFieldsFromRouteMeta(
-  meta: Record<string, unknown>
+  meta: Record<string, unknown>,
 ): ConsoleInputField[] {
   const route = meta.route;
   if (!Array.isArray(route)) return [];
@@ -237,7 +238,7 @@ function inputFieldsFromRouteMeta(
 }
 
 function inputSchemaFromRouteMeta(
-  meta: Record<string, unknown>
+  meta: Record<string, unknown>,
 ): ConsoleJsonSchema | undefined {
   const route = meta.route;
   if (!Array.isArray(route)) return undefined;
@@ -283,13 +284,18 @@ function descriptionForMeta(meta: Record<string, unknown>): string | undefined {
   return undefined;
 }
 
+function isMessageEventAction(meta: Record<string, unknown>): boolean {
+  return meta.event === "Message";
+}
+
 function describeAction(
   actionName: string,
   action: Action,
-  routePrefix: string
+  routePrefix: string,
 ): ConsoleAction {
   const { actor, action: method, label } = actionParts(actionName);
   const meta = metaForAction(action);
+  const chatAction = isMessageEventAction(meta);
   const inputSchema =
     jsonSchemaFromArkSchema(inputSchemaForAction(action)) ??
     inputSchemaFromRouteMeta(meta);
@@ -300,8 +306,9 @@ function describeAction(
   return {
     id: actionName,
     actor,
-    action: method,
-    label: uppercaseFirst(label),
+    action: chatAction ? "chat" : method,
+    label: chatAction ? "Chat" : uppercaseFirst(label),
+    mode: chatAction ? "chat" : "form",
     description: descriptionForMeta(meta),
     color: actorColor(actor),
     route: routePathForAction(routePrefix, actionName),
@@ -314,7 +321,7 @@ function describeAction(
 
 export function consoleConfig(
   registry: NodeRegistry,
-  options: { nodeName: string; apiKey: string; prefix: string }
+  options: { nodeName: string; apiKey: string; prefix: string },
 ): ConsoleConfig {
   return {
     nodeName: options.nodeName,
@@ -322,20 +329,20 @@ export function consoleConfig(
     apiPrefix: options.prefix,
     actions: Array.from(registry.actions)
       .map(([actionName, action]) =>
-        describeAction(actionName, action, options.prefix)
+        describeAction(actionName, action, options.prefix),
       )
       .filter(isVisibleAction)
       .sort((left, right) =>
         `${left.actor} ${left.label}`.localeCompare(
-          `${right.actor} ${right.label}`
-        )
+          `${right.actor} ${right.label}`,
+        ),
       ),
   };
 }
 
 export function createConsoleRoutes(
   registry: NodeRegistry,
-  options: { nodeName: string; apiKey: string; prefix: string }
+  options: { nodeName: string; apiKey: string; prefix: string },
 ): NodeRoutes {
   const config: NodeRouteHandler = () =>
     json(200, consoleConfig(registry, options));
@@ -354,7 +361,7 @@ function isInteractiveTerminal(): boolean {
 }
 
 async function shouldOpenBrowser(
-  openBrowser: ConsoleOptions["openBrowser"]
+  openBrowser: ConsoleOptions["openBrowser"],
 ): Promise<boolean> {
   if (openBrowser === true) return true;
   if (openBrowser === false) return false;

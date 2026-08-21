@@ -5,7 +5,7 @@ export interface OptionSubSteps {
     const Value extends Ctx["scope"]["$match"],
     Ctx extends Record<any, any>,
     Options,
-    A,
+    A
   >(
     options: Value,
     step: {
@@ -14,9 +14,9 @@ export interface OptionSubSteps {
           Record<
             "scope",
             Omit<Ctx["scope"], "matched"> & Record<"matched", Value>
-          >,
+          >
       ) => A;
-    },
+    }
   ): {
     [TW.Step]: (input: Ctx) => A;
   };
@@ -25,7 +25,7 @@ export interface OptionSubSteps {
     Ctx extends Record<any, any>,
     Options,
     A,
-    B,
+    B
   >(
     options: ((scope: Ctx["scope"]) => Options) | object,
     step1: {
@@ -34,12 +34,12 @@ export interface OptionSubSteps {
           Record<
             "scope",
             Omit<Ctx["scope"], "matched"> & Record<"matched", Value>
-          >,
+          >
       ) => A;
     },
     step2: {
       [TW.Step]: (input: A) => B;
-    },
+    }
   ): {
     [TW.Step]: (input: Ctx) => B;
   };
@@ -49,7 +49,7 @@ export interface OptionSubSteps {
     A,
     B,
     C,
-    const Value extends Ctx["scope"]["$match"],
+    const Value extends Ctx["scope"]["$match"]
   >(
     options: ((scope: Ctx["scope"]) => Options) | object,
     step1: {
@@ -58,7 +58,7 @@ export interface OptionSubSteps {
           Record<
             "scope",
             Omit<Ctx["scope"], "matched"> & Record<"matched", Value>
-          >,
+          >
       ) => A;
     },
     step2: {
@@ -66,14 +66,14 @@ export interface OptionSubSteps {
     },
     step3: {
       [TW.Step]: (input: B) => C;
-    },
+    }
   ): {
     [TW.Step]: (input: Ctx) => C & Record<"options", Options>;
   };
 }
 
 const Match: (<const Value, const Ctx extends Record<any, any>>(
-  fn: (scope: Ctx["scope"]) => Value,
+  fn: (scope: Ctx["scope"]) => Value
 ) => {
   [TW.Step]: (ctx: Ctx) => {
     name: Ctx["name"];
@@ -85,9 +85,9 @@ const Match: (<const Value, const Ctx extends Record<any, any>>(
   };
 }) & { on: OptionSubSteps } = {} as never;
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("Example");
 
-export const { match } = myActor()
+export const { match } = actor()
   .on("Command", "match")
 
   .input({ type: "string" })
@@ -104,7 +104,7 @@ export const { match } = myActor()
 
       Step("case1", function () {
         return this.matched;
-      }),
+      })
     ),
 
     Match.on(
@@ -112,16 +112,16 @@ export const { match } = myActor()
 
       Step("case2", function () {
         return this.matched;
-      }),
+      })
     ),
 
     Step("end", function () {
-      return this.case1
-    }),
+      return this.case1;
+    })
   );
 
-  type A = { lorem: 3} | { ipsum: 2 } 
+type A = { lorem: 3 } | { ipsum: 2 };
 
-  type B = Extract<A, { ipsum: 2 }>
+type B = Extract<A, { ipsum: 2 }>;
 
-export const { MyActor } = myActor().service({ match });
+export const { Example } = actor().service({ match });

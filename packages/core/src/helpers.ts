@@ -11,7 +11,7 @@ import type { Signal, Trace } from "@taskwish/wire";
  */
 export type FindInferTypeFilter<Plugins> = Plugins extends readonly [
   infer Head,
-  ...infer Tail,
+  ...infer Tail
 ]
   ? Head extends InferTypeConfig<infer F>
     ? F
@@ -25,7 +25,7 @@ export type DeepWriteable<T> = {
 } & {};
 
 export type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
-  T,
+  T
 >() => T extends Y ? 1 : 2
   ? true
   : false;
@@ -85,12 +85,12 @@ export type ToSnakeCase<T extends string> = T extends Uppercase<T>
 
 export type QualifiedActionName<
   Service extends string,
-  Name extends string,
+  Name extends string
 > = `${Service}::${ToSnakeCase<Name>}`;
 
 export type QualifiedEventName<
   Actor extends string,
-  Name extends string,
+  Name extends string
 > = `${Actor}::${Name}`;
 
 export function toSnakeCaseName(name: string): string {
@@ -104,7 +104,7 @@ export function toSnakeCaseName(name: string): string {
 
 export function toCamelCaseName(name: string): string {
   return name.replace(/[_-\s.]+([a-zA-Z0-9])/g, (_, ch: string) =>
-    ch.toUpperCase(),
+    ch.toUpperCase()
   );
 }
 
@@ -117,7 +117,7 @@ export function qualifyEventName(actor: string, name: string): string {
 }
 
 export function splitQualifiedActionName(
-  fullName: string,
+  fullName: string
 ): { service: string; method: string } | null {
   const sepIdx = fullName.indexOf("::");
   if (sepIdx !== -1) {
@@ -165,7 +165,7 @@ type AddOp<Op extends string, T> = T extends string[]
 
 type RemoveEndOps<
   T extends readonly string[],
-  A extends string[] = [],
+  A extends string[] = []
 > = T extends [infer H extends string, ...infer Rest extends string[]]
   ? H extends ":end"
     ? RemoveEndOps<Rest, A extends [...infer X extends string[], any] ? X : []>
@@ -174,7 +174,7 @@ type RemoveEndOps<
 
 type ApplyOps<O extends readonly string[], R> = O extends [
   ...infer Rest extends string[],
-  infer Last extends string,
+  infer Last extends string
 ]
   ? Last extends ":loop"
     ? ApplyOps<Rest, R[]>
@@ -205,7 +205,7 @@ export type DeepOptionalString<T> = {
 
 export async function standardValidate<T extends StandardSchemaV1>(
   schema: T,
-  input: StandardSchemaV1.InferInput<T>,
+  input: StandardSchemaV1.InferInput<T>
 ): Promise<StandardSchemaV1.InferOutput<T>> {
   let result = schema["~standard"].validate(input);
   if (result instanceof Promise) result = await result;
@@ -224,7 +224,7 @@ export type UUIDv5String = `${string}-${string}-5${string}-${string}-${string}`;
 
 export type ValidateSchema<
   Schema,
-  Scope = {},
+  Scope = {}
 > = Schema extends StandardSchemaV1<any>
   ? Schema
   : type.validate<Schema, Scope>;
@@ -281,7 +281,7 @@ export type InferTriggerScope<Schema> = Schema extends Signal<
 
 export type Apply<
   F extends TW.Handler,
-  ctx extends Record<any, any>,
+  ctx extends Record<any, any>
 > = NonNullable<
   (F & {
     readonly ctx: ctx;
@@ -339,7 +339,7 @@ type QualifiedActionParts<N extends string> = N extends `${infer S}::${infer M}`
   : never;
 
 type HasQualifiedActionService<N extends string> = [
-  QualifiedActionParts<N>,
+  QualifiedActionParts<N>
 ] extends [never]
   ? false
   : QualifiedActionParts<N> extends [infer S extends string, string]
@@ -349,17 +349,17 @@ type HasQualifiedActionService<N extends string> = [
   : false;
 
 type DirectActionName<N extends string> = [QualifiedActionParts<N>] extends [
-  never,
+  never
 ]
   ? N
   : QualifiedActionParts<N> extends ["", infer M extends string]
   ? M
   : never;
 
-/** "Slack::post_message" → "slack" */
+/** "Slack::post_message" → "postMessage" */
 export type ActionService<N extends string> = QualifiedActionParts<N> extends [
   infer S extends string,
-  string,
+  string
 ]
   ? S extends ""
     ? never
@@ -369,7 +369,7 @@ export type ActionService<N extends string> = QualifiedActionParts<N> extends [
 /** "Slack::post_message" → "postMessage" */
 export type ActionMethod<N extends string> = QualifiedActionParts<N> extends [
   string,
-  infer M extends string,
+  infer M extends string
 ]
   ? M
   : N;
@@ -379,13 +379,13 @@ type ExposedAction<T> = T extends {
 }
   ? Run
   : T extends {
-  stream: infer Stream extends (...args: any[]) => any;
-}
+      stream: infer Stream extends (...args: any[]) => any;
+    }
   ? Stream
   : T;
 
 export type ActionRecordName<N extends string> = [
-  QualifiedActionParts<N>,
+  QualifiedActionParts<N>
 ] extends [never]
   ? N
   : QualifiedActionParts<N> extends [string, infer M extends string]
@@ -416,7 +416,8 @@ export type GroupActions<M> =
           : never
         : never]: ExposedAction<M[K]>;
     };
-  } & { // Flat names → { name: T } (directly callable)
+  } & {
+    // Flat names → { name: T } (directly callable)
     [K in keyof M as ExtractActionName<M[K]> extends infer N extends string
       ? DirectActionName<N>
       : never]: ExposedAction<M[K]>;
@@ -468,8 +469,8 @@ type DefaultContextActionKeys = "generateText";
 type DeepPartialContext<T> = T extends (...args: any[]) => any
   ? T
   : T extends object
-    ? { [K in keyof T]?: DeepPartialContext<T[K]> }
-    : T;
+  ? { [K in keyof T]?: DeepPartialContext<T[K]> }
+  : T;
 
 export type ActionContextScope<Scope> = Scope extends {
   actions: infer Actions;
@@ -483,8 +484,9 @@ export type ActionContextScope<Scope> = Scope extends {
       }
   : {};
 
-export type ActionCtx<Scope> = { abortSignal?: TW.Configurable<AbortSignal> } &
-  ActionContextScope<Scope>;
+export type ActionCtx<Scope> = {
+  abortSignal?: TW.Configurable<AbortSignal>;
+} & ActionContextScope<Scope>;
 
 export type StreamInput<Handler extends (...args: any) => any> =
   Parameters<Handler> extends []

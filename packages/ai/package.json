@@ -26,8 +26,10 @@
     "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --no-cache"
   },
   "dependencies": {
-    "@taskwish/core": "workspace:*",
+    "@agentclientprotocol/codex-acp": "^1.3.0",
+    "@agentclientprotocol/sdk": "^1.3.0",
     "@standard-schema/spec": "^1.0.0",
+    "@taskwish/core": "workspace:*",
     "arktype": "^2.1.23"
   },
   "devDependencies": {

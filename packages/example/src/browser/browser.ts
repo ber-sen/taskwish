@@ -1,3 +1,3 @@
 import { Actor } from "taskwish";
 
-export const { browser } = Actor("Browser");
+export const { actor } = Actor("Browser");

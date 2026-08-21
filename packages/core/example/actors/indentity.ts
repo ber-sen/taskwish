@@ -1,9 +1,9 @@
 import { Actor, Step, Struct } from "../../src";
 import { Browser } from "./browser";
 
-const { myActor } = Actor("MyActor");
+const { actor } = Actor("Example");
 
-export const { runSteps } = myActor()
+export const { runSteps } = actor()
   .on("Command", "runSteps")
 
   .input({ message: "string" })
@@ -32,12 +32,12 @@ export const { runSteps } = myActor()
         commentsURL: "string",
       }),
 
-      Browser.Extract("news", "NewsItem[] >= 5"),
+      Browser.Extract("news", "NewsItem[] >= 5")
     ),
 
     Step("end", function () {
       return this;
-    }),
+    })
   );
 
-export const { MyActor } = myActor().service({ runSteps });
+export const { Example } = actor().service({ runSteps });

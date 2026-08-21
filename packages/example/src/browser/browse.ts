@@ -5,13 +5,14 @@ import { join } from "node:path";
 import { chromium, type BrowserContext } from "playwright-core";
 import { Step } from "taskwish";
 
-import { browser } from "./browser";
+import { actor } from "./browser";
 
 let browserContext: BrowserContext | null = null;
 
 async function getBrowserContext() {
   const browserProfileDir =
-    process.env.TASKWISH_BROWSER_PROFILE ?? join(homedir(), ".taskwish", "browser");
+    process.env.TASKWISH_BROWSER_PROFILE ??
+    join(homedir(), ".taskwish", "browser");
 
   const browserChannel = process.env.TASKWISH_BROWSER_CHANNEL ?? "chrome";
 
@@ -42,7 +43,7 @@ export async function closeBrowserContext() {
   return { closed: true };
 }
 
-export const { browse } = browser()
+export const { browse } = actor()
   .on("Command", "browse")
 
   .input({ url: "string" })
@@ -55,5 +56,5 @@ export const { browse } = browser()
       await page.goto(this.input.url, { waitUntil: "domcontentloaded" });
 
       return page;
-    }),
+    })
   );

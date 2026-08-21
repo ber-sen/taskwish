@@ -1,12 +1,12 @@
 "use server";
 
-import { biller } from "./biller";
+import { actor } from "./biller";
 
-export const { onGreeterMessage } = biller()
+export const { onGreeterMessage } = actor()
   .on("Greeter::Message")
 
   .run(function () {
     return {
-      invoice: `Invoice created from greeter message: ${this.input.name}`,
+      invoice: `Invoice created from Greeter message: ${this.input.name}`,
     };
   });

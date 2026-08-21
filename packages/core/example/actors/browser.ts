@@ -7,17 +7,16 @@ export const Browser: Steps<typeof SubSteps> & {
   };
   Extract: <Ctx extends Record<any, any>, const Schema>(
     name: string,
-    schema: ValidateSchema<Schema, PrettyScope<Ctx["scope"]>>,
+    schema: ValidateSchema<Schema, PrettyScope<Ctx["scope"]>>
   ) => {
     [TW.Step]: (ctx: Ctx) => Ctx;
   };
-  
 } = {} as never;
 
-export const { browserActor } = Actor("BrowserActor");
+export const { actor } = Actor("BrowserActor");
 
-browserActor()
-  .on("NewMessage")
+actor()
+  .on("BrowserActor")
 
   .run(
     Step("first step", function () {
@@ -25,10 +24,10 @@ browserActor()
         channel: "#general",
         message: "Hello World",
       });
-    }),
+    })
   );
 
-export const { browse } = browserActor()
+export const { browse } = actor()
   .on("Command", "browse")
 
   .input({ name: "string" })
@@ -52,12 +51,12 @@ export const { browse } = browserActor()
         commentsURL: "string",
       }),
 
-      Browser.Extract("news", "NewsItem[] <= 5"),
+      Browser.Extract("news", "NewsItem[] <= 5")
     ),
 
     Step("last step", function () {
       return this.NewsItem;
-    }),
+    })
   );
 
-export const { BrowserActor } = browserActor().service({ browse });
+export const { BrowserActor } = actor().service({ browse });

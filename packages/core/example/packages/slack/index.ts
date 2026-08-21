@@ -1,9 +1,9 @@
 import message from "./events/message";
 
-const slack = {
+const SlackActor = {
   events: {
     message,
   },
 };
 
-export default slack
+export default SlackActor;
