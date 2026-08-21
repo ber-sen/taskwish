@@ -530,7 +530,7 @@ export function ActionResult({
 
   return (
     <Conversation className={cn("relative min-h-0 flex-1", className)}>
-      <ConversationContent className="space-y-4 px-0 py-4 pb-12">
+      <ConversationContent className="space-y-4 px-4 py-4 pb-12">
         <Message from="user">
           <div className="self-end text-[11px] font-semibold text-muted-foreground">
             Input

@@ -1303,9 +1303,6 @@
   .p-\[1px\] {
     padding: 1px;
   }
-  .px-0 {
-    padding-inline: 0px;
-  }
   .px-1 {
     padding-inline: var(--spacing);
   }
