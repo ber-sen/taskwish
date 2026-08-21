@@ -108,13 +108,15 @@ export function ActionDrawerHeader({
         </DrawerClose>
       </div>
       {!collapsed && (
-        <div className="flex items-center gap-3 text-sm font-semibold text-foreground/80">
+        <div className="-ml-2 -mt-2 flex items-center gap-3 text-sm font-semibold text-foreground/80">
           <ActorArtwork name={action.actor} />
         </div>
       )}
       <div className="flex gap-3">
         {collapsed && (
-          <ActorArtwork name={action.actor} className="h-10 w-10 shrink-0" />
+          <div className="-ml-2 shrink-0">
+            <ActorArtwork name={action.actor} className="h-[50px] w-[50px] shrink-0" />
+          </div>
         )}
         <div className="flex min-w-0 flex-col gap-0.5">
           <DrawerTitle className="truncate">{actionTitle(action)}</DrawerTitle>
