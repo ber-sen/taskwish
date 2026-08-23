@@ -6,22 +6,30 @@ import {
   type CodexPromptInput,
   type CodexPromptOptions,
 } from "./codex-agent";
+import { FxAgent, type FxAgentOptions } from "./fx-agent";
 import type { CamelCase } from "./helpers";
 
-type AgentProvider = "codex";
+type AgentProvider = "codex" | "fx";
 type AgentName = "agent";
 
-export type AgentOptions = CodexAgentOptions & {
-  provider: AgentProvider;
+type CodexAgentProviderOptions = CodexAgentOptions & {
+  provider: "codex";
   name?: string;
 };
+
+type FxAgentProviderOptions = FxAgentOptions & {
+  provider: "fx";
+  name?: string;
+};
+
+export type AgentOptions = CodexAgentProviderOptions | FxAgentProviderOptions;
 
 export type AgentOptionsFactory<Scope = any> = (scope: Scope) => AgentOptions;
 
 export interface AgentRuntime {
   readonly name: string;
   readonly provider: AgentProvider;
-  readonly client: CodexAgent;
+  readonly client: CodexAgent | FxAgent;
   ask(input?: string | CodexAskOptions): AsyncGenerator<string, string>;
   message(content: string): AsyncGenerator<string, string>;
   message(threadId: string, content: string): AsyncGenerator<string, string>;
@@ -82,8 +90,8 @@ export function Agent(first: unknown, second?: unknown) {
         ? optionsOrFactory(scope)
         : optionsOrFactory;
 
-    if (!options || options.provider !== "codex") {
-      throw new Error('Agent provider must be "codex".');
+    if (!options || (options.provider !== "codex" && options.provider !== "fx")) {
+      throw new Error('Agent provider must be "codex" or "fx".');
     }
 
     runtime = createAgentRuntime({
@@ -110,7 +118,11 @@ export function Agent(first: unknown, second?: unknown) {
 }
 
 function createAgentRuntime(options: AgentOptions): AgentRuntime {
-  const client = new CodexAgent(options);
+  const createClient =
+    options.provider === "fx"
+      ? (opts: AgentOptions) => new FxAgent(opts as FxAgentOptions)
+      : (opts: AgentOptions) => new CodexAgent(opts as CodexAgentOptions);
+  const client = createClient(options);
   const threadClients = new Map<string, CodexAgent>();
 
   const clientForThread = (threadId: string | undefined) => {
@@ -118,7 +130,7 @@ function createAgentRuntime(options: AgentOptions): AgentRuntime {
 
     let threadClient = threadClients.get(threadId);
     if (!threadClient) {
-      threadClient = new CodexAgent(options);
+      threadClient = createClient(options);
       threadClients.set(threadId, threadClient);
     }
     return threadClient;
@@ -126,7 +138,7 @@ function createAgentRuntime(options: AgentOptions): AgentRuntime {
 
   return {
     name: options.name ?? "agent",
-    provider: "codex",
+    provider: options.provider,
     client,
 
     async *ask(input?: string | CodexAskOptions) {

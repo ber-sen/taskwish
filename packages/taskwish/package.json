@@ -25,6 +25,7 @@
     "build": "bun ../../scripts/build-package.ts"
   },
   "dependencies": {
+    "@taskwish/ai": "^0.0.2",
     "@taskwish/core": "^0.0.6",
     "@taskwish/expr": "^0.0.2",
     "@taskwish/node": "^0.0.3"

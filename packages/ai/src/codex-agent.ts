@@ -29,6 +29,12 @@ export type CodexPermissionHandler = (
 
 export type CodexAgentMode = "read-only" | "agent" | "agent-full-access";
 
+/**
+ * ACP session modes. Codex uses {@link CodexAgentMode}; other ACP servers
+ * (e.g. fx) expose their own mode identifiers, so the value is kept open.
+ */
+export type AgentMode = CodexAgentMode | (string & {});
+
 export type CodexPromptInput =
   | string
   | acp.ContentBlock
@@ -82,7 +88,7 @@ export interface CodexPromptOptions {
 
 export interface CodexAskOptions extends Omit<CodexPromptOptions, "prompt"> {
   prompt: CodexPromptInput;
-  mode?: CodexAgentMode;
+  mode?: AgentMode;
 }
 
 export interface CodexPromptResult {
@@ -128,6 +134,15 @@ export class CodexAgent {
   constructor(options: CodexAgentOptions = {}) {
     this.options = options;
     this.name = options.name ?? "codex";
+  }
+
+  /**
+   * Default ACP mode applied by {@link CodexAgent.streamAsk} when no mode is
+   * provided. Overridden by providers whose read-only mode is named
+   * differently (e.g. fx uses "ask").
+   */
+  protected get defaultAskMode(): AgentMode {
+    return "read-only";
   }
 
   async connect(): Promise<acp.ClientConnection> {
@@ -189,7 +204,7 @@ export class CodexAgent {
     });
   }
 
-  async setMode(modeId: CodexAgentMode): Promise<acp.SetSessionModeResponse> {
+  async setMode(modeId: AgentMode): Promise<acp.SetSessionModeResponse> {
     const session = await this.createSession();
     const connection = await this.connect();
     return connection.agent.request(acp.methods.agent.session.setMode, {
@@ -275,7 +290,7 @@ export class CodexAgent {
   ): AsyncGenerator<string, string> {
     const options = typeof input === "string" ? { prompt: input } : input;
     await this.createSession({ newSession: options.newSession ?? true });
-    await this.setMode(options.mode ?? "read-only");
+    await this.setMode(options.mode ?? this.defaultAskMode);
     const stream = this.streamPrompt({
       ...options,
       newSession: false,
@@ -340,14 +355,8 @@ export class CodexAgent {
   }
 
   private async openConnection(): Promise<acp.ClientConnection> {
-    const command = this.options.command
-      ? { command: this.options.command, args: this.options.args ?? [] }
-      : resolveCodexAcpCommand();
-
-    const child = spawn(command.command, command.args, {
-      env: this.createEnv(),
-      stdio: ["pipe", "pipe", this.options.stderr ?? "pipe"],
-    });
+    const command = this.resolveCommand();
+    const child = spawn(command.command, command.args, this.spawnOptions());
 
     if (!child.stdin || !child.stdout) {
       child.kill();
@@ -434,6 +443,19 @@ export class CodexAgent {
     };
   }
 
+  protected spawnOptions(): Parameters<typeof spawn>[2] {
+    return {
+      env: this.createEnv(),
+      stdio: ["pipe", "pipe", this.options.stderr ?? "pipe"],
+    };
+  }
+
+  protected resolveCommand(): CodexAcpCommand {
+    return this.options.command
+      ? { command: this.options.command, args: this.options.args ?? [] }
+      : resolveCodexAcpCommand();
+  }
+
   private createEnv(): Record<string, string> {
     const env: Record<string, string> = {};
     for (const [key, value] of Object.entries(process.env)) {
@@ -472,7 +494,7 @@ export class CodexAgent {
     return env;
   }
 
-  private async applySessionDefaults(sessionId: acp.SessionId): Promise<void> {
+  protected async applySessionDefaults(sessionId: acp.SessionId): Promise<void> {
     const connection = await this.connect();
 
     if (this.options.model) {

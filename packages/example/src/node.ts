@@ -11,6 +11,7 @@ import { Streamer } from "./streamer";
 import { Greeter } from "./greeter";
 import { Biller } from "./biller";
 import { AIAgent } from "./ai-agent";
+import { FxAgent } from "./fx-agent";
 
 await Node("example", {
   apiKey: process.env.TW_API_KEY,
@@ -28,5 +29,6 @@ await Node("example", {
     PuzzleSolver,
     Accounting,
     AIAgent,
+    FxAgent,
   ],
 });

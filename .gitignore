@@ -1,4 +1,5 @@
 .turbo
+.types
 .scriptc/
 .bare/
 packages/example/cli
