@@ -1,6 +1,6 @@
 import { Actor, Agent, Step } from "taskwish";
 
-const { actor } = Actor("AIAgent").scope(
+const { actor } = Actor("CodexAgent").scope(
   Agent({
     provider: "codex",
     cwd: process.cwd(),
@@ -19,6 +19,6 @@ export const { chat } = actor()
     })
   );
 
-export const { AIAgent } = actor().service({
+export const { CodexAgent } = actor().service({
   chat,
 });

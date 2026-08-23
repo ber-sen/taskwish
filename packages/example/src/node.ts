@@ -10,7 +10,7 @@ import { Solver } from "./solver";
 import { Streamer } from "./streamer";
 import { Greeter } from "./greeter";
 import { Biller } from "./biller";
-import { AIAgent } from "./ai-agent";
+import { CodexAgent } from "./codex-agent";
 import { FxAgent } from "./fx-agent";
 
 await Node("example", {
@@ -28,7 +28,7 @@ await Node("example", {
     PipeSolver,
     PuzzleSolver,
     Accounting,
-    AIAgent,
+    CodexAgent,
     FxAgent,
   ],
 });
