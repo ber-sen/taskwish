@@ -165,7 +165,7 @@ export namespace TW {
   };
 
   export class IO {
-    // threadId!: Message.ThreadId;
+    // sessionId!: Message.SessionId;
     // senderId!: Message.IdentityId;
     // receiverId!: Message.IdentityId;
     // messages!: Message.Message<any, any>[];

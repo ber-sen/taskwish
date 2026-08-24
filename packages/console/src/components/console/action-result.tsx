@@ -29,7 +29,7 @@ type RunBubble = {
 
 const WIRE_TITLE_KEY = ">>";
 const WIRE_SIGNAL_KEY = "->";
-const WIRE_THREAD_KEY = "threadId";
+const WIRE_SESSION_KEY = "sessionId";
 
 type TraceTreeNode = {
   name: string;
@@ -182,7 +182,7 @@ function tracePayloadLine(data: Record<string, unknown>): string | null {
       ([key, value]) =>
         key !== WIRE_TITLE_KEY &&
         key !== WIRE_SIGNAL_KEY &&
-        key !== WIRE_THREAD_KEY &&
+        key !== WIRE_SESSION_KEY &&
         value !== undefined,
     ),
   );
@@ -228,7 +228,7 @@ function signalPayloadLine(data: Record<string, unknown>): string {
     Object.entries(data).filter(
       ([key, value]) =>
         key !== WIRE_SIGNAL_KEY &&
-        key !== WIRE_THREAD_KEY &&
+        key !== WIRE_SESSION_KEY &&
         value !== undefined,
     ),
   );
@@ -492,6 +492,16 @@ function inputBody(input: unknown): string {
 }
 
 function chatInputBody(input: unknown): string {
+  if (
+    input === null ||
+    input === undefined ||
+    (typeof input === "object" &&
+      !Array.isArray(input) &&
+      !Object.keys(input).length)
+  ) {
+    return "";
+  }
+
   if (input !== null && typeof input === "object" && !Array.isArray(input)) {
     for (const key of ["content", "prompt", "message", "text"]) {
       const value = (input as Record<string, unknown>)[key];
@@ -580,22 +590,25 @@ export function ActionResult({
               (bubble) => !chat || bubble.type !== "result",
             );
             const waiting = !run.result || run.result.streaming;
+            const chatInput = chat ? chatInputBody(run.input) : "";
             return [
-              <Message key={`${run.id}-input`} from="user">
-                {!chat ? (
-                  <div className="self-end text-[11px] font-semibold text-muted-foreground">
-                    Input
-                  </div>
-                ) : null}
-                <MessageContent
-                  className="space-y-2"
-                  style={{ overflowWrap: "anywhere" }}
-                >
-                  <MessageResponse className="text-primary-foreground">
-                    {chat ? chatInputBody(run.input) : inputBody(run.input)}
-                  </MessageResponse>
-                </MessageContent>
-              </Message>,
+              chat && !chatInput ? null : (
+                <Message key={`${run.id}-input`} from="user">
+                  {!chat ? (
+                    <div className="self-end text-[11px] font-semibold text-muted-foreground">
+                      Input
+                    </div>
+                  ) : null}
+                  <MessageContent
+                    className="space-y-2"
+                    style={{ overflowWrap: "anywhere" }}
+                  >
+                    <MessageResponse className="text-primary-foreground">
+                      {chat ? chatInput : inputBody(run.input)}
+                    </MessageResponse>
+                  </MessageContent>
+                </Message>
+              ),
               ...(bubbles.length
                 ? bubbles.map((bubble) =>
                     bubble.type === "yield" ? (

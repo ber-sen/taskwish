@@ -14,7 +14,14 @@ export const { chat } = actor()
 
   .run(
     Step("answer", function () {
-      return this.agent.message(this.input.threadId, this.input.content);
+      if (!this.input.content) return this.agent.chat();
+      if (!this.input.sessionId) {
+        throw new Error("Agent chat sessionId is required.");
+      }
+      return this.agent.chat({
+        sessionId: this.input.sessionId,
+        content: this.input.content,
+      });
     })
   );
 

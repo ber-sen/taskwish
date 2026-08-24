@@ -42,10 +42,22 @@ function toastResultDescription(result: ActionRunResult): string {
   }`;
 }
 
-function createChatThreadId(): string {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+function actionResultValue(result: ActionRunResult): unknown {
+  const resultEvent = result.events
+    ?.slice()
+    .reverse()
+    .find((event) => event.type === "result");
+  return resultEvent ? resultEvent.data : result.body;
+}
+
+function sessionIdFromResult(result: ActionRunResult | null): string | null {
+  if (!result?.ok) return null;
+  const value = actionResultValue(result);
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+    const sessionId = (value as Record<string, unknown>).sessionId;
+    if (typeof sessionId === "string" && sessionId) return sessionId;
+  }
+  return null;
 }
 
 export type ActionFormHandle = {
@@ -80,13 +92,15 @@ export const ActionForm = forwardRef<
   const [result, setResult] = useState<ActionRunResult | null>(null);
   const [submittedPayload, setSubmittedPayload] = useState<unknown>(null);
   const [isChatMode, setIsChatMode] = useState(false);
-  const [chatThreadId, setChatThreadId] = useState(createChatThreadId);
+  const [chatSessionId, setChatSessionId] = useState<string | null>(null);
   const [chatRuns, setChatRuns] = useState<
     { id: string; input: unknown; result: ActionRunResult | null }[]
   >([]);
   const [showOptionalFields, setShowOptionalFields] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const chatTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const suppressSubmitRef = useRef(false);
+  const chatSessionInitRef = useRef(false);
   const onChatModeChangeRef = useRef(onChatModeChange);
   const onRunStateChangeRef = useRef(onRunStateChange);
   const form = useForm<CommandFormValues>({
@@ -110,8 +124,9 @@ export const ActionForm = forwardRef<
     setResult(null);
     setSubmittedPayload(null);
     setIsChatMode(chatAction);
-    setChatThreadId(createChatThreadId());
+    setChatSessionId(null);
     setChatRuns([]);
+    chatSessionInitRef.current = false;
     onChatModeChangeRef.current?.(chatAction);
     onRunStateChangeRef.current?.(false);
     setShowOptionalFields(false);
@@ -139,40 +154,104 @@ export const ActionForm = forwardRef<
   const commandName = actionTitle(action);
   const chatAction = isChatAction(action);
 
-  const runPayload = async (
-    payload: unknown,
-    options: {
-      onResult: (result: ActionRunResult) => void;
-      signal: AbortSignal;
-    }
-  ) => {
-    const response = await fetch(action.route, {
-      method: "POST",
-      headers: {
-        Accept: "text/event-stream, application/json",
-        Authorization: `Bearer ${config.apiKey}`,
-        "Content-Type": "application/json",
-        wire: "commander",
-      },
-      signal: options.signal,
-      body: JSON.stringify(payload),
-    });
+  const runPayload = useCallback(
+    async (
+      payload: unknown,
+      options: {
+        onResult: (result: ActionRunResult) => void;
+        signal: AbortSignal;
+      }
+    ) => {
+      const response = await fetch(action.route, {
+        method: "POST",
+        headers: {
+          Accept: "text/event-stream, application/json",
+          Authorization: `Bearer ${config.apiKey}`,
+          "Content-Type": "application/json",
+          wire: "commander",
+        },
+        signal: options.signal,
+        body: JSON.stringify(payload),
+      });
 
-    let finalResult: ActionRunResult | null = null;
-    for await (const result of streamActionResponse(response)) {
-      finalResult = result;
-      options.onResult(result);
+      let finalResult: ActionRunResult | null = null;
+      for await (const result of streamActionResponse(response)) {
+        finalResult = result;
+        options.onResult(result);
+      }
+      return finalResult;
+    },
+    [action.route, config.apiKey]
+  );
+
+  useEffect(() => {
+    if (
+      !chatAction ||
+      !isChatMode ||
+      chatSessionId ||
+      chatSessionInitRef.current
+    ) {
+      return;
     }
-    return finalResult;
-  };
+
+    chatSessionInitRef.current = true;
+    setIsRunning(true);
+    onRunStateChangeRef.current?.(true);
+    setError(null);
+
+    let sessionCreated = false;
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    void runPayload(
+      {},
+      {
+        signal: abortController.signal,
+        onResult: () => {},
+      }
+    )
+      .then((finalResult) => {
+        const sessionId = sessionIdFromResult(finalResult);
+        if (!sessionId) {
+          throw new Error("Chat session was not created.");
+        }
+        sessionCreated = true;
+        setChatSessionId(sessionId);
+      })
+      .catch((error) => {
+        if (abortController.signal.aborted) return;
+        const message = error instanceof Error ? error.message : String(error);
+        setError(message);
+        toast.error(commandName, {
+          description: `Result: ${message}`,
+        });
+      })
+      .finally(() => {
+        if (!sessionCreated) chatSessionInitRef.current = false;
+        if (abortControllerRef.current === abortController) {
+          abortControllerRef.current = null;
+        }
+        setIsRunning(false);
+        onRunStateChangeRef.current?.(false);
+      });
+  }, [chatAction, chatSessionId, commandName, isChatMode, runPayload]);
+
+  useEffect(() => {
+    if (!chatAction || !isChatMode || !chatSessionId || isRunning) return;
+    chatTextareaRef.current?.focus();
+  }, [chatAction, chatSessionId, isChatMode, isRunning]);
 
   const submitChatMessage = async (input: string) => {
     if (isRunning) return;
 
     const message = input.trim();
     if (!message) return;
+    if (!chatSessionId) {
+      setError("Chat session is not ready.");
+      return;
+    }
 
-    const payload = buildChatPayload(message, action.input, chatThreadId);
+    const payload = buildChatPayload(message, action.input, chatSessionId);
     const runId =
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
@@ -381,8 +460,9 @@ export const ActionForm = forwardRef<
               >
                 <PromptInputBody>
                   <PromptInputTextarea
+                    ref={chatTextareaRef}
                     placeholder="Message..."
-                    disabled={isRunning}
+                    disabled={isRunning || !chatSessionId}
                     className="max-h-36 min-h-11"
                     autoFocus
                   />
@@ -390,7 +470,7 @@ export const ActionForm = forwardRef<
                 <PromptInputFooter>
                   <PromptInputTools />
                   <PromptInputSubmit
-                    disabled={isRunning}
+                    disabled={isRunning || !chatSessionId}
                     aria-label="Send message"
                     title="Send message"
                   />

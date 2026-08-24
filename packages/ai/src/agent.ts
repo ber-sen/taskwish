@@ -31,8 +31,11 @@ export interface AgentRuntime {
   readonly provider: AgentProvider;
   readonly client: CodexAgent | FxAgent;
   ask(input?: string | CodexAskOptions): AsyncGenerator<string, string>;
-  message(content: string): AsyncGenerator<string, string>;
-  message(threadId: string, content: string): AsyncGenerator<string, string>;
+  chat(): Promise<{ sessionId: string }>;
+  chat(message: {
+    sessionId: string;
+    content: string;
+  }): AsyncGenerator<string, string>;
   prompt(
     input?: CodexPromptInput | CodexPromptOptions,
   ): AsyncGenerator<string, string>;
@@ -123,18 +126,20 @@ function createAgentRuntime(options: AgentOptions): AgentRuntime {
       ? (opts: AgentOptions) => new FxAgent(opts as FxAgentOptions)
       : (opts: AgentOptions) => new CodexAgent(opts as CodexAgentOptions);
   const client = createClient(options);
-  const threadClients = new Map<string, CodexAgent>();
+  const sessionClients = new Map<string, CodexAgent>();
 
-  const clientForThread = (threadId: string | undefined) => {
-    if (!threadId) return client;
-
-    let threadClient = threadClients.get(threadId);
-    if (!threadClient) {
-      threadClient = createClient(options);
-      threadClients.set(threadId, threadClient);
+  function chat(): Promise<{ sessionId: string }>;
+  function chat(message: {
+    sessionId: string;
+    content: string;
+  }): AsyncGenerator<string, string>;
+  function chat(message?: { sessionId: string; content: string }) {
+    if (!message) {
+      return createChatSession();
     }
-    return threadClient;
-  };
+
+    return streamChatMessage(message);
+  }
 
   return {
     name: options.name ?? "agent",
@@ -154,19 +159,7 @@ function createAgentRuntime(options: AgentOptions): AgentRuntime {
       return next.value;
     },
 
-    async *message(input: string, content?: string) {
-      const { threadId, promptOptions } = normalizeMessageOptions(
-        input,
-        content,
-      );
-      const stream = clientForThread(threadId).streamPrompt(promptOptions);
-      let next = await stream.next();
-      while (!next.done) {
-        yield next.value;
-        next = await stream.next();
-      }
-      return next.value.text;
-    },
+    chat,
 
     async *prompt(input?: CodexPromptInput | CodexPromptOptions) {
       const prompt = normalizePrompt(input);
@@ -190,33 +183,44 @@ function createAgentRuntime(options: AgentOptions): AgentRuntime {
     async close() {
       await Promise.all([
         client.close(),
-        ...Array.from(threadClients.values()).map((threadClient) =>
-          threadClient.close(),
+        ...Array.from(sessionClients.values()).map((sessionClient) =>
+          sessionClient.close(),
         ),
       ]);
-      threadClients.clear();
+      sessionClients.clear();
     },
   };
+
+  async function createChatSession(): Promise<{ sessionId: string }> {
+    const sessionClient = createClient(options);
+    const session = await sessionClient.createSession({ newSession: true });
+    sessionClients.set(session.sessionId, sessionClient);
+    return { sessionId: session.sessionId };
+  }
+
+  async function* streamChatMessage(message: {
+    sessionId: string;
+    content: string;
+  }): AsyncGenerator<string, string> {
+    const sessionClient = sessionClients.get(message.sessionId);
+    if (!sessionClient) {
+      throw new Error(`Unknown agent chat session: ${message.sessionId}`);
+    }
+
+    const stream = sessionClient.streamPrompt({
+      prompt: message.content,
+      newSession: false,
+    });
+    let next = await stream.next();
+    while (!next.done) {
+      yield next.value;
+      next = await stream.next();
+    }
+    return next.value.text;
+  }
 }
 
 function normalizePrompt<T>(input: T | undefined): T | string {
   if (input !== undefined) return input;
   throw new Error("Agent prompt is required.");
-}
-
-function normalizeMessageOptions(
-  input: string,
-  content?: string,
-): {
-  threadId?: string;
-  promptOptions: CodexPromptOptions;
-} {
-  if (content !== undefined) {
-    return { threadId: input, promptOptions: { prompt: content } };
-  }
-
-  if (typeof input !== "string") {
-    throw new Error("Agent message content is required.");
-  }
-  return { promptOptions: { prompt: input } };
 }

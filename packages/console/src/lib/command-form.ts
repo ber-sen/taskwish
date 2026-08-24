@@ -242,20 +242,20 @@ export function buildPayload(
 export function buildChatPayload(
   message: string,
   fields: ConsoleInputField[],
-  threadId?: string,
+  sessionId?: string,
 ): unknown {
   const content = message.trim();
-  if (!fields.length) return { threadId, content };
+  if (!fields.length) return { sessionId, content };
 
   const preferredField =
     fields.find((field) =>
       ["prompt", "message", "content", "text", "input"].includes(field.name),
     ) ?? (fields.length === 1 ? fields[0] : undefined);
 
-  if (!preferredField) return { threadId, content };
+  if (!preferredField) return { sessionId, content };
   if (fields.length === 1 && preferredField.name === "input") return content;
   return {
-    ...(threadId ? { threadId } : {}),
+    ...(sessionId ? { sessionId } : {}),
     [preferredField.name]: content,
   };
 }

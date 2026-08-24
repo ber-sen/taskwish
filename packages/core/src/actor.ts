@@ -293,9 +293,9 @@ interface CommandBody<
 
 type BuiltInEventMap = {
   Message: {
-    input: { threadId: string; content: string };
+    input: { sessionId?: string; content?: string };
     scope: {
-      thread: { id: string; content: string };
+      thread: { id?: string; content?: string };
     };
   };
   NewEmail: {
@@ -325,8 +325,8 @@ type BuiltInEventExtraScope<EventName extends BuiltInEventName> =
   BuiltInEventMap[EventName]["scope"];
 
 const builtInEventScope: Record<string, unknown> = {
-  ...Event("Message", { threadId: "string", content: "string" }, (input) => ({
-    thread: { id: input.threadId, content: input.content },
+  ...Event("Message", { sessionId: "string?", content: "string?" }, (input) => ({
+    thread: { id: input.sessionId, content: input.content },
   })),
   ...Event(
     "NewEmail",
