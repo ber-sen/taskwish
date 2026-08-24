@@ -1,5 +1,10 @@
 import { CheckIcon, CopyIcon } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useStickToBottomContext } from "use-stick-to-bottom";
 
 import { cn } from "../../lib/utils";
@@ -582,8 +587,10 @@ export function ActionResult({
 
   return (
     <Conversation className={cn("relative min-h-0 flex-1", className)}>
-      <ActionResultScrollObserver onScrollChange={onScrollChange} />
-      <ConversationContent className="space-y-4 px-4 py-4 pb-12">
+      <ActionResultScrollObserver
+        onScrollChange={chat ? undefined : onScrollChange}
+      />
+      <ConversationContent className="space-y-4 px-0 py-4 pb-12">
         {runItems.length ? (
           runItems.flatMap((run) => {
             const bubbles = buildRunBubbles(run.result, showLogs).filter(
@@ -678,8 +685,12 @@ export function ActionResult({
                 : waiting
                 ? [
                     <Message key={`${run.id}-waiting`} from="assistant">
-                      <MessageContent className="border-dashed text-muted-foreground">
-                        Waiting for output
+                      <MessageContent className="text-muted-foreground">
+                        <span
+                          aria-hidden="true"
+                          className="inline-block size-3 rounded-full bg-landing-primary motion-safe:animate-pulse"
+                          style={{ animationDuration: "1s" }}
+                        />
                       </MessageContent>
                     </Message>,
                   ]

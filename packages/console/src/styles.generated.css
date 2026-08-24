@@ -1201,6 +1201,9 @@
   .bg-input {
     background-color: hsl(var(--input));
   }
+  .bg-landing-primary {
+    background-color: #00EEAE;
+  }
   .bg-muted {
     background-color: hsl(var(--muted));
   }
@@ -1326,6 +1329,9 @@
   }
   .p-\[1px\] {
     padding: 1px;
+  }
+  .px-0 {
+    padding-inline: 0px;
   }
   .px-1 {
     padding-inline: var(--spacing);
@@ -2405,6 +2411,11 @@
   }
   .data-\[unchecked\]\:bg-input[data-unchecked] {
     background-color: hsl(var(--input));
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .motion-safe\:animate-pulse {
+      animation: var(--animate-pulse);
+    }
   }
   @media (width >= 40rem) {
     .sm\:flex-row {
