@@ -26,16 +26,20 @@ export type AgentOptions = CodexAgentProviderOptions | FxAgentProviderOptions;
 
 export type AgentOptionsFactory<Scope = any> = (scope: Scope) => AgentOptions;
 
+export type AgentChatInput = {
+  sessionId?: string;
+  content?: string;
+};
+
 export interface AgentRuntime {
   readonly name: string;
   readonly provider: AgentProvider;
   readonly client: CodexAgent | FxAgent;
   ask(input?: string | CodexAskOptions): AsyncGenerator<string, string>;
   chat(): Promise<{ sessionId: string }>;
-  chat(message: {
-    sessionId: string;
-    content: string;
-  }): AsyncGenerator<string, string>;
+  chat(
+    input: AgentChatInput
+  ): Promise<{ sessionId: string }> | AsyncGenerator<string, string>;
   prompt(
     input?: CodexPromptInput | CodexPromptOptions,
   ): AsyncGenerator<string, string>;
@@ -129,16 +133,22 @@ function createAgentRuntime(options: AgentOptions): AgentRuntime {
   const sessionClients = new Map<string, CodexAgent>();
 
   function chat(): Promise<{ sessionId: string }>;
-  function chat(message: {
-    sessionId: string;
-    content: string;
-  }): AsyncGenerator<string, string>;
-  function chat(message?: { sessionId: string; content: string }) {
-    if (!message) {
+  function chat(
+    input: AgentChatInput
+  ): Promise<{ sessionId: string }> | AsyncGenerator<string, string>;
+  function chat(input?: { sessionId?: string; content?: string }) {
+    if (!input?.content) {
       return createChatSession();
     }
 
-    return streamChatMessage(message);
+    if (!input.sessionId) {
+      throw new Error("Agent chat sessionId is required.");
+    }
+
+    return streamChatMessage({
+      sessionId: input.sessionId,
+      content: input.content,
+    });
   }
 
   return {
