@@ -9,20 +9,20 @@ import {
 import { FxAgent, type FxAgentOptions } from "./fx-agent";
 import type { CamelCase } from "./helpers";
 
-type AgentProvider = "codex" | "fx";
+type AgentRuntimeKind = "codex" | "fx";
 type AgentName = "agent";
 
-type CodexAgentProviderOptions = CodexAgentOptions & {
-  provider: "codex";
+type CodexAgentRuntimeOptions = CodexAgentOptions & {
+  runtime: "codex";
   name?: string;
 };
 
-type FxAgentProviderOptions = FxAgentOptions & {
-  provider: "fx";
+type FxAgentRuntimeOptions = FxAgentOptions & {
+  runtime: "fx";
   name?: string;
 };
 
-export type AgentOptions = CodexAgentProviderOptions | FxAgentProviderOptions;
+export type AgentOptions = CodexAgentRuntimeOptions | FxAgentRuntimeOptions;
 
 export type AgentOptionsFactory<Scope = any> = (scope: Scope) => AgentOptions;
 
@@ -33,7 +33,7 @@ export type AgentChatInput = {
 
 export interface AgentRuntime {
   readonly name: string;
-  readonly provider: AgentProvider;
+  readonly runtime: AgentRuntimeKind;
   readonly client: CodexAgent | FxAgent;
   ask(input?: string | CodexAskOptions): AsyncGenerator<string, string>;
   chat(): Promise<{ sessionId: string }>;
@@ -80,8 +80,8 @@ export function Agent(first: unknown, second?: unknown) {
     typeof first === "string"
       ? ({
           ...(second as Record<string, unknown> | undefined),
-          provider:
-            (second as { provider?: AgentProvider } | undefined)?.provider ??
+          runtime:
+            (second as { runtime?: AgentRuntimeKind } | undefined)?.runtime ??
             "codex",
           name: first,
         } as AgentOptions)
@@ -97,8 +97,8 @@ export function Agent(first: unknown, second?: unknown) {
         ? optionsOrFactory(scope)
         : optionsOrFactory;
 
-    if (!options || (options.provider !== "codex" && options.provider !== "fx")) {
-      throw new Error('Agent provider must be "codex" or "fx".');
+    if (!options || (options.runtime !== "codex" && options.runtime !== "fx")) {
+      throw new Error('Agent runtime must be "codex" or "fx".');
     }
 
     runtime = createAgentRuntime({
@@ -126,7 +126,7 @@ export function Agent(first: unknown, second?: unknown) {
 
 function createAgentRuntime(options: AgentOptions): AgentRuntime {
   const createClient =
-    options.provider === "fx"
+    options.runtime === "fx"
       ? (opts: AgentOptions) => new FxAgent(opts as FxAgentOptions)
       : (opts: AgentOptions) => new CodexAgent(opts as CodexAgentOptions);
   const client = createClient(options);
@@ -153,7 +153,7 @@ function createAgentRuntime(options: AgentOptions): AgentRuntime {
 
   return {
     name: options.name ?? "agent",
-    provider: options.provider,
+    runtime: options.runtime,
     client,
 
     async *ask(input?: string | CodexAskOptions) {

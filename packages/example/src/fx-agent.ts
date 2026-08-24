@@ -2,7 +2,7 @@ import { Actor, Agent, Step } from "taskwish";
 
 const { actor } = Actor("FxAgent").scope(
   Agent({
-    provider: "fx",
+    runtime: "fx",
     cwd: process.cwd(),
     model: process.env.FX_MODEL,
     permission: "reject_once",

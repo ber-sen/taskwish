@@ -2,7 +2,7 @@ import { Actor, Agent, Step } from "taskwish";
 
 const { actor } = Actor("CodexAgent").scope(
   Agent({
-    provider: "codex",
+    runtime: "codex",
     cwd: process.cwd(),
     model: process.env.CODEX_MODEL,
     reasoningEffort: process.env.CODEX_REASONING_EFFORT,
