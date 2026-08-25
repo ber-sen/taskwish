@@ -29,7 +29,6 @@ export type ConsoleAction = {
   label: string;
   mode?: "form" | "chat";
   description?: string;
-  color: string;
   route: string;
   source: "local" | "http" | "event" | "trait";
   input: ConsoleInputField[];

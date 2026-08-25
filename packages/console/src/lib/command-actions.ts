@@ -1,5 +1,4 @@
 import type { ConsoleAction } from "../types";
-import { actorColor } from "./actor-color";
 import { uppercaseFirst } from "./console-text";
 
 function splitActionName(
@@ -31,7 +30,6 @@ function normalizeAction(raw: ConsoleAction): ConsoleAction {
     ...raw,
     ...(chat ? { action: "chat", label, mode: "chat" as const } : { label }),
     input: raw.input,
-    color: raw.color || actorColor(raw.actor || parsed.actor),
   };
 }
 

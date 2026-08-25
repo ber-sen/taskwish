@@ -7,7 +7,6 @@ import type {
   ConsoleJsonSchema,
   ConsoleInputField,
 } from "./types";
-import { actorColor } from "./lib/actor-color";
 
 const TW_META = Symbol.for("TW.Meta");
 const TW_INPUT_SCHEMA = Symbol.for("TW.InputSchema");
@@ -310,7 +309,6 @@ function describeAction(
     label: chatAction ? "Chat" : uppercaseFirst(label),
     mode: chatAction ? "chat" : "form",
     description: descriptionForMeta(meta),
-    color: actorColor(actor),
     route: routePathForAction(routePrefix, actionName),
     source: sourceForMeta(meta),
     input,
