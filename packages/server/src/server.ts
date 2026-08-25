@@ -121,7 +121,7 @@ async function notifyAppsReady(
   await Promise.allSettled(apps?.map((app) => app.ready?.(context)) ?? []);
 }
 
-export async function Node(
+export async function Server(
   name: string,
   config: NodeConfig = {},
 ): Promise<TaskWishNode> {

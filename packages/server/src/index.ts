@@ -9,4 +9,4 @@ export type {
 
 export { createNodeRegistry } from "./registry";
 export { createFetchHandler, createRoutes } from "./routes";
-export { Node } from "./server";
+export { Server } from "./server";

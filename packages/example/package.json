@@ -6,7 +6,7 @@
     "@taskwish/ai": "workspace:*",
     "@taskwish/bare": "workspace:*",
     "@taskwish/console": "^0.0.1",
-    "@taskwish/node": "^0.0.3",
+    "@taskwish/server": "workspace:*",
     "@taskwish/symbolic": "^0.0.1",
     "@taskwish/wire": "workspace:*",
     "playwright-core": "^1.61.1",
@@ -18,7 +18,7 @@
   "scripts": {
     "check": "tsc --noEmit",
     "build-cli": "bare cli && scriptc build .bare/cli.ts -o cli --npm-static @taskwish/wire --no-keep-c",
-    "start": "bun src/node.ts"
+    "start": "bun src/server.ts"
   },
   "type": "module",
   "devDependencies": {

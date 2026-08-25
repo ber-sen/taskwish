@@ -1,6 +1,6 @@
 import { Actor, Agent, Step } from "taskwish";
 
-const { actor } = Actor("FxAgent");
+const { actor } = Actor("Assistant");
 
 export const { chat } = actor()
   .on("Message")
@@ -18,6 +18,6 @@ export const { chat } = actor()
     }),
   );
 
-export const { FxAgent } = actor().service({
+export const { Assistant } = actor().service({
   chat,
 });

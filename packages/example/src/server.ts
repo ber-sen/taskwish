@@ -1,5 +1,5 @@
 import { Console } from "@taskwish/console";
-import { Node } from "taskwish";
+import { Server } from "@taskwish/server";
 import { Accounting } from "./accounting-model";
 import { Browser } from "./browser";
 import { HackerNews } from "./hacker-news";
@@ -13,7 +13,7 @@ import { Biller } from "./biller";
 import { CodexAgent } from "./codex-agent";
 import { FxAgent } from "./fx-agent";
 
-await Node("example", {
+await Server("example", {
   apiKey: process.env.TW_API_KEY,
   port: 3000,
   apps: [Console()],

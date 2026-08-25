@@ -1,5 +1,5 @@
 import { afterEach, expect, mock, test } from "bun:test";
-import { Node } from "./index";
+import { Server } from "./index";
 import { apiKey } from "./test-helpers";
 
 const originalServe = Bun.serve;
@@ -37,7 +37,7 @@ test("falls back to a random port when the configured port is unavailable", asyn
   }) as typeof Bun.serve;
   console.log = mock(() => {}) as typeof console.log;
 
-  const node = await Node("fallback", {
+  const node = await Server("fallback", {
     port: occupiedPort,
     hostname: "127.0.0.1",
     apiKey,
@@ -63,7 +63,7 @@ test("uses a random port when no port is configured", async () => {
   }) as typeof Bun.serve;
   console.log = mock(() => {}) as typeof console.log;
 
-  const node = await Node("random-default", {
+  const node = await Server("random-default", {
     hostname: "127.0.0.1",
     apiKey,
   });
