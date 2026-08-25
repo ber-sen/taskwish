@@ -1,6 +1,8 @@
-import { Actor, Step } from "../../src";
+import { Actor, Cond, Step, Steps, SubSteps, SubStepsResultKind } from "../../src";
 
 const { actor } = Actor("Brancher");
+
+const Branch: Steps<typeof SubSteps, SubStepsResultKind> = [] as never;
 
 export const { solve } = actor()
   .on("Command", "solve")
@@ -8,8 +10,8 @@ export const { solve } = actor()
   .input({ name: "string" }, "|", "void")
 
   .run(
-    Branch.onInput(
-      { name: "string" },
+    Branch(
+      Cond("input", { name: "string" }),
 
       Step("smth", function () {
         return "Branched";
@@ -17,7 +19,7 @@ export const { solve } = actor()
     ),
 
     Step("model", function () {
-      return "Normal";
+      return;
     }),
   );
 
