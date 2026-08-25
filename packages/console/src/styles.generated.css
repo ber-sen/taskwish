@@ -866,6 +866,9 @@
   .resize-none {
     resize: none;
   }
+  .\!scrollbar-gutter-stable {
+    scrollbar-gutter: stable !important;
+  }
   .flex-col {
     flex-direction: column;
   }
@@ -1329,9 +1332,6 @@
   }
   .p-\[1px\] {
     padding: 1px;
-  }
-  .px-1 {
-    padding-inline: var(--spacing);
   }
   .px-1\.5 {
     padding-inline: calc(var(--spacing) * 1.5);

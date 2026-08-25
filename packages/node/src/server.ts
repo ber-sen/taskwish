@@ -85,9 +85,7 @@ function serveWithRandomPortFallback(
   const requestedPort = "port" in options ? options.port : undefined;
   let nextOptions =
     requestedPort === undefined || requestedPort === 0
-      ? ({ ...options, idleTimeout: 0, port: randomPort() } as Parameters<
-          typeof Bun.serve
-        >[0])
+      ? ({ ...options, port: randomPort() } as Parameters<typeof Bun.serve>[0])
       : options;
 
   for (let attempt = 0; attempt < 10; attempt++) {
@@ -144,6 +142,7 @@ export async function Node(
       hostname: config.hostname,
       development: config.development,
       routes,
+      idleTimeout: 0,
       fetch() {
         return json(404, { error: "Not Found" });
       },

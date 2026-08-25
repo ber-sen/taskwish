@@ -612,7 +612,7 @@ export function ActionResult({
                     bubble.type === "yield" ? (
                       <Message key={`${run.id}-${bubble.id}`} from="assistant">
                         <div
-                          className="max-w-[88%] px-1 py-1 text-foreground"
+                          className="max-w-[88%] text-foreground"
                           style={{ overflowWrap: "anywhere" }}
                         >
                           <MessageResponse>{bubble.body}</MessageResponse>
