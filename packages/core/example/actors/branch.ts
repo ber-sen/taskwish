@@ -18,8 +18,8 @@ export const { solve } = actor()
       }),
     ),
 
-    Step("model", function () {
-      return;
+    Step("default", function () {
+      return "default";
     }),
   );
 
