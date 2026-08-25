@@ -1,11 +1,5 @@
 import { CheckIcon, CopyIcon } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import { useStickToBottomContext } from "use-stick-to-bottom";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
@@ -586,11 +580,8 @@ export function ActionResult({
     (input !== undefined ? [{ id: "run", input, result: result ?? null }] : []);
 
   return (
-    <Conversation className={cn("relative min-h-0 flex-1", className)}>
-      <ActionResultScrollObserver
-        onScrollChange={chat ? undefined : onScrollChange}
-      />
-      <ConversationContent className="space-y-4 px-0 py-4 pb-12">
+    <Conversation className={cn("min-h-0 flex-1", className)}>
+      <ConversationContent>
         {runItems.length ? (
           runItems.flatMap((run) => {
             const bubbles = buildRunBubbles(run.result, showLogs).filter(
@@ -708,24 +699,4 @@ export function ActionResult({
       <ConversationScrollButton />
     </Conversation>
   );
-}
-
-function ActionResultScrollObserver({
-  onScrollChange,
-}: {
-  onScrollChange?: (scrollTop: number) => void;
-}) {
-  const { scrollRef } = useStickToBottomContext();
-
-  useEffect(() => {
-    const scrollElement = scrollRef.current;
-    if (!scrollElement || !onScrollChange) return;
-
-    const notify = () => onScrollChange(scrollElement.scrollTop);
-    notify();
-    scrollElement.addEventListener("scroll", notify, { passive: true });
-    return () => scrollElement.removeEventListener("scroll", notify);
-  }, [onScrollChange, scrollRef]);
-
-  return null;
 }

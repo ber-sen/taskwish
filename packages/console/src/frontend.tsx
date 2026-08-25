@@ -15,7 +15,6 @@ const app = (
   <StrictMode>
     <AppPage />
     <Toaster
-      closeButton
       position="bottom-left"
       theme="dark"
       toastOptions={{
