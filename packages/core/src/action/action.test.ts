@@ -576,6 +576,31 @@ describe("Action", () => {
     type check = Expect<Equal<Entry, RawEntry<1, [], "chunk">>>;
   });
 
+  test("type — user scope strips TW.Branch marker", () => {
+    const { branchValue } = Action("branchValue").run(
+      Step("started", function () {
+        return "thread-1" as TW.Branch<
+          { input: void },
+          string,
+          "thread-1"
+        >;
+      }),
+
+      Step("usesStarted", function () {
+        type Started = typeof this.started;
+        type check = Expect<Equal<Started, "thread-1">>;
+
+        // @ts-expect-error TW.Branch is internal and should not be on user scope.
+        this.started[TW.Branch];
+
+        return this.started;
+      })
+    );
+
+    type T = typeof branchValue;
+    type check = Expect<Equal<TW.Action<"branchValue", () => Promise<"thread-1">, null>, T>>;
+  });
+
   test("step error — yields step error, action error, then rethrows", async () => {
     const boom = new Error("boom");
 

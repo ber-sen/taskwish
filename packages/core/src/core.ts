@@ -80,7 +80,17 @@ export namespace TW {
     ? N
     : K;
 
-  export type Scope<S> = StripEventKinds<S> & {
+  type StripBranch<T> = T extends Branch<any, any, infer Runtime>
+    ? Runtime
+    : T;
+
+  type UserScope<S> = {
+    [K in keyof StripEventKinds<S> as K extends typeof Branch
+      ? never
+      : K]: StripBranch<StripEventKinds<S>[K]>;
+  };
+
+  export type Scope<S> = UserScope<S> & {
     abortSignal?: Configurable<AbortSignal>;
     self: <Return = any>(
       input: S extends Record<any, any>
