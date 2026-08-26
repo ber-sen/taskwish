@@ -59,13 +59,23 @@ type EventValidate<Schema, Scope> = Schema extends "void"
   ? Schema
   : type.validate<Schema, Scope>;
 
+type IsUnion<Type, Whole = Type> = Type extends unknown
+  ? [Whole] extends [Type]
+    ? false
+    : true
+  : never;
+
+type MarkUnion<Type> = true extends IsUnion<Type> ? TW.Union<Type> : Type;
+
 type EventData<
   Schema,
   Scope,
   Inferred = InferSchema<NormalizeVoidSchema<Schema>, Scope>
-> = HasVoidSchema<Schema> extends true
-  ? Exclude<Inferred, undefined> | void
-  : Inferred;
+> = MarkUnion<
+  HasVoidSchema<Schema> extends true
+    ? Exclude<Inferred, undefined> | void
+    : Inferred
+>;
 
 type EventResult<
   Name extends string,

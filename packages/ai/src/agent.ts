@@ -27,17 +27,13 @@ export type AgentOptions = CodexAgentRuntimeOptions | FxAgentRuntimeOptions;
 export type AgentOptionsFactory<Scope = any> = (scope: Scope) => AgentOptions;
 
 export type AgentChatInput = {
-  sessionId?: string;
-  threadId?: string;
-  content?: string;
-};
-
-export type AgentChatMessageInput = {
   content: string;
 } & (
   | { sessionId: string; threadId?: string }
   | { threadId: string; sessionId?: string }
 );
+
+export type AgentChatMessageInput = AgentChatInput;
 
 export type AgentChatThread = {
   threadId: string;
@@ -49,26 +45,21 @@ export interface AgentRuntime {
   readonly runtime: AgentRuntimeKind;
   readonly client: CodexAgent | FxAgent;
   ask(input?: string | CodexAskOptions): AsyncGenerator<string, string>;
-  chat(): TW.Branch<
-    { input: void },
-    { threadId: string },
-    Promise<AgentChatThread>
-  >;
-  chat<const Input extends AgentChatInput | void>(
+  chat(): Promise<AgentChatThread>;
+  chat(input: AgentChatInput): AsyncGenerator<string, string>;
+  chat<const Input extends TW.Union<AgentChatInput | void>>(
     input: Input,
   ): Input extends void
     ? TW.Branch<
         { input: void },
-        { threadId: string },
+        AgentChatThread,
         Promise<AgentChatThread>
       >
-    : Input extends AgentChatMessageInput
-      ? TW.Branch<{ input: Input }, string, AsyncGenerator<string, string>>
-      : TW.Branch<
-          { input: Input },
-          { threadId: string } | string,
-          Promise<AgentChatThread> | AsyncGenerator<string, string>
-        >;
+    : TW.Branch<
+        { input: TW.UnwrapUnion<Input> },
+        string,
+        AsyncGenerator<string, string>
+      >;
   prompt(
     input?: CodexPromptInput | CodexPromptOptions,
   ): AsyncGenerator<string, string>;
@@ -161,26 +152,22 @@ function createAgentRuntime(options: AgentOptions): AgentRuntime {
   const client = createClient(options);
   const sessionClients = new Map<string, CodexAgent>();
 
-  function chat(): TW.Branch<
-    { input: void },
-    { threadId: string },
-    Promise<AgentChatThread>
-  >;
-  function chat<const Input extends AgentChatInput | void>(
+  function chat(): Promise<AgentChatThread>;
+  function chat(input: void): Promise<AgentChatThread>;
+  function chat(input: AgentChatInput): AsyncGenerator<string, string>;
+  function chat<const Input extends TW.Union<AgentChatInput | void>>(
     input: Input,
   ): Input extends void
     ? TW.Branch<
         { input: void },
-        { threadId: string },
+        AgentChatThread,
         Promise<AgentChatThread>
       >
-    : Input extends AgentChatMessageInput
-      ? TW.Branch<{ input: Input }, string, AsyncGenerator<string, string>>
-      : TW.Branch<
-          { input: Input },
-          { threadId: string } | string,
-          Promise<AgentChatThread> | AsyncGenerator<string, string>
-        >;
+    : TW.Branch<
+        { input: TW.UnwrapUnion<Input> },
+        string,
+        AsyncGenerator<string, string>
+      >;
   function chat(input?: AgentChatInput | void) {
     if (!input?.content) {
       return createChatSession();

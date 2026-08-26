@@ -619,6 +619,14 @@ describe("Actor", () => {
       .on("Message")
 
       .run(function () {
+        type Input = typeof this.input;
+        type inputCheck = Expect<
+          Equal<
+            Input,
+            TW.Union<{ threadId: string; content: string } | void>
+          >
+        >;
+
         return this.input ? this.input.content : "empty";
       });
 

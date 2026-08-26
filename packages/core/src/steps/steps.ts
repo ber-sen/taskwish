@@ -84,6 +84,8 @@ type ExtractBranches<Result> = Extract<Result, BranchLike>;
 
 type BranchInput<Input> = Input extends { input: infer I } ? I : void;
 
+type PublicInput<Input> = TW.UnwrapUnion<Input>;
+
 type UnionToIntersection<U> = (
   U extends unknown ? (value: U) => void : never
 ) extends (value: infer I) => void
@@ -100,7 +102,7 @@ type BranchHandlers<Result> = UnionToIntersection<
       }
       ? [BranchInput<Input>] extends [void]
         ? () => Promise<Return>
-        : (input: BranchInput<Input>) => Promise<Return>
+        : (input: PublicInput<BranchInput<Input>>) => Promise<Return>
       : never
     : never
 > extends infer Handler extends (...args: any) => any
@@ -117,7 +119,7 @@ type ActionHandler<
       ? (
           input: "$call" extends keyof Ctx["scope"]
             ? Ctx["scope"]["$call"]
-            : Ctx["scope"]["input"],
+            : PublicInput<Ctx["scope"]["input"]>,
         ) => Promise<ActionResult<Last>>
       : () => Promise<ActionResult<Last>>
     : () => Promise<ActionResult<Last>>

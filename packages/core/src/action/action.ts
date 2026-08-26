@@ -56,6 +56,16 @@ type NormalizeArkTuple<T extends readonly unknown[]> = {
   [K in keyof T]: NormalizeArkVoid<T[K]>;
 };
 
+type IsUnion<Type, Whole = Type> = Type extends unknown
+  ? [Whole] extends [Type]
+    ? false
+    : true
+  : never;
+
+type MarkUnionInput<Input> = true extends IsUnion<Input>
+  ? TW.Union<Input>
+  : Input;
+
 type ValidateArkOperand<T, Scope> = T extends "void"
   ? T
   : type.validate<T, Scope>;
@@ -277,7 +287,11 @@ export interface ActionFactory<
     | ((...args: any) => any)
     | TW.Handler
     ? SignatureBody<Name, Ctx, Schema>
-    : InputActionBody<Name, Ctx, InferTriggerScope<Schema>["input"]>;
+    : InputActionBody<
+        Name,
+        Ctx,
+        MarkUnionInput<InferTriggerScope<Schema>["input"]>
+      >;
   input<
     const zero,
     const one,
@@ -312,7 +326,11 @@ export interface ActionFactory<
                   ? [TypeMeta.MappableInput, NodeSelector?]
                   : [ValidateArkOperand<rest[0], Ctx["scope"]>]
           : []
-  ): InputActionBody<Name, Ctx, ArkTypeInfer<r>>;
+  ): InputActionBody<
+    Name,
+    Ctx,
+    MarkUnionInput<ArkTypeInfer<r>>
+  >;
   run: Steps<Ctx, ActionResultKind>;
 }
 

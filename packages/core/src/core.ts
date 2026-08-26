@@ -33,6 +33,8 @@ export namespace TW {
 
   export const Branch: unique symbol = Symbol.for("TW.Branch") as never;
 
+  export const Union: unique symbol = Symbol.for("TW.Union") as never;
+
   export interface Contextual<Ctx extends Record<any, any>> {
     [Scope]: Ctx["scope"];
   }
@@ -137,6 +139,20 @@ export namespace TW {
       result: Result;
     };
   };
+
+  /** Marks a framework-provided union while preserving its runtime shape. */
+  export type Union<Type> = Type extends unknown
+    ? [Type] extends [void]
+      ? Type
+      : Type & { readonly [Union]: Type }
+    : never;
+
+  /** Removes the type-only marker from a framework-provided union member. */
+  export type UnwrapUnion<Type> = Type extends {
+    readonly [Union]: infer Value;
+  }
+    ? Value
+    : Type;
 
   type UnionToIntersection<U> = (
     U extends unknown ? (value: U) => void : never
