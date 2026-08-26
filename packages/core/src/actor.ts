@@ -62,7 +62,7 @@ type EventKeys<Scope> = {
   string;
 
 type ExtractEventKind<Scope, EventName extends string> = {
-  [K in keyof Scope]: Scope[K] extends TW.EventKind<infer Name, any, any>
+  [K in keyof Scope]: Scope[K] extends TW.EventKind<infer Name, any>
     ? EventName extends Name
       ? Scope[K]
       : never
@@ -76,13 +76,6 @@ type ExtractEventInput<Scope, EventName extends string> = ExtractEventKind<
   ? D
   : never;
 
-type ExtractEventExtraScope<Scope, EventName extends string> = ExtractEventKind<
-  Scope,
-  EventName
-> extends TW.EventKind<string, any, infer S>
-  ? S
-  : {};
-
 type EventHandlerName<EventName extends string> =
   EventName extends `${infer Actor}::${infer Name}`
     ? `on${Actor}${Name}`
@@ -91,7 +84,7 @@ type EventHandlerName<EventName extends string> =
     : `on${EventName}`;
 
 type ActorEventExports<Scope, Actor extends string> = Pretty<{
-  [K in keyof Scope as Scope[K] extends TW.EventKind<infer Name, any, any>
+  [K in keyof Scope as Scope[K] extends TW.EventKind<infer Name, any>
     ? Name extends `${Actor}::${string}`
       ? K extends `${string}::${string}`
         ? never
@@ -293,22 +286,16 @@ interface CommandBody<
 
 type BuiltInEventMap = {
   Message: {
-    input: { sessionId?: string; content?: string };
-    scope: {
-      thread: { id?: string; content?: string };
-    };
+    input: { threadId: string; content: string } | void;
+    scope: {};
   };
   NewEmail: {
     input: { from: string; to: string; subject: string; body: string };
-    scope: {
-      thread: { from: string; to: string; subject: string; body: string };
-    };
+    scope: {};
   };
   NewMessage: {
     input: { sender: { name: string }; content: string; channel: string };
-    scope: {
-      thread: { sender: { name: string }; content: string; channel: string };
-    };
+    scope: {};
   };
   NewMention: {
     input: { sender: { name: string }; text: string; channel: string };
@@ -321,23 +308,19 @@ type BuiltInEventName = keyof BuiltInEventMap & string;
 type BuiltInEventInput<EventName extends BuiltInEventName> =
   BuiltInEventMap[EventName]["input"];
 
-type BuiltInEventExtraScope<EventName extends BuiltInEventName> =
-  BuiltInEventMap[EventName]["scope"];
-
 const builtInEventScope: Record<string, unknown> = {
-  ...Event("Message", { sessionId: "string?", content: "string?" }, (input) => ({
-    thread: { id: input.sessionId, content: input.content },
-  })),
-  ...Event(
-    "NewEmail",
-    { from: "string", to: "string", subject: "string", body: "string" },
-    (input) => ({ thread: input })
-  ),
-  ...Event(
-    "NewMessage",
-    { sender: { name: "string" }, content: "string", channel: "string" },
-    (input) => ({ thread: input })
-  ),
+  ...Event("Message", { threadId: "string", content: "string" }, "|", "void"),
+  ...Event("NewEmail", {
+    from: "string",
+    to: "string",
+    subject: "string",
+    body: "string",
+  }),
+  ...Event("NewMessage", {
+    sender: { name: "string" },
+    content: "string",
+    channel: "string",
+  }),
   ...Event("NewMention", {
     sender: { name: "string" },
     text: "string",
@@ -438,8 +421,7 @@ export interface Behavior<Ctx extends Record<any, any>> {
       meta: { event: "Message" };
       scope: {
         input: BuiltInEventInput<"Message">;
-      } & BuiltInEventExtraScope<"Message"> &
-        BaseScope<Ctx>;
+      } & BaseScope<Ctx>;
     }
   >;
 
@@ -453,8 +435,7 @@ export interface Behavior<Ctx extends Record<any, any>> {
       meta: { event: EventName };
       scope: {
         input: BuiltInEventInput<EventName>;
-      } & BuiltInEventExtraScope<EventName> &
-        BaseScope<Ctx>;
+      } & BaseScope<Ctx>;
     }
   >;
 
@@ -468,17 +449,12 @@ export interface Behavior<Ctx extends Record<any, any>> {
       meta: { event: EventName };
       scope: {
         input: ExtractEventInput<BaseScope<Ctx>, EventName>;
-      } & ExtractEventExtraScope<BaseScope<Ctx>, EventName> &
-        BaseScope<Ctx>;
+      } & BaseScope<Ctx>;
     }
   >;
 
-  on<
-    const EventName extends string,
-    Input,
-    ExtraScope extends Record<any, any> = {}
-  >(
-    behavior: TW.EventKind<EventName, Input, ExtraScope>
+  on<const EventName extends string, Input>(
+    behavior: TW.EventKind<EventName, Input>
   ): ActionFactory<
     EventHandlerName<EventName>,
     {
@@ -487,8 +463,7 @@ export interface Behavior<Ctx extends Record<any, any>> {
       meta: { event: EventName };
       scope: {
         input: Input;
-      } & ExtraScope &
-        BaseScope<Ctx>;
+      } & BaseScope<Ctx>;
     }
   >;
 }
@@ -547,8 +522,7 @@ type BehaviorMod = { args: unknown[]; scope: Record<string, unknown> };
 function makeBehaviorMod(
   behavior: string,
   config?: string,
-  schema?: unknown,
-  initialScope?: Record<string, unknown>
+  schema?: unknown
 ): (args: unknown[]) => BehaviorMod {
   if (behavior === "Schedule") {
     return (args) => ({
@@ -580,17 +554,6 @@ function makeBehaviorMod(
       args: [args[0]],
       scope: { request: args[0] },
     });
-  }
-  if (initialScope) {
-    const eventKind = (initialScope as Record<string, any>)[behavior];
-    if (eventKind?.scopeOf) {
-      return (args) => ({
-        args,
-        scope: (
-          eventKind.scopeOf as (input: unknown) => Record<string, unknown>
-        )(args[0]),
-      });
-    }
   }
   return (args) => ({ args, scope: {} });
 }
@@ -791,7 +754,7 @@ function createBehavior(
       }
 
       const eventName = qualifyActionName(actorName, actionName);
-      const mod = makeBehaviorMod(behavior, config, schema, initialScopeAtOn);
+      const mod = makeBehaviorMod(behavior, config, schema);
       let actionMeta: Record<string, unknown> | null = null;
 
       async function resolveActionScope() {

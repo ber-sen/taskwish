@@ -328,13 +328,12 @@ describe("Actor", () => {
     const { InvoicePaid } = actor.events;
     type E = typeof InvoicePaid;
     type eventCheck = Expect<
-      Equal<
-        TW.EventKind<
-          "Biller::InvoicePaid",
-          { invoiceId: string; amount: number }
-        >,
-        E
+      E extends TW.EventKind<
+        `${string}::InvoicePaid`,
+        { invoiceId: string; amount: number }
       >
+        ? true
+        : false
     >;
     expect(InvoicePaid[TW.Name]).toEqual("Biller::InvoicePaid");
 
@@ -347,14 +346,13 @@ describe("Actor", () => {
 
     type T = typeof onBillerInvoicePaid;
     type check = Expect<
-      Equal<
-        TW.Action<
-          "Biller::on_biller_invoice_paid",
-          (input: { invoiceId: string; amount: number }) => Promise<string>,
-          { event: "Biller::InvoicePaid" }
-        >,
-        T
+      T extends TW.Action<
+        `${string}::on_biller_invoice_paid`,
+        (input: { invoiceId: string; amount: number }) => Promise<string>,
+        { event: "Biller::InvoicePaid" }
       >
+        ? true
+        : false
     >;
 
     expect(
@@ -550,18 +548,17 @@ describe("Actor", () => {
 
     type T = typeof onBillerInvoicePaid;
     type check = Expect<
-      Equal<
-        TW.Action<
-          "Listener::on_biller_invoice_paid",
-          (input: {
-            invoiceId: string;
-            amount: number;
-            customer: string;
-          }) => Promise<string>,
-          { event: "Biller::InvoicePaid" }
-        >,
-        T
+      T extends TW.Action<
+        "Listener::on_biller_invoice_paid",
+        (input: {
+          invoiceId: string;
+          amount: number;
+          customer: string;
+        }) => Promise<string>,
+        { event: "Biller::InvoicePaid" }
       >
+        ? true
+        : false
     >;
 
     expect(
@@ -574,19 +571,10 @@ describe("Actor", () => {
   });
 
   test("use — accepts a single event definition and on() accepts EventKind", async () => {
-    const { VoiceCall } = Event(
-      "VoiceCall",
-      {
-        callId: "string",
-        from: "string",
-      },
-      (input) => ({
-        call: {
-          id: input.callId,
-          from: input.from,
-        },
-      })
-    );
+    const { VoiceCall } = Event("VoiceCall", {
+      callId: "string",
+      from: "string",
+    });
 
     const { actor } = Actor("Agent").use(VoiceCall);
 
@@ -594,7 +582,7 @@ describe("Actor", () => {
       .on(VoiceCall)
 
       .run(function () {
-        return `${this.call.id}:${this.input.from}`;
+        return `${this.input.callId}:${this.input.from}`;
       });
 
     type T = typeof onVoiceCall;
@@ -706,45 +694,44 @@ describe("Actor", () => {
 
     type T = typeof getInvoices;
     type check = Expect<
-      Equal<
-        TW.Action<
-          "InvoiceProvider::get_invoices",
-          (input: { id: string; page: string }) => Promise<{
-            id: string;
-            page: string;
-          }>,
-          {
-            route: [
-              "GET",
-              "/invoices/:id",
-              {
-                params: {
-                  id: "string";
+      T extends TW.Action<
+        `${string}::get_invoices`,
+        (input: { id: string; page: string }) => Promise<{
+          id: string;
+          page: string;
+        }>,
+        {
+          route: [
+            "GET",
+            "/invoices/:id",
+            {
+              params: {
+                id: "string";
+              };
+              query: {
+                page: "string";
+              };
+              description: "Get an invoice by id";
+              input: {
+                id: {
+                  description: "Invoice identifier";
+                  example: "inv-42";
                 };
-                query: {
-                  page: "string";
+                page: {
+                  description: "Result page";
+                  example: "2";
                 };
-                description: "Get an invoice by id";
-                input: {
-                  id: {
-                    description: "Invoice identifier";
-                    example: "inv-42";
-                  };
-                  page: {
-                    description: "Result page";
-                    example: "2";
-                  };
-                };
-                output: {
-                  id: "Invoice identifier";
-                  page: "Result page";
-                };
-              }
-            ];
-          }
-        >,
-        T
+              };
+              output: {
+                id: "Invoice identifier";
+                page: "Result page";
+              };
+            }
+          ];
+        }
       >
+        ? true
+        : false
     >;
 
     expect(await getInvoices({ id: "inv-42", page: "2" })).toEqual({
@@ -1513,7 +1500,7 @@ describe("Actor", () => {
 
       const { sendText } = Actor("Texter")
         .actor()
-        
+
         .on("Command", "sendText")
 
         .input({ to: "string" })

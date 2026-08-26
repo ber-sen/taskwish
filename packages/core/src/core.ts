@@ -233,7 +233,6 @@ export namespace TW {
     emit(
       data: Data,
     ): AsyncGenerator<Signal<Name, Data>, Signal<Name, Data>, unknown>;
-    scopeOf?: (input: Data) => Scope;
   }
 
   export type Struct<Name extends string, TypeDef> = ArkType<TypeDef> &

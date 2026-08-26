@@ -31,7 +31,7 @@ export type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
   : false;
 
 export type StripEventKinds<S> = {
-  [K in keyof S as S[K] extends TW.EventKind<any, any, any> ? never : K]: S[K];
+  [K in keyof S as S[K] extends TW.EventKind<any, any> ? never : K]: S[K];
 };
 
 type IsListenerAction<Action> = Action extends TW.Attributable<infer Meta>
@@ -438,7 +438,7 @@ export type EventsFromPlugin<U> = U extends Promise<infer M>
   ? EventsFromPlugin<M>
   : U extends { [TW.Scope]: infer S }
   ? EventsFromPlugin<S>
-  : U extends TW.EventKind<infer Name extends string, any, any>
+  : U extends TW.EventKind<infer Name extends string, any>
   ? {
       [K in Name]: U;
     }
