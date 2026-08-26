@@ -31,6 +31,8 @@ export namespace TW {
 
   export const Type = Symbol.for("TW.Type");
 
+  export const Branch: unique symbol = Symbol.for("TW.Branch") as never;
+
   export interface Contextual<Ctx extends Record<any, any>> {
     [Scope]: Ctx["scope"];
   }
@@ -119,15 +121,35 @@ export namespace TW {
     | Trace<Name, { result: Result }>
     | Trace<Name, { error: unknown }>;
 
+  export type Branch<Input, Result, Runtime = Result> = Runtime & {
+    readonly [Branch]: {
+      input: Input;
+      result: Result;
+    };
+  };
+
+  type UnionToIntersection<U> = (
+    U extends unknown ? (value: U) => void : never
+  ) extends (value: infer I) => void
+    ? I
+    : never;
+
+  type OverloadedHandler<Handler extends (...args: any) => any> =
+    UnionToIntersection<Handler> extends infer Overloaded extends (
+      ...args: any
+    ) => any
+      ? Overloaded
+      : never;
+
   export type Action<
     Name extends string,
     Handler extends (...args: any) => any,
     Meta = null,
-  > = NoInfer<Handler> &
-    ActionRuntime<Name, Handler> & {
+  > = OverloadedHandler<NoInfer<Handler>> &
+    ActionRuntime<Name, OverloadedHandler<NoInfer<Handler>>> & {
       ctx(
         context?: ActionContext<ActionContextScopeFromMeta<Meta>>,
-      ): ActionRuntime<Name, Handler>;
+      ): ActionRuntime<Name, OverloadedHandler<NoInfer<Handler>>>;
     } & Resource<Name> &
     Attributable<Meta>;
 

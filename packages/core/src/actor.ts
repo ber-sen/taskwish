@@ -949,8 +949,11 @@ function createBehavior(
         sig() {
           return makeBody("args");
         },
-        input(inputSchema?: unknown) {
-          return makeBody("first", inputSchema);
+        input(...inputSchema: unknown[]) {
+          return makeBody(
+            "first",
+            inputSchema.length <= 1 ? inputSchema[0] : inputSchema
+          );
         },
         use(plugin?: unknown) {
           if (arguments.length > 0) useActionPlugin(plugin);

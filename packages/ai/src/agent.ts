@@ -28,7 +28,20 @@ export type AgentOptionsFactory<Scope = any> = (scope: Scope) => AgentOptions;
 
 export type AgentChatInput = {
   sessionId?: string;
+  threadId?: string;
   content?: string;
+};
+
+export type AgentChatMessageInput = {
+  content: string;
+} & (
+  | { sessionId: string; threadId?: string }
+  | { threadId: string; sessionId?: string }
+);
+
+export type AgentChatThread = {
+  threadId: string;
+  sessionId: string;
 };
 
 export interface AgentRuntime {
@@ -36,10 +49,26 @@ export interface AgentRuntime {
   readonly runtime: AgentRuntimeKind;
   readonly client: CodexAgent | FxAgent;
   ask(input?: string | CodexAskOptions): AsyncGenerator<string, string>;
-  chat(): Promise<{ sessionId: string }>;
-  chat(
-    input: AgentChatInput
-  ): Promise<{ sessionId: string }> | AsyncGenerator<string, string>;
+  chat(): TW.Branch<
+    { input: void },
+    { threadId: string },
+    Promise<AgentChatThread>
+  >;
+  chat<const Input extends AgentChatInput | void>(
+    input: Input,
+  ): Input extends void
+    ? TW.Branch<
+        { input: void },
+        { threadId: string },
+        Promise<AgentChatThread>
+      >
+    : Input extends AgentChatMessageInput
+      ? TW.Branch<{ input: Input }, string, AsyncGenerator<string, string>>
+      : TW.Branch<
+          { input: Input },
+          { threadId: string } | string,
+          Promise<AgentChatThread> | AsyncGenerator<string, string>
+        >;
   prompt(
     input?: CodexPromptInput | CodexPromptOptions,
   ): AsyncGenerator<string, string>;
@@ -132,21 +161,38 @@ function createAgentRuntime(options: AgentOptions): AgentRuntime {
   const client = createClient(options);
   const sessionClients = new Map<string, CodexAgent>();
 
-  function chat(): Promise<{ sessionId: string }>;
-  function chat(
-    input: AgentChatInput
-  ): Promise<{ sessionId: string }> | AsyncGenerator<string, string>;
-  function chat(input?: { sessionId?: string; content?: string }) {
+  function chat(): TW.Branch<
+    { input: void },
+    { threadId: string },
+    Promise<AgentChatThread>
+  >;
+  function chat<const Input extends AgentChatInput | void>(
+    input: Input,
+  ): Input extends void
+    ? TW.Branch<
+        { input: void },
+        { threadId: string },
+        Promise<AgentChatThread>
+      >
+    : Input extends AgentChatMessageInput
+      ? TW.Branch<{ input: Input }, string, AsyncGenerator<string, string>>
+      : TW.Branch<
+          { input: Input },
+          { threadId: string } | string,
+          Promise<AgentChatThread> | AsyncGenerator<string, string>
+        >;
+  function chat(input?: AgentChatInput | void) {
     if (!input?.content) {
       return createChatSession();
     }
 
-    if (!input.sessionId) {
-      throw new Error("Agent chat sessionId is required.");
+    const threadId = input.threadId ?? input.sessionId;
+    if (!threadId) {
+      throw new Error("Agent chat threadId is required.");
     }
 
     return streamChatMessage({
-      sessionId: input.sessionId,
+      threadId,
       content: input.content,
     });
   }
@@ -201,20 +247,20 @@ function createAgentRuntime(options: AgentOptions): AgentRuntime {
     },
   };
 
-  async function createChatSession(): Promise<{ sessionId: string }> {
+  async function createChatSession(): Promise<AgentChatThread> {
     const sessionClient = createClient(options);
     const session = await sessionClient.createSession({ newSession: true });
     sessionClients.set(session.sessionId, sessionClient);
-    return { sessionId: session.sessionId };
+    return { sessionId: session.sessionId, threadId: session.sessionId };
   }
 
   async function* streamChatMessage(message: {
-    sessionId: string;
+    threadId: string;
     content: string;
   }): AsyncGenerator<string, string> {
-    const sessionClient = sessionClients.get(message.sessionId);
+    const sessionClient = sessionClients.get(message.threadId);
     if (!sessionClient) {
-      throw new Error(`Unknown agent chat session: ${message.sessionId}`);
+      throw new Error(`Unknown agent chat session: ${message.threadId}`);
     }
 
     const stream = sessionClient.streamPrompt({

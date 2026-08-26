@@ -12,6 +12,7 @@ import { Greeter } from "./greeter";
 import { Biller } from "./biller";
 import { CodexAgent } from "./codex-agent";
 import { FxAgent } from "./fx-agent";
+import { BranchChat } from "./branch-chat";
 
 await Server("example", {
   apiKey: process.env.TW_API_KEY,
@@ -30,5 +31,6 @@ await Server("example", {
     Accounting,
     CodexAgent,
     FxAgent,
+    BranchChat,
   ],
 });

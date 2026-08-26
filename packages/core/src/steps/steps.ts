@@ -45,17 +45,83 @@ type FilterSteps<S extends readonly any[], Filter extends string> = {
  * produces a `TW.Action` callable.
  */
 type ActionResult<Last> = "last" extends keyof Last
+  ? BranchResult<RuntimeResult<ResolveLast<Last["last"]>>>
+  : "steps" extends keyof Last
+    ? Last["steps"]
+    : BranchResult<RuntimeResult<Last>>;
+
+type RawActionResult<Last> = "last" extends keyof Last
   ? RuntimeResult<ResolveLast<Last["last"]>>
   : "steps" extends keyof Last
     ? Last["steps"]
     : RuntimeResult<Last>;
 
 type RuntimeResult<Result> =
-  Awaited<Result> extends AsyncGenerator<any, infer Return, any>
-    ? Awaited<Return>
-    : Result extends Generator<any, infer Return, any>
-      ? Return
-      : Result;
+  Result extends BranchLike
+    ? Result
+    : Awaited<Result> extends AsyncGenerator<any, infer Return, any>
+      ? Awaited<Return>
+      : Result extends Generator<any, infer Return, any>
+        ? Return
+        : Result;
+
+type BranchLike = {
+  readonly [TW.Branch]: {
+    input: unknown;
+    result: unknown;
+  };
+};
+
+type BranchResult<Result> = Result extends {
+  readonly [TW.Branch]: {
+    result: infer Return;
+  };
+}
+  ? Return
+  : Result;
+
+type ExtractBranches<Result> = Extract<Result, BranchLike>;
+
+type BranchInput<Input> = Input extends { input: infer I } ? I : void;
+
+type UnionToIntersection<U> = (
+  U extends unknown ? (value: U) => void : never
+) extends (value: infer I) => void
+  ? I
+  : never;
+
+type BranchHandlers<Result> = UnionToIntersection<
+  ExtractBranches<Result> extends infer Branch
+    ? Branch extends {
+        readonly [TW.Branch]: {
+          input: infer Input;
+          result: infer Return;
+        };
+      }
+      ? [BranchInput<Input>] extends [void]
+        ? () => Promise<Return>
+        : (input: BranchInput<Input>) => Promise<Return>
+      : never
+    : never
+> extends infer Handler extends (...args: any) => any
+  ? Handler
+  : never;
+
+type ActionHandler<
+  Ctx extends Record<any, any>,
+  Last,
+  Result = RawActionResult<Last>,
+> = [ExtractBranches<Result>] extends [never]
+  ? "scope" extends keyof Ctx
+    ? "input" extends keyof Ctx["scope"]
+      ? (
+          input: "$call" extends keyof Ctx["scope"]
+            ? Ctx["scope"]["$call"]
+            : Ctx["scope"]["input"],
+        ) => Promise<ActionResult<Last>>
+      : () => Promise<ActionResult<Last>>
+    : () => Promise<ActionResult<Last>>
+  : BranchHandlers<Result>;
 
 type ActionMetadataOutput<Result> =
   Awaited<Result> extends AsyncGenerator<any, infer Return, any>
@@ -77,17 +143,7 @@ type RegularAction<
     Ctx extends { service: infer S extends string }
       ? QualifiedActionName<S, Ctx["name"]>
       : Ctx["name"],
-    "scope" extends keyof Ctx
-      ? "input" extends keyof Ctx["scope"]
-        ? (
-            input: "$call" extends keyof Ctx["scope"]
-              ? Ctx["scope"]["$call"]
-              : Ctx["scope"]["input"],
-          ) => Promise<
-            ActionResult<Last>
-          >
-        : () => Promise<ActionResult<Last>>
-      : () => Promise<ActionResult<Last>>,
+    ActionHandler<Ctx, Last>,
     TW.ActionCtxMeta<
       Meta,
       "scope" extends keyof Ctx ? ActionCtx<Ctx["scope"]> : {}

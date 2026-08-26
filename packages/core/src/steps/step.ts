@@ -7,13 +7,24 @@ import {
 } from "../helpers";
 import { TW } from "../core";
 
-type ResolveReturn<H extends (...args: any) => any> = Awaited<
+type BranchLike = {
+  readonly [TW.Branch]: {
+    input: unknown;
+    result: unknown;
+  };
+};
+
+type ResolveReturnValue<T> = T extends BranchLike
+  ? T
+  : Awaited<T> extends AsyncGenerator<any, infer R, any>
+    ? Awaited<R>
+    : Awaited<T> extends Generator<any, infer R, any>
+      ? R
+      : Awaited<T>;
+
+type ResolveReturn<H extends (...args: any) => any> = ResolveReturnValue<
   ReturnType<H>
-> extends AsyncGenerator<any, infer R, any>
-  ? Awaited<R>
-  : Awaited<ReturnType<H>> extends Generator<any, infer R, any>
-  ? R
-  : Awaited<ReturnType<H>>;
+>;
 
 type IsAny<T> = 0 extends 1 & T ? true : false;
 
