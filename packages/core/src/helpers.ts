@@ -31,11 +31,13 @@ export type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
   : false;
 
 export type StripEventKinds<S> = {
-  [K in keyof S as S[K] extends TW.EventKind<any, any> ? never : K]: S[K];
+  [K in keyof S as S[K] extends TW.EventKind<any, any, any> ? never : K]: S[K];
 };
 
 type IsListenerAction<Action> = Action extends TW.Attributable<infer Meta>
-  ? Meta extends { event: string }
+  ? Meta extends { event: string; command: string }
+    ? false
+    : Meta extends { event: string }
     ? true
     : false
   : false;
@@ -264,7 +266,7 @@ export type InferTriggerScope<Schema> = Schema extends Signal<
       input: Input;
       event: Signal<Name, Input>;
     }
-  : Schema extends TW.EventKind<infer Name, infer Input>
+  : Schema extends TW.EventKind<infer Name, infer Input, any>
   ? {
       input: Input;
       event: Signal<Name, Input>;
@@ -438,7 +440,7 @@ export type EventsFromPlugin<U> = U extends Promise<infer M>
   ? EventsFromPlugin<M>
   : U extends { [TW.Scope]: infer S }
   ? EventsFromPlugin<S>
-  : U extends TW.EventKind<infer Name extends string, any>
+  : U extends TW.EventKind<infer Name extends string, any, any>
   ? {
       [K in Name]: U;
     }
@@ -447,7 +449,7 @@ export type EventsFromPlugin<U> = U extends Promise<infer M>
   : U extends (...args: any[]) => any
   ? {}
   : {
-      [K in keyof U as U[K] extends TW.EventKind<any, any> ? K : never]: U[K];
+      [K in keyof U as U[K] extends TW.EventKind<any, any, any> ? K : never]: U[K];
     };
 
 /** Merge actions from a plugin into Ctx["scope"]["actions"]. */

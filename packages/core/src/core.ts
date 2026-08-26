@@ -55,11 +55,11 @@ export namespace TW {
   }
 
   type EventKindNames<S> = {
-    [K in keyof S]: S[K] extends EventKind<infer Name, any> ? Name : never;
+    [K in keyof S]: S[K] extends EventKind<infer Name, any, any> ? Name : never;
   }[keyof S];
 
   type EventKindForName<S, Name extends string> = {
-    [K in keyof S]: S[K] extends EventKind<infer EventName, any>
+    [K in keyof S]: S[K] extends EventKind<infer EventName, any, any>
       ? Name extends EventName
         ? S[K]
         : never
@@ -69,14 +69,14 @@ export namespace TW {
   type EventKindData<S, K extends string> = EventKindForName<
     S,
     K
-  > extends EventKind<any, infer D extends Record<string, unknown>>
+  > extends EventKind<any, infer D extends Record<string, unknown>, any>
     ? D
     : Record<string, unknown>;
 
   type EventKindName<S, K extends string> = EventKindForName<
     S,
     K
-  > extends EventKind<infer N extends string, any>
+  > extends EventKind<infer N extends string, any, any>
     ? N
     : K;
 
@@ -237,9 +237,9 @@ export namespace TW {
     toString: () => string;
   }
 
-  export interface EventKind<Name extends string, Data, Scope = {}>
+  export interface EventKind<Name extends string, Data, Meta = null>
     extends Resource<Name>,
-      Attributable<null> {
+      Attributable<Meta> {
     emit(
       data: Data,
     ): AsyncGenerator<Signal<Name, Data>, Signal<Name, Data>, unknown>;

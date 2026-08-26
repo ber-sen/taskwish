@@ -25,6 +25,7 @@ import {
   AddActionsToCtx,
   DeepWriteable,
   QualifiedActionName,
+  QualifiedEventName,
   qualifyActionName,
   qualifyEventName,
   ToCamelCase,
@@ -55,15 +56,15 @@ type RuntimeResult<Result> = Awaited<Result> extends AsyncGenerator<
   : Result;
 
 type EventKeys<Scope> = {
-  [K in keyof Scope]: Scope[K] extends TW.EventKind<infer Name, any>
-    ? Name
+  [K in keyof Scope]: Scope[K] extends TW.EventKind<infer Name, any, any>
+    ? K | Name
     : never;
 }[keyof Scope] &
   string;
 
 type ExtractEventKind<Scope, EventName extends string> = {
-  [K in keyof Scope]: Scope[K] extends TW.EventKind<infer Name, any>
-    ? EventName extends Name
+  [K in keyof Scope]: Scope[K] extends TW.EventKind<infer Name, any, any>
+    ? EventName extends K | Name
       ? Scope[K]
       : never
     : never;
@@ -72,8 +73,15 @@ type ExtractEventKind<Scope, EventName extends string> = {
 type ExtractEventInput<Scope, EventName extends string> = ExtractEventKind<
   Scope,
   EventName
-> extends TW.EventKind<string, infer D>
+> extends TW.EventKind<string, infer D, any>
   ? D
+  : never;
+
+type ExtractEventMeta<Scope, EventName extends string> = ExtractEventKind<
+  Scope,
+  EventName
+> extends TW.EventKind<string, any, infer Meta>
+  ? Meta
   : never;
 
 type EventHandlerName<EventName extends string> =
@@ -83,8 +91,20 @@ type EventHandlerName<EventName extends string> =
     ? `on${Actor}${Name}`
     : `on${EventName}`;
 
+type EventActionName<EventName extends string, Meta> = Meta extends {
+  command: infer Command extends string;
+}
+  ? Command
+  : EventHandlerName<EventName>;
+
+type EventActionMeta<EventName extends string, Meta> = Meta extends {
+  command: infer Command extends string;
+}
+  ? { event: EventName; command: Command }
+  : { event: EventName };
+
 type ActorEventExports<Scope, Actor extends string> = Pretty<{
-  [K in keyof Scope as Scope[K] extends TW.EventKind<infer Name, any>
+  [K in keyof Scope as Scope[K] extends TW.EventKind<infer Name, any, any>
     ? Name extends `${Actor}::${string}`
       ? K extends `${string}::${string}`
         ? never
@@ -284,32 +304,33 @@ interface CommandBody<
   ): CommandResult<CmdName, FlatIn, Method, Path, Schema, Scope, Service, H>;
 }
 
-type BuiltInEventMap = {
-  Message: {
-    input: { threadId: string; content: string } | void;
-    scope: {};
-  };
-  NewEmail: {
-    input: { from: string; to: string; subject: string; body: string };
-    scope: {};
-  };
-  NewMessage: {
-    input: { sender: { name: string }; content: string; channel: string };
-    scope: {};
-  };
-  NewMention: {
-    input: { sender: { name: string }; text: string; channel: string };
-    scope: {};
-  };
+type BuiltInEventScope = {
+  Message: TW.EventKind<
+    "Message",
+    { threadId: string; content: string } | void,
+    { command: "chat" }
+  >;
+  NewEmail: TW.EventKind<
+    "NewEmail",
+    { from: string; to: string; subject: string; body: string }
+  >;
+  NewMessage: TW.EventKind<
+    "NewMessage",
+    { sender: { name: string }; content: string; channel: string }
+  >;
+  NewMention: TW.EventKind<
+    "NewMention",
+    { sender: { name: string }; text: string; channel: string }
+  >;
 };
 
-type BuiltInEventName = keyof BuiltInEventMap & string;
-
-type BuiltInEventInput<EventName extends BuiltInEventName> =
-  BuiltInEventMap[EventName]["input"];
-
-const builtInEventScope: Record<string, unknown> = {
-  ...Event("Message", { threadId: "string", content: "string" }, "|", "void"),
+const builtInEventScope = {
+  ...Event(
+    { name: "Message", command: "chat" },
+    { threadId: "string", content: "string" },
+    "|",
+    "void"
+  ),
   ...Event("NewEmail", {
     from: "string",
     to: "string",
@@ -326,7 +347,7 @@ const builtInEventScope: Record<string, unknown> = {
     text: "string",
     channel: "string",
   }),
-};
+} satisfies BuiltInEventScope;
 
 export interface Behavior<Ctx extends Record<any, any>> {
   use(config: LoggerConfig): this;
@@ -413,54 +434,34 @@ export interface Behavior<Ctx extends Record<any, any>> {
     ExtractTraitInput<TraitAction>
   >;
 
-  on(behavior: "Message"): ActionFactory<
-    "chat",
-    {
-      name: "chat";
-      service: Ctx["name"] & string;
-      meta: { event: "Message" };
-      scope: {
-        input: BuiltInEventInput<"Message">;
-      } & BaseScope<Ctx>;
-    }
-  >;
-
-  on<const EventName extends Exclude<BuiltInEventName, "Message">>(
-    behavior: EventName
-  ): ActionFactory<
-    EventHandlerName<EventName>,
-    {
-      name: EventHandlerName<EventName>;
-      service: Ctx["name"] & string;
-      meta: { event: EventName };
-      scope: {
-        input: BuiltInEventInput<EventName>;
-      } & BaseScope<Ctx>;
-    }
-  >;
-
   on<const EventName extends EventKeys<BaseScope<Ctx>>>(
     behavior: EventName
   ): ActionFactory<
-    EventHandlerName<EventName>,
+    EventActionName<EventName, ExtractEventMeta<BaseScope<Ctx>, EventName>>,
     {
-      name: EventHandlerName<EventName>;
+      name: EventActionName<
+        EventName,
+        ExtractEventMeta<BaseScope<Ctx>, EventName>
+      >;
       service: Ctx["name"] & string;
-      meta: { event: EventName };
+      meta: EventActionMeta<
+        EventName,
+        ExtractEventMeta<BaseScope<Ctx>, EventName>
+      >;
       scope: {
         input: ExtractEventInput<BaseScope<Ctx>, EventName>;
       } & BaseScope<Ctx>;
     }
   >;
 
-  on<const EventName extends string, Input>(
-    behavior: TW.EventKind<EventName, Input>
+  on<const EventName extends string, Input, Meta>(
+    behavior: TW.EventKind<EventName, Input, Meta>
   ): ActionFactory<
-    EventHandlerName<EventName>,
+    EventActionName<EventName, Meta>,
     {
-      name: EventHandlerName<EventName>;
+      name: EventActionName<EventName, Meta>;
       service: Ctx["name"] & string;
-      meta: { event: EventName };
+      meta: EventActionMeta<EventName, Meta>;
       scope: {
         input: Input;
       } & BaseScope<Ctx>;
@@ -468,17 +469,49 @@ export interface Behavior<Ctx extends Record<any, any>> {
   >;
 }
 
+type RequalifyScopedEvent<
+  ActorName extends string,
+  Key,
+  Value
+> = Value extends TW.EventKind<any, infer Input, infer Meta>
+  ? Key extends string
+    ? Key extends `${string}::${string}`
+      ? Value
+      : TW.EventKind<QualifiedEventName<ActorName, Key>, Input, Meta>
+    : Value
+  : Value;
+
+type RequalifyScopedEvents<ActorName extends string, Scope> = Pretty<{
+  [Key in keyof Scope]: RequalifyScopedEvent<ActorName, Key, Scope[Key]>;
+}>;
+
+type ScopedActorCtx<
+  Ctx extends Record<any, any>,
+  Last extends Record<any, any>
+> = Pretty<
+  Omit<Last, "name" | "scope" | "last"> &
+    { name: Ctx["name"] } &
+    ("scope" extends keyof Last
+      ? { scope: RequalifyScopedEvents<Ctx["name"] & string, Last["scope"]> }
+      : {}) &
+    ("last" extends keyof Last
+      ? { last: RequalifyScopedEvents<Ctx["name"] & string, Last["last"]> }
+      : {})
+>;
+
 /**
  * Used by `Steps<Ctx, ScopeResultKind>` — produces a scoped actor factory
  * `{ actor: () => Behavior<Last> }`.
  */
 export interface ScopeResultKind extends ResultKind {
-  type: this["ctx"] extends Record<any, any>
-    ? "name" extends keyof this["ctx"]
-      ? this["ctx"]["name"] extends string
-        ? {
-            [name in "actor"]: ActorFactory<this["last"] & Record<any, any>>;
-          }
+  type: this["ctx"] extends infer Ctx extends Record<any, any>
+    ? "name" extends keyof Ctx
+      ? Ctx["name"] extends string
+        ? this["last"] extends infer Last extends Record<any, any>
+          ? {
+              [name in "actor"]: ActorFactory<ScopedActorCtx<Ctx, Last>>;
+            }
+          : never
         : never
       : never
     : never;
@@ -723,6 +756,7 @@ function createBehavior(
       let actionName: string;
       let traitMeta: string | null = null;
       let eventMeta: string | null = null;
+      let eventCommand: string | null = null;
       let actionScope: Record<string, unknown> = {};
       const pendingActionScopes: Promise<Record<string, unknown>>[] = [];
 
@@ -735,6 +769,11 @@ function createBehavior(
         scopedBehavior !== null &&
         typeof scopedBehavior === "object" &&
         "emit" in scopedBehavior;
+      const scopedEventCommand = isScopedEvent
+        ? getEventCommand(scopedBehavior)
+        : null;
+      const eventKindCommand =
+        eventKind !== null ? getEventCommand(eventKind) : null;
       if (traitEvent !== null && !isScopedEvent) {
         // Trait event: VoiceCall.VoiceCall → actionName = "onVoiceCall"
         actionName = eventHandlerName(traitEvent);
@@ -748,8 +787,8 @@ function createBehavior(
       } else if (HTTP_METHODS.has(behavior)) {
         actionName = behavior;
       } else {
-        actionName =
-          behavior === "Message" ? "chat" : eventHandlerName(behavior);
+        eventCommand = eventKindCommand ?? scopedEventCommand;
+        actionName = eventCommand ?? eventHandlerName(behavior);
         eventMeta = behavior;
       }
 
@@ -870,6 +909,7 @@ function createBehavior(
             ? {
                 ...(traitMeta !== null ? { trait: traitMeta } : {}),
                 ...(eventMeta !== null ? { event: eventMeta } : {}),
+                ...(eventCommand !== null ? { command: eventCommand } : {}),
                 ...(actionMeta ?? {}),
               }
             : null;
@@ -1218,7 +1258,8 @@ function isServiceListenerAction(action: unknown): boolean {
   return (
     meta !== null &&
     typeof meta === "object" &&
-    typeof (meta as Record<string, unknown>).event === "string"
+    typeof (meta as Record<string, unknown>).event === "string" &&
+    typeof (meta as Record<string, unknown>).command !== "string"
   );
 }
 
@@ -1311,6 +1352,24 @@ function getTraitEventName(value: unknown): `::${string}` | null {
   return typeof event === "string" && event.startsWith("::")
     ? (event as `::${string}`)
     : null;
+}
+
+function getEventCommand(value: unknown): string | null {
+  if (
+    value === null ||
+    (typeof value !== "object" && typeof value !== "function") ||
+    !(TW.Meta in Object(value))
+  ) {
+    return null;
+  }
+
+  const meta = (value as Record<string | symbol, unknown>)[TW.Meta];
+  const command =
+    meta !== null && typeof meta === "object"
+      ? (meta as Record<string, unknown>).command
+      : null;
+
+  return typeof command === "string" ? command : null;
 }
 
 function eventScopeKey(eventName: string): string {
@@ -1524,7 +1583,7 @@ export const Actor = <
   const Ctx extends Record<any, any> = {
     name: Name;
     model: "gpt5";
-    scope: {
+    scope: BuiltInEventScope & {
       thread: {
         sender: {
           name: string;
