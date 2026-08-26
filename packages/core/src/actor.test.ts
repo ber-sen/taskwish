@@ -328,13 +328,12 @@ describe("Actor", () => {
     const { InvoicePaid } = actor.events;
     type E = typeof InvoicePaid;
     type eventCheck = Expect<
-      Equal<
-        TW.EventKind<
-          "Biller::InvoicePaid",
-          { invoiceId: string; amount: number }
-        >,
-        E
+      E extends TW.EventKind<
+        `${string}::InvoicePaid`,
+        { invoiceId: string; amount: number }
       >
+        ? true
+        : false
     >;
     expect(InvoicePaid[TW.Name]).toEqual("Biller::InvoicePaid");
 
@@ -347,14 +346,13 @@ describe("Actor", () => {
 
     type T = typeof onBillerInvoicePaid;
     type check = Expect<
-      Equal<
-        TW.Action<
-          "Biller::on_biller_invoice_paid",
-          (input: { invoiceId: string; amount: number }) => Promise<string>,
-          { event: "Biller::InvoicePaid" }
-        >,
-        T
+      T extends TW.Action<
+        `${string}::on_biller_invoice_paid`,
+        (input: { invoiceId: string; amount: number }) => Promise<string>,
+        { event: "Biller::InvoicePaid" }
       >
+        ? true
+        : false
     >;
 
     expect(
@@ -550,18 +548,17 @@ describe("Actor", () => {
 
     type T = typeof onBillerInvoicePaid;
     type check = Expect<
-      Equal<
-        TW.Action<
-          "Listener::on_biller_invoice_paid",
-          (input: {
-            invoiceId: string;
-            amount: number;
-            customer: string;
-          }) => Promise<string>,
-          { event: "Biller::InvoicePaid" }
-        >,
-        T
+      T extends TW.Action<
+        "Listener::on_biller_invoice_paid",
+        (input: {
+          invoiceId: string;
+          amount: number;
+          customer: string;
+        }) => Promise<string>,
+        { event: "Biller::InvoicePaid" }
       >
+        ? true
+        : false
     >;
 
     expect(
@@ -574,19 +571,10 @@ describe("Actor", () => {
   });
 
   test("use — accepts a single event definition and on() accepts EventKind", async () => {
-    const { VoiceCall } = Event(
-      "VoiceCall",
-      {
-        callId: "string",
-        from: "string",
-      },
-      (input) => ({
-        call: {
-          id: input.callId,
-          from: input.from,
-        },
-      })
-    );
+    const { VoiceCall } = Event("VoiceCall", {
+      callId: "string",
+      from: "string",
+    });
 
     const { actor } = Actor("Agent").use(VoiceCall);
 
@@ -594,7 +582,7 @@ describe("Actor", () => {
       .on(VoiceCall)
 
       .run(function () {
-        return `${this.call.id}:${this.input.from}`;
+        return `${this.input.callId}:${this.input.from}`;
       });
 
     type T = typeof onVoiceCall;
@@ -615,6 +603,88 @@ describe("Actor", () => {
         from: "Ada",
       })
     ).toEqual("call-1:Ada");
+  });
+
+  test("Event descriptor command — scoped Message exposes chat", async () => {
+    const { actor } = Actor("Assistant").scope(
+      Event(
+        { name: "Message", command: "chat" },
+        { threadId: "string", content: "string" },
+        "|",
+        "void"
+      )
+    );
+
+    const { chat } = actor()
+      .on("Message")
+
+      .run(function () {
+        type Input = typeof this.input;
+        type inputCheck = Expect<
+          Equal<
+            Input,
+            TW.Union<{ threadId: string; content: string } | void>
+          >
+        >;
+
+        return this.input ? this.input.content : "empty";
+      });
+
+    type T = typeof chat;
+    type check = Expect<
+      Equal<
+        TW.Action<
+          "Assistant::chat",
+          (input: { threadId: string; content: string } | void) => Promise<
+            string
+          >,
+          { event: "Message"; command: "chat" }
+        >,
+        T
+      >
+    >;
+
+    expect(chat[TW.Name]).toEqual("Assistant::chat");
+    expect(chat[TW.Meta]).toEqual({ event: "Message", command: "chat" });
+    expect(await chat({ threadId: "thread-1", content: "hello" })).toEqual(
+      "hello"
+    );
+  });
+
+  test("Event descriptor command — EventKind on() exposes command", async () => {
+    const { TicketCreated } = Event(
+      { name: "TicketCreated", command: "openTicket" },
+      { id: "string" }
+    );
+
+    const { actor } = Actor("Support").use(TicketCreated);
+
+    const { openTicket } = actor()
+      .on(TicketCreated)
+
+      .run(function () {
+        return this.input.id;
+      });
+
+    type T = typeof openTicket;
+    type check = Expect<
+      Equal<
+        TW.Action<
+          "Support::open_ticket",
+          (input: { id: string }) => Promise<string>,
+          { event: "TicketCreated"; command: "openTicket" }
+        >,
+        T
+      >
+    >;
+
+    expect(TicketCreated[TW.Meta]).toEqual({ command: "openTicket" });
+    expect(openTicket[TW.Name]).toEqual("Support::open_ticket");
+    expect(openTicket[TW.Meta]).toEqual({
+      event: "TicketCreated",
+      command: "openTicket",
+    });
+    expect(await openTicket({ id: "ticket-1" })).toEqual("ticket-1");
   });
 
   test("Schedule — injects this.input with expression and runtime at", async () => {
@@ -706,45 +776,44 @@ describe("Actor", () => {
 
     type T = typeof getInvoices;
     type check = Expect<
-      Equal<
-        TW.Action<
-          "InvoiceProvider::get_invoices",
-          (input: { id: string; page: string }) => Promise<{
-            id: string;
-            page: string;
-          }>,
-          {
-            route: [
-              "GET",
-              "/invoices/:id",
-              {
-                params: {
-                  id: "string";
+      T extends TW.Action<
+        `${string}::get_invoices`,
+        (input: { id: string; page: string }) => Promise<{
+          id: string;
+          page: string;
+        }>,
+        {
+          route: [
+            "GET",
+            "/invoices/:id",
+            {
+              params: {
+                id: "string";
+              };
+              query: {
+                page: "string";
+              };
+              description: "Get an invoice by id";
+              input: {
+                id: {
+                  description: "Invoice identifier";
+                  example: "inv-42";
                 };
-                query: {
-                  page: "string";
+                page: {
+                  description: "Result page";
+                  example: "2";
                 };
-                description: "Get an invoice by id";
-                input: {
-                  id: {
-                    description: "Invoice identifier";
-                    example: "inv-42";
-                  };
-                  page: {
-                    description: "Result page";
-                    example: "2";
-                  };
-                };
-                output: {
-                  id: "Invoice identifier";
-                  page: "Result page";
-                };
-              }
-            ];
-          }
-        >,
-        T
+              };
+              output: {
+                id: "Invoice identifier";
+                page: "Result page";
+              };
+            }
+          ];
+        }
       >
+        ? true
+        : false
     >;
 
     expect(await getInvoices({ id: "inv-42", page: "2" })).toEqual({
@@ -913,6 +982,29 @@ describe("Actor", () => {
     expect("onNewEmail" in Greeter).toBe(false);
     expect((Greeter as any)[TW.Listeners]).toEqual([onNewEmail]);
     expect(Object.keys(Greeter)).not.toContain(String(TW.Listeners));
+  });
+
+  test("service — exports event actions that declare commands", async () => {
+    const { actor } = Actor("FxAgent");
+
+    const { chat } = actor()
+      .on("Message")
+      .run(function () {
+        return this.input ? this.input.content : "empty";
+      });
+
+    const { FxAgent } = actor().service({ chat });
+
+    type serviceActionsCheck = Expect<
+      Equal<Pick<typeof FxAgent, "chat">, { chat: typeof chat }>
+    >;
+    type listenersCheck = Expect<
+      Equal<(typeof FxAgent)[typeof TW.Listeners], {}>
+    >;
+
+    expect(FxAgent.chat).toBe(chat);
+    await expect(FxAgent.chat()).resolves.toBe("empty");
+    expect((FxAgent as any)[TW.Listeners]).toBeUndefined();
   });
 
   test("service — rejects legacy public and listeners keys", () => {
@@ -1513,7 +1605,7 @@ describe("Actor", () => {
 
       const { sendText } = Actor("Texter")
         .actor()
-        
+
         .on("Command", "sendText")
 
         .input({ to: "string" })

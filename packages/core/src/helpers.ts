@@ -35,7 +35,9 @@ export type StripEventKinds<S> = {
 };
 
 type IsListenerAction<Action> = Action extends TW.Attributable<infer Meta>
-  ? Meta extends { event: string }
+  ? Meta extends { event: string; command: string }
+    ? false
+    : Meta extends { event: string }
     ? true
     : false
   : false;
@@ -264,7 +266,7 @@ export type InferTriggerScope<Schema> = Schema extends Signal<
       input: Input;
       event: Signal<Name, Input>;
     }
-  : Schema extends TW.EventKind<infer Name, infer Input>
+  : Schema extends TW.EventKind<infer Name, infer Input, any>
   ? {
       input: Input;
       event: Signal<Name, Input>;
@@ -447,7 +449,7 @@ export type EventsFromPlugin<U> = U extends Promise<infer M>
   : U extends (...args: any[]) => any
   ? {}
   : {
-      [K in keyof U as U[K] extends TW.EventKind<any, any> ? K : never]: U[K];
+      [K in keyof U as U[K] extends TW.EventKind<any, any, any> ? K : never]: U[K];
     };
 
 /** Merge actions from a plugin into Ctx["scope"]["actions"]. */

@@ -1,4 +1,19 @@
 import {
+  distill,
+  type,
+} from "arktype";
+import {
+  type Constructor,
+  type array,
+  type conform,
+} from "@ark/util";
+import type {
+  Morph,
+  NodeSelector,
+  Predicate,
+  TypeMeta,
+} from "@ark/schema";
+import {
   Apply,
   Append,
   ActionCtx,
@@ -23,6 +38,57 @@ import {
 } from "@taskwish/wire";
 import { type InferTypeConfig } from "../use";
 import { ActionMeta, ValidateActionMeta } from "./meta";
+
+type ArgTwoOperator = "[]" | "&" | "|" | "|>" | ":" | "=>" | "@";
+type IndexZeroOperator = "keyof" | "instanceof" | "===";
+type TupleInfixOperator = "&" | "|" | "|>" | ":" | "=>" | "@" | "=";
+
+type CommandInputScope<Input> = {
+  input: Input;
+  event: Signal<"Command", Input>;
+};
+
+type ArkTypeInfer<T> = T extends { infer: infer Inferred } ? Inferred : T;
+
+type NormalizeArkVoid<T> = T extends "void" ? "undefined" : T;
+
+type NormalizeArkTuple<T extends readonly unknown[]> = {
+  [K in keyof T]: NormalizeArkVoid<T[K]>;
+};
+
+type IsUnion<Type, Whole = Type> = Type extends unknown
+  ? [Whole] extends [Type]
+    ? false
+    : true
+  : never;
+
+type MarkUnionInput<Input> = true extends IsUnion<Input>
+  ? TW.Union<Input>
+  : Input;
+
+type ValidateArkOperand<T, Scope> = T extends "void"
+  ? T
+  : type.validate<T, Scope>;
+
+type InputActionBody<
+  Name extends string,
+  Ctx extends Record<any, any>,
+  Input,
+> = ActionBody<
+  Name,
+  {
+    name: Ctx["name"];
+    service: Ctx["service"];
+    scope: CommandInputScope<Input> & Ctx["scope"];
+    step: {
+      name: "launchApp" | StepName;
+      map: { launchApp: string };
+    };
+    steps: [];
+    plugins: Ctx["plugins"];
+    meta: "meta" extends keyof Ctx ? Ctx["meta"] : null;
+  }
+>;
 
 type AppendPlugin<Ctx extends Record<any, any>, Plugin> = {
   name: Ctx["name"];
@@ -221,21 +287,50 @@ export interface ActionFactory<
     | ((...args: any) => any)
     | TW.Handler
     ? SignatureBody<Name, Ctx, Schema>
-    : ActionBody<
+    : InputActionBody<
         Name,
-        {
-          name: Ctx["name"];
-          service: Ctx["service"];
-          scope: InferTriggerScope<Schema> & Ctx["scope"];
-          step: {
-            name: "launchApp" | StepName;
-            map: { launchApp: string };
-          };
-          steps: [];
-          plugins: Ctx["plugins"];
-          meta: "meta" extends keyof Ctx ? Ctx["meta"] : null;
-        }
+        Ctx,
+        MarkUnionInput<InferTriggerScope<Schema>["input"]>
       >;
+  input<
+    const zero,
+    const one,
+    const rest extends array,
+    r = type.instantiate<
+      NormalizeArkTuple<[zero, one, ...rest]>,
+      Ctx["scope"]
+    >,
+  >(
+    _0: zero extends IndexZeroOperator
+      ? zero
+      : ValidateArkOperand<zero, Ctx["scope"]>,
+    _1: zero extends "keyof"
+      ? type.validate<one, Ctx["scope"]>
+      : zero extends "instanceof"
+        ? conform<one, Constructor>
+        : zero extends "==="
+          ? conform<one, unknown>
+          : conform<one, ArgTwoOperator>,
+    ..._2: zero extends "==="
+      ? rest
+      : zero extends "instanceof"
+        ? conform<rest, readonly Constructor[]>
+        : one extends TupleInfixOperator
+          ? one extends ":"
+            ? [Predicate<distill.In<type.infer<zero, Ctx["scope"]>>>]
+            : one extends "=>"
+              ? [Morph<distill.Out<type.infer<zero, Ctx["scope"]>>, unknown>]
+              : one extends "|>"
+                ? [ValidateArkOperand<rest[0], Ctx["scope"]>]
+                : one extends "@"
+                  ? [TypeMeta.MappableInput, NodeSelector?]
+                  : [ValidateArkOperand<rest[0], Ctx["scope"]>]
+          : []
+  ): InputActionBody<
+    Name,
+    Ctx,
+    MarkUnionInput<ArkTypeInfer<r>>
+  >;
   run: Steps<Ctx, ActionResultKind>;
 }
 
@@ -1510,8 +1605,8 @@ export function Action<const Name extends string>(
     sig() {
       return makeBody("args");
     },
-    input(schema?: unknown) {
-      return makeBody("first", schema);
+    input(...schema: unknown[]) {
+      return makeBody("first", schema.length <= 1 ? schema[0] : schema);
     },
     use(config: unknown) {
       usePlugin(config);
