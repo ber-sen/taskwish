@@ -65,13 +65,13 @@ type IsUnion<Type, Whole = Type> = Type extends unknown
     : true
   : never;
 
-type MarkUnion<Type> = true extends IsUnion<Type> ? TW.Union<Type> : Type;
+type WrapUnion<Type> = true extends IsUnion<Type> ? TW.Union<Type> : Type;
 
 type EventData<
   Schema,
   Scope,
   Inferred = InferSchema<NormalizeVoidSchema<Schema>, Scope>
-> = MarkUnion<
+> = WrapUnion<
   HasVoidSchema<Schema> extends true
     ? Exclude<Inferred, undefined> | void
     : Inferred
@@ -240,9 +240,10 @@ interface Event {
 }
 
 export const Event: Event = ((
-  type: string | { name: string; command?: string }
+  eventType: string | { name: string; command?: string },
+  ...schemaParts: unknown[]
 ) => {
-  const name = typeof type === "string" ? type : type.name;
+  const name = typeof eventType === "string" ? eventType : eventType.name;
   const runtimeName =
     typeof name === "string" && name.includes("::")
       ? name
@@ -250,12 +251,14 @@ export const Event: Event = ((
       ? name.replace(":", "::")
       : name;
   const meta =
-    typeof type === "object" && typeof type.command === "string"
-      ? { command: type.command }
+    typeof eventType === "object" && typeof eventType.command === "string"
+      ? { command: eventType.command }
       : null;
+  const inputSchema = schemaParts.length <= 1 ? schemaParts[0] : schemaParts;
   const eventKind: any = {
     [TW.Name]: runtimeName,
     [TW.Meta]: meta,
+    [TW.InputSchema]: inputSchema,
     emit: async function* (signalData: unknown) {
       const signal = new Signal(eventKind[TW.Name], signalData);
       yield signal;

@@ -49,17 +49,19 @@ export interface AgentRuntime {
   chat(input: AgentChatInput): AsyncGenerator<string, string>;
   chat<const Input extends TW.Union<AgentChatInput | void>>(
     input: Input,
-  ): Input extends void
-    ? TW.Branch<
-        { input: void },
-        AgentChatThread,
-        Promise<AgentChatThread>
-      >
-    : TW.Branch<
-        { input: TW.UnwrapUnion<Input> },
-        string,
-        AsyncGenerator<string, string>
-      >;
+  ): Input extends TW.Union<infer Data>
+    ? Data extends void
+      ? TW.Branch<
+          { input: void },
+          AgentChatThread,
+          Promise<AgentChatThread>
+        >
+      : TW.Branch<
+          { input: Data },
+          string,
+          AsyncGenerator<string, string>
+        >
+    : never;
   prompt(
     input?: CodexPromptInput | CodexPromptOptions,
   ): AsyncGenerator<string, string>;
@@ -157,18 +159,23 @@ function createAgentRuntime(options: AgentOptions): AgentRuntime {
   function chat(input: AgentChatInput): AsyncGenerator<string, string>;
   function chat<const Input extends TW.Union<AgentChatInput | void>>(
     input: Input,
-  ): Input extends void
-    ? TW.Branch<
-        { input: void },
-        AgentChatThread,
-        Promise<AgentChatThread>
-      >
-    : TW.Branch<
-        { input: TW.UnwrapUnion<Input> },
-        string,
-        AsyncGenerator<string, string>
-      >;
-  function chat(input?: AgentChatInput | void) {
+  ): Input extends TW.Union<infer Data>
+    ? Data extends void
+      ? TW.Branch<
+          { input: void },
+          AgentChatThread,
+          Promise<AgentChatThread>
+        >
+      : TW.Branch<
+          { input: Data },
+          string,
+          AsyncGenerator<string, string>
+        >
+    : never;
+  function chat(
+    input?: AgentChatInput | TW.Union<AgentChatInput | void> | void,
+  ) {
+    input = input instanceof TW.Union ? input.unwrap() : input;
     if (!input?.content) {
       return createChatSession();
     }

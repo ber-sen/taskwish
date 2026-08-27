@@ -627,7 +627,9 @@ describe("Actor", () => {
           >
         >;
 
-        return this.input ? this.input.content : "empty";
+        expect(this.input).toBeInstanceOf(TW.Union);
+        const input = this.input.unwrap();
+        return input ? input.content : "empty";
       });
 
     type T = typeof chat;
@@ -990,7 +992,8 @@ describe("Actor", () => {
     const { chat } = actor()
       .on("Message")
       .run(function () {
-        return this.input ? this.input.content : "empty";
+        const input = this.input.unwrap();
+        return input ? input.content : "empty";
       });
 
     const { FxAgent } = actor().service({ chat });

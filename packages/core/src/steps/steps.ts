@@ -84,7 +84,7 @@ type ExtractBranches<Result> = Extract<Result, BranchLike>;
 
 type BranchInput<Input> = Input extends { input: infer I } ? I : void;
 
-type PublicInput<Input> = TW.UnwrapUnion<Input>;
+type PublicInput<Input> = Input extends TW.Union<infer Data> ? Data : Input;
 
 type UnionToIntersection<U> = (
   U extends unknown ? (value: U) => void : never

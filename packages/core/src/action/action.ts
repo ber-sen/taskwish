@@ -24,6 +24,7 @@ import {
   AddActionsToCtx,
   DeepWriteable,
   QualifiedActionName,
+  isUnionSchema,
   splitQualifiedActionName,
 } from "../helpers";
 import type { Steps, ActionResultKind } from "../steps";
@@ -678,6 +679,16 @@ function commandEvent(input: unknown): Signal<"Command", object> {
   });
 }
 
+function wrapUnionInput(
+  inputMode: "first" | "args",
+  args: unknown[],
+  inputSchema: unknown,
+): unknown[] {
+  if (inputMode !== "first" || !isUnionSchema(inputSchema)) return args;
+  if (args[0] instanceof TW.Union) return args;
+  return [new TW.Union(args[0]), ...args.slice(1)];
+}
+
 function isStepHandler(handler: unknown): boolean {
   return (
     handler !== null && handler !== undefined && TW.Name in Object(handler)
@@ -1047,9 +1058,16 @@ async function* runHandlerList(
       const _actionHandlers = actionHandlers;
       ctx["self"] = (input: unknown) => {
         ctx[SelfCalledTag] = true;
+        const nextInput =
+          ctx.input instanceof TW.Union && !(input instanceof TW.Union)
+            ? new TW.Union(input)
+            : input;
         const gen = runAction(
           `${_actionName}.${_stepName}`,
-          buildScope("first", [input], { ...ctx, event: commandEvent(input) }),
+          buildScope("first", [nextInput], {
+            ...ctx,
+            event: commandEvent(input),
+          }),
           _actionHandlers,
           true,
         );
@@ -1121,7 +1139,9 @@ export async function* runAction(
 ): AsyncGenerator<unknown, unknown> {
   const ctx: Record<string | symbol, unknown> = { ...scope };
 
-  yield new Trace(name, { input: scope.input });
+  const traceInput =
+    scope.input instanceof TW.Union ? scope.input.unwrap() : scope.input;
+  yield new Trace(name, { input: traceInput });
 
   try {
     const r = yield* runHandlerList(
@@ -1503,7 +1523,15 @@ export function Action<const Name extends string>(
       );
       const gen = tap(
         unwrapStreamEvents(
-          runAction(actionName, buildScope(inputMode, args, extra), handlers),
+          runAction(
+            actionName,
+            buildScope(
+              inputMode,
+              wrapUnionInput(inputMode, args, inputSchema),
+              extra,
+            ),
+            handlers,
+          ),
         ),
       );
       let item = await gen.next();
@@ -1531,7 +1559,11 @@ export function Action<const Name extends string>(
       );
       return yield* runAction(
         actionName,
-        buildScope(inputMode, args, extra),
+        buildScope(
+          inputMode,
+          wrapUnionInput(inputMode, args, inputSchema),
+          extra,
+        ),
         handlers,
       );
     }

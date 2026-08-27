@@ -28,6 +28,7 @@ import {
   QualifiedEventName,
   qualifyActionName,
   qualifyEventName,
+  isUnionSchema,
   ToCamelCase,
   toCamelCaseName,
   splitQualifiedActionName,
@@ -591,6 +592,11 @@ function makeBehaviorMod(
   return (args) => ({ args, scope: {} });
 }
 
+function wrapUnionInput(args: unknown[], inputSchema: unknown): unknown[] {
+  if (!isUnionSchema(inputSchema) || args[0] instanceof TW.Union) return args;
+  return [new TW.Union(args[0]), ...args.slice(1)];
+}
+
 function scopeEventKind(
   actorName: string,
   eventName: string,
@@ -774,6 +780,12 @@ function createBehavior(
         : null;
       const eventKindCommand =
         eventKind !== null ? getEventCommand(eventKind) : null;
+      const eventInputSchema = (
+        eventKind ??
+        (isScopedEvent
+          ? (scopedBehavior as Record<string | symbol, unknown>)
+          : null)
+      )?.[TW.InputSchema];
       if (traitEvent !== null && !isScopedEvent) {
         // Trait event: VoiceCall.VoiceCall → actionName = "onVoiceCall"
         actionName = eventHandlerName(traitEvent);
@@ -832,6 +844,7 @@ function createBehavior(
           const runContext = normalizeActionContext(context);
           const resolvedInitialScope = await resolveActionScope();
           const { args: modArgs, scope: behaviorScope } = mod(args);
+          const runtimeArgs = wrapUnionInput(modArgs, inputSchema);
           const extra = mergeActorScope(
             mergeActorScope(resolvedInitialScope, behaviorScope),
             runContext as Record<string, unknown>
@@ -840,7 +853,7 @@ function createBehavior(
             unwrapStreamEvents(
               runAction(
                 eventName,
-                buildScope(inputMode, modArgs, extra),
+                buildScope(inputMode, runtimeArgs, extra),
                 handlers
               )
             )
@@ -865,13 +878,14 @@ function createBehavior(
           const runContext = normalizeActionContext(context);
           const resolvedInitialScope = await resolveActionScope();
           const { args: modArgs, scope: behaviorScope } = mod(args);
+          const runtimeArgs = wrapUnionInput(modArgs, inputSchema);
           const extra = mergeActorScope(
             mergeActorScope(resolvedInitialScope, behaviorScope),
             runContext as Record<string, unknown>
           );
           return yield* runAction(
             eventName,
-            buildScope(inputMode, modArgs, extra),
+            buildScope(inputMode, runtimeArgs, extra),
             handlers
           );
         }
@@ -963,7 +977,7 @@ function createBehavior(
           return this;
         },
         run(...handlers: unknown[]) {
-          return createAction("first", handlers);
+          return createAction("first", handlers, eventInputSchema);
         },
       };
 

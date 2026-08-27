@@ -30,6 +30,19 @@ export type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
   ? true
   : false;
 
+export type UnionData<Type> = Type extends TW.Union<infer Data> ? Data : Type;
+
+export function isUnionSchema(schema: unknown): boolean {
+  if (Array.isArray(schema)) return schema.includes("|");
+  if (schema === null || typeof schema !== "object") return false;
+
+  const candidate = schema as { kind?: unknown; branches?: unknown };
+  return (
+    candidate.kind === "union" ||
+    (Array.isArray(candidate.branches) && candidate.branches.length > 1)
+  );
+}
+
 export type StripEventKinds<S> = {
   [K in keyof S as S[K] extends TW.EventKind<any, any, any> ? never : K]: S[K];
 };

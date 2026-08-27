@@ -14,7 +14,7 @@ export const { chat } = actor()
     }),
 
     Step("answer", function () {
-      return this.agent.chat(this.input)
+      return this.agent.chat(this.input);
     }),
   );
 

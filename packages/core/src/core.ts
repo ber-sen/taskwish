@@ -8,13 +8,11 @@ import {
   StreamInput,
   StreamResult,
   StripEventKinds,
+  UnionData,
 } from "./helpers";
 
 import { Type as ArkType } from "arktype";
-import type {
-  Signal,
-  Trace,
-} from "@taskwish/wire";
+import type { Signal, Trace } from "@taskwish/wire";
 
 export namespace TW {
   export const Name = Symbol.for("TW.Name");
@@ -32,8 +30,6 @@ export namespace TW {
   export const Type = Symbol.for("TW.Type");
 
   export const Branch: unique symbol = Symbol.for("TW.Branch") as never;
-
-  export const Union: unique symbol = Symbol.for("TW.Union") as never;
 
   export interface Contextual<Ctx extends Record<any, any>> {
     [Scope]: Ctx["scope"];
@@ -71,8 +67,10 @@ export namespace TW {
   type EventKindData<S, K extends string> = EventKindForName<
     S,
     K
-  > extends EventKind<any, infer D extends Record<string, unknown>, any>
-    ? D
+  > extends EventKind<any, infer D, any>
+    ? UnionData<D> extends Record<string, unknown>
+      ? UnionData<D>
+      : Record<string, unknown>
     : Record<string, unknown>;
 
   type EventKindName<S, K extends string> = EventKindForName<
@@ -82,9 +80,7 @@ export namespace TW {
     ? N
     : K;
 
-  type StripBranch<T> = T extends Branch<any, any, infer Runtime>
-    ? Runtime
-    : T;
+  type StripBranch<T> = T extends Branch<any, any, infer Runtime> ? Runtime : T;
 
   type UserScope<S> = {
     [K in keyof StripEventKinds<S> as K extends typeof Branch
@@ -95,11 +91,7 @@ export namespace TW {
   export type Scope<S> = UserScope<S> & {
     abortSignal?: Configurable<AbortSignal>;
     self: <Return = any>(
-      input: S extends Record<any, any>
-        ? S["input"] extends Record<any, any>
-          ? S["input"]
-          : never
-        : never,
+      input: S extends Record<any, any> ? UnionData<S["input"]> : never,
     ) => Return;
     signal<
       T extends [EventKindNames<S>] extends [never]
@@ -140,19 +132,17 @@ export namespace TW {
     };
   };
 
-  /** Marks a framework-provided union while preserving its runtime shape. */
-  export type Union<Type> = Type extends unknown
-    ? [Type] extends [void]
-      ? Type
-      : Type & { readonly [Union]: Type }
-    : never;
+  export class Union<Data> {
+    #data: Data;
 
-  /** Removes the type-only marker from a framework-provided union member. */
-  export type UnwrapUnion<Type> = Type extends {
-    readonly [Union]: infer Value;
+    constructor(data: Data) {
+      this.#data = data;
+    }
+
+    unwrap(): Data {
+      return this.#data;
+    }
   }
-    ? Value
-    : Type;
 
   type UnionToIntersection<U> = (
     U extends unknown ? (value: U) => void : never
@@ -179,10 +169,10 @@ export namespace TW {
     } & Resource<Name> &
     Attributable<Meta>;
 
-  export type ActionCtxMeta<
-    Meta,
-    Ctx extends Record<any, any>,
-  > = keyof Omit<Ctx, "abortSignal"> extends never
+  export type ActionCtxMeta<Meta, Ctx extends Record<any, any>> = keyof Omit<
+    Ctx,
+    "abortSignal"
+  > extends never
     ? Meta
     : Pretty<(Meta extends null ? {} : Meta) & { ctx: Ctx }>;
 
@@ -212,16 +202,6 @@ export namespace TW {
       NoInfer<Handler>;
   };
 
-  export class IO {
-    // sessionId!: Message.SessionId;
-    // senderId!: Message.IdentityId;
-    // receiverId!: Message.IdentityId;
-    // messages!: Message.Message<any, any>[];
-    // reply!: <const Content extends Array<Message.MessagePart<any>> | string>(
-    //   message: Message.Message<Content>,
-    // ) => Event<"Message", Message.Message<Content>>;
-  }
-
   export interface Execution<Stream, Return, Deps, Params = null>
     extends AsyncGenerator<Stream, Return, Deps>,
       Promise<Return> {
@@ -230,8 +210,11 @@ export namespace TW {
     params: Params;
   }
 
-  export type Service<Name extends string, Actions, ServiceScope = {}> =
-    OmitListeners<Actions> & {
+  export type Service<
+    Name extends string,
+    Actions,
+    ServiceScope = {},
+  > = OmitListeners<Actions> & {
     [Name]: Name;
     [Listeners]: PickListeners<Actions>;
     [Scope]: ServiceScope;
@@ -257,8 +240,12 @@ export namespace TW {
     extends Resource<Name>,
       Attributable<Meta> {
     emit(
-      data: Data,
-    ): AsyncGenerator<Signal<Name, Data>, Signal<Name, Data>, unknown>;
+      data: UnionData<Data>,
+    ): AsyncGenerator<
+      Signal<Name, UnionData<Data>>,
+      Signal<Name, UnionData<Data>>,
+      unknown
+    >;
   }
 
   export type Struct<Name extends string, TypeDef> = ArkType<TypeDef> &
