@@ -43,6 +43,11 @@ import {
 } from "@taskwish/wire";
 import { type Steps } from "./steps/steps";
 import { ResultKind } from "./steps/hkt";
+import {
+  bindStateDefinition,
+  isStateDefinition,
+  isStateStore,
+} from "./state";
 
 type BaseScope<Ctx> = Ctx extends Record<any, any> ? Ctx["scope"] : {};
 
@@ -624,8 +629,17 @@ function collectScope(
   actorName?: string
 ): Record<string, unknown> {
   const scope: Record<string, unknown> = {};
+  const stateDefinitions: Array<
+    [string, Parameters<typeof bindStateDefinition>[0]]
+  > = [];
+  let stateStore: Parameters<typeof bindStateDefinition>[2];
 
   const collectEntry = (key: string, value: unknown) => {
+    if (actorName && isStateDefinition(value)) {
+      stateDefinitions.push([key, value]);
+      return;
+    }
+
     const scopedValue =
       actorName &&
       value !== null &&
@@ -662,6 +676,11 @@ function collectScope(
   };
 
   for (const step of steps) {
+    if (isStateStore(step)) {
+      stateStore = step;
+      continue;
+    }
+
     if (typeof step === "function" && TW.Name in step) {
       const key = String(step[TW.Name as keyof typeof step]);
       const value = step.call(scope);
@@ -679,6 +698,12 @@ function collectScope(
         const value = (step as Record<string, unknown>)[key];
         collectEntry(key, value);
       }
+    }
+  }
+
+  if (actorName) {
+    for (const [key, definition] of stateDefinitions) {
+      scope[key] = bindStateDefinition(definition, actorName, stateStore);
     }
   }
   return scope;

@@ -251,6 +251,9 @@ export namespace TW {
   export type Struct<Name extends string, TypeDef> = ArkType<TypeDef> &
     Resource<Name>;
 
+  /** A mutable actor-scoped value created with State(...). */
+  export type State<Value> = Value;
+
   export interface Extendable<Scope> {
     use<const NewScope>(newScope: NewScope): Extendable<Scope & NewScope>;
   }

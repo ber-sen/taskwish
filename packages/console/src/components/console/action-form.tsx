@@ -409,6 +409,7 @@ export const ActionForm = forwardRef<
             autoFocus={index === 0}
             register={form.register}
             control={form.control}
+            config={config}
           />
         ))}
         {optionalFields.length ? (
