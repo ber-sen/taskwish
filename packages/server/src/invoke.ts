@@ -1,4 +1,9 @@
-import { RawLoggedStreamTag, RawStreamTag, TW } from "@taskwish/core";
+import {
+  RawLoggedStreamTag,
+  RawStreamTag,
+  TW,
+  statePayload,
+} from "@taskwish/core";
 import { Signal, Trace } from "@taskwish/wire";
 import {
   flattenRouteInput,
@@ -42,14 +47,21 @@ function rawActionStream(
   args: unknown[],
 ): AsyncGenerator<unknown, unknown, unknown> | null {
   const raw =
-    (action as unknown as {
-      [RawLoggedStreamTag]?: (
-        ...args: unknown[]
-      ) => AsyncGenerator<unknown, unknown>;
-    })[RawLoggedStreamTag] ??
-    (action as unknown as {
-      [RawStreamTag]?: (...args: unknown[]) => AsyncGenerator<unknown, unknown>;
-    })[RawStreamTag] ?? action.stream;
+    (
+      action as unknown as {
+        [RawLoggedStreamTag]?: (
+          ...args: unknown[]
+        ) => AsyncGenerator<unknown, unknown>;
+      }
+    )[RawLoggedStreamTag] ??
+    (
+      action as unknown as {
+        [RawStreamTag]?: (
+          ...args: unknown[]
+        ) => AsyncGenerator<unknown, unknown>;
+      }
+    )[RawStreamTag] ??
+    action.stream;
 
   return raw ? raw(...args) : null;
 }
@@ -156,13 +168,21 @@ function responseFromActionSseStream(
             const item = await stream.next();
             if (item.done) {
               if (item.value !== undefined) {
-                controller.enqueue(ssePayload("result", item.value));
+                const state = statePayload(item.value);
+                controller.enqueue(
+                  state
+                    ? ssePayload("state", state)
+                    : ssePayload("result", item.value),
+                );
               }
               controller.close();
               return;
             }
 
-            if (item.value instanceof Signal) {
+            if (item.value instanceof TW.StateChange) {
+              controller.enqueue(ssePayload("state-change", item.value.data));
+              return;
+            } else if (item.value instanceof Signal) {
               dispatchSignal(item.value, registry);
               if (options.includeWire) {
                 controller.enqueue(ssePayload("wire", item.value.data));
@@ -248,7 +268,12 @@ export async function invoke(
   registry: NodeRegistry,
 ): Promise<Response> {
   const args = await parseActionInput(request);
-  return invokeAction(action, args, registry, invokeOptionsFromRequest(request));
+  return invokeAction(
+    action,
+    args,
+    registry,
+    invokeOptionsFromRequest(request),
+  );
 }
 
 export async function invokeRouteAction(

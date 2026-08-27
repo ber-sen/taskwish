@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { Actor, Store, State } from "./index";
+import { Actor, Store, State, TW, statePayload } from "./index";
 
 const temporaryDirectories: string[] = [];
 const originalDefaultStorePath = process.env.TW_DEFAULT_STORE_PATH;
@@ -36,7 +36,7 @@ describe("State", () => {
       process.chdir(root);
       try {
         return Actor("DefaultStore").scope(
-          State({ items: State.List({ description: "string" }) }),
+          State({ items: State.List({ description: "string" }) })
         );
       } finally {
         process.chdir(previousDirectory);
@@ -45,7 +45,7 @@ describe("State", () => {
 
     const { add } = scoped
       .actor()
-      
+
       .on("Command", "add")
 
       .run(function () {
@@ -54,9 +54,7 @@ describe("State", () => {
 
     await add();
     expect(
-      JSON.parse(
-        readFileSync(join(root, "state", "DefaultStore.json"), "utf8"),
-      ),
+      JSON.parse(readFileSync(join(root, "state", "DefaultStore.json"), "utf8"))
     ).toEqual({ items: [{ description: "persist me" }] });
   });
 
@@ -66,20 +64,18 @@ describe("State", () => {
 
     const { actor } = Actor("EnvironmentStore").scope(
       Store({ adapter: "fs" }),
-      State({ items: State.List({ description: "string" }) }),
+      State({ items: State.List({ description: "string" }) })
     );
     const { add } = actor()
       .on("Command", "add")
-      
+
       .run(function () {
         this.state.items.push({ description: "from env" });
       });
 
     await add();
     expect(
-      JSON.parse(
-        readFileSync(join(directory, "EnvironmentStore.json"), "utf8"),
-      ),
+      JSON.parse(readFileSync(join(directory, "EnvironmentStore.json"), "utf8"))
     ).toEqual({ items: [{ description: "from env" }] });
   });
 
@@ -87,10 +83,7 @@ describe("State", () => {
     const directory = temporaryStateDirectory();
     const createActor = () =>
       Actor("Counter")
-        .scope(
-          Store({ adapter: "fs", directory }),
-          State({ count: 0 }),
-        )
+        .scope(Store({ adapter: "fs", directory }), State({ count: 0 }))
         .actor();
 
     const first = createActor();
@@ -100,7 +93,7 @@ describe("State", () => {
 
     expect(await increase()).toBe(1);
     expect(
-      JSON.parse(readFileSync(join(directory, "Counter.json"), "utf8")),
+      JSON.parse(readFileSync(join(directory, "Counter.json"), "utf8"))
     ).toEqual({ count: 1 });
 
     const second = createActor();
@@ -121,7 +114,7 @@ describe("State", () => {
           description: "string",
           done: "boolean",
         }),
-      }),
+      })
     );
 
     const { add } = actor()
@@ -137,15 +130,102 @@ describe("State", () => {
 
     const id = await add({ description: "Write the docs" });
     expect(id).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
     );
     const persisted = JSON.parse(
-      readFileSync(join(directory, "Todos.json"), "utf8"),
+      readFileSync(join(directory, "Todos.json"), "utf8")
     );
     expect(persisted).toMatchObject({
       items: [{ description: "Write the docs", done: false }],
     });
     expect(persisted.items[0].id).toBe(id);
+  });
+
+  test("tags state values, exposes state-command metadata, and streams changes", async () => {
+    const directory = temporaryStateDirectory();
+    const { actor } = Actor("ActionableTodos").scope(
+      Store({ adapter: "fs", directory }),
+      State({
+        items: State.List({ id: "string", done: "boolean" }),
+      })
+    );
+
+    const { seed } = actor()
+      .on("Command", "seed")
+      .run(function () {
+        this.state.items.push({ id: "one", done: false });
+        return this.state.items;
+      });
+    const { complete } = actor()
+      .on("Command", "complete")
+      .input({ id: "string" })
+      .addStateCommand("item", {
+        markDone: {
+          input: { id: "item.id" },
+          visible: { done: false },
+        },
+      })
+      .run(function () {
+        const item = this.state.items.find(({ id }) => id === this.input.id)!;
+        item.done = true;
+        return item;
+      });
+
+    if (false) {
+      actor()
+        .on("Command", "invalidStateCommand")
+        .input({ id: "string" })
+        .addStateCommand("item", {
+          invalid: {
+            input: {
+              // @ts-expect-error State command paths are checked against list item fields.
+              id: "item.missing",
+            },
+            visible: {
+              // @ts-expect-error State command conditions are checked against list item fields.
+              missing: true,
+            },
+          },
+        });
+    }
+
+    const items = await seed();
+    expect(items[TW.State]).toBe("State.items");
+    expect(
+      (items[0] as (typeof items)[number] & Record<symbol, unknown>)[TW.State]
+    ).toBe("State.items");
+    const payload = statePayload(items);
+    expect(payload?.path).toBe("State.items");
+    expect(payload?.columns).toEqual(["id", "done"]);
+    expect(statePayload(items.filter(() => true))?.columns).toEqual([
+      "id",
+      "done",
+    ]);
+    expect(complete[TW.Meta]).toMatchObject({
+      stateCommands: {
+        item: {
+          markDone: {
+            input: { id: "item.id" },
+            visible: { done: false },
+          },
+        },
+      },
+    });
+
+    const events: unknown[] = [];
+    for await (const event of complete.stream({ id: "one" })) {
+      events.push(event);
+    }
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        event: "TW::StateChange",
+        data: expect.objectContaining({
+          path: "State.items",
+          previous: [{ id: "one", done: false }],
+          value: [{ id: "one", done: true }],
+        }),
+      })
+    );
   });
 
   test("State.List validates primary.uuidv4.random fields", async () => {
@@ -154,7 +234,7 @@ describe("State", () => {
       Store({ adapter: "fs", directory }),
       State({
         items: State.List({ id: "primary.uuidv4.random" }),
-      }),
+      })
     );
 
     const { addInvalid } = actor()
@@ -165,7 +245,7 @@ describe("State", () => {
       });
 
     await expect(addInvalid()).rejects.toThrow(
-      "Invalid value at state.items[0]",
+      "Invalid value at state.items[0]"
     );
   });
 
@@ -177,7 +257,7 @@ describe("State", () => {
           Store({ adapter: "fs", directory }),
           State({
             items: State.List({ name: "string", done: "boolean" }),
-          }),
+          })
         )
         .actor();
 
@@ -206,12 +286,12 @@ describe("State", () => {
       Store({ adapter: "fs", directory }),
       State({
         items: State.List({ description: "string", done: "boolean" }),
-      }),
+      })
     );
 
     const { addInvalid } = actor()
       .on("Command", "addInvalid")
-      
+
       .run(function () {
         return this.state.items.push({
           description: "bad",
@@ -221,7 +301,14 @@ describe("State", () => {
       });
 
     await expect(addInvalid()).rejects.toThrow(
-      "Invalid value at state.items[0]",
+      "Invalid value at state.items[0]"
     );
+
+    const { list } = actor()
+      .on("Command", "list")
+      .run(function () {
+        return this.state.items;
+      });
+    expect(Array.from(await list())).toEqual([]);
   });
 });

@@ -16,6 +16,7 @@ const StateDefinition = Symbol("Taskwish.StateDefinition");
 const StateListDefinition = Symbol("Taskwish.StateListDefinition");
 const StateValueDefinition = Symbol("Taskwish.StateValueDefinition");
 const StateStoreDefinition = Symbol("Taskwish.StateStoreDefinition");
+const StateColumns = Symbol("Taskwish.StateColumns");
 
 const stateScope = scope({
   primary: scope({
@@ -42,11 +43,17 @@ type StateListTypeSchema<Schema> = Schema extends Record<string, unknown>
     }
   : Schema;
 
+type StateType<Path extends string> = {
+  readonly [TW.State]: `State${Path extends "" ? "" : `.${Path}`}`;
+};
+
 type StateListItem<Schema> = InferSchema<StateListTypeSchema<Schema>>;
 
 type PrimaryRandomKeys<Schema> = Schema extends Record<string, unknown>
   ? {
-      [Key in keyof Schema]: Schema[Key] extends PrimaryRandomUUID ? Key : never;
+      [Key in keyof Schema]: Schema[Key] extends PrimaryRandomUUID
+        ? Key
+        : never;
     }[keyof Schema]
   : never;
 
@@ -56,11 +63,13 @@ type WithOptionalKeys<Value, Keys extends PropertyKey> = Value extends object
   : Value;
 
 type StateListInput<Schema> = WithOptionalKeys<
-  StateListItem<Schema>,
+  InferSchema<StateListTypeSchema<Schema>>,
   PrimaryRandomKeys<Schema>
 >;
 
-interface StateListValue<Item, Input> extends Array<Item> {
+interface StateListValue<Item, Input, Path extends string = string>
+  extends Array<Item>,
+    StateType<Path> {
   push(...items: Item[]): number;
   push(...items: Input[]): number;
   unshift(...items: Item[]): number;
@@ -72,25 +81,32 @@ type StateScalar = string | number | boolean;
 type WidenStateScalar<Value extends StateScalar> = Value extends string
   ? string
   : Value extends number
-    ? number
-    : boolean;
+  ? number
+  : boolean;
 
-type StateValue<Fields> = Pretty<{
+type StateFieldsValue<Fields> = Pretty<{
   -readonly [Key in keyof Fields]: Fields[Key] extends StateListDescriptor<
     infer Schema
   >
-    ? StateListValue<StateListItem<Schema>, StateListInput<Schema>>
+    ? StateListValue<
+        StateListItem<Schema>,
+        StateListInput<Schema>,
+        Key & string
+      >
     : Fields[Key] extends StateScalar
-      ? WidenStateScalar<Fields[Key]>
-      : never;
+    ? WidenStateScalar<Fields[Key]>
+    : never;
 }>;
+
+type StateValue<Fields> = StateFieldsValue<Fields> & StateType<"">;
 
 type ValidateStateFields<Fields> = {
   [Key in keyof Fields]: Fields[Key] extends StateListDescriptor
     ? Fields[Key]
     : Fields[Key] extends StateScalar
-      ? Fields[Key]
-      : `State field "${Key & string}" must be a primitive initial value or declared with State.List(...)`;
+    ? Fields[Key]
+    : `State field "${Key &
+        string}" must be a primitive initial value or declared with State.List(...)`;
 };
 
 type StateResult<Fields, Ctx extends Record<any, any>> = {
@@ -166,10 +182,155 @@ type RuntimeDefinition = {
   instances: Map<string, RuntimeState>;
 };
 
+export type StateChange = {
+  path: string;
+  previous: unknown;
+  value: unknown;
+  columns?: string[];
+};
+
+export type StateSnapshot = Array<{
+  state: RuntimeState;
+  values: Record<string, unknown>;
+}>;
+
 type RuntimeStore = {
   [StateStoreDefinition]: true;
   store: StateStore;
 };
+
+export type StatePayload = {
+  path: string;
+  value: unknown;
+  columns?: string[];
+};
+
+function cloneStateValue(value: unknown): unknown {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function restoreArray(target: unknown[], snapshot: unknown[]): void {
+  target.length = 0;
+  target.push(...snapshot);
+}
+
+function defineStateMetadata(
+  value: object,
+  path: string,
+  columns?: string[]
+): void {
+  Object.defineProperty(value, TW.State, {
+    configurable: true,
+    value: path,
+  });
+  if (columns) {
+    Object.defineProperty(value, StateColumns, {
+      configurable: true,
+      value: columns,
+    });
+  }
+}
+
+function annotateStateValue(
+  value: unknown,
+  path: string,
+  columns?: string[]
+): void {
+  if (value === null || typeof value !== "object") return;
+
+  defineStateMetadata(value, path, columns);
+  if (Array.isArray(value)) {
+    for (const item of value) annotateStateValue(item, path, columns);
+  }
+}
+
+function stateFieldColumns(
+  descriptor: RuntimeFieldDescriptor
+): string[] | undefined {
+  if (!(StateListDefinition in descriptor)) return undefined;
+  return descriptor.schema !== null &&
+    typeof descriptor.schema === "object" &&
+    !Array.isArray(descriptor.schema)
+    ? Object.keys(descriptor.schema)
+    : undefined;
+}
+
+function annotateState(
+  state: RuntimeState,
+  definition: RuntimeDefinition
+): void {
+  defineStateMetadata(state, "State", Object.keys(definition.fields));
+  for (const [field, descriptor] of Object.entries(definition.fields)) {
+    annotateStateValue(
+      state[field],
+      `State.${field}`,
+      stateFieldColumns(descriptor)
+    );
+  }
+}
+
+export function statePayload(value: unknown): StatePayload | null {
+  if (value === null || typeof value !== "object") return null;
+  const record = value as Record<string | symbol, unknown>;
+  const path = record[TW.State];
+  if (typeof path !== "string" || !/^State(?:\.|$)/.test(path)) return null;
+  const columns = record[StateColumns];
+
+  return {
+    path,
+    value,
+    ...(Array.isArray(columns) ? { columns: columns as string[] } : {}),
+  };
+}
+
+export function captureStateSnapshot(
+  scope: Record<string | symbol, unknown>
+): StateSnapshot {
+  const snapshots: StateSnapshot = [];
+  const seen = new Set<object>();
+
+  for (const value of Object.values(scope)) {
+    if (value === null || typeof value !== "object" || seen.has(value)) {
+      continue;
+    }
+    const record = value as RuntimeState & Record<symbol, unknown>;
+    if (record[TW.State] !== "State") continue;
+    seen.add(value);
+    snapshots.push({
+      state: record,
+      values: Object.fromEntries(
+        Object.keys(record).map((field) => [
+          field,
+          cloneStateValue(record[field]),
+        ])
+      ),
+    });
+  }
+
+  return snapshots;
+}
+
+export function stateChangesSince(snapshot: StateSnapshot): StateChange[] {
+  const changes: StateChange[] = [];
+
+  for (const { state, values } of snapshot) {
+    for (const field of Object.keys(values)) {
+      const previous = values[field];
+      const value = cloneStateValue(state[field]);
+      if (JSON.stringify(previous) === JSON.stringify(value)) continue;
+      const payload = statePayload(state[field]);
+
+      changes.push({
+        path: `State.${field}`,
+        previous,
+        value,
+        ...(payload?.columns ? { columns: payload.columns } : {}),
+      });
+    }
+  }
+
+  return changes;
+}
 
 function safeActorName(actorName: string): string {
   const safe = actorName.replace(/[^a-zA-Z0-9._-]+/g, "_");
@@ -240,6 +401,18 @@ function observable<T extends object>(
     "splice",
     "unshift",
   ]);
+  const arrayDerivers = new Set<PropertyKey>([
+    "concat",
+    "filter",
+    "flat",
+    "flatMap",
+    "map",
+    "slice",
+    "toReversed",
+    "toSorted",
+    "toSpliced",
+    "with",
+  ]);
 
   const proxy = new Proxy(value, {
     get(target, property, receiver) {
@@ -251,13 +424,40 @@ function observable<T extends object>(
         typeof result === "function"
       ) {
         return (...args: unknown[]) => {
+          const snapshot = target.slice();
           transactionDepth += 1;
           try {
-            return Reflect.apply(result, receiver, args);
+            const output = Reflect.apply(result, receiver, args);
+            if (transactionDepth === 1) onChange();
+            return output;
+          } catch (error) {
+            restoreArray(target, snapshot);
+            throw error;
           } finally {
             transactionDepth -= 1;
-            if (transactionDepth === 0) onChange();
           }
+        };
+      }
+
+      if (
+        Array.isArray(target) &&
+        arrayDerivers.has(property) &&
+        typeof result === "function"
+      ) {
+        return (...args: unknown[]) => {
+          const derived = Reflect.apply(result, receiver, args);
+          if (Array.isArray(derived)) {
+            const path = (target as Record<symbol, unknown>)[TW.State];
+            const columns = (target as Record<symbol, unknown>)[StateColumns];
+            if (typeof path === "string") {
+              annotateStateValue(
+                derived,
+                path,
+                Array.isArray(columns) ? (columns as string[]) : undefined
+              );
+            }
+          }
+          return derived;
         };
       }
 
@@ -268,15 +468,33 @@ function observable<T extends object>(
     set(target, property, next, receiver) {
       const previous = Reflect.get(target, property, receiver);
       const changed = previous !== next;
-      const didSet = Reflect.set(target, property, next, receiver);
-      if (didSet && changed && transactionDepth === 0) onChange();
-      return didSet;
+      if (!changed) return true;
+      const existed = Reflect.has(target, property);
+      try {
+        const didSet = Reflect.set(target, property, next, receiver);
+        if (didSet && transactionDepth === 0) onChange();
+        return didSet;
+      } catch (error) {
+        if (existed) {
+          Reflect.set(target, property, previous, target);
+        } else {
+          Reflect.deleteProperty(target, property);
+        }
+        throw error;
+      }
     },
     deleteProperty(target, property) {
       const existed = Reflect.has(target, property);
-      const deleted = Reflect.deleteProperty(target, property);
-      if (deleted && existed && transactionDepth === 0) onChange();
-      return deleted;
+      if (!existed) return true;
+      const previous = Reflect.get(target, property);
+      try {
+        const deleted = Reflect.deleteProperty(target, property);
+        if (deleted && transactionDepth === 0) onChange();
+        return deleted;
+      } catch (error) {
+        Reflect.set(target, property, previous, target);
+        throw error;
+      }
     },
   });
 
@@ -329,10 +547,9 @@ function validateState(
     try {
       descriptor.validator.assert(value);
     } catch (error) {
-      throw new TypeError(
-        `Invalid value at state.${field}: ${String(error)}`,
-        { cause: error }
-      );
+      throw new TypeError(`Invalid value at state.${field}: ${String(error)}`, {
+        cause: error,
+      });
     }
   }
 }
@@ -359,10 +576,12 @@ function createStateInstance(
       value === undefined ? initialStateValue(descriptor) : value;
   }
   validateState(definition.fields, rawState);
+  annotateState(rawState, definition);
 
   let state!: RuntimeState;
   const persist = () => {
     validateState(definition.fields, rawState);
+    annotateState(rawState, definition);
     const raw = Object.fromEntries(
       Object.keys(definition.fields).map((field) => [field, rawState[field]])
     );
@@ -409,7 +628,7 @@ export function bindStateDefinition(
 interface StateFactory {
   <
     const Fields extends Record<string, unknown>,
-    Ctx extends Record<any, any> = { scope: {} },
+    Ctx extends Record<any, any> = { scope: {} }
   >(
     fields: Fields & ValidateStateFields<Fields>
   ): StateResult<Fields, Ctx>;

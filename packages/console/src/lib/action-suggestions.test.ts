@@ -23,11 +23,7 @@ const idField: ConsoleInputField = {
   metadata: {
     suggestions: {
       $: "todos.list",
-      "*": [
-        "items.map",
-        ["todo"],
-        ["todo.description", "todo.id"],
-      ],
+      "*": ["items.map", ["todo"], ["todo.description", "todo.id"]],
       done: false,
     },
   },
@@ -38,11 +34,7 @@ describe("action suggestions", () => {
     expect(actionSuggestion(idField, [listAction])).toEqual({
       action: listAction,
       payload: { done: false },
-      selector: [
-        "items.map",
-        ["todo"],
-        ["todo.description", "todo.id"],
-      ],
+      selector: ["items.map", ["todo"], ["todo.description", "todo.id"]],
     });
   });
 
@@ -74,5 +66,30 @@ describe("action suggestions", () => {
         events: [{ type: "result", data: { items: [] } }],
       }),
     ).toEqual({ items: [] });
+  });
+
+  test("uses a state event value for root-list suggestions", () => {
+    expect(
+      actionSuggestionOptions(
+        actionResultValue({
+          status: 200,
+          ok: true,
+          contentType: "text/event-stream",
+          body: "",
+          events: [
+            {
+              type: "state",
+              data: {
+                path: "State.items",
+                value: [
+                  { id: "todo-1", description: "Write docs", done: false },
+                ],
+              },
+            },
+          ],
+        }),
+        [".map", ["todo"], ["todo.description", "todo.id"]],
+      ),
+    ).toEqual([{ label: "Write docs", value: "todo-1" }]);
   });
 });

@@ -38,20 +38,22 @@ type DotPathIdentifierPart = DotPathIdentifierStart | `${number}`;
 type IsDotPathIdentifierTail<Value extends string> = Value extends ""
   ? true
   : Value extends `${DotPathIdentifierPart}${infer Rest}`
-    ? IsDotPathIdentifierTail<Rest>
-    : false;
+  ? IsDotPathIdentifierTail<Rest>
+  : false;
 
 type IsDotPathIdentifier<Value extends string> =
   Value extends `${DotPathIdentifierStart}${infer Rest}`
     ? IsDotPathIdentifierTail<Rest>
     : false;
 
-type AppendDotPathProperty<Prefix extends string, Key extends string> =
-  IsDotPathIdentifier<Key> extends true
-    ? Prefix extends ""
-      ? Key
-      : `${Prefix}.${Key}`
-    : never;
+type AppendDotPathProperty<
+  Prefix extends string,
+  Key extends string,
+> = IsDotPathIdentifier<Key> extends true
+  ? Prefix extends ""
+    ? Key
+    : `${Prefix}.${Key}`
+  : never;
 
 type ExcludeFunctions<Value> = Value extends (...args: any[]) => any
   ? never
@@ -74,44 +76,49 @@ type DotPathEntryValue<
 > = [Value] extends [never]
   ? never
   : Depth["length"] extends 6
-    ? DotPathSelfEntry<Prefix, Value>
-    :
-        | DotPathSelfEntry<Prefix, Value>
-        | (0 extends 1 & Value
-            ? never
-            : Value extends readonly unknown[]
-              ? never
-              : Value extends object
-                ? {
-                    [Key in keyof Value & string]: DotPathEntry<
-                      Value[Key],
-                      AppendDotPathProperty<Prefix, Key>,
-                      [...Depth, unknown]
-                    >;
-                  }[keyof Value & string]
-                : never);
+  ? DotPathSelfEntry<Prefix, Value>
+  :
+      | DotPathSelfEntry<Prefix, Value>
+      | (0 extends 1 & Value
+          ? never
+          : Value extends readonly unknown[]
+          ? never
+          : Value extends object
+          ? {
+              [Key in keyof Value & string]: DotPathEntry<
+                Value[Key],
+                AppendDotPathProperty<Prefix, Key>,
+                [...Depth, unknown]
+              >;
+            }[keyof Value & string]
+          : never);
 
-export type DotPath<Value> =
-  DotPathEntry<Value> extends infer Entry
-    ? Entry extends { path: infer Path extends string }
-      ? Path
-      : never
-    : never;
+export type DotPath<Value> = DotPathEntry<Value> extends infer Entry
+  ? Entry extends { path: infer Path extends string }
+    ? Path
+    : never
+  : never;
 
-export type DotPathValue<Value, Path extends string> =
-  DotPathEntry<Value> extends infer Entry
-    ? Entry extends {
-        path: infer EntryPath extends string;
-        value: infer PathValue;
-      }
-      ? Path extends EntryPath
-        ? PathValue
-        : never
+export type DotPathValue<
+  Value,
+  Path extends string,
+> = DotPathEntry<Value> extends infer Entry
+  ? Entry extends {
+      path: infer EntryPath extends string;
+      value: infer PathValue;
+    }
+    ? Path extends EntryPath
+      ? PathValue
       : never
-    : never;
+    : never
+  : never;
 
 type ArrayItemAtPath<Value, Path> = Path extends string
-  ? DotPathValue<Value, Path> extends readonly (infer Item extends object)[]
+  ? Path extends ""
+    ? Value extends readonly (infer Item extends object)[]
+      ? Item
+      : never
+    : DotPathValue<Value, Path> extends readonly (infer Item extends object)[]
     ? Item
     : never
   : never;
@@ -129,7 +136,9 @@ type SerializablePicker<Scope> = {
 type MappedExpression<Path, Scope> = SerializablePicker<Scope> & {
   filter: <const Alias extends string>(
     alias: [Alias],
-    predicate: `${Path extends string ? Path : never}.${NoInfer<Alias>}.${string}`,
+    predicate: `${Path extends string
+      ? Path
+      : never}.${NoInfer<Alias>}.${string}`,
   ) => SerializablePicker<Scope>;
 };
 

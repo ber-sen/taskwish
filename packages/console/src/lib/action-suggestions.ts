@@ -1,7 +1,4 @@
-import type {
-  ConsoleAction,
-  ConsoleInputField,
-} from "../types";
+import type { ConsoleAction, ConsoleInputField } from "../types";
 import type { ActionRunResult } from "./command-form";
 
 export type ActionSuggestion = {
@@ -20,10 +17,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function canonicalActionName(value: string): string {
-  return value
-    .replace("::", ".")
-    .replace(/[_-]/g, "")
-    .toLowerCase();
+  return value.replace("::", ".").replace(/[_-]/g, "").toLowerCase();
 }
 
 export function actionSuggestion(
@@ -119,6 +113,9 @@ export function actionResultValue(result: ActionRunResult): unknown {
   const resultEvent = result.events
     ?.slice()
     .reverse()
-    .find((event) => event.type === "result");
+    .find((event) => event.type === "result" || event.type === "state");
+  if (resultEvent?.type === "state" && isRecord(resultEvent.data)) {
+    return resultEvent.data.value;
+  }
   return resultEvent ? resultEvent.data : result.body;
 }

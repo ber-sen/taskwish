@@ -29,6 +29,9 @@ export namespace TW {
 
   export const Type = Symbol.for("TW.Type");
 
+  /** Identifies an actor-state value by its state path. */
+  export const State = Symbol.for("TW.State");
+
   export const Branch: unique symbol = Symbol.for("TW.Branch") as never;
 
   export interface Contextual<Ctx extends Record<any, any>> {
@@ -91,15 +94,13 @@ export namespace TW {
   export type Scope<S> = UserScope<S> & {
     abortSignal?: Configurable<AbortSignal>;
     self: <Return = any>(
-      input: S extends Record<any, any> ? UnionData<S["input"]> : never,
+      input: S extends Record<any, any> ? UnionData<S["input"]> : never
     ) => Return;
     signal<
-      T extends [EventKindNames<S>] extends [never]
-        ? string
-        : EventKindNames<S>,
+      T extends [EventKindNames<S>] extends [never] ? string : EventKindNames<S>
     >(
       type: T,
-      data: EventKindData<S, T & string>,
+      data: EventKindData<S, T & string>
     ): AsyncGenerator<
       Signal<EventKindName<S, T & string>, EventKindData<S, T & string>>,
       Signal<
@@ -119,7 +120,7 @@ export namespace TW {
   export type ActionEvent<
     Name extends string,
     Result = unknown,
-    Input = unknown,
+    Input = unknown
   > =
     | Trace<Name, { input: Input }>
     | Trace<Name, { result: Result }>
@@ -160,11 +161,11 @@ export namespace TW {
   export type Action<
     Name extends string,
     Handler extends (...args: any) => any,
-    Meta = null,
+    Meta = null
   > = OverloadedHandler<NoInfer<Handler>> &
     ActionRuntime<Name, OverloadedHandler<NoInfer<Handler>>> & {
       ctx(
-        context?: ActionContext<ActionContextScopeFromMeta<Meta>>,
+        context?: ActionContext<ActionContextScopeFromMeta<Meta>>
       ): ActionRuntime<Name, OverloadedHandler<NoInfer<Handler>>>;
     } & Resource<Name> &
     Attributable<Meta>;
@@ -185,12 +186,12 @@ export namespace TW {
   export type ActionContext<
     Ctx extends Record<any, any> = {
       abortSignal?: Configurable<AbortSignal>;
-    },
+    }
   > = AbortSignal | Ctx;
 
   export type ActionRuntime<
     Name extends string,
-    Handler extends (...args: any) => any,
+    Handler extends (...args: any) => any
   > = {
     run: NoInfer<Handler>;
     stream: ((
@@ -213,7 +214,7 @@ export namespace TW {
   export type Service<
     Name extends string,
     Actions,
-    ServiceScope = {},
+    ServiceScope = {}
   > = OmitListeners<Actions> & {
     [Name]: Name;
     [Listeners]: PickListeners<Actions>;
@@ -240,7 +241,7 @@ export namespace TW {
     extends Resource<Name>,
       Attributable<Meta> {
     emit(
-      data: UnionData<Data>,
+      data: UnionData<Data>
     ): AsyncGenerator<
       Signal<Name, UnionData<Data>>,
       Signal<Name, UnionData<Data>>,
@@ -260,7 +261,7 @@ export namespace TW {
 
   export interface Triggerable<Ctx extends Record<any, any>> {
     on<const Schema>(
-      trigger: ValidateTrigger<Schema>,
+      trigger: ValidateTrigger<Schema>
     ): Contextual<Ctx & InferTriggerScope<Schema>>;
   }
 
@@ -272,9 +273,16 @@ export namespace TW {
     constructor(public data: Data) {}
   }
 
+  /** A structured description of an actor-state mutation. */
+  export class StateChange<const Data = unknown> {
+    readonly event = "TW::StateChange";
+
+    constructor(public data: Data) {}
+  }
+
   export type Step<
     Name extends string,
-    Handler extends (...args: any) => any,
+    Handler extends (...args: any) => any
   > = ReturnType<Handler> extends AsyncGenerator<infer Caller, any, any>
     ? [Extract<Caller, Trace<string, { input: any }>>] extends [never]
       ? ScriptStep<Name, Handler>
@@ -288,7 +296,7 @@ export namespace TW {
 
   export interface ScriptStep<
     Name extends string,
-    Handler extends (...args: any) => any,
+    Handler extends (...args: any) => any
   > {
     $: "step";
     "=": Name;
@@ -298,7 +306,7 @@ export namespace TW {
   export type ActionStep<
     Name extends string,
     ActionName extends string,
-    Params,
+    Params
   > = {
     $: ActionName;
     "=": Name;

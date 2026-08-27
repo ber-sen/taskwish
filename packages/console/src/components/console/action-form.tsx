@@ -7,11 +7,9 @@ import {
   useRef,
   useState,
 } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { toast } from "sonner";
 
-import { Button } from "../ui/button";
 import {
   PromptInput,
   PromptInputBody,
@@ -46,7 +44,15 @@ function actionResultValue(result: ActionRunResult): unknown {
   const resultEvent = result.events
     ?.slice()
     .reverse()
-    .find((event) => event.type === "result");
+    .find((event) => event.type === "result" || event.type === "state");
+  if (
+    resultEvent?.type === "state" &&
+    resultEvent.data !== null &&
+    typeof resultEvent.data === "object" &&
+    !Array.isArray(resultEvent.data)
+  ) {
+    return (resultEvent.data as Record<string, unknown>).value;
+  }
   return resultEvent ? resultEvent.data : result.body;
 }
 
@@ -96,7 +102,6 @@ export const ActionForm = forwardRef<
   const [chatRuns, setChatRuns] = useState<
     { id: string; input: unknown; result: ActionRunResult | null }[]
   >([]);
-  const [showOptionalFields, setShowOptionalFields] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const chatTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const suppressSubmitRef = useRef(false);
@@ -129,7 +134,6 @@ export const ActionForm = forwardRef<
     chatSessionInitRef.current = false;
     onChatModeChangeRef.current?.(chatAction);
     onRunStateChangeRef.current?.(false);
-    setShowOptionalFields(false);
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
     form.reset(formDefaultValues(action.input));
@@ -144,13 +148,6 @@ export const ActionForm = forwardRef<
     resetRun();
   }, [action.id, resetToken, resetRun]);
 
-  const requiredFields = action.input.filter((field) => field.required);
-  const optionalFields = action.input.filter((field) => !field.required);
-  const visibleFields = showOptionalFields
-    ? action.input
-    : requiredFields.length
-    ? requiredFields
-    : [];
   const commandName = actionTitle(action);
   const chatAction = isChatAction(action);
 
@@ -345,7 +342,7 @@ export const ActionForm = forwardRef<
     abortControllerRef.current = abortController;
 
     try {
-      const payload = buildPayload(values, visibleFields);
+      const payload = buildPayload(values, action.input);
       setSubmittedPayload(payload);
       setIsChatMode(true);
       onChatModeChangeRef.current?.(true);
@@ -401,7 +398,7 @@ export const ActionForm = forwardRef<
         className={isChatMode ? "hidden" : "space-y-4"}
         onSubmit={form.handleSubmit(submit)}
       >
-        {visibleFields.map((field, index) => (
+        {action.input.map((field, index) => (
           <ActionInputField
             key={field.name}
             field={field}
@@ -412,22 +409,6 @@ export const ActionForm = forwardRef<
             config={config}
           />
         ))}
-        {optionalFields.length ? (
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-9 pl-0 pr-3 hover:bg-transparent hover:text-inherit focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
-            disabled={isRunning}
-            onClick={() => setShowOptionalFields((value) => !value)}
-          >
-            {showOptionalFields ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-            {showOptionalFields ? "Hide options" : "Show more options"}
-          </Button>
-        ) : null}
         {error ? (
           <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {error}
@@ -438,12 +419,15 @@ export const ActionForm = forwardRef<
       {isChatMode ? (
         <div className="flex h-full min-h-0 flex-1 flex-col">
           <ActionResult
+            key={`${action.id}:${resetToken}`}
             className="h-full min-h-0 flex-1"
             input={chatAction ? undefined : submittedPayload}
             result={chatAction ? undefined : result}
             runs={chatAction ? chatRuns : undefined}
             chat={chatAction}
             showLogs={showLogs}
+            config={config}
+            action={action}
             onScrollChange={onResultScrollChange}
           />
           {chatAction ? (

@@ -7,7 +7,7 @@ const { actor } = Actor("Todos").scope(
       description: "string",
       done: "boolean",
     }),
-  }),
+  })
 );
 
 export const { add } = actor()
@@ -31,11 +31,8 @@ export const { list } = actor()
   .input({ "done?": "boolean" })
 
   .run(function () {
-    const items =
-      this.input.done === undefined
-        ? this.state.items
-        : this.state.items.filter(({ done }) => done === this.input.done);
-    return { items };
+    if (this.input.done === undefined) return this.state.items;
+    return this.state.items.filter(({ done }) => done === this.input.done);
   });
 
 export const { complete } = actor()
@@ -44,6 +41,13 @@ export const { complete } = actor()
   .on("Command", "complete")
 
   .input({ id: "string.uuid.v4" })
+
+  .addStateCommand("item", {
+    markDone: {
+      input: { id: "item.id" },
+      visible: { done: false },
+    },
+  })
 
   .run(function () {
     const todo = this.state.items.find(({ id }) => id === this.input.id);
@@ -58,10 +62,7 @@ export const { complete } = actor()
       id: {
         suggestions: {
           $: "todos.list",
-          "*": $("items").map(
-            ["todo"],
-            ["todo.description", "todo.id"],
-          ),
+          "*": $("").map(["todo"], ["todo.description", "todo.id"]),
           done: false,
         },
       },
