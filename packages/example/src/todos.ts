@@ -10,8 +10,8 @@ const { actor } = Actor("Todos").scope(
   })
 );
 
-export const { add } = actor()
-  .on("Command", "add")
+export const { addTodo } = actor()
+  .on("Command", "addTodo")
 
   .input({ description: "string" })
 
@@ -25,8 +25,8 @@ export const { add } = actor()
     return this.state.items.at(-1)!;
   });
 
-export const { list } = actor()
-  .on("Command", "list")
+export const { listTodos } = actor()
+  .on("Command", "listTodos")
 
   .input({ "done?": "boolean" })
 
@@ -35,10 +35,10 @@ export const { list } = actor()
     return this.state.items.filter(({ done }) => done === this.input.done);
   });
 
-export const { complete } = actor()
-  .use(list)
+export const { markTodoDone } = actor()
+  .use(listTodos)
 
-  .on("Command", "complete")
+  .on("Command", "markTodoDone")
 
   .input({ id: "string.uuid.v4" })
 
@@ -61,7 +61,7 @@ export const { complete } = actor()
     input: {
       id: {
         suggestions: {
-          $: "todos.list",
+          $: "todos.listTodos",
           "*": $("").map(["todo"], ["todo.description", "todo.id"]),
           done: false,
         },
@@ -69,4 +69,4 @@ export const { complete } = actor()
     },
   });
 
-export const { Todos } = actor().service({ add, complete, list });
+export const { Todos } = actor().service({ addTodo, markTodoDone, listTodos });
