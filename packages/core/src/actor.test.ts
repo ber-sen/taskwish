@@ -609,7 +609,7 @@ describe("Actor", () => {
     const { actor } = Actor("Assistant").scope(
       Event(
         { name: "Message", command: "chat" },
-        { threadId: "string", content: "string" },
+        { sessionId: "string", content: "string" },
         "|",
         "void"
       )
@@ -623,7 +623,7 @@ describe("Actor", () => {
         type inputCheck = Expect<
           Equal<
             Input,
-            TW.Union<{ threadId: string; content: string } | void>
+            TW.Union<{ sessionId: string; content: string } | void>
           >
         >;
 
@@ -637,7 +637,7 @@ describe("Actor", () => {
       Equal<
         TW.Action<
           "Assistant::chat",
-          (input: { threadId: string; content: string } | void) => Promise<
+          (input: { sessionId: string; content: string } | void) => Promise<
             string
           >,
           { event: "Message"; command: "chat" }
@@ -648,7 +648,7 @@ describe("Actor", () => {
 
     expect(chat[TW.Name]).toEqual("Assistant::chat");
     expect(chat[TW.Meta]).toEqual({ event: "Message", command: "chat" });
-    expect(await chat({ threadId: "thread-1", content: "hello" })).toEqual(
+    expect(await chat({ sessionId: "session-1", content: "hello" })).toEqual(
       "hello"
     );
   });

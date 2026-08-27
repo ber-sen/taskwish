@@ -308,7 +308,7 @@ interface CommandBody<
 type BuiltInEventScope = {
   Message: TW.EventKind<
     "Message",
-    TW.Union<{ threadId: string; content: string } | void>,
+    TW.Union<{ sessionId: string; content: string } | void>,
     { command: "chat" }
   >;
   NewEmail: TW.EventKind<
@@ -328,7 +328,7 @@ type BuiltInEventScope = {
 const builtInEventScope = {
   ...Event(
     { name: "Message", command: "chat" },
-    { threadId: "string", content: "string" },
+    { sessionId: "string", content: "string" },
     "|",
     "void"
   ),

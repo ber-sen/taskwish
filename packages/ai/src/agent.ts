@@ -28,15 +28,12 @@ export type AgentOptionsFactory<Scope = any> = (scope: Scope) => AgentOptions;
 
 export type AgentChatInput = {
   content: string;
-} & (
-  | { sessionId: string; threadId?: string }
-  | { threadId: string; sessionId?: string }
-);
+  sessionId: string;
+};
 
 export type AgentChatMessageInput = AgentChatInput;
 
 export type AgentChatThread = {
-  threadId: string;
   sessionId: string;
 };
 
@@ -180,13 +177,12 @@ function createAgentRuntime(options: AgentOptions): AgentRuntime {
       return createChatSession();
     }
 
-    const threadId = input.threadId ?? input.sessionId;
-    if (!threadId) {
-      throw new Error("Agent chat threadId is required.");
+    if (!input.sessionId) {
+      throw new Error("Agent chat sessionId is required.");
     }
 
     return streamChatMessage({
-      threadId,
+      sessionId: input.sessionId,
       content: input.content,
     });
   }
@@ -245,16 +241,16 @@ function createAgentRuntime(options: AgentOptions): AgentRuntime {
     const sessionClient = createClient(options);
     const session = await sessionClient.createSession({ newSession: true });
     sessionClients.set(session.sessionId, sessionClient);
-    return { sessionId: session.sessionId, threadId: session.sessionId };
+    return { sessionId: session.sessionId };
   }
 
   async function* streamChatMessage(message: {
-    threadId: string;
+    sessionId: string;
     content: string;
   }): AsyncGenerator<string, string> {
-    const sessionClient = sessionClients.get(message.threadId);
+    const sessionClient = sessionClients.get(message.sessionId);
     if (!sessionClient) {
-      throw new Error(`Unknown agent chat session: ${message.threadId}`);
+      throw new Error(`Unknown agent chat session: ${message.sessionId}`);
     }
 
     const stream = sessionClient.streamPrompt({
