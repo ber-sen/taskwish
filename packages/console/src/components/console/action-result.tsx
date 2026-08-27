@@ -620,6 +620,10 @@ function displayCell(value: unknown): string {
   return isUuid(text) ? `${text.slice(0, 8)}…` : text;
 }
 
+function isTruncatedId(value: unknown): value is string {
+  return typeof value === "string" && isUuid(value);
+}
+
 function tableRows(value: unknown): Record<string, unknown>[] {
   if (Array.isArray(value)) {
     return value.map((item) => (isRecord(item) ? item : { value: item }));
@@ -892,10 +896,24 @@ function StateValueTable({
                       {changed ? (
                         <div className="flex flex-col gap-0.5">
                           <span className="text-[10px] text-muted-foreground line-through">
-                            {displayCell(before)}
+                            <span
+                              className={cn(
+                                isTruncatedId(before) &&
+                                  "inline-block w-[9ch] whitespace-nowrap font-mono"
+                              )}
+                            >
+                              {displayCell(before)}
+                            </span>
                           </span>
                           <div className="flex items-center gap-1">
-                            <span>{displayCell(after)}</span>
+                            <span
+                              className={cn(
+                                isTruncatedId(after) &&
+                                  "inline-block w-[9ch] whitespace-nowrap font-mono"
+                              )}
+                            >
+                              {displayCell(after)}
+                            </span>
                             {uuidValue ? (
                               <ResultCopyButton text={uuidValue} />
                             ) : null}
@@ -903,7 +921,14 @@ function StateValueTable({
                         </div>
                       ) : (
                         <div className="flex items-center gap-1">
-                          <span>{displayCell(after)}</span>
+                          <span
+                            className={cn(
+                              isTruncatedId(after) &&
+                                "inline-block w-[9ch] whitespace-nowrap font-mono"
+                            )}
+                          >
+                            {displayCell(after)}
+                          </span>
                           {uuidValue ? (
                             <ResultCopyButton text={uuidValue} />
                           ) : null}
