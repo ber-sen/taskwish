@@ -48,8 +48,8 @@ describe("action suggestions", () => {
             { id: "todo-3", description: "Review PR", done: false },
           ],
         },
-        selector,
-      ),
+        selector
+      )
     ).toEqual([
       { label: "Write docs", value: "todo-1" },
       { label: "Review PR", value: "todo-3" },
@@ -64,7 +64,7 @@ describe("action suggestions", () => {
         contentType: "text/event-stream",
         body: "",
         events: [{ type: "result", data: { items: [] } }],
-      }),
+      })
     ).toEqual({ items: [] });
   });
 
@@ -80,7 +80,7 @@ describe("action suggestions", () => {
             {
               type: "state",
               data: {
-                path: "State.items",
+                path: "state.items",
                 value: [
                   { id: "todo-1", description: "Write docs", done: false },
                 ],
@@ -88,8 +88,8 @@ describe("action suggestions", () => {
             },
           ],
         }),
-        [".map", ["todo"], ["todo.description", "todo.id"]],
-      ),
+        [".map", ["todo"], ["todo.description", "todo.id"]]
+      )
     ).toEqual([{ label: "Write docs", value: "todo-1" }]);
   });
 });

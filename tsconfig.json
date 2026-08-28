@@ -4,6 +4,8 @@
     "module": "esnext",
     "lib": ["esnext", "DOM"],
     "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "resolveJsonModule": true,
     "strict": true,
     "strictFunctionTypes": true,

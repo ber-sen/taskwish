@@ -1,5 +1,5 @@
-import { eventData } from "./events";
-import type { Trace } from "./events";
+import { messageData } from "./messages";
+import type { Trace } from "./messages";
 import { formatEvent } from "./format";
 import { Type } from "./symbols";
 
@@ -11,7 +11,7 @@ export type ConsoleLike = Pick<typeof console, "log" | "info" | "error">;
 
 export function dispatch(target: ConsoleLike): DispatchFn {
   return (event) => {
-    const formattedEvent = eventData(event);
+    const formattedEvent = messageData(event);
     if (
       formattedEvent !== null &&
       typeof formattedEvent === "object" &&

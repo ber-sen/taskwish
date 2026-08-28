@@ -240,6 +240,7 @@ export namespace TW {
   export interface EventKind<Name extends string, Data, Meta = null>
     extends Resource<Name>,
       Attributable<Meta> {
+    readonly "~data"?: Data;
     emit(
       data: UnionData<Data>
     ): AsyncGenerator<
@@ -266,19 +267,6 @@ export namespace TW {
   }
 
   export interface ResourceKind<Name extends string> extends Named<Name> {}
-
-  export class Stream<const Data> {
-    readonly event = "TW::Stream";
-
-    constructor(public data: Data) {}
-  }
-
-  /** A structured description of an actor-state mutation. */
-  export class StateChange<const Data = unknown> {
-    readonly event = "TW::StateChange";
-
-    constructor(public data: Data) {}
-  }
 
   export type Step<
     Name extends string,

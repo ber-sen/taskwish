@@ -24,6 +24,7 @@ import {
   type LoggerConfig,
   Signal,
   Trace,
+  Wire,
 } from "@taskwish/wire";
 import { type InferTypeConfig } from "../use";
 import { captureStateSnapshot, stateChangesSince } from "../state";
@@ -399,13 +400,17 @@ export const RawStreamTag = Symbol.for("TW.RawStream");
 export const RawLoggedStreamTag = Symbol.for("TW.RawLoggedStream");
 export const ContextualActionTag = Symbol.for("TW.ContextualAction");
 
+function isWireStream(value: unknown): value is Wire.Stream<unknown> {
+  return value instanceof Wire.Stream;
+}
+
 export async function* tapWith(
   gen: AsyncGenerator<unknown, unknown>,
   log: DispatchFn
 ): AsyncGenerator<unknown, unknown> {
   let next = await gen.next();
   while (!next.done) {
-    if (!(next.value instanceof TW.StateChange)) log(next.value);
+    log(next.value);
     yield next.value;
     next = await gen.next();
   }
@@ -418,9 +423,7 @@ export async function* tapRawStreamWith(
 ): AsyncGenerator<unknown, unknown> {
   let next = await gen.next();
   while (!next.done) {
-    if (!(next.value instanceof TW.StateChange)) {
-      log(next.value instanceof TW.Stream ? next.value.data : next.value);
-    }
+    log(isWireStream(next.value) ? next.value.data : next.value);
     yield next.value;
     next = await gen.next();
   }
@@ -436,8 +439,7 @@ export async function* unwrapStreamEvents(
     const next = await gen.next(sent);
     if (next.done) return next.value;
 
-    const value =
-      next.value instanceof TW.Stream ? next.value.data : next.value;
+    const value = isWireStream(next.value) ? next.value.data : next.value;
     sent = yield value;
   }
 }
@@ -610,8 +612,8 @@ async function* transformUserEvents(
       const value =
         streamChunks &&
         !(next.value instanceof Signal) &&
-        !(next.value instanceof TW.Stream)
-          ? new TW.Stream(next.value)
+        !(next.value instanceof Wire.Stream)
+          ? new Wire.Stream(next.value)
           : next.value;
       sent = yield value;
     }
@@ -1200,10 +1202,16 @@ export async function* runAction(
   const ctx: Record<string | symbol, unknown> = { ...scope };
   const stateSnapshot = captureStateSnapshot(ctx);
 
-  const stateChangeEvents = () =>
-    stateChangesSince(stateSnapshot).map(
-      (change) => new TW.StateChange(change)
+  const stateChangeEvents = () => {
+    const actor = name.includes("::") ? name.slice(0, name.indexOf("::")) : "";
+    return stateChangesSince(stateSnapshot).map(
+      (change) =>
+        new Wire.StateChange(
+          change,
+          [actor, change.path].filter(Boolean).join("::")
+        )
     );
+  };
 
   const traceInput =
     scope.input instanceof TW.Union ? scope.input.unwrap() : scope.input;

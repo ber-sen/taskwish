@@ -4,7 +4,13 @@ import {
   TW,
   statePayload,
 } from "@taskwish/core";
-import { Signal, Trace } from "@taskwish/wire";
+import {
+  messageData,
+  Signal,
+  StateChange,
+  Stream,
+  Trace,
+} from "@taskwish/wire";
 import {
   flattenRouteInput,
   parseActionInput,
@@ -29,7 +35,7 @@ function inputFromSignal(signal: Signal<string, any>): unknown {
 async function consumeAction(
   action: Action,
   args: unknown[],
-  registry: NodeRegistry,
+  registry: NodeRegistry
 ): Promise<unknown> {
   if (!action.stream) return action(...args);
 
@@ -44,7 +50,7 @@ async function consumeAction(
 
 function rawActionStream(
   action: Action,
-  args: unknown[],
+  args: unknown[]
 ): AsyncGenerator<unknown, unknown, unknown> | null {
   const raw =
     (
@@ -66,8 +72,12 @@ function rawActionStream(
   return raw ? raw(...args) : null;
 }
 
-function isStreamEvent(value: unknown): value is TW.Stream<unknown> {
-  return value instanceof TW.Stream;
+function isStreamEvent(value: unknown): value is Stream<unknown> {
+  return value instanceof Stream;
+}
+
+function isStateChangeEvent(value: unknown): value is StateChange {
+  return value instanceof StateChange;
 }
 
 function acceptsServerSentEvents(request: Request): boolean {
@@ -76,7 +86,7 @@ function acceptsServerSentEvents(request: Request): boolean {
       .get("Accept")
       ?.split(",")
       .some((value) =>
-        value.trim().toLowerCase().startsWith("text/event-stream"),
+        value.trim().toLowerCase().startsWith("text/event-stream")
       ) ?? false
   );
 }
@@ -103,7 +113,7 @@ function ssePayload(event: string, data: unknown): Uint8Array {
   const lines = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
   const message =
     [`event: ${event}`, ...lines.map((line) => `data: ${line}`), ""].join(
-      "\n",
+      "\n"
     ) + "\n";
   return new TextEncoder().encode(message);
 }
@@ -118,10 +128,10 @@ function serializeSseValue(_key: string, value: unknown): unknown {
 
 function responseFromActionStream(
   stream: AsyncGenerator<unknown, unknown, unknown>,
-  firstChunk: TW.Stream<unknown>,
-  registry: NodeRegistry,
+  firstChunk: Stream<unknown>,
+  registry: NodeRegistry
 ): Response {
-  let pending: TW.Stream<unknown> | null = firstChunk;
+  let pending: Stream<unknown> | null = firstChunk;
 
   return new Response(
     new ReadableStream({
@@ -151,14 +161,14 @@ function responseFromActionStream(
       async cancel() {
         await stream.return?.(undefined);
       },
-    }),
+    })
   );
 }
 
 function responseFromActionSseStream(
   stream: AsyncGenerator<unknown, unknown, unknown>,
   registry: NodeRegistry,
-  options: InvokeOptions,
+  options: InvokeOptions
 ): Response {
   return new Response(
     new ReadableStream({
@@ -172,14 +182,17 @@ function responseFromActionSseStream(
                 controller.enqueue(
                   state
                     ? ssePayload("state", state)
-                    : ssePayload("result", item.value),
+                    : ssePayload("result", item.value)
                 );
               }
               controller.close();
               return;
             }
 
-            if (item.value instanceof TW.StateChange) {
+            if (isStateChangeEvent(item.value)) {
+              if (options.includeWire) {
+                controller.enqueue(ssePayload("wire", messageData(item.value)));
+              }
               controller.enqueue(ssePayload("state-change", item.value.data));
               return;
             } else if (item.value instanceof Signal) {
@@ -205,7 +218,7 @@ function responseFromActionSseStream(
           controller.enqueue(
             ssePayload("error", {
               error: error instanceof Error ? error.message : String(error),
-            }),
+            })
           );
           controller.close();
         }
@@ -219,7 +232,7 @@ function responseFromActionSseStream(
         "Cache-Control": "no-cache",
         "Content-Type": "text/event-stream; charset=utf-8",
       },
-    },
+    }
   );
 }
 
@@ -227,7 +240,7 @@ async function invokeAction(
   action: Action,
   args: unknown[],
   registry: NodeRegistry,
-  options: InvokeOptions,
+  options: InvokeOptions
 ): Promise<Response> {
   const stream = rawActionStream(action, args);
   if (!stream) return responseFrom(await action(...args));
@@ -251,7 +264,7 @@ async function invokeAction(
 
 function dispatchSignal(
   signal: Signal<string, any>,
-  registry: NodeRegistry,
+  registry: NodeRegistry
 ): void {
   const handlers = registry.eventHandlers.get(signal.data["->"]) ?? [];
   const input = inputFromSignal(signal);
@@ -265,14 +278,14 @@ function dispatchSignal(
 export async function invoke(
   action: Action,
   request: Request,
-  registry: NodeRegistry,
+  registry: NodeRegistry
 ): Promise<Response> {
   const args = await parseActionInput(request);
   return invokeAction(
     action,
     args,
     registry,
-    invokeOptionsFromRequest(request),
+    invokeOptionsFromRequest(request)
   );
 }
 
@@ -280,7 +293,7 @@ export async function invokeRouteAction(
   action: Action,
   request: Request,
   registry: NodeRegistry,
-  route: RouteMeta,
+  route: RouteMeta
 ): Promise<Response> {
   const [, routePath] = route;
   const rawInput = await routeInputFromRequest(routePath, request);
@@ -288,6 +301,6 @@ export async function invokeRouteAction(
     action,
     [flattenRouteInput(rawInput)],
     registry,
-    invokeOptionsFromRequest(request),
+    invokeOptionsFromRequest(request)
   );
 }

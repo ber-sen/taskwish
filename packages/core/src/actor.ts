@@ -64,18 +64,23 @@ type EventKeys<Scope> = {
 }[keyof Scope] &
   string;
 
-type ExtractEventKind<Scope, EventName extends string> = {
-  [K in keyof Scope]: Scope[K] extends TW.EventKind<infer Name, any, any>
-    ? EventName extends K | Name
-      ? Scope[K]
-      : never
-    : never;
-}[keyof Scope];
+type ExtractEventKind<
+  Scope,
+  EventName extends string
+> = EventName extends keyof Scope
+  ? Scope[EventName]
+  : {
+      [K in keyof Scope]: Scope[K] extends TW.EventKind<infer Name, any, any>
+        ? EventName extends K | Name
+          ? Scope[K]
+          : never
+        : never;
+    }[keyof Scope];
 
 type ExtractEventInput<Scope, EventName extends string> = ExtractEventKind<
   Scope,
   EventName
-> extends TW.EventKind<string, infer D, any>
+> extends { readonly "~data"?: infer D }
   ? D
   : never;
 
@@ -191,7 +196,7 @@ type TraitEventActionLike<EventName extends `::${string}` = `::${string}`> =
 interface TraitMethodFactoryFromTrait<
   TraitMethod extends `::${string}`,
   Ctx extends Record<any, any>,
-  Input,
+  Input
 > {
   run<
     const H extends (
@@ -199,10 +204,10 @@ interface TraitMethodFactoryFromTrait<
         Pretty<
           ([Input] extends [void] ? {} : { input: Input }) & BaseScope<Ctx>
         >
-      >,
-    ) => any,
+      >
+    ) => any
   >(
-    handler: H,
+    handler: H
   ): {
     [K in TraitMethodPart<TraitMethod>]: TW.Action<
       QualifiedActionName<Ctx["name"] & string, TraitMethodPart<TraitMethod>>,
@@ -221,7 +226,7 @@ export interface ActorFactory<Ctx extends Record<any, any>> {
 type ServiceResult<
   ServiceName extends string,
   Config extends Record<string, unknown>,
-  ServiceScope,
+  ServiceScope
 > = {
   [Name in ToCapitalCase<ServiceName>]: TW.Service<
     ServiceName,
@@ -247,7 +252,7 @@ type CommandResult<
   Scope extends Record<any, any>,
   Service extends string,
   Handler extends (...args: any[]) => any,
-  Meta = {},
+  Meta = {}
 > = {
   [key in CmdName]: TW.Action<
     QualifiedActionName<Service, CmdName>,
@@ -257,7 +262,7 @@ type CommandResult<
         route: [
           Method,
           Path,
-          Pretty<DeepWriteable<Schema> & DeepWriteable<Meta>>,
+          Pretty<DeepWriteable<Schema> & DeepWriteable<Meta>>
         ];
       },
       ActionCtx<Scope>
@@ -268,13 +273,13 @@ type CommandResult<
     const NextMeta extends ActionMeta<
       { scope: Pretty<{ input: FlatIn } & Scope> },
       RuntimeResult<ReturnType<Handler>>
-    >,
+    >
   >(
     meta: ValidateActionMeta<
       NextMeta,
       { scope: Pretty<{ input: FlatIn } & Scope> },
       RuntimeResult<ReturnType<Handler>>
-    >,
+    >
   ): CommandResult<
     CmdName,
     FlatIn,
@@ -295,11 +300,11 @@ interface CommandBody<
   Path extends string,
   Schema,
   Scope extends Record<any, any>,
-  Service extends string,
+  Service extends string
 > {
   use(): this;
   run<
-    const H extends (this: TW.Scope<Pretty<{ input: FlatIn } & Scope>>) => any,
+    const H extends (this: TW.Scope<Pretty<{ input: FlatIn } & Scope>>) => any
   >(
     handler: H,
     ...rest: unknown[]
@@ -331,7 +336,7 @@ const builtInEventScope = {
     { name: "Message", command: "chat" },
     { sessionId: "string", content: "string" },
     "|",
-    "void",
+    "void"
   ),
   ...Event("NewEmail", {
     from: "string",
@@ -355,7 +360,7 @@ export interface Behavior<Ctx extends Record<any, any>> {
   use(config: LoggerConfig): this;
   use<const U>(plugin: U): Behavior<AddActionsToCtx<Ctx, U>>;
   service<const Config extends Record<string, unknown> = {}>(
-    config?: Config & { public?: never; listeners?: never },
+    config?: Config & { public?: never; listeners?: never }
   ): ServiceResult<
     Ctx["name"] & string,
     Config,
@@ -364,7 +369,7 @@ export interface Behavior<Ctx extends Record<any, any>> {
 
   on<Name extends string>(
     behavior: "Command",
-    name: CamelCase<Name>,
+    name: CamelCase<Name>
   ): ActionFactory<
     Name,
     { name: Name; service: Ctx["name"]; scope: BaseScope<Ctx> }
@@ -372,7 +377,7 @@ export interface Behavior<Ctx extends Record<any, any>> {
 
   on(
     behavior: "Schedule",
-    expression?: string,
+    expression?: string
   ): ActionFactory<
     "onSchedule",
     {
@@ -392,14 +397,14 @@ export interface Behavior<Ctx extends Record<any, any>> {
         : {}) &
         (Schema extends { query: infer Q } ? { query: InferSchema<Q> } : {}) &
         (Schema extends { body: infer B } ? { body: InferSchema<B> } : {})
-    >,
+    >
   >(
     behavior: Method,
     path: Path,
-    schema: ValidateHttpSchema<Schema>,
+    schema: ValidateHttpSchema<Schema>
   ): {
     command<const CmdName extends string>(
-      name: CmdName,
+      name: CmdName
     ): CommandBody<
       CmdName,
       FlatInput<Schema>,
@@ -412,7 +417,7 @@ export interface Behavior<Ctx extends Record<any, any>> {
   };
 
   on<const TraitEventAction extends TraitEventActionLike>(
-    behavior: TraitEventAction,
+    behavior: TraitEventAction
   ): ActionFactory<
     EventHandlerName<ExtractTraitEventName<TraitEventAction>>,
     {
@@ -429,7 +434,7 @@ export interface Behavior<Ctx extends Record<any, any>> {
   >;
 
   on<const TraitAction extends TraitActionLike>(
-    traitMethod: TraitAction,
+    traitMethod: TraitAction
   ): TraitMethodFactoryFromTrait<
     ExtractTraitQualifiedName<TraitAction>,
     Ctx,
@@ -437,7 +442,7 @@ export interface Behavior<Ctx extends Record<any, any>> {
   >;
 
   on<const EventName extends EventKeys<BaseScope<Ctx>>>(
-    behavior: EventName,
+    behavior: EventName
   ): ActionFactory<
     EventActionName<EventName, ExtractEventMeta<BaseScope<Ctx>, EventName>>,
     {
@@ -457,7 +462,7 @@ export interface Behavior<Ctx extends Record<any, any>> {
   >;
 
   on<const EventName extends string, Input, Meta>(
-    behavior: TW.EventKind<EventName, Input, Meta>,
+    behavior: TW.EventKind<EventName, Input, Meta>
   ): ActionFactory<
     EventActionName<EventName, Meta>,
     {
@@ -474,7 +479,7 @@ export interface Behavior<Ctx extends Record<any, any>> {
 type RequalifyScopedEvent<
   ActorName extends string,
   Key,
-  Value,
+  Value
 > = Value extends TW.EventKind<any, infer Input, infer Meta>
   ? Key extends string
     ? Key extends `${string}::${string}`
@@ -489,7 +494,7 @@ type RequalifyScopedEvents<ActorName extends string, Scope> = Pretty<{
 
 type ScopedActorCtx<
   Ctx extends Record<any, any>,
-  Last extends Record<any, any>,
+  Last extends Record<any, any>
 > = Pretty<
   Omit<Last, "name" | "scope" | "last"> & {
     name: Ctx["name"];
@@ -540,7 +545,7 @@ function eventHandlerName(eventName: string): string {
 
 function matchPathParams(
   pattern: string,
-  pathname: string,
+  pathname: string
 ): Record<string, string> {
   const keys: string[] = [];
   const regexStr = pattern.replace(/:([^/]+)/g, (_, key) => {
@@ -557,7 +562,7 @@ type BehaviorMod = { args: unknown[]; scope: Record<string, unknown> };
 function makeBehaviorMod(
   behavior: string,
   config?: string,
-  schema?: unknown,
+  schema?: unknown
 ): (args: unknown[]) => BehaviorMod {
   if (behavior === "Schedule") {
     return (args) => ({
@@ -601,7 +606,7 @@ function wrapUnionInput(args: unknown[], inputSchema: unknown): unknown[] {
 function scopeEventKind(
   actorName: string,
   eventName: string,
-  eventKind: Record<string | symbol, unknown>,
+  eventKind: Record<string | symbol, unknown>
 ): Record<string | symbol, unknown> {
   const qualifiedEventName = qualifyEventName(actorName, eventName);
 
@@ -622,7 +627,7 @@ function scopeEventKind(
 
 function collectScope(
   steps: unknown[],
-  actorName?: string,
+  actorName?: string
 ): Record<string, unknown> {
   const scope: Record<string, unknown> = {};
   const stateDefinitions: Array<
@@ -650,7 +655,7 @@ function collectScope(
         ? scopeEventKind(
             actorName,
             key,
-            value as Record<string | symbol, unknown>,
+            value as Record<string | symbol, unknown>
           )
         : value;
     scope[key] = scopedValue;
@@ -709,7 +714,7 @@ function createBehavior(
   actorName: string,
   initialScope: Record<string, unknown>,
   resolveInitialScope: () => Promise<Record<string, unknown>> = async () =>
-    initialScope,
+    initialScope
 ): Behavior<any> {
   let logger: ConsoleLike = console;
   let behaviorScope: Record<string, unknown> = {};
@@ -737,7 +742,7 @@ function createBehavior(
   function applyScopedUse(
     plugin: unknown,
     applyScope: (scope: Record<string, unknown>) => void,
-    applyPendingScope: (scope: Promise<Record<string, unknown>>) => void,
+    applyPendingScope: (scope: Promise<Record<string, unknown>>) => void
   ) {
     if (isLoggerConfig(plugin)) {
       logger = plugin.target;
@@ -761,7 +766,7 @@ function createBehavior(
         },
         (incoming) => {
           pendingBehaviorScopes.push(incoming);
-        },
+        }
       );
       return self;
     },
@@ -847,14 +852,14 @@ function createBehavior(
           },
           (incoming) => {
             pendingActionScopes.push(incoming);
-          },
+          }
         );
       }
 
       function createAction(
         inputMode: "first" | "args",
         handlers: unknown[],
-        inputSchema?: unknown,
+        inputSchema?: unknown
       ) {
         async function actionRunCtx(
           context: TW.ActionContext,
@@ -866,16 +871,16 @@ function createBehavior(
           const runtimeArgs = wrapUnionInput(modArgs, inputSchema);
           const extra = mergeActorScope(
             mergeActorScope(resolvedInitialScope, behaviorScope),
-            runContext as Record<string, unknown>,
+            runContext as Record<string, unknown>
           );
           const gen = tap(
             unwrapStreamEvents(
               runAction(
                 eventName,
                 buildScope(inputMode, runtimeArgs, extra),
-                handlers,
-              ),
-            ),
+                handlers
+              )
+            )
           );
           let item = await gen.next();
           while (!item.done) item = await gen.next();
@@ -900,12 +905,12 @@ function createBehavior(
           const runtimeArgs = wrapUnionInput(modArgs, inputSchema);
           const extra = mergeActorScope(
             mergeActorScope(resolvedInitialScope, behaviorScope),
-            runContext as Record<string, unknown>,
+            runContext as Record<string, unknown>
           );
           return yield* runAction(
             eventName,
             buildScope(inputMode, runtimeArgs, extra),
-            handlers,
+            handlers
           );
         }
 
@@ -970,11 +975,11 @@ function createBehavior(
 
       const makeBody = (
         inputMode: "first" | "args",
-        inputSchema?: unknown,
+        inputSchema?: unknown
       ) => ({
         addStateCommand(
           alias: string,
-          commands: Record<string, Record<string, string>>,
+          commands: Record<string, Record<string, string>>
         ) {
           const currentCommands =
             actionMeta?.stateCommands !== null &&
@@ -1006,7 +1011,7 @@ function createBehavior(
         input(...inputSchema: unknown[]) {
           return makeBody(
             "first",
-            inputSchema.length <= 1 ? inputSchema[0] : inputSchema,
+            inputSchema.length <= 1 ? inputSchema[0] : inputSchema
           );
         },
         use(plugin?: unknown) {
@@ -1033,7 +1038,7 @@ function createBehavior(
 
                 async function* rawCmdStreamCtx(
                   context: TW.ActionContext,
-                  flatInput: unknown,
+                  flatInput: unknown
                 ) {
                   const runContext = normalizeActionContext(context);
                   const resolvedInitialScope = await resolveActionScope();
@@ -1044,10 +1049,10 @@ function createBehavior(
                       [flatInput],
                       mergeActorScope(
                         resolvedInitialScope,
-                        runContext as Record<string, unknown>,
-                      ),
+                        runContext as Record<string, unknown>
+                      )
                     ),
-                    handlers,
+                    handlers
                   );
                 }
 
@@ -1057,10 +1062,10 @@ function createBehavior(
 
                 function cmdStreamCtx(
                   context: TW.ActionContext,
-                  flatInput: unknown,
+                  flatInput: unknown
                 ) {
                   return tap(
-                    unwrapStreamEvents(rawCmdStreamCtx(context, flatInput)),
+                    unwrapStreamEvents(rawCmdStreamCtx(context, flatInput))
                   );
                 }
 
@@ -1071,13 +1076,13 @@ function createBehavior(
                 function loggedRawCmdStream(flatInput: unknown) {
                   return tapRawStreamWith(
                     rawCmdStream(flatInput),
-                    dispatch(logger),
+                    dispatch(logger)
                   );
                 }
 
                 async function cmdRunCtx(
                   context: TW.ActionContext,
-                  flatInput: unknown,
+                  flatInput: unknown
                 ) {
                   const gen = cmdStreamCtx(context, flatInput);
                   let item = await gen.next();
@@ -1157,7 +1162,7 @@ function createBehavior(
  */
 export type ActorBuilderResult<
   Name extends string,
-  Ctx extends Record<any, any>,
+  Ctx extends Record<any, any>
 > = {
   scope: Steps<Ctx, ScopeResultKind>;
   use<const U>(plugin: U): ActorBuilderResult<Name, AddActionsToCtx<Ctx, U>>;
@@ -1241,7 +1246,7 @@ function collectAction(plugin: unknown): Record<string, unknown> {
 
 function mergeActions(
   existing: Record<string, unknown>,
-  incoming: Record<string, unknown>,
+  incoming: Record<string, unknown>
 ): Record<string, unknown> {
   const merged: Record<string, unknown> = { ...existing };
 
@@ -1265,7 +1270,7 @@ function collectActions(plugin: unknown): Record<string, unknown> {
 
 function collectActionsInner(
   plugin: unknown,
-  visited: WeakSet<object>,
+  visited: WeakSet<object>
 ): Record<string, unknown> {
   if (typeof plugin === "function") return collectAction(plugin);
   if (plugin === null || typeof plugin !== "object") return {};
@@ -1317,7 +1322,7 @@ function isServiceListenerAction(action: unknown): boolean {
 function createService(
   actorName: string,
   config: unknown,
-  scope: Record<string, unknown>,
+  scope: Record<string, unknown>
 ): Record<string, unknown> {
   if (
     config !== null &&
@@ -1325,7 +1330,7 @@ function createService(
     ("public" in config || "listeners" in config)
   ) {
     throw new Error(
-      "service() accepts actions directly: service({ hello, onNewEmail }). The public/listeners keys are no longer supported.",
+      "service() accepts actions directly: service({ hello, onNewEmail }). The public/listeners keys are no longer supported."
     );
   }
 
@@ -1334,7 +1339,7 @@ function createService(
       ? Object.values(config as Record<string, unknown>)
       : [];
   const publicActions = configuredActions.filter(
-    (action) => !isServiceListenerAction(action),
+    (action) => !isServiceListenerAction(action)
   );
   const listenerActions = configuredActions.filter(isServiceListenerAction);
   const service: Record<string | symbol, unknown> = {
@@ -1360,7 +1365,7 @@ function createService(
 }
 
 function isEventKind(
-  value: unknown,
+  value: unknown
 ): value is Record<string | symbol, unknown> {
   return (
     value !== null &&
@@ -1437,7 +1442,7 @@ function hasEventExports(value: unknown): value is { events: unknown } {
 
 function collectOwnedEvents(
   actorName: string,
-  scope: Record<string, unknown>,
+  scope: Record<string, unknown>
 ): Record<string, unknown> {
   const events: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(scope)) {
@@ -1463,7 +1468,7 @@ function collectEvents(plugin: unknown): Record<string, unknown> {
   }
   if (plugin !== null && typeof plugin === "object" && TW.Scope in plugin) {
     return collectEvents(
-      (plugin as Record<string | symbol, unknown>)[TW.Scope],
+      (plugin as Record<string | symbol, unknown>)[TW.Scope]
     );
   }
   if (hasEventExports(plugin)) {
@@ -1473,7 +1478,7 @@ function collectEvents(plugin: unknown): Record<string, unknown> {
 
   const incoming: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(
-    plugin as Record<string, unknown>,
+    plugin as Record<string, unknown>
   )) {
     if (!isEventKind(value)) continue;
     const eventName = value[TW.Name];
@@ -1495,7 +1500,7 @@ function collectPluginScope(plugin: unknown): Record<string, unknown> {
 
 function mergeActorScope(
   existing: Record<string, unknown>,
-  incoming: Record<string, unknown>,
+  incoming: Record<string, unknown>
 ): Record<string, unknown> {
   const { actions: incomingActions, ...incomingScope } = incoming;
   const next: Record<string, unknown> = {
@@ -1510,7 +1515,7 @@ function mergeActorScope(
   ) {
     next.actions = mergeActions(
       (existing.actions as Record<string, unknown> | undefined) ?? {},
-      incomingActions as Record<string, unknown>,
+      incomingActions as Record<string, unknown>
     );
   }
 
@@ -1520,7 +1525,7 @@ function mergeActorScope(
 function makeActorBuilder(
   actorName: string,
   actorScope: Record<string, unknown>,
-  pendingPlugins: Promise<Record<string, unknown>>[] = [],
+  pendingPlugins: Promise<Record<string, unknown>>[] = []
 ): any {
   // Lazily-created behavior for fluid `.on()` calls directly on the builder.
   let _behavior: ReturnType<typeof createBehavior> | null = null;
@@ -1542,7 +1547,7 @@ function makeActorBuilder(
         async () => ({
           ...builtInEventScope,
           ...(await resolveActorScope()),
-        }),
+        })
       );
     return _behavior;
   };
@@ -1550,7 +1555,7 @@ function makeActorBuilder(
   const createActorFactory = (
     behaviorScope: Record<string, unknown>,
     resolveBehaviorScope: () => Promise<Record<string, unknown>>,
-    eventScope: () => Record<string, unknown>,
+    eventScope: () => Record<string, unknown>
   ) =>
     Object.assign(
       () => createBehavior(actorName, behaviorScope, resolveBehaviorScope),
@@ -1558,7 +1563,7 @@ function makeActorBuilder(
         get events() {
           return collectOwnedEvents(actorName, eventScope());
         },
-      },
+      }
     );
 
   const defaultFactory = createActorFactory(
@@ -1567,7 +1572,7 @@ function makeActorBuilder(
       ...builtInEventScope,
       ...(await resolveActorScope()),
     }),
-    () => actorScope,
+    () => actorScope
   );
 
   return {
@@ -1585,7 +1590,7 @@ function makeActorBuilder(
           ...(await resolveActorScope()),
           ...collectScope(steps, actorName),
         }),
-        () => definedScope,
+        () => definedScope
       );
       return {
         actor: factory,
@@ -1611,7 +1616,7 @@ function makeActorBuilder(
       return makeActorBuilder(
         actorName,
         mergeActorScope(actorScope, incoming),
-        pendingPlugins,
+        pendingPlugins
       );
     },
 
@@ -1645,9 +1650,9 @@ export const Actor = <
         generateText: (params: { model: "gpt5"; prompt: string }) => string;
       };
     };
-  },
+  }
 >(
-  name: PascalCase<Name>,
+  name: PascalCase<Name>
 ): ActorBuilderResult<Name, Ctx> => {
   return makeActorBuilder(name as string, {}) as any;
 };

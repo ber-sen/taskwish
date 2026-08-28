@@ -190,12 +190,12 @@ describe("State", () => {
     }
 
     const items = await seed();
-    expect(items[TW.State]).toBe("State.items");
+    expect(items[TW.State]).toBe("state.items");
     expect(
       (items[0] as (typeof items)[number] & Record<symbol, unknown>)[TW.State]
-    ).toBe("State.items");
+    ).toBe("state.items");
     const payload = statePayload(items);
-    expect(payload?.path).toBe("State.items");
+    expect(payload?.path).toBe("state.items");
     expect(payload?.columns).toEqual(["id", "done"]);
     expect(statePayload(items.filter(() => true))?.columns).toEqual([
       "id",
@@ -218,9 +218,15 @@ describe("State", () => {
     }
     expect(events).toContainEqual(
       expect.objectContaining({
-        event: "TW::StateChange",
+        message: "TW::StateChange",
+        path: "ActionableTodos::state.items",
+      })
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        message: "TW::StateChange",
         data: expect.objectContaining({
-          path: "State.items",
+          path: "state.items",
           previous: [{ id: "one", done: false }],
           value: [{ id: "one", done: true }],
         }),

@@ -7,7 +7,15 @@ export {
   ulid,
 } from "./bus";
 export { consume } from "./consume";
-export { Signal, Trace, eventData } from "./events";
+export {
+  Message,
+  Signal,
+  StateChange,
+  Stream,
+  Trace,
+  eventData,
+  messageData,
+} from "./messages";
 export { formatEvent, isActionEvent } from "./format";
 export { Logger, dispatch } from "./logger";
 export { Type } from "./symbols";

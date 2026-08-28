@@ -144,7 +144,7 @@ test("exports console config when the app is installed", async () => {
         action: "hello",
         label: "Hello",
         description: "Greet a person by name",
-        color: expect.stringMatching(/^hsl\(\d+ 85% 40%\)$/),
+        mode: "form",
         route: "/tw/Greeter/hello",
         source: "local",
         input: [

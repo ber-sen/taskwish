@@ -22,7 +22,7 @@ test("serves command actions with POST under /tw/<Actor>/<method>", async () => 
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Greeter, hello })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
@@ -30,7 +30,7 @@ test("serves command actions with POST under /tw/<Actor>/<method>", async () => 
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Ada" }),
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -52,13 +52,13 @@ test("serves command actions with GET under /tw/<Actor>/<method>", async () => {
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Greeter, hello })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
     new Request("http://localhost/tw/Greeter/hello?name=Ada", {
       headers: auth,
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -88,20 +88,20 @@ test("streams Step pipe chunks from command actions", async () => {
         for await (const chunk of source) {
           yield `${Number(chunk) * 2}\n`;
         }
-      }),
+      })
     );
   const { Piper } = actor().service({ count });
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Piper, count })]),
-    { apiKey },
+    { apiKey }
   );
 
   const responseOrTimeout = await Promise.race([
     fetch(
       new Request("http://localhost/tw/Piper/count?total=2", {
         headers: auth,
-      }),
+      })
     ),
     Bun.sleep(50).then(() => "timeout" as const),
   ]);
@@ -155,13 +155,13 @@ test("streams command yields and wire traces as SSE for commander requests", asy
         for await (const chunk of source) {
           yield `${chunk * 2}\n`;
         }
-      }),
+      })
     );
   const { Piper } = actor().service({ count });
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Piper, count })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
@@ -171,7 +171,7 @@ test("streams command yields and wire traces as SSE for commander requests", asy
         Accept: "text/event-stream",
         wire: "commander",
       },
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -191,7 +191,7 @@ test("streams state results and state changes as dedicated SSE events", async ()
   try {
     const { actor } = Actor("Todos").scope(
       Store({ adapter: "fs", directory }),
-      State({ items: State.List({ id: "string", done: "boolean" }) }),
+      State({ items: State.List({ id: "string", done: "boolean" }) })
     );
     const { seed } = actor()
       .on("Command", "seed")
@@ -211,7 +211,7 @@ test("streams state results and state changes as dedicated SSE events", async ()
 
     const fetch = createFetchHandler(
       createNodeRegistry([Promise.resolve({ Todos, complete })]),
-      { apiKey },
+      { apiKey }
     );
     const response = await fetch(
       new Request("http://localhost/tw/Todos/complete", {
@@ -220,14 +220,18 @@ test("streams state results and state changes as dedicated SSE events", async ()
           ...auth,
           Accept: "text/event-stream",
           "Content-Type": "application/json",
+          wire: "commander",
         },
         body: JSON.stringify({ id: "one" }),
-      }),
+      })
     );
     const body = await response.text();
 
+    expect(body).toContain(
+      'data: {">>":"Todos::state.items","result":[{"id":"one","done":true}]}'
+    );
     expect(body).toContain("event: state-change");
-    expect(body).toContain('"path":"State.items"');
+    expect(body).toContain('"path":"state.items"');
     expect(body).toContain('"columns":["id","done"]');
     expect(body).toContain("event: state");
     expect(body).toContain('"done":true');
@@ -246,13 +250,13 @@ test("streams wire trace error messages as SSE for commander requests", async ()
     .run(
       Step("bad", function () {
         throw boom;
-      }),
+      })
     );
   const { Crasher } = actor().service({ fail });
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Crasher, fail })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
@@ -262,7 +266,7 @@ test("streams wire trace error messages as SSE for commander requests", async ()
         Accept: "text/event-stream",
         wire: "commander",
       },
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -270,10 +274,10 @@ test("streams wire trace error messages as SSE for commander requests", async ()
   const body = await response.text();
   expect(body).toContain("event: wire");
   expect(body).toContain(
-    'data: {">>":"Crasher::fail.bad","error":{"message":"boom"}}',
+    'data: {">>":"Crasher::fail.bad","error":{"message":"boom"}}'
   );
   expect(body).toContain(
-    'data: {">>":"Crasher::fail","error":{"message":"boom"}}',
+    'data: {">>":"Crasher::fail","error":{"message":"boom"}}'
   );
   expect(body).toContain("event: error");
   expect(body).toContain('data: {"error":"boom"}');
@@ -302,19 +306,19 @@ test("logs traces when invoking command actions through fetch handlers", async (
 
       Step("greet", function () {
         return `Hello ${this.prepare}`;
-      }),
+      })
     );
   const { Greeter } = actor().service({ hello });
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Greeter, hello })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
     new Request("http://localhost/tw/Greeter/hello?name=Ada", {
       headers: auth,
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -351,7 +355,7 @@ test("serves actor event handlers with POST under /tw/<Actor>/<handler>", async 
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Greeter, Biller })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
@@ -359,7 +363,7 @@ test("serves actor event handlers with POST under /tw/<Actor>/<handler>", async 
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ content: "hi" }),
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -387,13 +391,13 @@ test("serves actor event handlers with GET under /tw/<Actor>/<handler>", async (
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Greeter, Biller })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
     new Request("http://localhost/tw/Biller/on-greeter-message?content=hi", {
       headers: auth,
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -418,13 +422,13 @@ test("serves route actions from node fetch handlers", async () => {
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ InvoiceProvider, getInvoices })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
     new Request("http://localhost/invoices/inv-42?page=2", {
       headers: auth,
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -446,7 +450,7 @@ test("serves route action JSON body input from node fetch handlers", async () =>
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ InvoiceProvider, createInvoice })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
@@ -454,7 +458,7 @@ test("serves route action JSON body input from node fetch handlers", async () =>
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify({ id: "inv-42", status: "paid" }),
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -476,7 +480,7 @@ test("rejects requests without the configured API key", async () => {
 
   const fetch = createFetchHandler(
     createNodeRegistry([Promise.resolve({ Greeter, hello })]),
-    { apiKey },
+    { apiKey }
   );
 
   const response = await fetch(
@@ -484,7 +488,7 @@ test("rejects requests without the configured API key", async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Ada" }),
-    }),
+    })
   );
 
   expect(response.status).toBe(401);

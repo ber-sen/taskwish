@@ -111,6 +111,10 @@ function stateBubblePayload(value: unknown): StateBubblePayload | null {
   return value as StateBubblePayload;
 }
 
+function stateChangeLabel(path: string): string {
+  return `${path} changed`;
+}
+
 function consoleValue(value: unknown): string {
   if (value === null) return "null";
   if (typeof value === "string") return JSON.stringify(value);
@@ -731,8 +735,12 @@ function stateCommandsForActor(
       if (!isRecord(stateCommands)) continue;
       for (const [name, definition] of Object.entries(stateCommands)) {
         if (!isRecord(definition)) continue;
-        const expanded = isRecord(definition.input);
-        const input = expanded ? definition.input : definition;
+        let expanded = false;
+        let input: Record<string, unknown> = definition;
+        if (isRecord(definition.input)) {
+          expanded = true;
+          input = definition.input;
+        }
         if (!Object.values(input).every((value) => typeof value === "string")) {
           continue;
         }
@@ -755,7 +763,7 @@ function StateValueTable({
   state,
   onAction,
   actionPending,
-  actionHighlighted,
+  actionCompleted,
 }: {
   state: StateBubblePayload;
   onAction?: (
@@ -765,7 +773,7 @@ function StateValueTable({
     rowIndex: number
   ) => void;
   actionPending?: string | null;
-  actionHighlighted?: string | null;
+  actionCompleted?: string | null;
 }) {
   const rows = tableRows(state.value);
   const oldRows = state.previous === undefined ? [] : tableRows(state.previous);
@@ -835,7 +843,7 @@ function StateValueTable({
         </thead>
         <tbody>
           {leadingHiddenCount > 0 ? (
-            <tr>
+            <tr className="border-b border-border/70">
               <td
                 colSpan={columns.length + (actions.length ? 1 : 0)}
                 className="px-3 py-2 text-center text-muted-foreground"
@@ -864,11 +872,6 @@ function StateValueTable({
             );
             const allFieldsChanged =
               columns.length > 0 && changedColumns.size === columns.length;
-            const highlightedRowAction = rowActions.some(
-              ([name]) => actionHighlighted === `${name}:${rowKey(row, index)}`
-            );
-            const highlightActionCell =
-              highlightedRowAction || allFieldsChanged;
             return (
               <tr
                 key={rowKey(row, index)}
@@ -941,30 +944,36 @@ function StateValueTable({
                   <td
                     className={cn(
                       "w-px whitespace-nowrap px-3 py-2 text-right",
-                      highlightActionCell && "state-change-highlight"
+                      allFieldsChanged && "state-change-highlight"
                     )}
                   >
                     <div className="flex justify-end gap-1.5">
-                      {rowActions.map(([name, descriptor]) => (
-                        <Button
-                          key={name}
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className={cn(
-                            highlightActionCell &&
-                              "border-black bg-black text-white hover:bg-black hover:text-white"
-                          )}
-                          disabled={Boolean(actionPending)}
-                          onClick={() =>
-                            onAction?.(name, descriptor, row, index)
-                          }
-                        >
-                          {actionPending === `${name}:${rowKey(row, index)}`
-                            ? "Running…"
-                            : humanizeAction(name)}
-                        </Button>
-                      ))}
+                      {rowActions.map(([name, descriptor]) => {
+                        const actionKey = `${name}:${rowKey(row, index)}`;
+                        const completed = actionCompleted === actionKey;
+                        return (
+                          <Button
+                            key={name}
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className={cn(
+                              allFieldsChanged &&
+                                "border-black bg-black text-white hover:bg-black hover:text-white"
+                            )}
+                            disabled={Boolean(actionPending) || completed}
+                            onClick={() =>
+                              onAction?.(name, descriptor, row, index)
+                            }
+                          >
+                            {actionPending === actionKey
+                              ? "Running…"
+                              : completed
+                              ? "Ran"
+                              : humanizeAction(name)}
+                          </Button>
+                        );
+                      })}
                     </div>
                   </td>
                 ) : null}
@@ -1082,7 +1091,7 @@ function StateBubble({
     },
     [actor, config, onActionResult, onActionStart]
   );
-  const highlightedAction = hasStateChange(actionResult) ? lastAction : null;
+  const completedAction = hasStateChange(actionResult) ? lastAction : null;
 
   return (
     <div className="flex w-full max-w-full flex-col gap-2">
@@ -1090,7 +1099,7 @@ function StateBubble({
         state={actionableState}
         onAction={invokeStateAction}
         actionPending={actionPending}
-        actionHighlighted={highlightedAction}
+        actionCompleted={completedAction}
       />
     </div>
   );
@@ -1101,7 +1110,7 @@ function ActionCallMessage({
 }: {
   bubble: Extract<AppendedStateActionBubble, { type: "action" }>;
 }) {
-  const actionPath = [bubble.actor, bubble.action].filter(Boolean).join(".");
+  const actionPath = [bubble.actor, bubble.action].filter(Boolean).join("::");
 
   return (
     <Message from="user">
@@ -1309,7 +1318,7 @@ export function ActionResult({
                               : bubble.type === "state"
                               ? `Result`
                               : bubble.type === "state-change"
-                              ? `${bubble.title} changed`
+                              ? stateChangeLabel(bubble.title!)
                               : bubble.type === "error"
                               ? "Error"
                               : "Result"}
@@ -1415,7 +1424,7 @@ export function ActionResult({
               <div className="text-[11px] font-semibold text-muted-foreground">
                 {bubble.type === "state"
                   ? `Result`
-                  : `${bubble.state.path} changed`}
+                  : stateChangeLabel(bubble.state.path)}
               </div>
               <MessageContent
                 className="w-full"

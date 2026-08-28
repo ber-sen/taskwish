@@ -44,7 +44,7 @@ type StateListTypeSchema<Schema> = Schema extends Record<string, unknown>
   : Schema;
 
 type StateType<Path extends string> = {
-  readonly [TW.State]: `State${Path extends "" ? "" : `.${Path}`}`;
+  readonly [TW.State]: `state${Path extends "" ? "" : `.${Path}`}`;
 };
 
 type StateListItem<Schema> = InferSchema<StateListTypeSchema<Schema>>;
@@ -259,11 +259,11 @@ function annotateState(
   state: RuntimeState,
   definition: RuntimeDefinition
 ): void {
-  defineStateMetadata(state, "State", Object.keys(definition.fields));
+  defineStateMetadata(state, "state", Object.keys(definition.fields));
   for (const [field, descriptor] of Object.entries(definition.fields)) {
     annotateStateValue(
       state[field],
-      `State.${field}`,
+      `state.${field}`,
       stateFieldColumns(descriptor)
     );
   }
@@ -273,7 +273,7 @@ export function statePayload(value: unknown): StatePayload | null {
   if (value === null || typeof value !== "object") return null;
   const record = value as Record<string | symbol, unknown>;
   const path = record[TW.State];
-  if (typeof path !== "string" || !/^State(?:\.|$)/.test(path)) return null;
+  if (typeof path !== "string" || !/^state(?:\.|$)/.test(path)) return null;
   const columns = record[StateColumns];
 
   return {
@@ -294,7 +294,7 @@ export function captureStateSnapshot(
       continue;
     }
     const record = value as RuntimeState & Record<symbol, unknown>;
-    if (record[TW.State] !== "State") continue;
+    if (record[TW.State] !== "state") continue;
     seen.add(value);
     snapshots.push({
       state: record,
@@ -321,7 +321,7 @@ export function stateChangesSince(snapshot: StateSnapshot): StateChange[] {
       const payload = statePayload(state[field]);
 
       changes.push({
-        path: `State.${field}`,
+        path: `state.${field}`,
         previous,
         value,
         ...(payload?.columns ? { columns: payload.columns } : {}),
