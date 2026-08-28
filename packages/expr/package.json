@@ -29,9 +29,12 @@
     "dist"
   ],
   "type": "module",
+  "dependencies": {
+    "jsep": "^1.4.0"
+  },
   "scripts": {
     "build": "bun ../../scripts/build-package.ts",
-    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --no-cache"
+    "test": "bun test"
   },
   "devDependencies": {
     "typescript": "^5.9.2"

@@ -13,7 +13,7 @@ import { FxAgent } from "./fx-agent";
 import { Todos } from "./todos";
 import { Counter } from "./counter";
 
-await Server("example", {
+await Server("Example", {
   apiKey: process.env.TW_API_KEY,
   port: 3000,
   apps: [Console()],

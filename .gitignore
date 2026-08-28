@@ -2,8 +2,8 @@
 .types
 .scriptc/
 .bare/
-packages/example/cli
-packages/example/state/
+packages/create-app/cli
+packages/create-app/state/
 .cache
 .DS_Store
 .idea

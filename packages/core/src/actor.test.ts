@@ -1,5 +1,5 @@
 import { expect, test, describe } from "bun:test";
-import { $ } from "@taskwish/expr";
+import { ToCEL } from "@taskwish/expr";
 import { Expect, Equal } from "./helpers";
 import { Actor } from "./actor";
 import { Action } from "./action";
@@ -1345,7 +1345,11 @@ describe("Actor", () => {
               example: "#general",
               suggestions: {
                 $: "slack.conversationsList",
-                "*": $("channels").map(["x"], ["x.name", "x.id"]),
+                "*": ($) =>
+                  $.channels.map((x) => ({
+                    value: x.id,
+                    label: x.name,
+                  })),
                 types: "public_channel",
               },
             },
@@ -1358,14 +1362,18 @@ describe("Actor", () => {
 
       const meta = postMessage[TW.Meta];
       expect(meta.description).toEqual("Post a message to a Slack channel");
-      const channelMeta = meta.input!.channel as {
-        suggestions: unknown;
+      const channelMeta = meta.input!.channel as unknown as {
+        suggestions: {
+          $: string;
+          "*": { [ToCEL](): string };
+          types: string;
+        };
       };
-      expect(JSON.parse(JSON.stringify(channelMeta.suggestions))).toEqual({
-        $: "slack.conversationsList",
-        "*": ["channels.map", ["x"], ["x.name", "x.id"]],
-        types: "public_channel",
-      });
+      expect(channelMeta.suggestions.$).toBe("slack.conversationsList");
+      expect(channelMeta.suggestions["*"][ToCEL]()).toBe(
+        'result.channels.map(x, {"value": x.id, "label": x.name})',
+      );
+      expect(channelMeta.suggestions.types).toBe("public_channel");
       expect(
         await postMessage({ channel: "C456", text: "Deploy completed" })
       ).toEqual({

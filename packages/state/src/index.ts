@@ -7,10 +7,18 @@ import {
 } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { join, resolve } from "node:path";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { scope, type } from "arktype";
+import { TW } from "@taskwish/core";
+import { Wire } from "@taskwish/wire";
 
-import { TW } from "./core";
-import type { InferSchema, Pretty } from "./helpers";
+type InferSchema<Schema, Scope = {}> = Schema extends StandardSchemaV1<
+  infer Input
+>
+  ? Input
+  : type.instantiate<Schema, Scope>["infer"];
+
+type Pretty<Value> = { [Key in keyof Value]: Value[Key] } & {};
 
 const StateDefinition = Symbol("Taskwish.StateDefinition");
 const StateListDefinition = Symbol("Taskwish.StateListDefinition");
@@ -178,6 +186,7 @@ function expandStateListSchema(schema: unknown): unknown {
 
 type RuntimeDefinition = {
   [StateDefinition]: true;
+  [TW.ActorScope](actorName: string, steps: readonly unknown[]): RuntimeState;
   fields: Record<string, RuntimeFieldDescriptor>;
   instances: Map<string, RuntimeState>;
 };
@@ -196,6 +205,7 @@ export type StateSnapshot = Array<{
 
 type RuntimeStore = {
   [StateStoreDefinition]: true;
+  [TW.ActorScope]: true;
   store: StateStore;
 };
 
@@ -578,6 +588,28 @@ function createStateInstance(
   validateState(definition.fields, rawState);
   annotateState(rawState, definition);
 
+  Object.defineProperty(rawState, TW.ActionObserver, {
+    configurable: true,
+    value(actionName: string) {
+      const snapshot = captureStateSnapshot({ state: rawState });
+      return () => {
+        const actor = actionName.includes("::")
+          ? actionName.slice(0, actionName.indexOf("::"))
+          : "";
+
+        return stateChangesSince(snapshot).map(
+          (change) =>
+            new Wire.StateChange(
+              [actor, change.path].filter(Boolean).join("::"),
+              Object.fromEntries(
+                Object.entries(change).filter(([key]) => key !== "path")
+              )
+            )
+        );
+      };
+    },
+  });
+
   let state!: RuntimeState;
   const persist = () => {
     validateState(definition.fields, rawState);
@@ -645,6 +677,7 @@ export function Store<Ctx extends Record<any, any> = { scope: {} }>(
     case "fs":
       return {
         [StateStoreDefinition]: true,
+        [TW.ActorScope]: true,
         store: fileSystemStateStore(options),
       } as unknown as StateStoreResult<Ctx>;
   }
@@ -682,12 +715,21 @@ export const State: StateFactory = Object.assign(
       );
     }
 
+    const definition: RuntimeDefinition = {
+      [StateDefinition]: true,
+      [TW.ActorScope](
+        actorName: string,
+        steps: readonly unknown[]
+      ): RuntimeState {
+        const runtimeStore = steps.find(isStateStore);
+        return bindStateDefinition(definition, actorName, runtimeStore);
+      },
+      fields,
+      instances: new Map(),
+    };
+
     return {
-      state: {
-        [StateDefinition]: true,
-        fields,
-        instances: new Map(),
-      } as RuntimeDefinition,
+      state: definition,
     };
   },
   {

@@ -4,6 +4,7 @@ import {
   RawStreamTag,
   buildScope,
   normalizeActionContext,
+  resolveMetaExpressionBuilders,
   runAction,
   tapRawStreamWith,
   tapWith,
@@ -43,7 +44,6 @@ import {
 } from "@taskwish/wire";
 import { type Steps } from "./steps/steps";
 import { ResultKind } from "./steps/hkt";
-import { bindStateDefinition, isStateDefinition, isStateStore } from "./state";
 
 type BaseScope<Ctx> = Ctx extends Record<any, any> ? Ctx["scope"] : {};
 
@@ -630,14 +630,19 @@ function collectScope(
   actorName?: string
 ): Record<string, unknown> {
   const scope: Record<string, unknown> = {};
-  const stateDefinitions: Array<
-    [string, Parameters<typeof bindStateDefinition>[0]]
-  > = [];
-  let stateStore: Parameters<typeof bindStateDefinition>[2];
 
   const collectEntry = (key: string, value: unknown) => {
-    if (actorName && isStateDefinition(value)) {
-      stateDefinitions.push([key, value]);
+    if (
+      actorName &&
+      value !== null &&
+      typeof value === "object" &&
+      typeof (value as Record<symbol, unknown>)[TW.ActorScope] === "function"
+    ) {
+      scope[key] = (
+        value as {
+          [TW.ActorScope](actorName: string, steps: readonly unknown[]): unknown;
+        }
+      )[TW.ActorScope](actorName, steps);
       return;
     }
 
@@ -677,8 +682,11 @@ function collectScope(
   };
 
   for (const step of steps) {
-    if (isStateStore(step)) {
-      stateStore = step;
+    if (
+      step !== null &&
+      typeof step === "object" &&
+      (step as Record<symbol, unknown>)[TW.ActorScope] === true
+    ) {
       continue;
     }
 
@@ -702,11 +710,6 @@ function collectScope(
     }
   }
 
-  if (actorName) {
-    for (const [key, definition] of stateDefinitions) {
-      scope[key] = bindStateDefinition(definition, actorName, stateStore);
-    }
-  }
   return scope;
 }
 
@@ -964,7 +967,10 @@ function createBehavior(
         const result = {
           [actionName]: action,
           meta(meta: Record<string, unknown>) {
-            actionMeta = { ...(actionMeta ?? {}), ...meta };
+            actionMeta = {
+              ...(actionMeta ?? {}),
+              ...resolveMetaExpressionBuilders(meta),
+            };
             action[TW.Meta] = resolveMeta();
             return result;
           },
@@ -1133,7 +1139,10 @@ function createBehavior(
                 const result = {
                   [cmdName]: action,
                   meta(meta: Record<string, unknown>) {
-                    commandMeta = { ...commandMeta, ...meta };
+                    commandMeta = {
+                      ...commandMeta,
+                      ...resolveMetaExpressionBuilders(meta),
+                    };
                     action[TW.Meta] = resolveMeta();
                     return this;
                   },

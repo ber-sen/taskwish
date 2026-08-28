@@ -1,9 +1,20 @@
+import type { Expression } from "@taskwish/expr";
 import type { ExtractActionName } from "../helpers";
 
 type ActionOutput<Action extends (...args: any[]) => any> =
   ReturnType<Action> extends AsyncGenerator<any, infer Return, any>
     ? Awaited<Return>
     : Awaited<ReturnType<Action>>;
+
+type ActionSuggestionOption = {
+  value: string | number;
+  label: string;
+};
+
+type ActionSuggestionExpression<Scope> = Expression<
+  Scope,
+  ActionSuggestionOption[]
+>;
 
 type ActionSuggestionsObject<
   Name extends string,
@@ -12,12 +23,9 @@ type ActionSuggestionsObject<
   $: [ExtractActionName<Action>] extends [never]
     ? Name
     : ExtractActionName<Action>;
-  "*": {
-    toJSON(): unknown
-    toFn: (
-      scope: ActionOutput<Action>,
-    ) => Array<[string, string | number]>;
-  };
+  "*": (
+    $: Expression<ActionOutput<Action>>,
+  ) => ActionSuggestionExpression<ActionOutput<Action>>;
 } & (Parameters<Action> extends []
   ? {}
   : Parameters<Action> extends [infer Parameter extends object]
@@ -103,3 +111,24 @@ export type ValidateActionMeta<
         : Meta[K]
       : Meta[K];
 };
+
+type ResolveSuggestions<Value> = Value extends { suggestions: infer Suggestions }
+  ? Omit<Value, "suggestions"> & {
+      suggestions: {
+        [Key in keyof Suggestions]: Key extends "*"
+          ? Suggestions[Key] extends (...args: any[]) => infer Selector
+            ? Selector
+            : Suggestions[Key]
+          : Suggestions[Key];
+      };
+    }
+  : Value;
+
+/** The runtime metadata shape after typed expression builders are evaluated. */
+export type ResolveActionMeta<Meta> = Meta extends { input: infer Input }
+  ? Omit<Meta, "input"> & {
+      input: {
+        [Key in keyof Input]: ResolveSuggestions<Input[Key]>;
+      };
+    }
+  : Meta;

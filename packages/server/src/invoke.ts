@@ -1,9 +1,9 @@
 import {
   RawLoggedStreamTag,
   RawStreamTag,
-  statePayload,
   TW,
 } from "@taskwish/core";
+import { statePayload } from "@taskwish/state";
 import {
   Message,
   Result,
