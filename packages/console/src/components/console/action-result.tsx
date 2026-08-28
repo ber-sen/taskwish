@@ -273,35 +273,33 @@ function tracePayloadLine(data: Record<string, unknown>): string | null {
   if ("log" in body) {
     const { log, ...rest } = body;
     const suffix = Object.keys(rest).length ? ` ${traceValue(rest)}` : "";
-    return `log: ${traceValue(log)}${suffix}`;
+    return `${traceValue(log)}${suffix}`;
   }
 
   if ("message" in body) {
     const { message, ...rest } = body;
     const suffix = Object.keys(rest).length ? ` ${traceValue(rest)}` : "";
-    return `log: ${traceValue(message)}${suffix}`;
+    return `${traceValue(message)}${suffix}`;
   }
 
   if (keys.length === 1 && "input" in body) {
-    return isEmptyTraceValue(body.input)
-      ? "log: Starting"
-      : `log: Starting ${traceValue(body.input)}`;
+    return isEmptyTraceValue(body.input) ? null : traceValue(body.input);
   }
 
   if (keys.length === 1 && "result" in body) {
     return isEmptyTraceValue(body.result)
-      ? "log: Done"
-      : `log: Done ${traceValue(body.result)}`;
+      ? "✓"
+      : `✓ ${traceValue(body.result)}`;
   }
 
   if (keys.length === 1 && "error" in body) {
-    return `error: ${traceErrorValue(body.error)}`;
+    return `× ${traceErrorValue(body.error)}`;
   }
 
-  return `log: ${traceValue(body)}`;
+  return traceValue(body);
 }
 
-function signalPayloadLine(data: Record<string, unknown>): string {
+export function signalPayloadLine(data: Record<string, unknown>): string {
   const title = String(data[WIRE_SIGNAL_KEY]);
   const signalName = tracePath(title).join(".") || title;
   const body = Object.fromEntries(
@@ -312,9 +310,11 @@ function signalPayloadLine(data: Record<string, unknown>): string {
         value !== undefined
     )
   );
-  const suffix = Object.keys(body).length ? ` ${traceValue(body)}` : "";
+  const payload =
+    Object.keys(body).length === 1 && "data" in body ? body.data : body;
+  const suffix = isEmptyTraceValue(payload) ? "" : ` ${traceValue(payload)}`;
 
-  return `signal: ${signalName}${suffix}`;
+  return `-> ${signalName}${suffix}`;
 }
 
 function ensureTraceNode(
@@ -405,7 +405,51 @@ function wireEventsBody(events: ActionRunEvent[]): string {
 }
 
 function isTraceErrorLine(line: string): boolean {
-  return /(?:^| )error:/.test(line);
+  return /(?:^| )×(?: |$)/.test(line);
+}
+
+export function TraceLine({ line }: { line: string }) {
+  const parts = line.split(/(├─|└─|│|✓|->)/g).filter(Boolean);
+
+  return (
+    <span
+      className={cn(
+        "block",
+        isTraceErrorLine(line) && "text-destructive"
+      )}
+    >
+      {parts.map((part, index) => {
+        if (part === "├─" || part === "└─" || part === "│") {
+          return (
+            <span
+              key={`${part}-${index}`}
+              className="text-muted-foreground opacity-50"
+            >
+              {part}
+            </span>
+          );
+        }
+
+        if (part === "✓") {
+          return (
+            <span key={`${part}-${index}`} className="font-bold">
+              {part}
+            </span>
+          );
+        }
+
+        if (part === "->") {
+          return (
+            <span key={`${part}-${index}`} className="font-bold">
+              {part}
+            </span>
+          );
+        }
+
+        return part;
+      })}
+    </span>
+  );
 }
 
 function buildRunBubbles(
@@ -1393,16 +1437,10 @@ export function ActionResult({
                               {(bubble.body || "Done")
                                 .split("\n")
                                 .map((line, index) => (
-                                  <span
+                                  <TraceLine
                                     key={`${run.id}-${bubble.id}-line-${index}`}
-                                    className={cn(
-                                      "block",
-                                      isTraceErrorLine(line) &&
-                                        "text-destructive"
-                                    )}
-                                  >
-                                    {line}
-                                  </span>
+                                    line={line}
+                                  />
                                 ))}
                             </pre>
                           ) : (

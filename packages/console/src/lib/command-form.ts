@@ -269,6 +269,25 @@ function parseSseData(value: string): unknown {
   }
 }
 
+function wireLogData(eventType: string, value: unknown): unknown {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+
+  const data = value as Record<string, unknown>;
+  if (eventType === "TW::Trace" && typeof data.path === "string") {
+    const { path, ...params } = data;
+    return { ">>": path, ...params };
+  }
+
+  if (eventType === "TW::Signal" && typeof data.event === "string") {
+    const { event, ...params } = data;
+    return { "->": event, ...params };
+  }
+
+  return value;
+}
+
 function appendEventBody(currentBody: unknown, event: ActionRunEvent): unknown {
   if (event.type === "yield") {
     const chunk =
@@ -306,7 +325,7 @@ function parseSseMessage(message: string): ActionRunEvent | null {
 
   return {
     type: normalizedType[eventType] ?? eventType,
-    data: parseSseData(data.join("\n")),
+    data: wireLogData(eventType, parseSseData(data.join("\n"))),
   };
 }
 
