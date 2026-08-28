@@ -792,6 +792,14 @@ function StateValueTable({
   const columns = Array.from(
     new Set([...(state.columns ?? []), ...rowColumns])
   );
+  const uuidColumns = new Set(
+    columns.filter((column) =>
+      [...rows, ...oldRows].some((row) => {
+        const value = row[column];
+        return typeof value === "string" && isUuid(value);
+      })
+    )
+  );
   const actions = Object.entries(state.actions ?? {});
   const indexedRows = rows.map((row, index) => ({ row, index }));
   const changedIndexes = indexedRows.flatMap(({ row, index }) => {
@@ -840,7 +848,10 @@ function StateValueTable({
             {columns.map((column) => (
               <th
                 key={column}
-                className="border-b border-border px-3 py-2 font-semibold"
+                className={cn(
+                  "border-b border-border px-3 py-2 font-semibold",
+                  uuidColumns.has(column) && "w-px whitespace-nowrap"
+                )}
               >
                 {column}
               </th>
@@ -904,6 +915,7 @@ function StateValueTable({
                       }
                       className={cn(
                         "max-w-72 px-3 py-2 align-top",
+                        uuidColumns.has(column) && "w-px whitespace-nowrap",
                         changed && "state-change-highlight text-black"
                       )}
                     >
