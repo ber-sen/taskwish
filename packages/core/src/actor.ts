@@ -1345,6 +1345,7 @@ function createService(
   const service: Record<string | symbol, unknown> = {
     [TW.Name]: actorName,
     [TW.Scope]: collectOwnedEvents(actorName, scope),
+    [TW.States]: collectOwnedStates(scope),
   };
 
   if (listenerActions.length > 0) {
@@ -1362,6 +1363,17 @@ function createService(
   }
 
   return { [capitalCaseName(actorName)]: service };
+}
+
+function collectOwnedStates(
+  scope: Record<string, unknown>
+): Record<string, Record<string, unknown>> {
+  return Object.fromEntries(
+    Object.entries(scope).filter(([, value]) => {
+      if (value === null || typeof value !== "object") return false;
+      return (value as Record<symbol, unknown>)[TW.State] === "state";
+    })
+  ) as Record<string, Record<string, unknown>>;
 }
 
 function isEventKind(

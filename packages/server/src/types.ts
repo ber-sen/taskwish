@@ -47,6 +47,7 @@ export interface NodeConfig {
 export interface NodeRegistry {
   actions: Map<string, Action>;
   eventHandlers: Map<string, Action[]>;
+  states?: Map<string, Record<string, unknown>>;
 }
 
 export type NodeRouteHandler = (

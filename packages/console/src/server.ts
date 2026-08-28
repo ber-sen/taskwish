@@ -24,6 +24,7 @@ const PRIMITIVE_ARK_SCHEMAS = new Set([
 type Action = (...args: unknown[]) => unknown;
 type NodeRegistry = {
   actions: Map<string, Action>;
+  states?: Map<string, Record<string, unknown>>;
 };
 type NodeRouteHandler = (request: Request) => Response | Promise<Response>;
 type NodeRoutes = Record<
@@ -344,12 +345,23 @@ export function createConsoleRoutes(
 ): NodeRoutes {
   const config: NodeRouteHandler = () =>
     json(200, consoleConfig(registry, options));
+  const states: NodeRouteHandler = () =>
+    json(
+      200,
+      Array.from(registry.states ?? [], ([actor, actorStates]) => ({
+        actor,
+        state: Object.assign({}, ...Object.values(actorStates)),
+      })).sort((left, right) => left.actor.localeCompare(right.actor)),
+    );
 
   return {
     "/": consoleIndex,
     "/*": consoleIndex,
     [`${options.prefix}/console/config`]: {
       GET: config,
+    },
+    [`${options.prefix}/console/state`]: {
+      GET: states,
     },
   };
 }

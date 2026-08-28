@@ -42,3 +42,8 @@ export type ConsoleConfig = {
   apiPrefix: string;
   actions: ConsoleAction[];
 };
+
+export type ConsoleActorState = {
+  actor: string;
+  state: Record<string, unknown>;
+};

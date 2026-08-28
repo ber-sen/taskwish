@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 
 import { ActionCommandItem } from "./components/console/action-command-item";
 import { ActionDrawerHeader } from "./components/console/action-drawer-header";
+import { ActorStateSummary } from "./components/console/actor-state-summary";
 import {
   ActionForm,
   type ActionFormHandle,
@@ -17,6 +18,7 @@ import {
 } from "./components/ui/drawer";
 import { Button } from "./components/ui/button";
 import { isChatAction, normalizeActions } from "./lib/command-actions";
+import type { ActionRunEvent } from "./lib/command-form";
 import type { ConsoleAction, ConsoleConfig } from "./types";
 
 type LoadState =
@@ -48,6 +50,7 @@ export function Console() {
   const [isActionHeaderCollapsed, setIsActionHeaderCollapsed] = useState(false);
   const [actionRunResetToken, setActionRunResetToken] = useState(0);
   const [selectedValue, setSelectedValue] = useState("");
+  const [stateRefreshToken, setStateRefreshToken] = useState(0);
   const commandRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const actionFormRef = useRef<ActionFormHandle>(null);
@@ -162,6 +165,13 @@ export function Console() {
     actionFormRef.current?.cancel();
   };
 
+  const handleStateChange = useCallback(
+    (_actor: string, _event: ActionRunEvent) => {
+      setStateRefreshToken((token) => token + 1);
+    },
+    []
+  );
+
   const handleActionChatModeChange = useCallback((enabled: boolean) => {
     setIsActionChatMode(enabled);
     if (enabled) setIsActionHeaderCollapsed(false);
@@ -201,7 +211,6 @@ export function Console() {
       >
         <TaskWishLogo />
       </a>
-
       <CommandPrimitive
         ref={commandRef}
         label="Console"
@@ -278,6 +287,12 @@ export function Console() {
                 onCancel={cancelSelectedAction}
               />
 
+              <ActorStateSummary
+                actor={selectedAction.actor}
+                config={loadState.config}
+                refreshToken={stateRefreshToken}
+              />
+
               <div
                 className={
                   isActionChatMode || selectedActionIsChat
@@ -296,6 +311,7 @@ export function Console() {
                   showLogs={showLogs}
                   onChatModeChange={handleActionChatModeChange}
                   onRunStateChange={setIsActionRunning}
+                  onStateChange={handleStateChange}
                   onResultScrollChange={(scrollTop) =>
                     setIsActionHeaderCollapsed(scrollTop > 8)
                   }

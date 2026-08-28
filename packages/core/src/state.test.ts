@@ -189,7 +189,11 @@ describe("State", () => {
         });
     }
 
+    const { ActionableTodos } = actor().service({ seed, complete });
     const items = await seed();
+    expect(
+      (ActionableTodos as unknown as Record<symbol, any>)[TW.States].state.items
+    ).toBe(items);
     expect(items[TW.State]).toBe("state.items");
     expect(
       (items[0] as (typeof items)[number] & Record<symbol, unknown>)[TW.State]

@@ -32,6 +32,9 @@ export namespace TW {
   /** Identifies an actor-state value by its state path. */
   export const State = Symbol.for("TW.State");
 
+  /** Exposes actor-owned state values to TaskWish runtime integrations. */
+  export const States = Symbol.for("TW.States");
+
   export const Branch: unique symbol = Symbol.for("TW.Branch") as never;
 
   export interface Contextual<Ctx extends Record<any, any>> {

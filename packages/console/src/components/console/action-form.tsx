@@ -25,6 +25,7 @@ import {
   formatActionResultBody,
   formDefaultValues,
   streamActionResponse,
+  type ActionRunEvent,
   type ActionRunResult,
   type CommandFormValues,
 } from "../../lib/command-form";
@@ -66,6 +67,26 @@ function sessionIdFromResult(result: ActionRunResult | null): string | null {
   return null;
 }
 
+function cancelledResult(result: ActionRunResult | null): ActionRunResult {
+  const current =
+    result ??
+    ({
+      status: 0,
+      ok: false,
+      contentType: "text/plain",
+      body: "",
+      events: [],
+    } satisfies ActionRunResult);
+
+  return {
+    ...current,
+    status: 0,
+    ok: false,
+    streaming: false,
+    events: [...(current.events ?? []), { type: "error", data: "Cancelled" }],
+  };
+}
+
 export type ActionFormHandle = {
   cancel: () => void;
 };
@@ -79,6 +100,7 @@ export const ActionForm = forwardRef<
     showLogs: boolean;
     onChatModeChange?: (enabled: boolean) => void;
     onRunStateChange?: (running: boolean) => void;
+    onStateChange?: (actor: string, event: ActionRunEvent) => void;
     onResultScrollChange?: (scrollTop: number) => void;
   }
 >(function ActionForm(
@@ -89,6 +111,7 @@ export const ActionForm = forwardRef<
     showLogs,
     onChatModeChange,
     onRunStateChange,
+    onStateChange,
     onResultScrollChange,
   },
   ref
@@ -108,6 +131,7 @@ export const ActionForm = forwardRef<
   const chatSessionInitRef = useRef(false);
   const onChatModeChangeRef = useRef(onChatModeChange);
   const onRunStateChangeRef = useRef(onRunStateChange);
+  const onStateChangeRef = useRef(onStateChange);
   const form = useForm<CommandFormValues>({
     defaultValues: formDefaultValues(action.input),
   });
@@ -115,7 +139,8 @@ export const ActionForm = forwardRef<
   useEffect(() => {
     onChatModeChangeRef.current = onChatModeChange;
     onRunStateChangeRef.current = onRunStateChange;
-  }, [onChatModeChange, onRunStateChange]);
+    onStateChangeRef.current = onStateChange;
+  }, [onChatModeChange, onRunStateChange, onStateChange]);
 
   const cancel = useCallback(() => {
     abortControllerRef.current?.abort();
@@ -150,6 +175,16 @@ export const ActionForm = forwardRef<
 
   const commandName = actionTitle(action);
   const chatAction = isChatAction(action);
+
+  const publishStateEvent = useCallback(
+    (nextResult: ActionRunResult) => {
+      const event = nextResult.events?.at(-1);
+      if (event?.type === "state" || event?.type === "state-change") {
+        onStateChangeRef.current?.(action.actor, event);
+      }
+    },
+    [action.actor]
+  );
 
   const runPayload = useCallback(
     async (
@@ -231,7 +266,14 @@ export const ActionForm = forwardRef<
         setIsRunning(false);
         onRunStateChangeRef.current?.(false);
       });
-  }, [chatAction, chatSessionId, commandName, isChatMode, runPayload]);
+  }, [
+    chatAction,
+    chatSessionId,
+    commandName,
+    isChatMode,
+    publishStateEvent,
+    runPayload,
+  ]);
 
   useEffect(() => {
     if (!chatAction || !isChatMode || !chatSessionId || isRunning) return;
@@ -269,6 +311,7 @@ export const ActionForm = forwardRef<
       const finalResult = await runPayload(payload, {
         signal: abortController.signal,
         onResult: (result) => {
+          publishStateEvent(result);
           setChatRuns((runs) =>
             runs.map((run) => (run.id === runId ? { ...run, result } : run))
           );
@@ -287,12 +330,7 @@ export const ActionForm = forwardRef<
             run.id === runId
               ? {
                   ...run,
-                  result: {
-                    status: 0,
-                    ok: false,
-                    contentType: "text/plain",
-                    body: "Cancelled",
-                  },
+                  result: cancelledResult(run.result),
                 }
               : run
           )
@@ -348,7 +386,10 @@ export const ActionForm = forwardRef<
       onChatModeChangeRef.current?.(true);
       const finalResult = await runPayload(payload, {
         signal: abortController.signal,
-        onResult: setResult,
+        onResult: (nextResult) => {
+          publishStateEvent(nextResult);
+          setResult(nextResult);
+        },
       });
       if (finalResult?.ok) {
         toast.success(commandName, {
@@ -362,12 +403,7 @@ export const ActionForm = forwardRef<
     } catch (error) {
       if (abortController.signal.aborted) {
         setError(null);
-        setResult({
-          status: 0,
-          ok: false,
-          contentType: "text/plain",
-          body: "Cancelled",
-        });
+        setResult((current) => cancelledResult(current));
         return;
       }
 
