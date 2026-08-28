@@ -1,3 +1,4 @@
+import type { CELExpression, Expression } from "@taskwish/expr";
 import type { ExtractActionName } from "../helpers";
 
 type ActionOutput<Action extends (...args: any[]) => any> =
@@ -12,12 +13,9 @@ type ActionSuggestionsObject<
   $: [ExtractActionName<Action>] extends [never]
     ? Name
     : ExtractActionName<Action>;
-  "*": {
-    toJSON(): unknown
-    toFn: (
-      scope: ActionOutput<Action>,
-    ) => Array<[string, string | number]>;
-  };
+  "*": (
+    $: Expression<ActionOutput<Action>>,
+  ) => CELExpression<ActionOutput<Action>, unknown>;
 } & (Parameters<Action> extends []
   ? {}
   : Parameters<Action> extends [infer Parameter extends object]
@@ -103,3 +101,24 @@ export type ValidateActionMeta<
         : Meta[K]
       : Meta[K];
 };
+
+type ResolveSuggestions<Value> = Value extends { suggestions: infer Suggestions }
+  ? Omit<Value, "suggestions"> & {
+      suggestions: {
+        [Key in keyof Suggestions]: Key extends "*"
+          ? Suggestions[Key] extends (...args: any[]) => infer Selector
+            ? Selector
+            : Suggestions[Key]
+          : Suggestions[Key];
+      };
+    }
+  : Value;
+
+/** The runtime metadata shape after typed expression builders are evaluated. */
+export type ResolveActionMeta<Meta> = Meta extends { input: infer Input }
+  ? Omit<Meta, "input"> & {
+      input: {
+        [Key in keyof Input]: ResolveSuggestions<Input[Key]>;
+      };
+    }
+  : Meta;

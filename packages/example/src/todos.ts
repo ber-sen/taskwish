@@ -1,4 +1,4 @@
-import { $, Actor, State } from "taskwish";
+import { Actor, State } from "taskwish";
 
 const { actor } = Actor("Todos").scope(
   State({
@@ -7,7 +7,7 @@ const { actor } = Actor("Todos").scope(
       description: "string",
       done: "boolean",
     }),
-  })
+  }),
 );
 
 export const { addTodo } = actor()
@@ -62,8 +62,10 @@ export const { markTodoDone } = actor()
       id: {
         suggestions: {
           $: "todos.listTodos",
-          "*": $("").map(["todo"], ["todo.description", "todo.id"]),
-          done: false,
+          "*": (result) =>
+            result
+              .filter((item) => !item.done)
+              .map((item) => ({ value: item.id, label: item.description })),
         },
       },
     },

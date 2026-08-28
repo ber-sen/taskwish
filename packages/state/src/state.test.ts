@@ -3,7 +3,8 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { Actor, Store, State, TW, statePayload } from "./index";
+import { Actor, TW } from "@taskwish/core";
+import { Store, State, statePayload } from "./index";
 
 const temporaryDirectories: string[] = [];
 const originalDefaultStorePath = process.env.TW_DEFAULT_STORE_PATH;

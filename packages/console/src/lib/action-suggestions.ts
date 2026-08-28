@@ -1,3 +1,5 @@
+import { evaluateCEL } from "@taskwish/expr";
+
 import type { ConsoleAction, ConsoleInputField } from "../types";
 import type { ActionRunResult } from "./command-form";
 
@@ -37,13 +39,6 @@ export function actionSuggestion(
   return { action, payload, selector };
 }
 
-function valueAtPath(value: unknown, path: string): unknown {
-  if (!path) return value;
-  return path.split(".").reduce<unknown>((current, key) => {
-    return isRecord(current) ? current[key] : undefined;
-  }, value);
-}
-
 function option(label: unknown, value: unknown): ActionSuggestionOption | null {
   if (value === undefined || value === null) return null;
   return {
@@ -76,37 +71,12 @@ export function actionSuggestionOptions(
   result: unknown,
   selector: unknown,
 ): ActionSuggestionOption[] {
-  if (typeof selector === "string") {
-    return optionsFromValues(valueAtPath(result, selector));
-  }
-
-  if (
-    !Array.isArray(selector) ||
-    typeof selector[0] !== "string" ||
-    !selector[0].endsWith(".map") ||
-    !Array.isArray(selector[1]) ||
-    typeof selector[1][0] !== "string" ||
-    !Array.isArray(selector[2]) ||
-    typeof selector[2][0] !== "string" ||
-    typeof selector[2][1] !== "string"
-  ) {
+  if (typeof selector !== "string") return [];
+  try {
+    return optionsFromValues(evaluateCEL(selector, result));
+  } catch {
     return [];
   }
-
-  const path = selector[0].slice(0, -".map".length);
-  const alias = `${selector[1][0]}.`;
-  const labelPath = selector[2][0].replace(alias, "");
-  const valuePath = selector[2][1].replace(alias, "");
-  const values = valueAtPath(result, path);
-  if (!Array.isArray(values)) return [];
-
-  return values.flatMap((value) => {
-    const result = option(
-      valueAtPath(value, labelPath),
-      valueAtPath(value, valuePath),
-    );
-    return result ? [result] : [];
-  });
 }
 
 export function actionResultValue(result: ActionRunResult): unknown {

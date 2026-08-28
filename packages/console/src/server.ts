@@ -1,6 +1,7 @@
 import { createInterface } from "node:readline/promises";
 import { type as arkType } from "arktype";
 import consoleIndex from "@taskwish/console/index.html";
+import { ToCEL } from "@taskwish/expr";
 import type {
   ConsoleAction,
   ConsoleConfig,
@@ -53,6 +54,27 @@ export type ConsoleOptions = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function serializeCELExpressions(value: unknown): unknown {
+  if (value === null || value === undefined) return value;
+
+  if (typeof value === "object" || typeof value === "function") {
+    const toCEL = (value as { [ToCEL]?: unknown })[ToCEL];
+    if (typeof toCEL === "function") return toCEL.call(value);
+  }
+
+  if (Array.isArray(value)) return value.map(serializeCELExpressions);
+  if (!isRecord(value)) return value;
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return value;
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [
+      key,
+      serializeCELExpressions(entry),
+    ]),
+  );
 }
 
 function json(status: number, body: unknown): Response {
@@ -294,7 +316,10 @@ function describeAction(
   routePrefix: string,
 ): ConsoleAction {
   const { actor, action: method, label } = actionParts(actionName);
-  const meta = metaForAction(action);
+  const meta = serializeCELExpressions(metaForAction(action)) as Record<
+    string,
+    unknown
+  >;
   const chatAction = isMessageEventAction(meta);
   const inputSchema =
     jsonSchemaFromArkSchema(inputSchemaForAction(action)) ??

@@ -10,7 +10,6 @@
 
 export * from "./core";
 export * from "./struct";
-export * from "./state";
 export * from "./action";
 export * from "./event";
 export * from "./steps";

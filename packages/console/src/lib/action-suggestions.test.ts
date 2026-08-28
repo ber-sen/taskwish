@@ -23,8 +23,8 @@ const idField: ConsoleInputField = {
   metadata: {
     suggestions: {
       $: "todos.list",
-      "*": ["items.map", ["todo"], ["todo.description", "todo.id"]],
-      done: false,
+      "*":
+        'result.items.filter(todo, !todo.done).map(todo, {"value": todo.id, "label": todo.description})',
     },
   },
 };
@@ -33,8 +33,9 @@ describe("action suggestions", () => {
   test("resolves an injected action reference to its console action", () => {
     expect(actionSuggestion(idField, [listAction])).toEqual({
       action: listAction,
-      payload: { done: false },
-      selector: ["items.map", ["todo"], ["todo.description", "todo.id"]],
+      payload: {},
+      selector:
+        'result.items.filter(todo, !todo.done).map(todo, {"value": todo.id, "label": todo.description})',
     });
   });
 
@@ -45,6 +46,7 @@ describe("action suggestions", () => {
         {
           items: [
             { id: "todo-1", description: "Write docs", done: false },
+            { id: "todo-2", description: "Already shipped", done: true },
             { id: "todo-3", description: "Review PR", done: false },
           ],
         },
@@ -88,7 +90,7 @@ describe("action suggestions", () => {
             },
           ],
         }),
-        [".map", ["todo"], ["todo.description", "todo.id"]]
+        'result.map(todo, {"value": todo.id, "label": todo.description})',
       )
     ).toEqual([{ label: "Write docs", value: "todo-1" }]);
   });

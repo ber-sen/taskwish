@@ -27,8 +27,12 @@ import {
   Wire,
 } from "@taskwish/wire";
 import { type InferTypeConfig } from "../use";
-import { captureStateSnapshot, stateChangesSince } from "../state";
-import { ActionMeta, ValidateActionMeta } from "./meta";
+import { $ as expressionRoot } from "@taskwish/expr";
+import {
+  ActionMeta,
+  ResolveActionMeta,
+  ValidateActionMeta,
+} from "./meta";
 
 type ArgTwoOperator = "[]" | "&" | "|" | "|>" | ":" | "=>" | "@";
 type IndexZeroOperator = "keyof" | "instanceof" | "===";
@@ -269,7 +273,12 @@ type SignatureResult<
       SignatureMetaContext<Signature, Ctx>,
       SignatureOutput<Signature, Ctx>
     >
-  ): SignatureResult<Name, Ctx, Signature, DeepWriteable<NextMeta>>;
+  ): SignatureResult<
+    Name,
+    Ctx,
+    Signature,
+    DeepWriteable<ResolveActionMeta<NextMeta>>
+  >;
 };
 
 type SignatureBody<
@@ -487,6 +496,48 @@ export function normalizeActionContext(
   }
 
   return normalized;
+}
+
+export function resolveMetaExpressionBuilders(
+  meta: Record<string, unknown>
+): Record<string, unknown> {
+  const input = meta.input;
+  if (input === null || typeof input !== "object" || Array.isArray(input)) {
+    return meta;
+  }
+
+  const resolvedInput = Object.fromEntries(
+    Object.entries(input).map(([name, field]) => {
+      if (field === null || typeof field !== "object" || Array.isArray(field)) {
+        return [name, field];
+      }
+
+      const suggestions = (field as Record<string, unknown>).suggestions;
+      if (
+        suggestions === null ||
+        typeof suggestions !== "object" ||
+        Array.isArray(suggestions)
+      ) {
+        return [name, field];
+      }
+
+      const selector = (suggestions as Record<string, unknown>)["*"];
+      if (typeof selector !== "function") return [name, field];
+
+      return [
+        name,
+        {
+          ...(field as Record<string, unknown>),
+          suggestions: {
+            ...(suggestions as Record<string, unknown>),
+            "*": selector(expressionRoot),
+          },
+        },
+      ];
+    })
+  );
+
+  return { ...meta, input: resolvedInput };
 }
 
 // ── InferType action-step probe ───────────────────────────────────────────────
@@ -1200,20 +1251,23 @@ export async function* runAction(
   transparent: boolean = false
 ): AsyncGenerator<unknown, unknown> {
   const ctx: Record<string | symbol, unknown> = { ...scope };
-  const stateSnapshot = captureStateSnapshot(ctx);
+  const observed = new Set<object>();
+  const actionObservers: Array<() => Iterable<unknown>> = [];
+  for (const value of Object.values(ctx)) {
+    if (value === null || typeof value !== "object" || observed.has(value)) {
+      continue;
+    }
+    observed.add(value);
+    const observe = (value as Record<symbol, unknown>)[TW.ActionObserver];
+    if (typeof observe === "function") {
+      actionObservers.push(
+        (observe as (actionName: string) => () => Iterable<unknown>)(name)
+      );
+    }
+  }
 
-  const stateChangeEvents = () => {
-    const actor = name.includes("::") ? name.slice(0, name.indexOf("::")) : "";
-    return stateChangesSince(stateSnapshot).map(
-      (change) =>
-        new Wire.StateChange(
-          [actor, change.path].filter(Boolean).join("::"),
-          Object.fromEntries(
-            Object.entries(change).filter(([key]) => key !== "path")
-          )
-        )
-    );
-  };
+  const observedEvents = () =>
+    actionObservers.flatMap((observe) => Array.from(observe()));
 
   const traceInput =
     scope.input instanceof TW.Union ? scope.input.unwrap() : scope.input;
@@ -1229,11 +1283,11 @@ export async function* runAction(
       name,
       handlers
     );
-    for (const event of stateChangeEvents()) yield event;
+    for (const event of observedEvents()) yield event;
     yield new Trace(name, { result: r.last });
     return r.last;
   } catch (error) {
-    for (const event of stateChangeEvents()) yield event;
+    for (const event of observedEvents()) yield event;
     yield new Trace(name, { error });
     throw error;
   }
@@ -1684,11 +1738,12 @@ export function Action<const Name extends string>(
     const result = {
       [actionName]: action,
       meta(meta: Record<string, unknown>) {
+        const resolvedMeta = resolveMetaExpressionBuilders(meta);
         actionMeta = {
           ...(actionMeta !== null && typeof actionMeta === "object"
             ? actionMeta
             : {}),
-          ...meta,
+          ...resolvedMeta,
         };
         action[TW.Meta] = actionMeta;
         return result;

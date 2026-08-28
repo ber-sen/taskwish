@@ -35,6 +35,12 @@ export namespace TW {
   /** Exposes actor-owned state values to TaskWish runtime integrations. */
   export const States = Symbol.for("TW.States");
 
+  /** Lets an extension bind a value to an actor's scope. */
+  export const ActorScope = Symbol.for("TW.ActorScope");
+
+  /** Lets a scoped value observe an action and emit events after it runs. */
+  export const ActionObserver = Symbol.for("TW.ActionObserver");
+
   export const Branch: unique symbol = Symbol.for("TW.Branch") as never;
 
   export interface Contextual<Ctx extends Record<any, any>> {
