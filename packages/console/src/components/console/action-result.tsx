@@ -1130,7 +1130,11 @@ function ActionCallMessage({
     <Message from="user">
       <div className="flex items-center gap-1 self-end text-[11px] font-semibold text-muted-foreground">
         {actionLabel}
-        <ArrowUpRightIcon aria-hidden="true" size={24} />
+        <ArrowUpRightIcon
+          aria-hidden="true"
+          className="mr-2 shrink-0"
+          size={24}
+        />
       </div>
       <MessageContent
         className="space-y-2"
@@ -1286,13 +1290,7 @@ export function ActionResult({
                 <Message key={`${run.id}-input`} from="user">
                   {!chat ? (
                     <div className="self-end text-[11px] font-semibold text-muted-foreground">
-                      {action
-                        ? scopedBubbleLabel(
-                            action.actor,
-                            action.label ||
-                              sentenceFromIdentifier(action.action)
-                          )
-                        : "Input"}
+                      Input
                     </div>
                   ) : null}
                   <MessageContent
