@@ -12,8 +12,8 @@ type ActionSuggestionOption = {
 };
 
 type ActionSuggestionExpression<Scope> = Expression<
-  ActionSuggestionOption[],
-  Scope
+  Scope,
+  ActionSuggestionOption[]
 >;
 
 type ActionSuggestionsObject<

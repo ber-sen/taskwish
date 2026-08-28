@@ -10,33 +10,33 @@ export type CELExpression<Scope = unknown, Value = unknown> = {
   [ToFn](scope: Scope): Value;
 };
 
-type ArrayExpression<Value, Scope> = NonNullable<Value> extends readonly (
+type ArrayExpression<Scope, Value> = NonNullable<Value> extends readonly (
   infer Item
 )[]
   ? {
-      filter(predicate: (item: Item) => boolean): Expression<Value, Scope>;
+      filter(predicate: (item: Item) => boolean): Expression<Scope, Value>;
       map<Result>(
         transform: (item: Item) => Result,
-      ): Expression<Result[], Scope>;
+      ): Expression<Scope, Result[]>;
     }
   : {};
 
-type PropertyExpression<Value, Scope> = NonNullable<Value> extends readonly unknown[]
+type PropertyExpression<Scope, Value> = NonNullable<Value> extends readonly unknown[]
   ? {}
   : NonNullable<Value> extends object
     ? {
         readonly [Property in keyof NonNullable<Value> & string]: Expression<
-          NonNullable<Value>[Property],
-          Scope
+          Scope,
+          NonNullable<Value>[Property]
         >;
       }
     : {};
 
 /** A CEL-backed property/array expression rooted at an action result. */
-export type Expression<Value, Scope = Value> =
+export type Expression<Scope, Value = Scope> =
   CELExpression<Scope, Value> &
-  ArrayExpression<Value, Scope> &
-  PropertyExpression<Value, Scope>;
+  ArrayExpression<Scope, Value> &
+  PropertyExpression<Scope, Value>;
 
 type DynamicExpression = CELExpression<any, any> &
   DynamicArrayExpression &
