@@ -969,7 +969,7 @@ function StateValueTable({
                             {actionPending === actionKey
                               ? "Running…"
                               : completed
-                              ? "Ran"
+                              ? "Done"
                               : humanizeAction(name)}
                           </Button>
                         );
