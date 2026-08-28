@@ -1081,14 +1081,16 @@ describe("Action", () => {
           channel: {
             suggestions: {
               $: "channelIds",
-              "*": ($) => $.channels,
+              "*": ($) =>
+                $.channels.map((value) => ({ value, label: value })),
               types: "public_channel",
             },
           },
           nested: {
             suggestions: {
               $: "channelIds",
-              "*": ($) => $.parent,
+              "*": ($) =>
+                $.parent.nested.map((value) => ({ value, label: value })),
               types: "public_channel",
             },
           },
@@ -1208,8 +1210,9 @@ describe("Action", () => {
             suggestions: {
               $: "conversationsList",
               "*": ($) =>
-                // @ts-expect-error suggestion values must be strings or numbers
+                // @ts-expect-error suggestion maps must provide string/number values
                 $.channels.map<{ value: boolean; label: string }>((x) => ({
+                  // @ts-expect-error suggestion maps must provide string/number values
                   value: x.id,
                   label: x.name,
                 })),

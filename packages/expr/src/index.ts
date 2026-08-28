@@ -10,17 +10,12 @@ export type CELExpression<Scope = unknown, Value = unknown> = {
   [ToFn](scope: Scope): Value;
 };
 
-export type SuggestionOption = {
-  value: string | number;
-  label: string;
-};
-
 type ArrayExpression<Value, Scope> = NonNullable<Value> extends readonly (
   infer Item
 )[]
   ? {
       filter(predicate: (item: Item) => boolean): Expression<Value, Scope>;
-      map<Result extends SuggestionOption>(
+      map<Result>(
         transform: (item: Item) => Result,
       ): Expression<Result[], Scope>;
     }
@@ -38,7 +33,8 @@ type PropertyExpression<Value, Scope> = NonNullable<Value> extends readonly unkn
     : {};
 
 /** A CEL-backed property/array expression rooted at an action result. */
-export type Expression<Value, Scope = Value> = CELExpression<Scope, Value> &
+export type Expression<Value, Scope = Value> =
+  CELExpression<Scope, Value> &
   ArrayExpression<Value, Scope> &
   PropertyExpression<Value, Scope>;
 
@@ -52,9 +48,7 @@ interface DynamicProperties {
 
 type DynamicArrayExpression = {
   filter(predicate: (item: any) => boolean): DynamicExpression;
-  map<Result extends SuggestionOption>(
-    transform: (item: any) => Result,
-  ): DynamicExpression;
+  map<Result>(transform: (item: any) => Result): DynamicExpression;
 };
 
 type Operation =
@@ -67,11 +61,9 @@ type Operation =
   | {
       kind: "map";
       alias: string;
-      fields: { value: string; label: string };
-      callback: (item: any) => {
-        value: string | number;
-        label: string;
-      };
+      fields?: Record<string, string>;
+      expression?: string;
+      callback: (item: any) => any;
     };
 
 type FunctionExpression = {
@@ -303,22 +295,22 @@ function astToCEL(node: jsep.Expression): string {
 
 function parseMap(callback: Function): {
   alias: string;
-  fields: { value: string; label: string };
+  fields?: Record<string, string>;
+  expression?: string;
 } {
   const { parameter, body } = extractFunctionExpression(callback);
-  const entries = parseObjectEntries(body);
-  const value = entries.get("value");
-  const label = entries.get("label");
-  if (!value || !label || entries.size !== 2) {
-    throw new Error("Map callbacks must return { value, label }");
+  if (!body.trim().startsWith("{")) {
+    return { alias: parameter, expression: astToCEL(jsep(body)) };
   }
+
+  const entries = parseObjectEntries(body);
+  if (entries.size === 0) throw new Error("Map callbacks must return an object");
 
   return {
     alias: parameter,
-    fields: {
-      value: memberPath(jsep(value), parameter),
-      label: memberPath(jsep(label), parameter),
-    },
+    fields: Object.fromEntries(
+      [...entries].map(([key, value]) => [key, memberPath(jsep(value), parameter)]),
+    ),
   };
 }
 
@@ -374,9 +366,13 @@ function parseObjectEntries(body: string): Map<string, string> {
   for (const entry of splitTopLevel(trimmed.slice(1, -1), ",")) {
     const [keySource, ...valueParts] = splitTopLevel(entry, ":");
     const key = keySource?.replace(/^["']|["']$/g, "");
-    const value = valueParts.join(":").trim();
-    if (!key || !value || (key !== "value" && key !== "label")) {
-      throw new Error("Map callbacks must return { value, label }");
+    const value = valueParts.length
+      ? valueParts.join(":").trim()
+      : key && /^[A-Za-z_$][\w$]*$/.test(key)
+        ? key
+        : "";
+    if (!key || !value) {
+      throw new Error("Map callbacks must return an object");
     }
     if (entries.has(key)) throw new Error(`Duplicate map field ${key}`);
     entries.set(key, value);
@@ -414,7 +410,12 @@ function expressionToCEL(
     expression =
       operation.kind === "filter"
         ? `${expression}.filter(${operation.alias}, ${operation.expression})`
-        : `${expression}.map(${operation.alias}, {"value": ${operation.fields.value}, "label": ${operation.fields.label}})`;
+        : `${expression}.map(${operation.alias}, ${
+            operation.expression ??
+            `{${Object.entries(operation.fields ?? {})
+              .map(([key, value]) => `${JSON.stringify(key)}: ${value}`)
+              .join(", ")}}`
+          })`;
   }
 
   return expression;
@@ -614,6 +615,19 @@ function evaluateAst(
           label: evaluateAst(call.arguments[1]!, bindings),
         };
       }
+      if (
+        call.callee.type === "Identifier" &&
+        identifierName(call.callee) === "__taskwish_object" &&
+        call.arguments.length % 2 === 0
+      ) {
+        const object: Record<string, unknown> = {};
+        for (let index = 0; index < call.arguments.length; index += 2) {
+          const key = evaluateAst(call.arguments[index]!, bindings);
+          if (typeof key !== "string") throw new Error("CEL object keys must be strings");
+          object[key] = evaluateAst(call.arguments[index + 1]!, bindings);
+        }
+        return object;
+      }
       if (call.callee.type !== "MemberExpression") {
         throw new Error("Only CEL list macros are supported");
       }
@@ -650,10 +664,14 @@ function evaluateAst(
 }
 
 function prepareCELForParser(expression: string): string {
-  return expression.replace(
-    /\{\s*["']value["']\s*:\s*([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*,\s*["']label["']\s*:\s*([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*\}/g,
-    "__taskwish_option($1, $2)",
-  );
+  return expression.replace(/\{([^{}]*)\}/g, (source) => {
+    const entries = parseObjectEntries(source);
+    const argumentsList = [...entries].flatMap(([key, value]) => [
+      JSON.stringify(key),
+      value,
+    ]);
+    return `__taskwish_object(${argumentsList.join(", ")})`;
+  });
 }
 
 /** Evaluate the supported CEL subset against an action result. */

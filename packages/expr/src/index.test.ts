@@ -57,6 +57,36 @@ describe("CEL expressions", () => {
     ]);
   });
 
+  test("supports arbitrary mapped object shapes", () => {
+    const expression = $.map((item) => ({
+      id: item.id,
+      text: item.description,
+    }));
+
+    expect(expression[ToCEL]()).toBe(
+      'result.map(item, {"id": item.id, "text": item.description})',
+    );
+    expect(expression[ToFn](todos)).toEqual([
+      { id: "todo-1", text: "Write docs" },
+      { id: "todo-2", text: "Ship release" },
+    ]);
+    expect(evaluateCEL(expression[ToCEL](), todos)).toEqual([
+      { id: "todo-1", text: "Write docs" },
+      { id: "todo-2", text: "Ship release" },
+    ]);
+  });
+
+  test("supports mapped primitive expressions", () => {
+    const expression = $.map((item) => item.id);
+
+    expect(expression[ToCEL]()).toBe("result.map(item, item.id)");
+    expect(expression[ToFn](todos)).toEqual(["todo-1", "todo-2"]);
+    expect(evaluateCEL(expression[ToCEL](), todos)).toEqual([
+      "todo-1",
+      "todo-2",
+    ]);
+  });
+
   test("evaluates CEL strings without a proxy instance", () => {
     expect(evaluateCEL("result.filter(todo, !todo.done)", todos)).toEqual([
       todos[0],

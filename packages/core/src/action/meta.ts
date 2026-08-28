@@ -1,10 +1,20 @@
-import type { CELExpression, Expression } from "@taskwish/expr";
+import type { Expression } from "@taskwish/expr";
 import type { ExtractActionName } from "../helpers";
 
 type ActionOutput<Action extends (...args: any[]) => any> =
   ReturnType<Action> extends AsyncGenerator<any, infer Return, any>
     ? Awaited<Return>
     : Awaited<ReturnType<Action>>;
+
+type ActionSuggestionOption = {
+  value: string | number;
+  label: string;
+};
+
+type ActionSuggestionExpression<Scope> = Expression<
+  ActionSuggestionOption[],
+  Scope
+>;
 
 type ActionSuggestionsObject<
   Name extends string,
@@ -15,7 +25,7 @@ type ActionSuggestionsObject<
     : ExtractActionName<Action>;
   "*": (
     $: Expression<ActionOutput<Action>>,
-  ) => CELExpression<ActionOutput<Action>, unknown>;
+  ) => ActionSuggestionExpression<ActionOutput<Action>>;
 } & (Parameters<Action> extends []
   ? {}
   : Parameters<Action> extends [infer Parameter extends object]
