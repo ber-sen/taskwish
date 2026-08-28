@@ -1414,7 +1414,7 @@ export function ActionResult({
             <Message key={bubble.id} from="assistant" className="max-w-full">
               <div className="text-[11px] font-semibold text-muted-foreground">
                 {bubble.type === "state"
-                  ? `Result (${bubble.state.path})`
+                  ? `Result`
                   : `${bubble.state.path} changed`}
               </div>
               <MessageContent
