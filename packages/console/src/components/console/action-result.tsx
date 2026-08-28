@@ -1306,13 +1306,10 @@ export function ActionResult({
                           >
                             {bubble.type === "wire"
                               ? bubble.title
-                              : bubble.type === "state" ||
-                                bubble.type === "state-change"
-                              ? `${bubble.title}${
-                                  bubble.type === "state-change"
-                                    ? " changed"
-                                    : ""
-                                }`
+                              : bubble.type === "state"
+                              ? `Result`
+                              : bubble.type === "state-change"
+                              ? `${bubble.title} changed`
                               : bubble.type === "error"
                               ? "Error"
                               : "Result"}
@@ -1416,8 +1413,9 @@ export function ActionResult({
           ) : (
             <Message key={bubble.id} from="assistant" className="max-w-full">
               <div className="text-[11px] font-semibold text-muted-foreground">
-                {bubble.state.path}
-                {bubble.type === "state-change" ? " changed" : ""}
+                {bubble.type === "state"
+                  ? `Result (${bubble.state.path})`
+                  : `${bubble.state.path} changed`}
               </div>
               <MessageContent
                 className="w-full"
