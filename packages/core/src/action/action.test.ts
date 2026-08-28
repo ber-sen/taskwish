@@ -6,10 +6,15 @@ import { Actor } from "../actor";
 import { TW } from "../core";
 import { Step } from "../steps";
 import { InferType } from "../use";
-import { Logger, Trace, eventData, formatEvent } from "@taskwish/wire";
+import {
+  Logger,
+  Trace,
+  formatEvent,
+  messageLogData,
+} from "@taskwish/wire";
 import { Event } from "../event";
 
-const eventDataList = (values: unknown[]) => values.map(eventData);
+const eventDataList = (values: unknown[]) => values.map(messageLogData);
 
 describe("Action", () => {
   test("no input — plain handler", async () => {
@@ -81,23 +86,20 @@ describe("Action", () => {
       },
       {
         "->": "VoiceCall",
-        callId: "call-1",
-        from: "Ada",
+        data: { callId: "call-1", from: "Ada" },
       },
       {
         ">>": "announceCall.voiceCall",
         result: {
-          "->": "VoiceCall",
-          callId: "call-1",
-          from: "Ada",
+          event: "VoiceCall",
+          data: { callId: "call-1", from: "Ada" },
         },
       },
       {
         ">>": "announceCall",
         result: {
-          "->": "VoiceCall",
-          callId: "call-1",
-          from: "Ada",
+          event: "VoiceCall",
+          data: { callId: "call-1", from: "Ada" },
         },
       },
     ]);

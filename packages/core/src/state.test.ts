@@ -226,7 +226,7 @@ describe("State", () => {
       expect.objectContaining({
         message: "TW::StateChange",
         data: expect.objectContaining({
-          path: "state.items",
+          path: "ActionableTodos::state.items",
           previous: [{ id: "one", done: false }],
           value: [{ id: "one", done: true }],
         }),

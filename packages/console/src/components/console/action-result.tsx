@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useStickToBottomContext } from "use-stick-to-bottom";
 
 import { cn } from "../../lib/utils";
+import { sentenceFromIdentifier } from "../../lib/console-text";
 import { Button } from "../ui/button";
 import {
   Conversation,
@@ -111,8 +112,18 @@ function stateBubblePayload(value: unknown): StateBubblePayload | null {
   return value as StateBubblePayload;
 }
 
-function stateChangeLabel(path: string): string {
-  return `${path} changed`;
+function scopedBubbleLabel(actor: string | undefined, label: string): string {
+  return actor ? `${actor} - ${label}` : label;
+}
+
+function stateChangeLabel(path: string, actor?: string): string {
+  const separator = path.indexOf("::");
+  if (separator < 0) return scopedBubbleLabel(actor, `${path} changed`);
+
+  return scopedBubbleLabel(
+    path.slice(0, separator),
+    `${path.slice(separator + 2)} changed`
+  );
 }
 
 function consoleValue(value: unknown): string {
@@ -1110,12 +1121,15 @@ function ActionCallMessage({
 }: {
   bubble: Extract<AppendedStateActionBubble, { type: "action" }>;
 }) {
-  const actionPath = [bubble.actor, bubble.action].filter(Boolean).join("::");
+  const actionLabel = scopedBubbleLabel(
+    bubble.actor,
+    sentenceFromIdentifier(bubble.action)
+  );
 
   return (
     <Message from="user">
       <div className="flex items-center gap-1 self-end text-[11px] font-semibold text-muted-foreground">
-        {actionPath}
+        {actionLabel}
         <ArrowUpRightIcon aria-hidden="true" size={24} />
       </div>
       <MessageContent
@@ -1272,7 +1286,13 @@ export function ActionResult({
                 <Message key={`${run.id}-input`} from="user">
                   {!chat ? (
                     <div className="self-end text-[11px] font-semibold text-muted-foreground">
-                      Input
+                      {action
+                        ? scopedBubbleLabel(
+                            action.actor,
+                            action.label ||
+                              sentenceFromIdentifier(action.action)
+                          )
+                        : "Input"}
                     </div>
                   ) : null}
                   <MessageContent
@@ -1318,7 +1338,7 @@ export function ActionResult({
                               : bubble.type === "state"
                               ? `Result`
                               : bubble.type === "state-change"
-                              ? stateChangeLabel(bubble.title!)
+                              ? stateChangeLabel(bubble.title!, action?.actor)
                               : bubble.type === "error"
                               ? "Error"
                               : "Result"}
@@ -1424,7 +1444,7 @@ export function ActionResult({
               <div className="text-[11px] font-semibold text-muted-foreground">
                 {bubble.type === "state"
                   ? `Result`
-                  : stateChangeLabel(bubble.state.path)}
+                  : stateChangeLabel(bubble.state.path, bubble.actor)}
               </div>
               <MessageContent
                 className="w-full"

@@ -208,7 +208,9 @@ export namespace Wire {
   export import Signal = WireMessage.Signal;
   export import Trace = WireMessage.Trace;
   export import Stream = WireMessage.Stream;
+  export import Result = WireMessage.Result;
   export import StateChange = WireMessage.StateChange;
+  export import StateResult = WireMessage.StateResult;
 }
 
 function encodeTime(now: number, length: number): string {

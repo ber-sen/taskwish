@@ -9,12 +9,14 @@ export {
 export { consume } from "./consume";
 export {
   Message,
+  Result,
   Signal,
   StateChange,
+  StateResult,
   Stream,
   Trace,
-  eventData,
   messageData,
+  messageLogData,
 } from "./messages";
 export { formatEvent, isActionEvent } from "./format";
 export { Logger, dispatch } from "./logger";

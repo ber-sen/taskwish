@@ -6,10 +6,16 @@ import { Action } from "./action";
 import { TW } from "./core";
 import { Step } from "./steps";
 import { Event } from "./event";
-import { Logger, Signal, Trace, eventData, formatEvent } from "@taskwish/wire";
+import {
+  Logger,
+  Signal,
+  Trace,
+  formatEvent,
+  messageLogData,
+} from "@taskwish/wire";
 import { Trait } from "./trait";
 
-const eventDataList = (values: unknown[]) => values.map(eventData);
+const eventDataList = (values: unknown[]) => values.map(messageLogData);
 
 describe("Actor", () => {
   test("Command — plain handler with input", async () => {
@@ -420,16 +426,18 @@ describe("Actor", () => {
 
     const emitted = yields.find(
       (value) =>
-        value instanceof Signal && value.data["->"] === "Biller::InvoicePaid"
+        value instanceof Signal && value.event === "Biller::InvoicePaid"
     );
 
     expect(emitted).toBeInstanceOf(Signal);
     expect(emitted).toMatchObject({
       data: {
-        "->": "Biller::InvoicePaid",
-        invoiceId: "inv-1",
-        amount: 100,
-        customer: "alice",
+        event: "Biller::InvoicePaid",
+        data: {
+          invoiceId: "inv-1",
+          amount: 100,
+          customer: "alice",
+        },
       },
     });
   });
@@ -500,16 +508,18 @@ describe("Actor", () => {
 
     const invoicePaid = emitted.find(
       (value) =>
-        value instanceof Signal && value.data["->"] === "Biller::InvoicePaid"
+        value instanceof Signal && value.event === "Biller::InvoicePaid"
     );
 
     expect(invoicePaid).toBeInstanceOf(Signal);
     expect(invoicePaid).toMatchObject({
       data: {
-        "->": "Biller::InvoicePaid",
-        invoiceId: "inv-1",
-        amount: 100,
-        customer: "alice",
+        event: "Biller::InvoicePaid",
+        data: {
+          invoiceId: "inv-1",
+          amount: 100,
+          customer: "alice",
+        },
       },
     });
     expect(
@@ -1052,7 +1062,7 @@ describe("Actor", () => {
         }),
 
         Step("confirm", function () {
-          return `placed: ${this.order.orderId}`;
+          return `placed: ${this.order.data.orderId}`;
         })
       );
 
@@ -1069,15 +1079,13 @@ describe("Actor", () => {
       },
       {
         "->": "Emitter::OrderPlaced",
-        orderId: "ord-1",
-        amount: 100,
+        data: { orderId: "ord-1", amount: 100 },
       },
       {
         ">>": "Emitter::emit.order",
         result: {
-          "->": "Emitter::OrderPlaced",
-          orderId: "ord-1",
-          amount: 100,
+          event: "Emitter::OrderPlaced",
+          data: { orderId: "ord-1", amount: 100 },
         },
       },
       { ">>": "Emitter::emit.confirm", result: "placed: ord-1" },
@@ -1192,7 +1200,7 @@ describe("Actor", () => {
     await hello({ name: "Ada" });
 
     expect(logged).toContain(
-      formatEvent({ "->": "Greeter::Message", content: "Ada" })
+      formatEvent({ "->": "Greeter::Message", data: { content: "Ada" } })
     );
   });
 

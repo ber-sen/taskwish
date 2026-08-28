@@ -1,4 +1,4 @@
-import { messageData } from "./messages";
+import { messageLogData } from "./messages";
 
 const MAX_LOG_DEPTH = 3;
 
@@ -47,9 +47,19 @@ function fmt(val: unknown, seen: object[] = [], depth: number = 0): string {
 const BOLD_KEYS = new Set(["result", "error", "input"]);
 
 export function formatEvent(event: object): string {
-  const e = messageData(event) as Record<string, unknown>;
+  const e = messageLogData(event) as Record<string, unknown>;
   const kind =
-    e[">>"] !== undefined ? ">>" : e["=="] !== undefined ? "==" : "->";
+    e[">>"] !== undefined
+      ? ">>"
+      : e["=="] !== undefined
+      ? "=="
+      : e["->"] !== undefined
+      ? "->"
+      : e[":="] !== undefined
+      ? ":="
+      : e["=>"] !== undefined
+      ? "=>"
+      : "->";
   const name = e[kind];
   const entries = [`\x1b[2m"${kind}": \x1b[22m"\x1b[1m${name}\x1b[22m"`];
 

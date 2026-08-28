@@ -1207,8 +1207,10 @@ export async function* runAction(
     return stateChangesSince(stateSnapshot).map(
       (change) =>
         new Wire.StateChange(
-          change,
-          [actor, change.path].filter(Boolean).join("::")
+          [actor, change.path].filter(Boolean).join("::"),
+          Object.fromEntries(
+            Object.entries(change).filter(([key]) => key !== "path")
+          )
         )
     );
   };

@@ -178,9 +178,9 @@ test("streams command yields and wire traces as SSE for commander requests", asy
   expect(response.headers.get("Content-Type")).toStartWith("text/event-stream");
 
   const body = await response.text();
-  expect(body).toContain("event: wire");
-  expect(body).toContain('data: {">>":"Piper::count"');
-  expect(body).toContain("event: yield");
+  expect(body).toContain("event: TW::Trace");
+  expect(body).toContain('data: {"path":"Piper::count"');
+  expect(body).toContain("event: TW::Stream");
   expect(body).toContain('data: "2\\n"');
   expect(body).toContain('data: "4\\n"');
 });
@@ -228,12 +228,12 @@ test("streams state results and state changes as dedicated SSE events", async ()
     const body = await response.text();
 
     expect(body).toContain(
-      'data: {">>":"Todos::state.items","result":[{"id":"one","done":true}]}'
+      'data: {"path":"Todos::state.items","previous":[{"id":"one","done":false}],"value":[{"id":"one","done":true}],"columns":["id","done"]}'
     );
-    expect(body).toContain("event: state-change");
+    expect(body).toContain("event: TW::StateChange");
     expect(body).toContain('"path":"state.items"');
     expect(body).toContain('"columns":["id","done"]');
-    expect(body).toContain("event: state");
+    expect(body).toContain("event: TW::StateResult");
     expect(body).toContain('"done":true');
   } finally {
     rmSync(directory, { recursive: true, force: true });
@@ -272,14 +272,14 @@ test("streams wire trace error messages as SSE for commander requests", async ()
   expect(response.status).toBe(200);
 
   const body = await response.text();
-  expect(body).toContain("event: wire");
+  expect(body).toContain("event: TW::Trace");
   expect(body).toContain(
-    'data: {">>":"Crasher::fail.bad","error":{"message":"boom"}}'
+    'data: {"path":"Crasher::fail.bad","error":{"message":"boom"}}'
   );
   expect(body).toContain(
-    'data: {">>":"Crasher::fail","error":{"message":"boom"}}'
+    'data: {"path":"Crasher::fail","error":{"message":"boom"}}'
   );
-  expect(body).toContain("event: error");
+  expect(body).toContain("event: TW::Error");
   expect(body).toContain('data: {"error":"boom"}');
 });
 

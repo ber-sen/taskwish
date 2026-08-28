@@ -4,9 +4,9 @@ import { Action } from "../action";
 import { Step } from "./step";
 import { If, Else, ElseIf, Cond } from "./if-else";
 import { Loop, ForEach } from "./loop";
-import { eventData } from "@taskwish/wire";
+import { messageLogData } from "@taskwish/wire";
 
-const eventDataList = (values: unknown[]) => values.map(eventData);
+const eventDataList = (values: unknown[]) => values.map(messageLogData);
 
 // ─── Runtime ────────────────────────────────────────────────────────────────
 

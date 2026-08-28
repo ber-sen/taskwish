@@ -294,8 +294,18 @@ function parseSseMessage(message: string): ActionRunEvent | null {
   }
 
   if (!data.length) return null;
+  const normalizedType: Record<string, string> = {
+    "TW::Stream": "yield",
+    "TW::Trace": "wire",
+    "TW::Signal": "wire",
+    "TW::StateChange": "state-change",
+    "TW::StateResult": "state",
+    "TW::Result": "result",
+    "TW::Error": "error",
+  };
+
   return {
-    type: eventType,
+    type: normalizedType[eventType] ?? eventType,
     data: parseSseData(data.join("\n")),
   };
 }

@@ -1,13 +1,15 @@
 import {
   RawLoggedStreamTag,
   RawStreamTag,
-  TW,
   statePayload,
+  TW,
 } from "@taskwish/core";
 import {
-  messageData,
+  Message,
+  Result,
   Signal,
   StateChange,
+  StateResult,
   Stream,
   Trace,
 } from "@taskwish/wire";
@@ -25,11 +27,7 @@ type InvokeOptions = {
 };
 
 function inputFromSignal(signal: Signal<string, any>): unknown {
-  const input: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(signal.data)) {
-    if (key !== "->") input[key] = value;
-  }
-  return input;
+  return signal.data.data;
 }
 
 async function consumeAction(
@@ -108,24 +106,6 @@ function invokeOptionsFromRequest(request: Request): InvokeOptions {
   };
 }
 
-function ssePayload(event: string, data: unknown): Uint8Array {
-  const raw = JSON.stringify(data, serializeSseValue) ?? String(data);
-  const lines = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
-  const message =
-    [`event: ${event}`, ...lines.map((line) => `data: ${line}`), ""].join(
-      "\n"
-    ) + "\n";
-  return new TextEncoder().encode(message);
-}
-
-function serializeSseValue(_key: string, value: unknown): unknown {
-  if (value instanceof Error) {
-    return { message: value.message };
-  }
-
-  return value;
-}
-
 function responseFromActionStream(
   stream: AsyncGenerator<unknown, unknown, unknown>,
   firstChunk: Stream<unknown>,
@@ -179,46 +159,49 @@ function responseFromActionSseStream(
             if (item.done) {
               if (item.value !== undefined) {
                 const state = statePayload(item.value);
-                controller.enqueue(
-                  state
-                    ? ssePayload("state", state)
-                    : ssePayload("result", item.value)
-                );
+                if (state) {
+                  const result = new StateResult(state.path, {
+                    value: state.value,
+                    ...(state.columns ? { columns: state.columns } : {}),
+                  });
+                  controller.enqueue(result.toSSE());
+                } else {
+                  const result = new Result(item.value);
+                  controller.enqueue(result.toSSE());
+                }
               }
               controller.close();
               return;
             }
 
             if (isStateChangeEvent(item.value)) {
-              if (options.includeWire) {
-                controller.enqueue(ssePayload("wire", messageData(item.value)));
-              }
-              controller.enqueue(ssePayload("state-change", item.value.data));
+              controller.enqueue(item.value.toSSE());
               return;
             } else if (item.value instanceof Signal) {
               dispatchSignal(item.value, registry);
               if (options.includeWire) {
-                controller.enqueue(ssePayload("wire", item.value.data));
+                controller.enqueue(item.value.toSSE());
                 return;
               }
             } else if (item.value instanceof Trace) {
               if (options.includeWire) {
-                controller.enqueue(ssePayload("wire", item.value.data));
+                controller.enqueue(item.value.toSSE());
                 return;
               }
             } else if (isStreamEvent(item.value)) {
-              controller.enqueue(ssePayload("yield", item.value.data));
+              controller.enqueue(item.value.toSSE());
               return;
             } else {
-              controller.enqueue(ssePayload("yield", item.value));
+              const result = new Result(item.value);
+              controller.enqueue(result.toSSE());
               return;
             }
           }
         } catch (error) {
           controller.enqueue(
-            ssePayload("error", {
+            new Message("TW::Error", {
               error: error instanceof Error ? error.message : String(error),
-            })
+            }).toSSE()
           );
           controller.close();
         }
@@ -266,7 +249,7 @@ function dispatchSignal(
   signal: Signal<string, any>,
   registry: NodeRegistry
 ): void {
-  const handlers = registry.eventHandlers.get(signal.data["->"]) ?? [];
+  const handlers = registry.eventHandlers.get(signal.event) ?? [];
   const input = inputFromSignal(signal);
   for (const handler of handlers) {
     void consumeAction(handler, [input], registry).catch((error) => {
