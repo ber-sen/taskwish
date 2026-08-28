@@ -449,6 +449,18 @@ export type ActionsFromPlugin<U> = U extends Promise<infer M>
   ? GroupActions<Record<"_", U> & ActionProperties<U>>
   : GroupActions<U>;
 
+type EventsFromRecord<U> = {
+  [K in keyof U as U[K] extends TW.EventKind<any, any, any> ? K : never]: U[K];
+} & {
+  [K in keyof U as U[K] extends TW.EventKind<
+    infer Name extends string,
+    any,
+    any
+  >
+    ? Name
+    : never]: U[K];
+};
+
 export type EventsFromPlugin<U> = U extends Promise<infer M>
   ? EventsFromPlugin<M>
   : U extends { [TW.Scope]: infer S }
@@ -461,9 +473,7 @@ export type EventsFromPlugin<U> = U extends Promise<infer M>
   ? EventsFromPlugin<E>
   : U extends (...args: any[]) => any
   ? {}
-  : {
-      [K in keyof U as U[K] extends TW.EventKind<any, any, any> ? K : never]: U[K];
-    };
+  : EventsFromRecord<U>;
 
 /** Merge actions from a plugin into Ctx["scope"]["actions"]. */
 export type AddActionsToCtx<Ctx extends Record<any, any>, U> = {

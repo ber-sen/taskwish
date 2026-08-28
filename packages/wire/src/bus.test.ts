@@ -1,8 +1,75 @@
 import { describe, expect, test } from "bun:test";
 
 import { Wire, configureWire, getWireConfig, ulid } from "./bus";
+import { messageData, messageLogData } from "./messages";
 
 describe("Wire", () => {
+  test("exposes message constructors", () => {
+    const trace = new Wire.Trace("Worker::run", { result: 1 });
+    expect(trace).toBeInstanceOf(Wire.Message);
+    expect(trace.message).toBe("TW::Trace");
+    expect(trace.path).toBe("Worker::run");
+    expect(trace.symbol).toBe(">>");
+    expect(messageData(trace)).toEqual({ path: "Worker::run", result: 1 });
+    expect(trace.log).toEqual({
+      ">>": "Worker::run",
+      result: 1,
+    });
+    expect(messageLogData(trace)).toBe(trace.log);
+    expect(new Wire.Stream("chunk").message).toBe("TW::Stream");
+    const result = new Wire.Result({ answer: 42 });
+    expect(result.message).toBe("TW::Result");
+    expect(messageData(result)).toEqual({ answer: 42 });
+    expect(new TextDecoder().decode(result.toSSE())).toBe(
+      'event: TW::Result\ndata: {"answer":42}\n\n'
+    );
+    const stateChange = new Wire.StateChange("Counter::state.count", {
+      previous: 19,
+      value: 20,
+    });
+    expect(stateChange.message).toBe("TW::StateChange");
+    expect(stateChange.path).toBe("Counter::state.count");
+    expect(stateChange.symbol).toBe(":=");
+    expect(messageData(stateChange)).toEqual({
+      path: "Counter::state.count",
+      previous: 19,
+      value: 20,
+    });
+    expect(stateChange.log).toEqual({
+      ":=": "Counter::state.count",
+      previous: 19,
+      value: 20,
+    });
+    const stateResult = new Wire.StateResult("Counter::state.count", {
+      value: 20,
+    });
+    expect(stateResult.message).toBe("TW::StateResult");
+    expect(stateResult.data).toEqual({
+      path: "Counter::state.count",
+      value: 20,
+    });
+    expect(stateResult.log).toEqual({
+      "=>": "Counter::state.count",
+      value: 20,
+    });
+  });
+
+  test("signals expose their event separately from their message kind", () => {
+    const signal = new Wire.Signal("Greeter::Message", { name: "Ada" });
+
+    expect(signal).toBeInstanceOf(Wire.Message);
+    expect(signal.message).toBe("TW::Signal");
+    expect(signal.event).toBe("Greeter::Message");
+    expect(signal.data).toEqual({
+      event: "Greeter::Message",
+      data: { name: "Ada" },
+    });
+    expect(signal.log).toEqual({
+      "->": "Greeter::Message",
+      data: { name: "Ada" },
+    });
+  });
+
   test("generates a ULID thread id by default", () => {
     const wire = new Wire();
     const event = wire.trace("Greeter::hello", { input: { name: "Ada" } });

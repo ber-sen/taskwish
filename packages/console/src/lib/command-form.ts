@@ -269,6 +269,25 @@ function parseSseData(value: string): unknown {
   }
 }
 
+function wireLogData(eventType: string, value: unknown): unknown {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+
+  const data = value as Record<string, unknown>;
+  if (eventType === "TW::Trace" && typeof data.path === "string") {
+    const { path, ...params } = data;
+    return { ">>": path, ...params };
+  }
+
+  if (eventType === "TW::Signal" && typeof data.event === "string") {
+    const { event, ...params } = data;
+    return { "->": event, ...params };
+  }
+
+  return value;
+}
+
 function appendEventBody(currentBody: unknown, event: ActionRunEvent): unknown {
   if (event.type === "yield") {
     const chunk =
@@ -294,9 +313,19 @@ function parseSseMessage(message: string): ActionRunEvent | null {
   }
 
   if (!data.length) return null;
+  const normalizedType: Record<string, string> = {
+    "TW::Stream": "yield",
+    "TW::Trace": "wire",
+    "TW::Signal": "wire",
+    "TW::StateChange": "state-change",
+    "TW::StateResult": "state",
+    "TW::Result": "result",
+    "TW::Error": "error",
+  };
+
   return {
-    type: eventType,
-    data: parseSseData(data.join("\n")),
+    type: normalizedType[eventType] ?? eventType,
+    data: wireLogData(eventType, parseSseData(data.join("\n"))),
   };
 }
 

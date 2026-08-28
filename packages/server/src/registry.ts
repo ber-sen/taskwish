@@ -59,6 +59,7 @@ function buildEventHandlers(actions: Map<string, Action>): Map<string, Action[]>
 function collectExports(
   value: unknown,
   actions: Map<string, Action>,
+  states: Map<string, Record<string, unknown>>,
   seen: WeakSet<object>,
 ): void {
   if (!isRecord(value)) return;
@@ -71,13 +72,25 @@ function collectExports(
     return;
   }
 
+  const actorName = value[TW.Name];
+  const actorStates = value[TW.States];
+  if (
+    typeof actorName === "string" &&
+    isRecord(actorStates) &&
+    Object.keys(actorStates).length > 0
+  ) {
+    states.set(actorName, actorStates as Record<string, unknown>);
+  }
+
   const listeners = (value as Record<string | symbol, unknown>)[TW.Listeners];
   if (Array.isArray(listeners)) {
-    for (const listener of listeners) collectExports(listener, actions, seen);
+    for (const listener of listeners) {
+      collectExports(listener, actions, states, seen);
+    }
   }
 
   for (const exported of Object.values(value)) {
-    if (isRecord(exported)) collectExports(exported, actions, seen);
+    if (isRecord(exported)) collectExports(exported, actions, states, seen);
   }
 }
 
@@ -85,11 +98,12 @@ export async function createNodeRegistry(
   services: readonly ServiceReference[] = [],
 ): Promise<NodeRegistry> {
   const actions = new Map<string, Action>();
+  const states = new Map<string, Record<string, unknown>>();
   const seen = new WeakSet<object>();
 
   for (const service of services) {
-    collectExports(await service, actions, seen);
+    collectExports(await service, actions, states, seen);
   }
 
-  return { actions, eventHandlers: buildEventHandlers(actions) };
+  return { actions, eventHandlers: buildEventHandlers(actions), states };
 }

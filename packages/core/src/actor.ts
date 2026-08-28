@@ -43,6 +43,7 @@ import {
 } from "@taskwish/wire";
 import { type Steps } from "./steps/steps";
 import { ResultKind } from "./steps/hkt";
+import { bindStateDefinition, isStateDefinition, isStateStore } from "./state";
 
 type BaseScope<Ctx> = Ctx extends Record<any, any> ? Ctx["scope"] : {};
 
@@ -63,18 +64,23 @@ type EventKeys<Scope> = {
 }[keyof Scope] &
   string;
 
-type ExtractEventKind<Scope, EventName extends string> = {
-  [K in keyof Scope]: Scope[K] extends TW.EventKind<infer Name, any, any>
-    ? EventName extends K | Name
-      ? Scope[K]
-      : never
-    : never;
-}[keyof Scope];
+type ExtractEventKind<
+  Scope,
+  EventName extends string
+> = EventName extends keyof Scope
+  ? Scope[EventName]
+  : {
+      [K in keyof Scope]: Scope[K] extends TW.EventKind<infer Name, any, any>
+        ? EventName extends K | Name
+          ? Scope[K]
+          : never
+        : never;
+    }[keyof Scope];
 
 type ExtractEventInput<Scope, EventName extends string> = ExtractEventKind<
   Scope,
   EventName
-> extends TW.EventKind<string, infer D, any>
+> extends { readonly "~data"?: infer D }
   ? D
   : never;
 
@@ -490,9 +496,9 @@ type ScopedActorCtx<
   Ctx extends Record<any, any>,
   Last extends Record<any, any>
 > = Pretty<
-  Omit<Last, "name" | "scope" | "last"> &
-    { name: Ctx["name"] } &
-    ("scope" extends keyof Last
+  Omit<Last, "name" | "scope" | "last"> & {
+    name: Ctx["name"];
+  } & ("scope" extends keyof Last
       ? { scope: RequalifyScopedEvents<Ctx["name"] & string, Last["scope"]> }
       : {}) &
     ("last" extends keyof Last
@@ -624,8 +630,17 @@ function collectScope(
   actorName?: string
 ): Record<string, unknown> {
   const scope: Record<string, unknown> = {};
+  const stateDefinitions: Array<
+    [string, Parameters<typeof bindStateDefinition>[0]]
+  > = [];
+  let stateStore: Parameters<typeof bindStateDefinition>[2];
 
   const collectEntry = (key: string, value: unknown) => {
+    if (actorName && isStateDefinition(value)) {
+      stateDefinitions.push([key, value]);
+      return;
+    }
+
     const scopedValue =
       actorName &&
       value !== null &&
@@ -662,6 +677,11 @@ function collectScope(
   };
 
   for (const step of steps) {
+    if (isStateStore(step)) {
+      stateStore = step;
+      continue;
+    }
+
     if (typeof step === "function" && TW.Name in step) {
       const key = String(step[TW.Name as keyof typeof step]);
       const value = step.call(scope);
@@ -679,6 +699,12 @@ function collectScope(
         const value = (step as Record<string, unknown>)[key];
         collectEntry(key, value);
       }
+    }
+  }
+
+  if (actorName) {
+    for (const [key, definition] of stateDefinitions) {
+      scope[key] = bindStateDefinition(definition, actorName, stateStore);
     }
   }
   return scope;
@@ -780,12 +806,10 @@ function createBehavior(
         : null;
       const eventKindCommand =
         eventKind !== null ? getEventCommand(eventKind) : null;
-      const eventInputSchema = (
-        eventKind ??
+      const eventInputSchema = (eventKind ??
         (isScopedEvent
           ? (scopedBehavior as Record<string | symbol, unknown>)
-          : null)
-      )?.[TW.InputSchema];
+          : null))?.[TW.InputSchema];
       if (traitEvent !== null && !isScopedEvent) {
         // Trait event: VoiceCall.VoiceCall → actionName = "onVoiceCall"
         actionName = eventHandlerName(traitEvent);
@@ -953,6 +977,24 @@ function createBehavior(
         inputMode: "first" | "args",
         inputSchema?: unknown
       ) => ({
+        addStateCommand(
+          alias: string,
+          commands: Record<string, Record<string, string>>
+        ) {
+          const currentCommands =
+            actionMeta?.stateCommands !== null &&
+            typeof actionMeta?.stateCommands === "object"
+              ? (actionMeta.stateCommands as Record<string, unknown>)
+              : {};
+          actionMeta = {
+            ...(actionMeta ?? {}),
+            stateCommands: {
+              ...currentCommands,
+              [alias]: commands,
+            },
+          };
+          return this;
+        },
         use(plugin?: unknown) {
           if (arguments.length > 0) useActionPlugin(plugin);
           return this;
@@ -1303,6 +1345,7 @@ function createService(
   const service: Record<string | symbol, unknown> = {
     [TW.Name]: actorName,
     [TW.Scope]: collectOwnedEvents(actorName, scope),
+    [TW.States]: collectOwnedStates(scope),
   };
 
   if (listenerActions.length > 0) {
@@ -1320,6 +1363,17 @@ function createService(
   }
 
   return { [capitalCaseName(actorName)]: service };
+}
+
+function collectOwnedStates(
+  scope: Record<string, unknown>
+): Record<string, Record<string, unknown>> {
+  return Object.fromEntries(
+    Object.entries(scope).filter(([, value]) => {
+      if (value === null || typeof value !== "object") return false;
+      return (value as Record<symbol, unknown>)[TW.State] === "state";
+    })
+  ) as Record<string, Record<string, unknown>>;
 }
 
 function isEventKind(

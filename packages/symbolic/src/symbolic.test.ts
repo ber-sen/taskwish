@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
 import { Actor, Step, TW } from "@taskwish/core";
-import { eventData } from "@taskwish/wire";
+import { messageLogData } from "@taskwish/wire";
 
 import { Int, Model, Real } from "./steps";
 
-const eventDataList = (values: unknown[]) => values.map(eventData);
+const eventDataList = (values: unknown[]) => values.map(messageLogData);
 
 describe("Symbolic", () => {
   test("Model.prove runs as an actor step and returns status with model", async () => {

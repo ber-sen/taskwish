@@ -1,7 +1,9 @@
-import { CheckIcon, CopyIcon } from "lucide-react";
+import { ArrowUpRightIcon, CheckIcon, CopyIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useStickToBottomContext } from "use-stick-to-bottom";
 
 import { cn } from "../../lib/utils";
+import { sentenceFromIdentifier } from "../../lib/console-text";
 import { Button } from "../ui/button";
 import {
   Conversation,
@@ -14,17 +16,69 @@ import {
   MessageResponse,
 } from "../ai-elements/message";
 import {
+  streamActionResponse,
   formatActionResultBody,
   type ActionRunEvent,
   type ActionRunResult,
 } from "../../lib/command-form";
+import type { ConsoleAction, ConsoleConfig } from "../../types";
+
+type StateActionDescriptor = {
+  alias: string;
+  action: string;
+  input: Record<string, string>;
+  visible?: Record<string, unknown>;
+};
+
+type StateBubblePayload = {
+  path: string;
+  value: unknown;
+  previous?: unknown;
+  columns?: string[];
+  actions?: Record<string, StateActionDescriptor>;
+};
 
 type RunBubble = {
   id: string;
-  type: "yield" | "wire" | "result" | "error";
+  type: "yield" | "wire" | "result" | "error" | "state" | "state-change";
   body: string;
   title?: string;
+  state?: StateBubblePayload;
 };
+
+type AppendedStateActionBubble =
+  | {
+      id: string;
+      type: "action";
+      name: string;
+      action: string;
+      input: Record<string, unknown>;
+      actor?: string;
+    }
+  | {
+      id: string;
+      type: "state" | "state-change";
+      state: StateBubblePayload;
+      actor?: string;
+    }
+  | {
+      id: string;
+      type: "error";
+      body: string;
+      actor?: string;
+    };
+
+function ScrollToAppendedStateActions({ count }: { count: number }) {
+  const { scrollToBottom } = useStickToBottomContext();
+  const previousCount = useRef(count);
+
+  useEffect(() => {
+    if (count > previousCount.current) void scrollToBottom();
+    previousCount.current = count;
+  }, [count, scrollToBottom]);
+
+  return null;
+}
 
 const WIRE_TITLE_KEY = ">>";
 const WIRE_SIGNAL_KEY = "->";
@@ -43,6 +97,33 @@ function eventBody(value: unknown): string {
   return typeof value === "string"
     ? value
     : JSON.stringify(value, null, 2) ?? String(value);
+}
+
+function stateBubblePayload(value: unknown): StateBubblePayload | null {
+  if (
+    value === null ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    typeof (value as Record<string, unknown>).path !== "string" ||
+    !("value" in value)
+  ) {
+    return null;
+  }
+  return value as StateBubblePayload;
+}
+
+function scopedBubbleLabel(actor: string | undefined, label: string): string {
+  return actor ? `${actor} - ${label}` : label;
+}
+
+function stateChangeLabel(path: string, actor?: string): string {
+  const separator = path.indexOf("::");
+  if (separator < 0) return scopedBubbleLabel(actor, `${path} changed`);
+
+  return scopedBubbleLabel(
+    path.slice(0, separator),
+    `${path.slice(separator + 2)} changed`
+  );
 }
 
 function consoleValue(value: unknown): string {
@@ -154,7 +235,7 @@ function wireLogTitle(event: ActionRunEvent): string {
 }
 
 function isWireTreeEvent(
-  event: ActionRunEvent,
+  event: ActionRunEvent
 ): event is ActionRunEvent & { data: Record<string, unknown> } {
   return (
     event.type === "wire" &&
@@ -182,8 +263,8 @@ function tracePayloadLine(data: Record<string, unknown>): string | null {
         key !== WIRE_TITLE_KEY &&
         key !== WIRE_SIGNAL_KEY &&
         key !== WIRE_SESSION_KEY &&
-        value !== undefined,
-    ),
+        value !== undefined
+    )
   );
   const keys = Object.keys(body);
 
@@ -192,35 +273,33 @@ function tracePayloadLine(data: Record<string, unknown>): string | null {
   if ("log" in body) {
     const { log, ...rest } = body;
     const suffix = Object.keys(rest).length ? ` ${traceValue(rest)}` : "";
-    return `log: ${traceValue(log)}${suffix}`;
+    return `${traceValue(log)}${suffix}`;
   }
 
   if ("message" in body) {
     const { message, ...rest } = body;
     const suffix = Object.keys(rest).length ? ` ${traceValue(rest)}` : "";
-    return `log: ${traceValue(message)}${suffix}`;
+    return `${traceValue(message)}${suffix}`;
   }
 
   if (keys.length === 1 && "input" in body) {
-    return isEmptyTraceValue(body.input)
-      ? "log: Starting"
-      : `log: Starting ${traceValue(body.input)}`;
+    return isEmptyTraceValue(body.input) ? null : traceValue(body.input);
   }
 
   if (keys.length === 1 && "result" in body) {
     return isEmptyTraceValue(body.result)
-      ? "log: Done"
-      : `log: Done ${traceValue(body.result)}`;
+      ? "✓"
+      : `✓ ${traceValue(body.result)}`;
   }
 
   if (keys.length === 1 && "error" in body) {
-    return `error: ${traceErrorValue(body.error)}`;
+    return `× ${traceErrorValue(body.error)}`;
   }
 
-  return `log: ${traceValue(body)}`;
+  return traceValue(body);
 }
 
-function signalPayloadLine(data: Record<string, unknown>): string {
+export function signalPayloadLine(data: Record<string, unknown>): string {
   const title = String(data[WIRE_SIGNAL_KEY]);
   const signalName = tracePath(title).join(".") || title;
   const body = Object.fromEntries(
@@ -228,20 +307,22 @@ function signalPayloadLine(data: Record<string, unknown>): string {
       ([key, value]) =>
         key !== WIRE_SIGNAL_KEY &&
         key !== WIRE_SESSION_KEY &&
-        value !== undefined,
-    ),
+        value !== undefined
+    )
   );
-  const suffix = Object.keys(body).length ? ` ${traceValue(body)}` : "";
+  const payload =
+    Object.keys(body).length === 1 && "data" in body ? body.data : body;
+  const suffix = isEmptyTraceValue(payload) ? "" : ` ${traceValue(payload)}`;
 
-  return `signal: ${signalName}${suffix}`;
+  return `-> ${signalName}${suffix}`;
 }
 
 function ensureTraceNode(
   entries: TraceTreeEntry[],
-  name: string,
+  name: string
 ): TraceTreeNode {
   const existing = entries.find(
-    (entry) => entry.type === "node" && entry.node.name === name,
+    (entry) => entry.type === "node" && entry.node.name === name
   );
   if (existing?.type === "node") return existing.node;
 
@@ -262,7 +343,7 @@ function buildTraceTree(events: ActionRunEvent[]): string {
         currentRoot ??
         ensureTraceNode(
           roots,
-          tracePath(String(event.data[WIRE_SIGNAL_KEY]))[0] ?? "Trace",
+          tracePath(String(event.data[WIRE_SIGNAL_KEY]))[0] ?? "Trace"
         );
       node.entries.push({ type: "line", text: signalPayloadLine(event.data) });
       continue;
@@ -295,7 +376,7 @@ function buildTraceTree(events: ActionRunEvent[]): string {
 function renderTraceEntries(
   entries: TraceTreeEntry[],
   prefix: string,
-  lines: string[],
+  lines: string[]
 ) {
   entries.forEach((entry, index) => {
     const isLast = index === entries.length - 1;
@@ -324,12 +405,56 @@ function wireEventsBody(events: ActionRunEvent[]): string {
 }
 
 function isTraceErrorLine(line: string): boolean {
-  return /(?:^| )error:/.test(line);
+  return /(?:^| )×(?: |$)/.test(line);
+}
+
+export function TraceLine({ line }: { line: string }) {
+  const parts = line.split(/(├─|└─|│|✓|->)/g).filter(Boolean);
+
+  return (
+    <span
+      className={cn(
+        "block",
+        isTraceErrorLine(line) && "text-destructive"
+      )}
+    >
+      {parts.map((part, index) => {
+        if (part === "├─" || part === "└─" || part === "│") {
+          return (
+            <span
+              key={`${part}-${index}`}
+              className="text-muted-foreground opacity-50"
+            >
+              {part}
+            </span>
+          );
+        }
+
+        if (part === "✓") {
+          return (
+            <span key={`${part}-${index}`} className="font-bold">
+              {part}
+            </span>
+          );
+        }
+
+        if (part === "->") {
+          return (
+            <span key={`${part}-${index}`} className="font-bold">
+              {part}
+            </span>
+          );
+        }
+
+        return part;
+      })}
+    </span>
+  );
 }
 
 function buildRunBubbles(
   result: ActionRunResult | null,
-  showLogs: boolean,
+  showLogs: boolean
 ): RunBubble[] {
   if (!result) return [];
 
@@ -386,6 +511,21 @@ function buildRunBubbles(
       return;
     }
 
+    if (event.type === "state" || event.type === "state-change") {
+      flushYield(index);
+      const state = stateBubblePayload(event.data);
+      if (!state) return;
+      hasFinalEvent = hasFinalEvent || event.type === "state";
+      bubbles.push({
+        id: `${event.type}-${index}`,
+        type: event.type,
+        body: eventBody(state.value),
+        title: state.path,
+        state,
+      });
+      return;
+    }
+
     flushYield(index);
     hasFinalEvent = event.type === "result" || event.type === "error";
     bubbles.push({
@@ -407,6 +547,12 @@ function buildRunBubbles(
     });
   }
   return bubbles;
+}
+
+function hasStateChange(result: ActionRunResult | null): boolean {
+  return Boolean(
+    result?.events?.some((event) => event.type === "state-change")
+  );
 }
 
 function yamlScalar(value: unknown): string {
@@ -463,7 +609,7 @@ function yamlValue(value: unknown, depth = 0): string {
         if (scalar.startsWith("|\n")) {
           return `${indent}${key}: ${scalar.replace(
             /\n/g,
-            `\n${childIndent}`,
+            `\n${childIndent}`
           )}`;
         }
         return `${indent}${key}: ${scalar}`;
@@ -511,6 +657,553 @@ function chatInputBody(input: unknown): string {
   return inputBody(input);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value
+  );
+}
+
+function displayCell(value: unknown): string {
+  if (value === undefined) return "—";
+  if (value === null) return "null";
+  const text =
+    typeof value === "string"
+      ? value
+      : typeof value === "number" || typeof value === "boolean"
+      ? String(value)
+      : JSON.stringify(value) ?? String(value);
+  return isUuid(text) ? `${text.slice(0, 8)}…` : text;
+}
+
+function isTruncatedId(value: unknown): value is string {
+  return typeof value === "string" && isUuid(value);
+}
+
+function tableRows(value: unknown): Record<string, unknown>[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => (isRecord(item) ? item : { value: item }));
+  }
+  return [isRecord(value) ? value : { value }];
+}
+
+function rowKey(row: Record<string, unknown>, index: number): string {
+  return String(row.id ?? row.key ?? index);
+}
+
+function previousRow(
+  rows: Record<string, unknown>[],
+  row: Record<string, unknown>,
+  index: number
+): Record<string, unknown> | undefined {
+  if (row.id !== undefined)
+    return rows.find((candidate) => candidate.id === row.id);
+  return rows[index];
+}
+
+function humanizeAction(value: string): string {
+  return value
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/^./, (character) => character.toUpperCase());
+}
+
+function valueAtPath(value: unknown, path: string): unknown {
+  return path
+    .split(".")
+    .reduce<unknown>(
+      (current, key) => (isRecord(current) ? current[key] : undefined),
+      value
+    );
+}
+
+function resolveStateActionPayload(
+  template: Record<string, string>,
+  alias: string,
+  row: Record<string, unknown>
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(template).map(([key, expression]) => {
+      const prefix = `${alias}.`;
+      return [
+        key,
+        expression.startsWith(prefix)
+          ? valueAtPath(row, expression.slice(prefix.length))
+          : expression,
+      ];
+    })
+  );
+}
+
+function matchesStateCondition(value: unknown, condition: unknown): boolean {
+  if (!isRecord(condition)) return Object.is(value, condition);
+  if (!isRecord(value)) return false;
+  return Object.entries(condition).every(([key, expected]) =>
+    matchesStateCondition(value[key], expected)
+  );
+}
+
+function stateActionIsVisible(
+  descriptor: StateActionDescriptor,
+  row: Record<string, unknown>
+): boolean {
+  return (
+    descriptor.visible === undefined ||
+    matchesStateCondition(row, descriptor.visible)
+  );
+}
+
+function findStateAction(
+  config: ConsoleConfig | undefined,
+  actor: string | undefined,
+  actionName: string
+): ConsoleAction | undefined {
+  const canonical = (value: string) =>
+    value.replace("::", ".").replace(/[_-]/g, "").toLowerCase();
+  const expected = canonical(actionName);
+  return config?.actions.find(
+    (action) =>
+      (!actor || action.actor === actor) &&
+      (canonical(action.action) === expected ||
+        canonical(action.id).endsWith(`.${expected}`))
+  );
+}
+
+function stateCommandsForActor(
+  config: ConsoleConfig | undefined,
+  actor: string | undefined
+): Record<string, StateActionDescriptor> {
+  const commands: Record<string, StateActionDescriptor> = {};
+
+  for (const action of config?.actions ?? []) {
+    if (actor && action.actor !== actor) continue;
+    if (!isRecord(action.meta) || !isRecord(action.meta.stateCommands)) {
+      continue;
+    }
+
+    for (const [alias, stateCommands] of Object.entries(
+      action.meta.stateCommands
+    )) {
+      if (!isRecord(stateCommands)) continue;
+      for (const [name, definition] of Object.entries(stateCommands)) {
+        if (!isRecord(definition)) continue;
+        let expanded = false;
+        let input: Record<string, unknown> = definition;
+        if (isRecord(definition.input)) {
+          expanded = true;
+          input = definition.input;
+        }
+        if (!Object.values(input).every((value) => typeof value === "string")) {
+          continue;
+        }
+        commands[name] = {
+          alias,
+          action: action.action,
+          input: input as Record<string, string>,
+          ...(expanded && isRecord(definition.visible)
+            ? { visible: definition.visible }
+            : {}),
+        };
+      }
+    }
+  }
+
+  return commands;
+}
+
+function StateValueTable({
+  state,
+  onAction,
+  actionPending,
+  actionCompleted,
+}: {
+  state: StateBubblePayload;
+  onAction?: (
+    name: string,
+    descriptor: StateActionDescriptor,
+    row: Record<string, unknown>,
+    rowIndex: number
+  ) => void;
+  actionPending?: string | null;
+  actionCompleted?: string | null;
+}) {
+  const rows = tableRows(state.value);
+  const oldRows = state.previous === undefined ? [] : tableRows(state.previous);
+  const rowColumns = rows.flatMap((row) => Object.keys(row));
+  const columns = Array.from(
+    new Set([...(state.columns ?? []), ...rowColumns])
+  );
+  const uuidColumns = new Set(
+    columns.filter((column) =>
+      [...rows, ...oldRows].some((row) => {
+        const value = row[column];
+        return typeof value === "string" && isUuid(value);
+      })
+    )
+  );
+  const actions = Object.entries(state.actions ?? {});
+  const indexedRows = rows.map((row, index) => ({ row, index }));
+  const changedIndexes = indexedRows.flatMap(({ row, index }) => {
+    const oldRow = previousRow(oldRows, row, index);
+    return columns.some(
+      (column) =>
+        JSON.stringify(oldRow?.[column]) !== JSON.stringify(row[column])
+    )
+      ? [index]
+      : [];
+  });
+  let visibleRows = indexedRows;
+  let leadingHiddenCount = 0;
+  let trailingHiddenCount = 0;
+
+  if (state.previous !== undefined && indexedRows.length > 3) {
+    const firstChangedIndex = changedIndexes[0] ?? 0;
+    const lastChangedIndex = changedIndexes.at(-1) ?? firstChangedIndex;
+
+    if (lastChangedIndex >= indexedRows.length - 2) {
+      visibleRows = indexedRows.slice(-2);
+      leadingHiddenCount = indexedRows.length - visibleRows.length;
+    } else if (firstChangedIndex <= 1) {
+      visibleRows = indexedRows.slice(0, 2);
+      trailingHiddenCount = indexedRows.length - visibleRows.length;
+    } else {
+      visibleRows = [indexedRows[firstChangedIndex]!];
+      leadingHiddenCount = firstChangedIndex;
+      trailingHiddenCount = indexedRows.length - firstChangedIndex - 1;
+    }
+  }
+
+  if (!rows.length) {
+    return (
+      <div className="rounded-md border border-border px-3 py-5 text-center text-xs text-muted-foreground">
+        No rows
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full max-w-full overflow-x-auto rounded-md border border-border">
+      <table className="w-full min-w-max border-collapse text-left text-xs">
+        <thead className="bg-muted/60 text-[10px] uppercase tracking-wide text-muted-foreground">
+          <tr>
+            {columns.map((column) => (
+              <th
+                key={column}
+                className={cn(
+                  "border-b border-border px-3 py-2 font-semibold",
+                  uuidColumns.has(column) && "w-px whitespace-nowrap"
+                )}
+              >
+                {column}
+              </th>
+            ))}
+            {actions.length ? (
+              <th className="w-px whitespace-nowrap border-b border-border px-3 py-2 text-right font-semibold">
+                Actions
+              </th>
+            ) : null}
+          </tr>
+        </thead>
+        <tbody>
+          {leadingHiddenCount > 0 ? (
+            <tr className="border-b border-border/70">
+              <td
+                colSpan={columns.length + (actions.length ? 1 : 0)}
+                className="px-3 py-2 text-center text-muted-foreground"
+                title={`${leadingHiddenCount} earlier items`}
+              >
+                …
+                <span className="sr-only">
+                  {" "}
+                  {leadingHiddenCount} earlier items
+                </span>
+              </td>
+            </tr>
+          ) : null}
+          {visibleRows.map(({ row, index }) => {
+            const oldRow = previousRow(oldRows, row, index);
+            const rowActions = actions.filter(([, descriptor]) =>
+              stateActionIsVisible(descriptor, row)
+            );
+            const changedColumns = new Set(
+              columns.filter(
+                (column) =>
+                  state.previous !== undefined &&
+                  JSON.stringify(oldRow?.[column]) !==
+                    JSON.stringify(row[column])
+              )
+            );
+            const allFieldsChanged =
+              columns.length > 0 && changedColumns.size === columns.length;
+            return (
+              <tr
+                key={rowKey(row, index)}
+                className="border-b border-border/70 last:border-0"
+              >
+                {columns.map((column) => {
+                  const before = oldRow?.[column];
+                  const after = row[column];
+                  const changed = changedColumns.has(column);
+                  const uuidValue =
+                    typeof after === "string" && isUuid(after) ? after : null;
+                  return (
+                    <td
+                      key={column}
+                      title={
+                        typeof after === "string" && isUuid(after)
+                          ? after
+                          : undefined
+                      }
+                      className={cn(
+                        "max-w-72 px-3 py-2 align-top",
+                        uuidColumns.has(column) && "w-px whitespace-nowrap",
+                        changed && "state-change-highlight text-black"
+                      )}
+                    >
+                      {changed ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[10px] text-muted-foreground line-through">
+                            <span
+                              className={cn(
+                                isTruncatedId(before) &&
+                                  "inline-block w-[9ch] whitespace-nowrap font-mono"
+                              )}
+                            >
+                              {displayCell(before)}
+                            </span>
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <span
+                              className={cn(
+                                isTruncatedId(after) &&
+                                  "inline-block w-[9ch] whitespace-nowrap font-mono"
+                              )}
+                            >
+                              {displayCell(after)}
+                            </span>
+                            {uuidValue ? (
+                              <ResultCopyButton text={uuidValue} />
+                            ) : null}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <span
+                            className={cn(
+                              isTruncatedId(after) &&
+                                "inline-block w-[9ch] whitespace-nowrap font-mono"
+                            )}
+                          >
+                            {displayCell(after)}
+                          </span>
+                          {uuidValue ? (
+                            <ResultCopyButton text={uuidValue} />
+                          ) : null}
+                        </div>
+                      )}
+                    </td>
+                  );
+                })}
+                {actions.length ? (
+                  <td
+                    className={cn(
+                      "w-px whitespace-nowrap px-3 py-2 text-right",
+                      allFieldsChanged && "state-change-highlight"
+                    )}
+                  >
+                    <div className="flex justify-end gap-1.5">
+                      {rowActions.map(([name, descriptor]) => {
+                        const actionKey = `${name}:${rowKey(row, index)}`;
+                        const completed = actionCompleted === actionKey;
+                        return (
+                          <Button
+                            key={name}
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className={cn(
+                              allFieldsChanged &&
+                                "border-black bg-black text-white hover:bg-black hover:text-white"
+                            )}
+                            disabled={Boolean(actionPending) || completed}
+                            onClick={() =>
+                              onAction?.(name, descriptor, row, index)
+                            }
+                          >
+                            {actionPending === actionKey
+                              ? "Running…"
+                              : completed
+                              ? "Done"
+                              : humanizeAction(name)}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </td>
+                ) : null}
+              </tr>
+            );
+          })}
+          {trailingHiddenCount > 0 ? (
+            <tr>
+              <td
+                colSpan={columns.length + (actions.length ? 1 : 0)}
+                className="px-3 py-2 text-center text-muted-foreground"
+                title={`${trailingHiddenCount} later items`}
+              >
+                …
+                <span className="sr-only">
+                  {" "}
+                  {trailingHiddenCount} later items
+                </span>
+              </td>
+            </tr>
+          ) : null}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function StateBubble({
+  state,
+  config,
+  actor,
+  onActionStart,
+  onActionResult,
+}: {
+  state: StateBubblePayload;
+  config?: ConsoleConfig;
+  actor?: string;
+  onActionStart: (call: {
+    name: string;
+    action: string;
+    input: Record<string, unknown>;
+  }) => void;
+  onActionResult: (result: ActionRunResult) => void;
+}) {
+  const [actionPending, setActionPending] = useState<string | null>(null);
+  const [lastAction, setLastAction] = useState<string | null>(null);
+  const [actionResult, setActionResult] = useState<ActionRunResult | null>(
+    null
+  );
+  const discoveredActions = stateCommandsForActor(config, actor);
+  const actionableState = {
+    ...state,
+    actions: {
+      ...discoveredActions,
+      ...(state.actions ?? {}),
+    },
+  };
+
+  const invokeStateAction = useCallback(
+    async (
+      name: string,
+      descriptor: StateActionDescriptor,
+      row: Record<string, unknown>,
+      rowIndex: number
+    ) => {
+      const { alias, action: actionName, input: template } = descriptor;
+      const actionInput = resolveStateActionPayload(template, alias, row);
+      onActionStart({ name, action: actionName, input: actionInput });
+      const action = findStateAction(config, actor, actionName);
+      if (!action || !config) {
+        const unavailableResult: ActionRunResult = {
+          status: 404,
+          ok: false,
+          contentType: "text/plain",
+          body: `Action ${actionName} is not available`,
+        };
+        setActionResult(unavailableResult);
+        onActionResult(unavailableResult);
+        return;
+      }
+
+      const pendingKey = `${name}:${rowKey(row, rowIndex)}`;
+      setActionPending(pendingKey);
+      setLastAction(pendingKey);
+      setActionResult(null);
+      try {
+        let finalResult: ActionRunResult | null = null;
+        const response = await fetch(action.route, {
+          method: "POST",
+          headers: {
+            Accept: "text/event-stream, application/json",
+            Authorization: `Bearer ${config.apiKey}`,
+            "Content-Type": "application/json",
+            wire: "commander",
+          },
+          body: JSON.stringify(actionInput),
+        });
+        for await (const update of streamActionResponse(response)) {
+          finalResult = update;
+          setActionResult(update);
+        }
+        if (finalResult) onActionResult(finalResult);
+      } catch (error) {
+        const failedResult: ActionRunResult = {
+          status: 500,
+          ok: false,
+          contentType: "text/plain",
+          body: error instanceof Error ? error.message : String(error),
+        };
+        setActionResult(failedResult);
+        onActionResult(failedResult);
+      } finally {
+        setActionPending(null);
+      }
+    },
+    [actor, config, onActionResult, onActionStart]
+  );
+  const completedAction = hasStateChange(actionResult) ? lastAction : null;
+
+  return (
+    <div className="flex w-full max-w-full flex-col gap-2">
+      <StateValueTable
+        state={actionableState}
+        onAction={invokeStateAction}
+        actionPending={actionPending}
+        actionCompleted={completedAction}
+      />
+    </div>
+  );
+}
+
+function ActionCallMessage({
+  bubble,
+}: {
+  bubble: Extract<AppendedStateActionBubble, { type: "action" }>;
+}) {
+  const actionLabel = scopedBubbleLabel(
+    bubble.actor,
+    sentenceFromIdentifier(bubble.action)
+  );
+
+  return (
+    <Message from="user">
+      <div className="flex items-center gap-1 self-end text-[11px] font-semibold text-muted-foreground">
+        {actionLabel}
+        <ArrowUpRightIcon
+          aria-hidden="true"
+          className="mr-2 shrink-0"
+          size={24}
+        />
+      </div>
+      <MessageContent
+        className="space-y-2"
+        style={{ overflowWrap: "anywhere" }}
+      >
+        <MessageResponse className="text-primary-foreground">
+          {inputBody(bubble.input)}
+        </MessageResponse>
+      </MessageContent>
+    </Message>
+  );
+}
+
 function ResultCopyButton({
   text,
   timeout = 2000,
@@ -537,7 +1230,7 @@ function ResultCopyButton({
     () => () => {
       window.clearTimeout(timeoutRef.current);
     },
-    [],
+    []
   );
 
   const Icon = isCopied ? CheckIcon : CopyIcon;
@@ -565,6 +1258,8 @@ export function ActionResult({
   runs,
   chat,
   showLogs,
+  config,
+  action,
   onScrollChange,
 }: {
   className?: string;
@@ -573,19 +1268,76 @@ export function ActionResult({
   runs?: { id: string; input: unknown; result: ActionRunResult | null }[];
   chat?: boolean;
   showLogs: boolean;
+  config?: ConsoleConfig;
+  action?: ConsoleAction;
   onScrollChange?: (scrollTop: number) => void;
 }) {
+  const [appendedStateActions, setAppendedStateActions] = useState<
+    AppendedStateActionBubble[]
+  >([]);
+  const appendedStateActionId = useRef(0);
   const runItems =
     runs ??
     (input !== undefined ? [{ id: "run", input, result: result ?? null }] : []);
+  const appendStateActionResult = useCallback(
+    (actionResult: ActionRunResult, actorName?: string) => {
+      const bubbles = buildRunBubbles(actionResult, false);
+      const appended = bubbles.flatMap<AppendedStateActionBubble>((bubble) => {
+        const id = `state-action-${++appendedStateActionId.current}`;
+        if (
+          (bubble.type === "state" || bubble.type === "state-change") &&
+          bubble.state
+        ) {
+          return [
+            {
+              id,
+              type: bubble.type,
+              state: bubble.state,
+              actor: actorName,
+            },
+          ];
+        }
+        if (bubble.type === "error") {
+          return [{ id, type: "error", body: bubble.body, actor: actorName }];
+        }
+        return [];
+      });
+      if (appended.length) {
+        setAppendedStateActions((current) => [...current, ...appended]);
+      }
+    },
+    []
+  );
+  const appendStateActionCall = useCallback(
+    (
+      call: {
+        name: string;
+        action: string;
+        input: Record<string, unknown>;
+      },
+      actorName?: string
+    ) => {
+      setAppendedStateActions((current) => [
+        ...current,
+        {
+          id: `state-action-${++appendedStateActionId.current}`,
+          type: "action",
+          ...call,
+          actor: actorName,
+        },
+      ]);
+    },
+    []
+  );
 
   return (
     <Conversation className={cn("min-h-0 flex-1", className)}>
       <ConversationContent>
+        <ScrollToAppendedStateActions count={appendedStateActions.length} />
         {runItems.length ? (
           runItems.flatMap((run) => {
             const bubbles = buildRunBubbles(run.result, showLogs).filter(
-              (bubble) => !chat || bubble.type !== "result",
+              (bubble) => !chat || bubble.type !== "result"
             );
             const waiting = !run.result || run.result.streaming;
             const chatInput = chat ? chatInputBody(run.input) : "";
@@ -619,16 +1371,28 @@ export function ActionResult({
                         </div>
                       </Message>
                     ) : (
-                      <Message key={`${run.id}-${bubble.id}`} from="assistant">
+                      <Message
+                        key={`${run.id}-${bubble.id}`}
+                        from="assistant"
+                        className={cn(
+                          (bubble.type === "state" ||
+                            bubble.type === "state-change") &&
+                            "max-w-full"
+                        )}
+                      >
                         <div className="flex max-w-full items-center gap-1">
                           <div
                             className={cn(
                               "text-[11px] font-semibold text-muted-foreground",
-                              bubble.type === "error" && "text-destructive",
+                              bubble.type === "error" && "text-destructive"
                             )}
                           >
                             {bubble.type === "wire"
                               ? bubble.title
+                              : bubble.type === "state"
+                              ? `Result`
+                              : bubble.type === "state-change"
+                              ? stateChangeLabel(bubble.title!, action?.actor)
                               : bubble.type === "error"
                               ? "Error"
                               : "Result"}
@@ -642,28 +1406,41 @@ export function ActionResult({
                           className={cn(
                             bubble.type === "wire" &&
                               "border-l-[1.5px] border-border px-4 py-3 text-muted-foreground",
+                            (bubble.type === "state" ||
+                              bubble.type === "state-change") &&
+                              "w-full",
                             bubble.type === "result" &&
                               "rounded-lg border border-border bg-action px-4 py-3 text-foreground",
                             bubble.type === "error" &&
-                              "rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive",
+                              "rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive"
                           )}
                           style={{ overflowWrap: "anywhere" }}
                         >
-                          {bubble.type === "wire" ? (
+                          {bubble.type === "state" ||
+                          bubble.type === "state-change" ? (
+                            <StateBubble
+                              state={bubble.state!}
+                              config={config}
+                              actor={action?.actor}
+                              onActionStart={(call) =>
+                                appendStateActionCall(call, action?.actor)
+                              }
+                              onActionResult={(actionResult) =>
+                                appendStateActionResult(
+                                  actionResult,
+                                  action?.actor
+                                )
+                              }
+                            />
+                          ) : bubble.type === "wire" ? (
                             <pre className="whitespace-pre-wrap font-mono text-[11px] leading-4 text-black">
                               {(bubble.body || "Done")
                                 .split("\n")
                                 .map((line, index) => (
-                                  <span
+                                  <TraceLine
                                     key={`${run.id}-${bubble.id}-line-${index}`}
-                                    className={cn(
-                                      "block",
-                                      isTraceErrorLine(line) &&
-                                        "text-destructive",
-                                    )}
-                                  >
-                                    {line}
-                                  </span>
+                                    line={line}
+                                  />
                                 ))}
                             </pre>
                           ) : (
@@ -671,7 +1448,7 @@ export function ActionResult({
                           )}
                         </MessageContent>
                       </Message>
-                    ),
+                    )
                   )
                 : waiting
                 ? [
@@ -694,6 +1471,47 @@ export function ActionResult({
               Send a message to start chatting
             </MessageContent>
           </Message>
+        )}
+        {appendedStateActions.map((bubble) =>
+          bubble.type === "action" ? (
+            <ActionCallMessage key={bubble.id} bubble={bubble} />
+          ) : bubble.type === "error" ? (
+            <Message key={bubble.id} from="assistant">
+              <div className="flex max-w-full items-center gap-1">
+                <div className="text-[11px] font-semibold text-destructive">
+                  Error
+                </div>
+                <ResultCopyButton text={bubble.body} />
+              </div>
+              <MessageContent className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive">
+                <MessageResponse>{bubble.body}</MessageResponse>
+              </MessageContent>
+            </Message>
+          ) : (
+            <Message key={bubble.id} from="assistant" className="max-w-full">
+              <div className="text-[11px] font-semibold text-muted-foreground">
+                {bubble.type === "state"
+                  ? `Result`
+                  : stateChangeLabel(bubble.state.path, bubble.actor)}
+              </div>
+              <MessageContent
+                className="w-full"
+                style={{ overflowWrap: "anywhere" }}
+              >
+                <StateBubble
+                  state={bubble.state}
+                  config={config}
+                  actor={bubble.actor}
+                  onActionStart={(call) =>
+                    appendStateActionCall(call, bubble.actor)
+                  }
+                  onActionResult={(actionResult) =>
+                    appendStateActionResult(actionResult, bubble.actor)
+                  }
+                />
+              </MessageContent>
+            </Message>
+          )
         )}
       </ConversationContent>
       <ConversationScrollButton />

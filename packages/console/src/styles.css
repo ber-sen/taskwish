@@ -33,6 +33,10 @@
 }
 
 @layer utilities {
+  .state-change-highlight {
+    background-color: rgb(0 238 174 / 40%);
+  }
+
   .scrollbar-minimal {
     scrollbar-color: hsl(var(--border)) transparent;
     scrollbar-width: thin;

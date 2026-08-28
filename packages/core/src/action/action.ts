@@ -1,18 +1,6 @@
-import {
-  distill,
-  type,
-} from "arktype";
-import {
-  type Constructor,
-  type array,
-  type conform,
-} from "@ark/util";
-import type {
-  Morph,
-  NodeSelector,
-  Predicate,
-  TypeMeta,
-} from "@ark/schema";
+import { distill, type } from "arktype";
+import { type Constructor, type array, type conform } from "@ark/util";
+import type { Morph, NodeSelector, Predicate, TypeMeta } from "@ark/schema";
 import {
   Apply,
   Append,
@@ -36,8 +24,10 @@ import {
   type LoggerConfig,
   Signal,
   Trace,
+  Wire,
 } from "@taskwish/wire";
 import { type InferTypeConfig } from "../use";
+import { captureStateSnapshot, stateChangesSince } from "../state";
 import { ActionMeta, ValidateActionMeta } from "./meta";
 
 type ArgTwoOperator = "[]" | "&" | "|" | "|>" | ":" | "=>" | "@";
@@ -74,7 +64,7 @@ type ValidateArkOperand<T, Scope> = T extends "void"
 type InputActionBody<
   Name extends string,
   Ctx extends Record<any, any>,
-  Input,
+  Input
 > = ActionBody<
   Name,
   {
@@ -100,15 +90,94 @@ type AppendPlugin<Ctx extends Record<any, any>, Plugin> = {
   plugins: Append<Ctx["plugins"], Plugin>;
 };
 
+type StateCommandInput<Ctx extends Record<any, any>> = Ctx["scope"] extends {
+  input: infer Input extends Record<string, unknown>;
+}
+  ? Input
+  : {};
+
+type StateCommandItem<Ctx extends Record<any, any>> = Ctx["scope"] extends {
+  state: infer State;
+}
+  ? {
+      [Key in keyof State]: State[Key] extends readonly (infer Item)[]
+        ? Item
+        : never;
+    }[keyof State]
+  : never;
+
+type StateCommandPathEntry<
+  Value,
+  Prefix extends string = "",
+  Depth extends unknown[] = []
+> = Depth["length"] extends 4
+  ? never
+  : Value extends object
+  ? {
+      [Key in keyof Value & string]: NonNullable<Value[Key]> extends object
+        ? NonNullable<Value[Key]> extends readonly unknown[]
+          ? never
+          : StateCommandPathEntry<
+              NonNullable<Value[Key]>,
+              Prefix extends "" ? Key : `${Prefix}.${Key}`,
+              [...Depth, unknown]
+            >
+        : {
+            path: Prefix extends "" ? Key : `${Prefix}.${Key}`;
+            value: Value[Key];
+          };
+    }[keyof Value & string]
+  : never;
+
+type StateCommandPathFor<Value, Expected> =
+  StateCommandPathEntry<Value> extends infer Entry
+    ? Entry extends { path: infer Path extends string; value: infer PathValue }
+      ? NonNullable<PathValue> extends NonNullable<Expected>
+        ? Path
+        : never
+      : never
+    : never;
+
+type StateCommandPayload<Ctx extends Record<any, any>, Alias extends string> = {
+  [Key in keyof StateCommandInput<Ctx>]: `${Alias}.${StateCommandPathFor<
+    StateCommandItem<Ctx>,
+    StateCommandInput<Ctx>[Key]
+  >}`;
+};
+
+type StateCommandCondition<Ctx extends Record<any, any>> =
+  StateCommandItem<Ctx> extends infer Item
+    ? Item extends Record<string, unknown>
+      ? Partial<Item>
+      : never
+    : never;
+
+type StateCommandDefinition<
+  Ctx extends Record<any, any>,
+  Alias extends string
+> =
+  | StateCommandPayload<Ctx, Alias>
+  | {
+      input: StateCommandPayload<Ctx, Alias>;
+      visible: StateCommandCondition<Ctx>;
+    };
+
 type ActionBody<
   Name extends string,
-  Ctx extends Record<any, any>,
+  Ctx extends Record<any, any>
 > = TW.Contextual<Ctx> & {
+  addStateCommand<
+    const Alias extends string,
+    const Commands extends Record<string, StateCommandDefinition<Ctx, Alias>>
+  >(
+    alias: Alias,
+    commands: Commands
+  ): ActionBody<Name, Ctx>;
   use<const Config extends LoggerConfig>(
-    config: Config,
+    config: Config
   ): ActionBody<Name, AppendPlugin<Ctx, Config>>;
   use<const F extends string | undefined>(
-    config: InferTypeConfig<F>,
+    config: InferTypeConfig<F>
   ): ActionBody<Name, AppendPlugin<Ctx, InferTypeConfig<F>>>;
   use<const U>(plugin: U): ActionBody<Name, AddActionsToCtx<Ctx, U>>;
   run: Steps<Ctx, ActionResultKind>;
@@ -116,7 +185,7 @@ type ActionBody<
 
 type SignatureInput<
   Signature,
-  Ctx extends Record<any, any>,
+  Ctx extends Record<any, any>
 > = Signature extends (...args: any) => any
   ? Parameters<Signature>
   : Signature extends TW.Handler
@@ -125,7 +194,7 @@ type SignatureInput<
 
 type SignatureOutput<
   Signature,
-  Ctx extends Record<any, any>,
+  Ctx extends Record<any, any>
 > = Signature extends (...args: any) => any
   ? RuntimeResult<ReturnType<Signature>>
   : Signature extends TW.Handler
@@ -152,7 +221,7 @@ type RuntimeHandler<Handler extends (...args: any[]) => any> = Awaited<
 
 type ActionNameFor<
   Ctx extends Record<any, any>,
-  Name extends string,
+  Name extends string
 > = "service" extends keyof Ctx
   ? QualifiedActionName<Ctx["service"] & string, Name>
   : Name;
@@ -168,7 +237,7 @@ type SignatureResult<
   Name extends string,
   Ctx extends Record<any, any>,
   Signature,
-  Meta = null,
+  Meta = null
 > = {
   [key in Name]: Signature extends (...args: any) => any
     ? TW.Action<
@@ -193,29 +262,29 @@ type SignatureResult<
     const NextMeta extends ActionMeta<
       SignatureMetaContext<Signature, Ctx>,
       SignatureOutput<Signature, Ctx>
-    >,
+    >
   >(
     meta: ValidateActionMeta<
       NextMeta,
       SignatureMetaContext<Signature, Ctx>,
       SignatureOutput<Signature, Ctx>
-    >,
+    >
   ): SignatureResult<Name, Ctx, Signature, DeepWriteable<NextMeta>>;
 };
 
 type SignatureBody<
   Name extends string,
   Ctx extends Record<any, any>,
-  Signature,
+  Signature
 > = {
   use<const Config extends LoggerConfig>(
-    config: Config,
+    config: Config
   ): SignatureBody<Name, AppendPlugin<Ctx, Config>, Signature>;
   use<const F extends string | undefined>(
-    config: InferTypeConfig<F>,
+    config: InferTypeConfig<F>
   ): SignatureBody<Name, AppendPlugin<Ctx, InferTypeConfig<F>>, Signature>;
   use<const U>(
-    plugin: U,
+    plugin: U
   ): SignatureBody<Name, AddActionsToCtx<Ctx, U>, Signature>;
   run<
     const Handler extends (
@@ -231,14 +300,14 @@ type SignatureBody<
           > &
             Ctx["scope"]
         >
-      >,
+      >
     ) => Signature extends (...args: any) => any
       ? ReturnType<Signature>
       : Signature extends TW.Handler
       ? ReturnType<Apply<Signature, Ctx>>
-      : never,
+      : never
   >(
-    run: Handler,
+    run: Handler
   ): SignatureResult<Name, Ctx, Signature>;
 };
 
@@ -261,10 +330,7 @@ export interface ActionFactory<
           model: "gpt5";
           prompt: string;
         }) => AsyncGenerator<
-          Trace<
-            "generateText",
-            { input: { model: "gpt5"; prompt: string } }
-          >,
+          Trace<"generateText", { input: { model: "gpt5"; prompt: string } }>,
           Promise<string>,
           unknown
         >;
@@ -272,21 +338,21 @@ export interface ActionFactory<
     };
     steps: [];
     plugins: [];
-  },
+  }
 > {
   use<const Config extends LoggerConfig>(
-    config: Config,
+    config: Config
   ): ActionFactory<Name, AppendPlugin<Ctx, Config>>;
   use<const F extends string | undefined>(
-    config: InferTypeConfig<F>,
+    config: InferTypeConfig<F>
   ): ActionFactory<Name, AppendPlugin<Ctx, InferTypeConfig<F>>>;
   use<const U>(plugin: U): ActionFactory<Name, AddActionsToCtx<Ctx, U>>;
   sig<
-    const Schema extends ((...args: any) => any) | TW.Handler,
+    const Schema extends ((...args: any) => any) | TW.Handler
   >(): SignatureBody<Name, Ctx, Schema>;
-  input<const Schema>(trigger?: ValidateTrigger<Schema>): Schema extends
-    | ((...args: any) => any)
-    | TW.Handler
+  input<const Schema>(
+    trigger?: ValidateTrigger<Schema>
+  ): Schema extends ((...args: any) => any) | TW.Handler
     ? SignatureBody<Name, Ctx, Schema>
     : InputActionBody<
         Name,
@@ -297,10 +363,7 @@ export interface ActionFactory<
     const zero,
     const one,
     const rest extends array,
-    r = type.instantiate<
-      NormalizeArkTuple<[zero, one, ...rest]>,
-      Ctx["scope"]
-    >,
+    r = type.instantiate<NormalizeArkTuple<[zero, one, ...rest]>, Ctx["scope"]>
   >(
     _0: zero extends IndexZeroOperator
       ? zero
@@ -308,30 +371,26 @@ export interface ActionFactory<
     _1: zero extends "keyof"
       ? type.validate<one, Ctx["scope"]>
       : zero extends "instanceof"
-        ? conform<one, Constructor>
-        : zero extends "==="
-          ? conform<one, unknown>
-          : conform<one, ArgTwoOperator>,
+      ? conform<one, Constructor>
+      : zero extends "==="
+      ? conform<one, unknown>
+      : conform<one, ArgTwoOperator>,
     ..._2: zero extends "==="
       ? rest
       : zero extends "instanceof"
-        ? conform<rest, readonly Constructor[]>
-        : one extends TupleInfixOperator
-          ? one extends ":"
-            ? [Predicate<distill.In<type.infer<zero, Ctx["scope"]>>>]
-            : one extends "=>"
-              ? [Morph<distill.Out<type.infer<zero, Ctx["scope"]>>, unknown>]
-              : one extends "|>"
-                ? [ValidateArkOperand<rest[0], Ctx["scope"]>]
-                : one extends "@"
-                  ? [TypeMeta.MappableInput, NodeSelector?]
-                  : [ValidateArkOperand<rest[0], Ctx["scope"]>]
-          : []
-  ): InputActionBody<
-    Name,
-    Ctx,
-    MarkUnionInput<ArkTypeInfer<r>>
-  >;
+      ? conform<rest, readonly Constructor[]>
+      : one extends TupleInfixOperator
+      ? one extends ":"
+        ? [Predicate<distill.In<type.infer<zero, Ctx["scope"]>>>]
+        : one extends "=>"
+        ? [Morph<distill.Out<type.infer<zero, Ctx["scope"]>>, unknown>]
+        : one extends "|>"
+        ? [ValidateArkOperand<rest[0], Ctx["scope"]>]
+        : one extends "@"
+        ? [TypeMeta.MappableInput, NodeSelector?]
+        : [ValidateArkOperand<rest[0], Ctx["scope"]>]
+      : []
+  ): InputActionBody<Name, Ctx, MarkUnionInput<ArkTypeInfer<r>>>;
   run: Steps<Ctx, ActionResultKind>;
 }
 
@@ -341,9 +400,13 @@ export const RawStreamTag = Symbol.for("TW.RawStream");
 export const RawLoggedStreamTag = Symbol.for("TW.RawLoggedStream");
 export const ContextualActionTag = Symbol.for("TW.ContextualAction");
 
+function isWireStream(value: unknown): value is Wire.Stream<unknown> {
+  return value instanceof Wire.Stream;
+}
+
 export async function* tapWith(
   gen: AsyncGenerator<unknown, unknown>,
-  log: DispatchFn,
+  log: DispatchFn
 ): AsyncGenerator<unknown, unknown> {
   let next = await gen.next();
   while (!next.done) {
@@ -356,11 +419,11 @@ export async function* tapWith(
 
 export async function* tapRawStreamWith(
   gen: AsyncGenerator<unknown, unknown>,
-  log: DispatchFn,
+  log: DispatchFn
 ): AsyncGenerator<unknown, unknown> {
   let next = await gen.next();
   while (!next.done) {
-    log(next.value instanceof TW.Stream ? next.value.data : next.value);
+    log(isWireStream(next.value) ? next.value.data : next.value);
     yield next.value;
     next = await gen.next();
   }
@@ -368,7 +431,7 @@ export async function* tapRawStreamWith(
 }
 
 export async function* unwrapStreamEvents(
-  gen: AsyncGenerator<unknown, unknown>,
+  gen: AsyncGenerator<unknown, unknown>
 ): AsyncGenerator<unknown, unknown> {
   let sent: unknown;
 
@@ -376,8 +439,7 @@ export async function* unwrapStreamEvents(
     const next = await gen.next(sent);
     if (next.done) return next.value;
 
-    const value =
-      next.value instanceof TW.Stream ? next.value.data : next.value;
+    const value = isWireStream(next.value) ? next.value.data : next.value;
     sent = yield value;
   }
 }
@@ -389,7 +451,7 @@ export type Scope = ExecutionContext & {
   abortSignal?: AbortSignal;
   signal<T extends string, D extends Record<string, unknown>>(
     type: T,
-    data: D,
+    data: D
   ): AsyncGenerator<Signal<T, D>, Signal<T, D>["data"], unknown>;
 };
 
@@ -405,7 +467,7 @@ function isAbortSignal(value: unknown): value is AbortSignal {
 }
 
 export function normalizeActionContext(
-  context: TW.ActionContext = {},
+  context: TW.ActionContext = {}
 ): ExecutionContext {
   if (isAbortSignal(context)) return { abortSignal: context };
 
@@ -486,7 +548,7 @@ function probeForActionCall(fn: Function): ActionCallCapture | null {
           return sentinel;
         };
       },
-    },
+    }
   );
 
   const ctx = new Proxy(
@@ -496,7 +558,7 @@ function probeForActionCall(fn: Function): ActionCallCapture | null {
         if (prop === "actions") return actionsProxy;
         return makeRecursiveProxy(String(prop));
       },
-    },
+    }
   );
 
   try {
@@ -523,7 +585,7 @@ const SelfTag = Symbol.for("TW.SelfCall");
 const SelfCalledTag = Symbol.for("TW.SelfCalled");
 
 function isAsyncGenerator(
-  value: unknown,
+  value: unknown
 ): value is AsyncGenerator<unknown, unknown> {
   return (
     value !== null &&
@@ -536,7 +598,7 @@ function isAsyncGenerator(
 
 async function* transformUserEvents(
   gen: AsyncGenerator<unknown, unknown>,
-  streamChunks: boolean = false,
+  streamChunks: boolean = false
 ): AsyncGenerator<unknown, unknown> {
   let sent: unknown;
 
@@ -550,8 +612,8 @@ async function* transformUserEvents(
       const value =
         streamChunks &&
         !(next.value instanceof Signal) &&
-        !(next.value instanceof TW.Stream)
-          ? new TW.Stream(next.value)
+        !(next.value instanceof Wire.Stream)
+          ? new Wire.Stream(next.value)
           : next.value;
       sent = yield value;
     }
@@ -564,7 +626,7 @@ function isSelfCall(value: unknown): value is AsyncGenerator<unknown, unknown> {
 
 async function* transformUserEventsFromFirst(
   gen: AsyncGenerator<unknown, unknown>,
-  first: IteratorResult<unknown, unknown>,
+  first: IteratorResult<unknown, unknown>
 ): AsyncGenerator<unknown, unknown> {
   let sent: unknown;
   let next = first;
@@ -579,7 +641,7 @@ async function* transformUserEventsFromFirst(
 
 function prependAsyncGenerator(
   first: IteratorYieldResult<unknown>,
-  gen: AsyncGenerator<unknown, unknown>,
+  gen: AsyncGenerator<unknown, unknown>
 ): AsyncGenerator<unknown, unknown> {
   return (async function* () {
     yield first.value;
@@ -606,7 +668,7 @@ function isDeferredStep(value: unknown): value is DeferredStep {
 
 function deferStep(
   name: string,
-  gen: AsyncGenerator<unknown, unknown>,
+  gen: AsyncGenerator<unknown, unknown>
 ): DeferredStep {
   const deferred: DeferredStep = {
     [DeferredStepTag]: true,
@@ -627,7 +689,7 @@ function deferStep(
 }
 
 async function* drainDeferredStep(
-  deferred: DeferredStep,
+  deferred: DeferredStep
 ): AsyncGenerator<unknown, unknown> {
   try {
     const result = deferred.done ? deferred.result : yield* deferred.gen;
@@ -682,7 +744,7 @@ function commandEvent(input: unknown): Signal<"Command", object> {
 function wrapUnionInput(
   inputMode: "first" | "args",
   args: unknown[],
-  inputSchema: unknown,
+  inputSchema: unknown
 ): unknown[] {
   if (inputMode !== "first" || !isUnionSchema(inputSchema)) return args;
   if (args[0] instanceof TW.Union) return args;
@@ -705,7 +767,7 @@ function validateRunHandlers(handlers: unknown[]) {
   const mixedIndex = handlers.slice(1).findIndex(isRawFunctionHandler);
   if (mixedIndex !== -1) {
     throw new Error(
-      "Action.run cannot mix Step(...) handlers with raw function handlers",
+      "Action.run cannot mix Step(...) handlers with raw function handlers"
     );
   }
 }
@@ -715,7 +777,7 @@ async function* runStep(
   handler: (...a: unknown[]) => unknown,
   ctx: Record<string | symbol, unknown>,
   args: unknown[] = [],
-  deferAsyncGenerator: boolean = false,
+  deferAsyncGenerator: boolean = false
 ): AsyncGenerator<unknown, unknown> {
   try {
     let result: unknown;
@@ -772,7 +834,7 @@ function twType(handler: unknown): string | null {
 
 async function evalCond(
   condition: unknown,
-  ctx: Record<string | symbol, unknown>,
+  ctx: Record<string | symbol, unknown>
 ): Promise<boolean> {
   const val =
     typeof condition === "function"
@@ -780,7 +842,7 @@ async function evalCond(
       : twType(condition) === "Cond"
       ? await ((condition as any).fn as (scope: unknown) => unknown).call(
           ctx,
-          ctx,
+          ctx
         )
       : condition;
   return Boolean(val);
@@ -796,7 +858,7 @@ async function* runHandlerList(
   /** The top-level action name for this invocation; used to name self-call generators. */
   actionName: string = name,
   /** The top-level handlers for this invocation; passed to self-recursive runAction calls. */
-  actionHandlers: unknown[] = handlers,
+  actionHandlers: unknown[] = handlers
 ): AsyncGenerator<
   unknown,
   { last: unknown; lastStepName: string | null; lastCond: boolean | null }
@@ -868,8 +930,8 @@ async function* runHandlerList(
             loopAcc,
             transparent,
             actionName,
-            actionHandlers,
-          ),
+            actionHandlers
+          )
         );
       }
     } else if (type === "ElseIf") {
@@ -897,8 +959,8 @@ async function* runHandlerList(
               loopAcc,
               transparent,
               actionName,
-              actionHandlers,
-            ),
+              actionHandlers
+            )
           );
         }
       }
@@ -913,8 +975,8 @@ async function* runHandlerList(
             loopAcc,
             transparent,
             actionName,
-            actionHandlers,
-          ),
+            actionHandlers
+          )
         );
       }
       lastCond = null;
@@ -931,7 +993,7 @@ async function* runHandlerList(
           : twType(itemsGetter) === "ForEach"
           ? await ((itemsGetter as any).fn as (scope: unknown) => unknown).call(
               ctx,
-              ctx,
+              ctx
             )
           : typeof itemsGetter === "string"
           ? (itemsGetter as string)
@@ -952,7 +1014,7 @@ async function* runHandlerList(
           innerAcc,
           transparent,
           actionName,
-          actionHandlers,
+          actionHandlers
         );
         if (r.lastStepName) loopLastStepName = r.lastStepName;
         loopIterLasts.push(r.last);
@@ -992,7 +1054,7 @@ async function* runHandlerList(
             null,
             transparent,
             actionName,
-            actionHandlers,
+            actionHandlers
           );
 
           let iterResult: {
@@ -1013,7 +1075,7 @@ async function* runHandlerList(
             last: iterResult.last,
             stepName: iterResult.lastStepName,
           };
-        }),
+        })
       );
 
       // Yield all step events in declaration order (deterministic)
@@ -1069,7 +1131,7 @@ async function* runHandlerList(
             event: commandEvent(input),
           }),
           _actionHandlers,
-          true,
+          true
         );
         Object.defineProperty(gen, SelfTag, { value: true, enumerable: false });
         return gen;
@@ -1082,8 +1144,8 @@ async function* runHandlerList(
           fn,
           ctx,
           stepArgs,
-          deferAsyncGenerator,
-        ),
+          deferAsyncGenerator
+        )
       );
 
       // If this step called self, promote currentName back to actionName so that
@@ -1098,7 +1160,7 @@ async function* runHandlerList(
       last = yield* transformUserEvents(
         (
           handler as (this: typeof ctx) => AsyncGenerator<unknown, unknown>
-        ).call(ctx),
+        ).call(ctx)
       );
     } else if (typeof handler === "function") {
       lastCond = null;
@@ -1135,9 +1197,23 @@ export async function* runAction(
   scope: Scope,
   handlers: unknown[],
   /** When true (self-recursive calls), if/else/elseIf branches don't add prefix segments. */
-  transparent: boolean = false,
+  transparent: boolean = false
 ): AsyncGenerator<unknown, unknown> {
   const ctx: Record<string | symbol, unknown> = { ...scope };
+  const stateSnapshot = captureStateSnapshot(ctx);
+
+  const stateChangeEvents = () => {
+    const actor = name.includes("::") ? name.slice(0, name.indexOf("::")) : "";
+    return stateChangesSince(stateSnapshot).map(
+      (change) =>
+        new Wire.StateChange(
+          [actor, change.path].filter(Boolean).join("::"),
+          Object.fromEntries(
+            Object.entries(change).filter(([key]) => key !== "path")
+          )
+        )
+    );
+  };
 
   const traceInput =
     scope.input instanceof TW.Union ? scope.input.unwrap() : scope.input;
@@ -1151,11 +1227,13 @@ export async function* runAction(
       null,
       transparent,
       name,
-      handlers,
+      handlers
     );
+    for (const event of stateChangeEvents()) yield event;
     yield new Trace(name, { result: r.last });
     return r.last;
   } catch (error) {
+    for (const event of stateChangeEvents()) yield event;
     yield new Trace(name, { error });
     throw error;
   }
@@ -1164,7 +1242,7 @@ export async function* runAction(
 function bindContextualActions(
   value: unknown,
   context: ExecutionContext,
-  visited = new WeakMap<object, unknown>(),
+  visited = new WeakMap<object, unknown>()
 ): unknown {
   if (typeof value === "function") {
     const contextual = (value as ContextualAction)[ContextualActionTag];
@@ -1183,7 +1261,7 @@ function bindContextualActions(
   visited.set(value, clone);
 
   for (const [key, nested] of Object.entries(
-    value as Record<string, unknown>,
+    value as Record<string, unknown>
   )) {
     clone[key] = bindContextualActions(nested, context, visited);
   }
@@ -1192,7 +1270,7 @@ function bindContextualActions(
     clone[key] = bindContextualActions(
       (value as Record<string | symbol, unknown>)[key],
       context,
-      visited,
+      visited
     );
   }
 
@@ -1201,7 +1279,7 @@ function bindContextualActions(
 
 function mergeScopeActions(
   existing: Record<string, unknown>,
-  incoming: Record<string, unknown>,
+  incoming: Record<string, unknown>
 ): Record<string, unknown> {
   const merged: Record<string, unknown> = { ...existing };
 
@@ -1233,20 +1311,20 @@ function mergeScope(
       if (incomingActions !== null && typeof incomingActions === "object") {
         next.actions = mergeScopeActions(
           (existing.actions as Record<string, unknown> | undefined) ?? {},
-          incomingActions as Record<string, unknown>,
+          incomingActions as Record<string, unknown>
         );
       }
 
       return next;
     },
-    {},
+    {}
   );
 }
 
 export function buildScope(
   inputMode: "first" | "args",
   args: unknown[],
-  extra: Record<string | symbol, unknown> = {},
+  extra: Record<string | symbol, unknown> = {}
 ): Scope {
   const eventNames = new Map<string, string>();
   const userExtra: Record<string | symbol, unknown> = {};
@@ -1275,7 +1353,7 @@ export function buildScope(
     input: inputMode === "args" ? args : args[0],
     async *signal<T extends string, D extends Record<string, unknown>>(
       type: T,
-      data: D,
+      data: D
     ) {
       const signal = new Signal((eventNames.get(type) ?? type) as T, data);
       yield signal;
@@ -1291,7 +1369,7 @@ export function buildScope(
 }
 
 export function Action<const Name extends string>(
-  name: CamelCase<Name>,
+  name: CamelCase<Name>
 ): ActionFactory<Name> {
   const actionName = name as string;
   let logger: ConsoleLike = console;
@@ -1396,7 +1474,7 @@ export function Action<const Name extends string>(
   }
 
   function isEventKind(
-    value: unknown,
+    value: unknown
   ): value is Record<string | symbol, unknown> {
     return (
       value !== null &&
@@ -1436,7 +1514,7 @@ export function Action<const Name extends string>(
     }
 
     for (const [key, value] of Object.entries(
-      plugin as Record<string, unknown>,
+      plugin as Record<string, unknown>
     )) {
       if (!isEventKind(value)) continue;
       const eventName = value[TW.Name];
@@ -1473,7 +1551,7 @@ export function Action<const Name extends string>(
   function createAction(
     inputMode: "first" | "args",
     handlers: unknown[],
-    inputSchema?: unknown,
+    inputSchema?: unknown
   ) {
     validateRunHandlers(handlers);
 
@@ -1511,15 +1589,12 @@ export function Action<const Name extends string>(
       return { [actionName]: { "->": "Command", "=": actionName, run: steps } };
     }
 
-    async function actionRunCtx(
-      context: TW.ActionContext,
-      ...args: unknown[]
-    ) {
+    async function actionRunCtx(context: TW.ActionContext, ...args: unknown[]) {
       const runContext = normalizeActionContext(context);
       const extra = mergeScope(
         await buildExtra(),
         { event: commandEvent(args[0]) },
-        runContext,
+        runContext
       );
       const gen = tap(
         unwrapStreamEvents(
@@ -1528,11 +1603,11 @@ export function Action<const Name extends string>(
             buildScope(
               inputMode,
               wrapUnionInput(inputMode, args, inputSchema),
-              extra,
+              extra
             ),
-            handlers,
-          ),
-        ),
+            handlers
+          )
+        )
       );
       let item = await gen.next();
       while (!item.done) item = await gen.next();
@@ -1555,16 +1630,16 @@ export function Action<const Name extends string>(
       const extra = mergeScope(
         await buildExtra(),
         { event: commandEvent(args[0]) },
-        runContext,
+        runContext
       );
       return yield* runAction(
         actionName,
         buildScope(
           inputMode,
           wrapUnionInput(inputMode, args, inputSchema),
-          extra,
+          extra
         ),
-        handlers,
+        handlers
       );
     }
 
@@ -1624,6 +1699,28 @@ export function Action<const Name extends string>(
   }
 
   const makeBody = (inputMode: "first" | "args", inputSchema?: unknown) => ({
+    addStateCommand(
+      alias: string,
+      commands: Record<string, Record<string, unknown>>
+    ) {
+      const currentMeta =
+        actionMeta !== null && typeof actionMeta === "object"
+          ? (actionMeta as Record<string, unknown>)
+          : {};
+      const currentCommands =
+        currentMeta.stateCommands !== null &&
+        typeof currentMeta.stateCommands === "object"
+          ? (currentMeta.stateCommands as Record<string, unknown>)
+          : {};
+      actionMeta = {
+        ...currentMeta,
+        stateCommands: {
+          ...currentCommands,
+          [alias]: commands,
+        },
+      };
+      return this;
+    },
     use(config: unknown) {
       usePlugin(config);
       return this;

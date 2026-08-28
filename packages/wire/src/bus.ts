@@ -1,5 +1,6 @@
 import { formatEvent } from "./format";
 import type { LogFn } from "./logger";
+import * as WireMessage from "./messages";
 
 type WireEventListener<Data = unknown> = (data: Data) => unknown;
 
@@ -8,7 +9,7 @@ const eventListeners: Record<string, WireEventListener[] | undefined> = {};
 export class WireEvents {
   addListener<const EventType extends string, Data>(
     type: EventType,
-    listener: WireEventListener<Data>,
+    listener: WireEventListener<Data>
   ): this {
     addListener(type, listener);
 
@@ -17,14 +18,14 @@ export class WireEvents {
 
   on<const EventType extends string, Data>(
     type: EventType,
-    listener: WireEventListener<Data>,
+    listener: WireEventListener<Data>
   ): this {
     return this.addListener(type, listener);
   }
 
   removeListener<const EventType extends string, Data>(
     type: EventType,
-    listener: WireEventListener<Data>,
+    listener: WireEventListener<Data>
   ): this {
     removeListener(type, listener);
 
@@ -33,14 +34,14 @@ export class WireEvents {
 
   off<const EventType extends string, Data>(
     type: EventType,
-    listener: WireEventListener<Data>,
+    listener: WireEventListener<Data>
   ): this {
     return this.removeListener(type, listener);
   }
 
   emit<const EventType extends string, Data>(
     type: EventType,
-    data: Data,
+    data: Data
   ): boolean {
     return emit(type, data);
   }
@@ -50,7 +51,7 @@ export const events = new WireEvents();
 
 export function addListener<const EventType extends string, Data>(
   type: EventType,
-  listener: WireEventListener<Data>,
+  listener: WireEventListener<Data>
 ): void {
   let listeners = eventListeners[type];
 
@@ -64,7 +65,7 @@ export function addListener<const EventType extends string, Data>(
 
 export function removeListener<const EventType extends string, Data>(
   type: EventType,
-  listener: WireEventListener<Data>,
+  listener: WireEventListener<Data>
 ): void {
   const listeners = eventListeners[type];
 
@@ -84,7 +85,7 @@ export function removeListener<const EventType extends string, Data>(
 
 export function emit<const EventType extends string, Data>(
   type: EventType,
-  data: Data,
+  data: Data
 ): boolean {
   const listeners = eventListeners[type];
 
@@ -179,7 +180,7 @@ export class Wire {
 
   signal<const EventType extends string>(
     type: EventType,
-    data: Record<string, unknown>,
+    data: Record<string, unknown>
   ): Record<string, unknown> {
     const loggedEvent: Record<string, unknown> = { "->": type };
     const log = this.log;
@@ -200,6 +201,16 @@ export class Wire {
 
     return loggedEvent;
   }
+}
+
+export namespace Wire {
+  export import Message = WireMessage.Message;
+  export import Signal = WireMessage.Signal;
+  export import Trace = WireMessage.Trace;
+  export import Stream = WireMessage.Stream;
+  export import Result = WireMessage.Result;
+  export import StateChange = WireMessage.StateChange;
+  export import StateResult = WireMessage.StateResult;
 }
 
 function encodeTime(now: number, length: number): string {

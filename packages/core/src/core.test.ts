@@ -2,16 +2,20 @@ import { describe, expect, test } from "bun:test";
 import { Trace } from "@taskwish/wire";
 
 describe("TW", () => {
-  test("Trace serializes to its data payload", () => {
+  test("Trace serializes to its SSE payload and logs compactly", () => {
     const trace = new Trace("Worker::run", {
       input: { value: 42 },
     });
 
-    expect(trace.toJSON()).toEqual({
-      ">>": "Worker::run",
+    expect(trace.data).toEqual({
+      path: "Worker::run",
       input: { value: 42 },
     });
-    expect(JSON.parse(JSON.stringify(trace))).toEqual({
+    expect(JSON.parse(JSON.stringify(trace.data))).toEqual({
+      path: "Worker::run",
+      input: { value: 42 },
+    });
+    expect(trace.log).toEqual({
       ">>": "Worker::run",
       input: { value: 42 },
     });

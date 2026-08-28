@@ -3,6 +3,7 @@
 .scriptc/
 .bare/
 packages/example/cli
+packages/example/state/
 .cache
 .DS_Store
 .idea

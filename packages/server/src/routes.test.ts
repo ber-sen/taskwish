@@ -144,7 +144,7 @@ test("exports console config when the app is installed", async () => {
         action: "hello",
         label: "Hello",
         description: "Greet a person by name",
-        color: expect.stringMatching(/^hsl\(\d+ 85% 40%\)$/),
+        mode: "form",
         route: "/tw/Greeter/hello",
         source: "local",
         input: [
@@ -172,4 +172,30 @@ test("exports console config when the app is installed", async () => {
       },
     ],
   });
+});
+
+test("exports live actor state for the console command summary", async () => {
+  const routes = await createRoutes(
+    Promise.resolve({
+      actions: new Map(),
+      eventHandlers: new Map(),
+      states: new Map([
+        ["Todos", { state: { items: [{ id: "one", done: false }] } }],
+      ]),
+    }),
+    { apiKey, nodeName: "test-node", apps: [Console()] }
+  );
+
+  const route = routeMap(routes, "/tw/console/state");
+  const response = await route.GET!(
+    new Request("http://localhost/tw/console/state")
+  );
+
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual([
+    {
+      actor: "Todos",
+      state: { items: [{ id: "one", done: false }] },
+    },
+  ]);
 });

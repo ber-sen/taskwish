@@ -1,23 +1,25 @@
-import { eventData } from "./events";
-import type { Trace } from "./events";
+import { messageLogData } from "./messages";
+import type { Trace as TraceType } from "./messages";
 import { formatEvent } from "./format";
 import { Type } from "./symbols";
 
 export type LogFn = (event: Record<string, unknown>) => void;
-export type WireLogEvent = Trace | Record<string, unknown>;
+export type WireLogEvent = TraceType | Record<string, unknown>;
 export type DispatchFn = (event: unknown) => void;
 
 export type ConsoleLike = Pick<typeof console, "log" | "info" | "error">;
 
 export function dispatch(target: ConsoleLike): DispatchFn {
   return (event) => {
-    const formattedEvent = eventData(event);
+    const formattedEvent = messageLogData(event);
     if (
       formattedEvent !== null &&
       typeof formattedEvent === "object" &&
       ("==" in (formattedEvent as object) ||
         ">>" in (formattedEvent as object) ||
-        "->" in (formattedEvent as object))
+        "->" in (formattedEvent as object) ||
+        ":=" in (formattedEvent as object) ||
+        "=>" in (formattedEvent as object))
     ) {
       const e = formattedEvent as Record<string, unknown>;
       const out = formatEvent(formattedEvent as object);

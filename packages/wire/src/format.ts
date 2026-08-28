@@ -1,12 +1,8 @@
-import { eventData } from "./events";
+import { messageLogData } from "./messages";
 
 const MAX_LOG_DEPTH = 3;
 
-function fmt(
-  val: unknown,
-  seen: object[] = [],
-  depth: number = 0,
-): string {
+function fmt(val: unknown, seen: object[] = [], depth: number = 0): string {
   if (val === null) return "null";
   if (val instanceof Error) return fmt({ message: val.message });
   if (typeof val === "bigint") return `${val.toString()}n`;
@@ -51,18 +47,27 @@ function fmt(
 const BOLD_KEYS = new Set(["result", "error", "input"]);
 
 export function formatEvent(event: object): string {
-  const e = eventData(event) as Record<string, unknown>;
-  const kind = e[">>"] !== undefined ? ">>" : e["=="] !== undefined ? "==" : "->";
+  const e = messageLogData(event) as Record<string, unknown>;
+  const kind =
+    e[">>"] !== undefined
+      ? ">>"
+      : e["=="] !== undefined
+      ? "=="
+      : e["->"] !== undefined
+      ? "->"
+      : e[":="] !== undefined
+      ? ":="
+      : e["=>"] !== undefined
+      ? "=>"
+      : "->";
   const name = e[kind];
-  const entries = [
-    `\x1b[2m"${kind}": \x1b[22m"\x1b[1m${name}\x1b[22m"`,
-  ];
+  const entries = [`\x1b[2m"${kind}": \x1b[22m"\x1b[1m${name}\x1b[22m"`];
 
   for (const [k, v] of Object.entries(e)) {
     if (k === kind || v === undefined) continue;
 
     entries.push(
-      `${BOLD_KEYS.has(k) ? `\x1b[2m"${k}": \x1b[22m` : `"${k}": `}${fmt(v)}`,
+      `${BOLD_KEYS.has(k) ? `\x1b[2m"${k}": \x1b[22m` : `"${k}": `}${fmt(v)}`
     );
   }
 

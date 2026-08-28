@@ -1,5 +1,18 @@
-import { RawLoggedStreamTag, RawStreamTag, TW } from "@taskwish/core";
-import { Signal, Trace } from "@taskwish/wire";
+import {
+  RawLoggedStreamTag,
+  RawStreamTag,
+  statePayload,
+  TW,
+} from "@taskwish/core";
+import {
+  Message,
+  Result,
+  Signal,
+  StateChange,
+  StateResult,
+  Stream,
+  Trace,
+} from "@taskwish/wire";
 import {
   flattenRouteInput,
   parseActionInput,
@@ -14,17 +27,13 @@ type InvokeOptions = {
 };
 
 function inputFromSignal(signal: Signal<string, any>): unknown {
-  const input: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(signal.data)) {
-    if (key !== "->") input[key] = value;
-  }
-  return input;
+  return signal.data.data;
 }
 
 async function consumeAction(
   action: Action,
   args: unknown[],
-  registry: NodeRegistry,
+  registry: NodeRegistry
 ): Promise<unknown> {
   if (!action.stream) return action(...args);
 
@@ -39,23 +48,34 @@ async function consumeAction(
 
 function rawActionStream(
   action: Action,
-  args: unknown[],
+  args: unknown[]
 ): AsyncGenerator<unknown, unknown, unknown> | null {
   const raw =
-    (action as unknown as {
-      [RawLoggedStreamTag]?: (
-        ...args: unknown[]
-      ) => AsyncGenerator<unknown, unknown>;
-    })[RawLoggedStreamTag] ??
-    (action as unknown as {
-      [RawStreamTag]?: (...args: unknown[]) => AsyncGenerator<unknown, unknown>;
-    })[RawStreamTag] ?? action.stream;
+    (
+      action as unknown as {
+        [RawLoggedStreamTag]?: (
+          ...args: unknown[]
+        ) => AsyncGenerator<unknown, unknown>;
+      }
+    )[RawLoggedStreamTag] ??
+    (
+      action as unknown as {
+        [RawStreamTag]?: (
+          ...args: unknown[]
+        ) => AsyncGenerator<unknown, unknown>;
+      }
+    )[RawStreamTag] ??
+    action.stream;
 
   return raw ? raw(...args) : null;
 }
 
-function isStreamEvent(value: unknown): value is TW.Stream<unknown> {
-  return value instanceof TW.Stream;
+function isStreamEvent(value: unknown): value is Stream<unknown> {
+  return value instanceof Stream;
+}
+
+function isStateChangeEvent(value: unknown): value is StateChange {
+  return value instanceof StateChange;
 }
 
 function acceptsServerSentEvents(request: Request): boolean {
@@ -64,7 +84,7 @@ function acceptsServerSentEvents(request: Request): boolean {
       .get("Accept")
       ?.split(",")
       .some((value) =>
-        value.trim().toLowerCase().startsWith("text/event-stream"),
+        value.trim().toLowerCase().startsWith("text/event-stream")
       ) ?? false
   );
 }
@@ -86,30 +106,12 @@ function invokeOptionsFromRequest(request: Request): InvokeOptions {
   };
 }
 
-function ssePayload(event: string, data: unknown): Uint8Array {
-  const raw = JSON.stringify(data, serializeSseValue) ?? String(data);
-  const lines = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
-  const message =
-    [`event: ${event}`, ...lines.map((line) => `data: ${line}`), ""].join(
-      "\n",
-    ) + "\n";
-  return new TextEncoder().encode(message);
-}
-
-function serializeSseValue(_key: string, value: unknown): unknown {
-  if (value instanceof Error) {
-    return { message: value.message };
-  }
-
-  return value;
-}
-
 function responseFromActionStream(
   stream: AsyncGenerator<unknown, unknown, unknown>,
-  firstChunk: TW.Stream<unknown>,
-  registry: NodeRegistry,
+  firstChunk: Stream<unknown>,
+  registry: NodeRegistry
 ): Response {
-  let pending: TW.Stream<unknown> | null = firstChunk;
+  let pending: Stream<unknown> | null = firstChunk;
 
   return new Response(
     new ReadableStream({
@@ -139,14 +141,14 @@ function responseFromActionStream(
       async cancel() {
         await stream.return?.(undefined);
       },
-    }),
+    })
   );
 }
 
 function responseFromActionSseStream(
   stream: AsyncGenerator<unknown, unknown, unknown>,
   registry: NodeRegistry,
-  options: InvokeOptions,
+  options: InvokeOptions
 ): Response {
   return new Response(
     new ReadableStream({
@@ -156,36 +158,50 @@ function responseFromActionSseStream(
             const item = await stream.next();
             if (item.done) {
               if (item.value !== undefined) {
-                controller.enqueue(ssePayload("result", item.value));
+                const state = statePayload(item.value);
+                if (state) {
+                  const result = new StateResult(state.path, {
+                    value: state.value,
+                    ...(state.columns ? { columns: state.columns } : {}),
+                  });
+                  controller.enqueue(result.toSSE());
+                } else {
+                  const result = new Result(item.value);
+                  controller.enqueue(result.toSSE());
+                }
               }
               controller.close();
               return;
             }
 
-            if (item.value instanceof Signal) {
+            if (isStateChangeEvent(item.value)) {
+              controller.enqueue(item.value.toSSE());
+              return;
+            } else if (item.value instanceof Signal) {
               dispatchSignal(item.value, registry);
               if (options.includeWire) {
-                controller.enqueue(ssePayload("wire", item.value.data));
+                controller.enqueue(item.value.toSSE());
                 return;
               }
             } else if (item.value instanceof Trace) {
               if (options.includeWire) {
-                controller.enqueue(ssePayload("wire", item.value.data));
+                controller.enqueue(item.value.toSSE());
                 return;
               }
             } else if (isStreamEvent(item.value)) {
-              controller.enqueue(ssePayload("yield", item.value.data));
+              controller.enqueue(item.value.toSSE());
               return;
             } else {
-              controller.enqueue(ssePayload("yield", item.value));
+              const result = new Result(item.value);
+              controller.enqueue(result.toSSE());
               return;
             }
           }
         } catch (error) {
           controller.enqueue(
-            ssePayload("error", {
+            new Message("TW::Error", {
               error: error instanceof Error ? error.message : String(error),
-            }),
+            }).toSSE()
           );
           controller.close();
         }
@@ -199,7 +215,7 @@ function responseFromActionSseStream(
         "Cache-Control": "no-cache",
         "Content-Type": "text/event-stream; charset=utf-8",
       },
-    },
+    }
   );
 }
 
@@ -207,7 +223,7 @@ async function invokeAction(
   action: Action,
   args: unknown[],
   registry: NodeRegistry,
-  options: InvokeOptions,
+  options: InvokeOptions
 ): Promise<Response> {
   const stream = rawActionStream(action, args);
   if (!stream) return responseFrom(await action(...args));
@@ -231,9 +247,9 @@ async function invokeAction(
 
 function dispatchSignal(
   signal: Signal<string, any>,
-  registry: NodeRegistry,
+  registry: NodeRegistry
 ): void {
-  const handlers = registry.eventHandlers.get(signal.data["->"]) ?? [];
+  const handlers = registry.eventHandlers.get(signal.event) ?? [];
   const input = inputFromSignal(signal);
   for (const handler of handlers) {
     void consumeAction(handler, [input], registry).catch((error) => {
@@ -245,17 +261,22 @@ function dispatchSignal(
 export async function invoke(
   action: Action,
   request: Request,
-  registry: NodeRegistry,
+  registry: NodeRegistry
 ): Promise<Response> {
   const args = await parseActionInput(request);
-  return invokeAction(action, args, registry, invokeOptionsFromRequest(request));
+  return invokeAction(
+    action,
+    args,
+    registry,
+    invokeOptionsFromRequest(request)
+  );
 }
 
 export async function invokeRouteAction(
   action: Action,
   request: Request,
   registry: NodeRegistry,
-  route: RouteMeta,
+  route: RouteMeta
 ): Promise<Response> {
   const [, routePath] = route;
   const rawInput = await routeInputFromRequest(routePath, request);
@@ -263,6 +284,6 @@ export async function invokeRouteAction(
     action,
     [flattenRouteInput(rawInput)],
     registry,
-    invokeOptionsFromRequest(request),
+    invokeOptionsFromRequest(request)
   );
 }
