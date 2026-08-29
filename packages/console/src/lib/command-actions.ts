@@ -1,15 +1,11 @@
 import type { ConsoleAction } from "../types";
-import { uppercaseFirst } from "./console-text";
+import { sentenceFromIdentifier, uppercaseFirst } from "./console-text";
 
 function splitActionName(
   id: string,
 ): Pick<ConsoleAction, "actor" | "action" | "label"> {
   const [actor = "TaskWish", action = id] = id.split("::");
-  const label = action
-    .replace(/[_-]+/g, " ")
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/\s+/g, " ")
-    .trim();
+  const label = sentenceFromIdentifier(action);
 
   return { actor, action, label: label || action };
 }

@@ -4,6 +4,19 @@ import { $ } from "@taskwish/expr";
 import { consoleConfig } from "./server";
 
 describe("console config", () => {
+  test("formats action names as sentence case", () => {
+    const action = (() => undefined) as () => undefined;
+    const config = consoleConfig(
+      {
+        actions: new Map([["Todos::addTodo", action]]),
+        states: new Map(),
+      },
+      { nodeName: "Test", apiKey: "test", prefix: "/tw" },
+    );
+
+    expect(config.actions[0]!.label).toBe("Add todo");
+  });
+
   test("converts expression metadata to CEL before JSON transport", () => {
     const action = (() => undefined) as (() => undefined) &
       Record<symbol, unknown>;

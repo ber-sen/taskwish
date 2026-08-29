@@ -8,6 +8,7 @@ import type {
   ConsoleJsonSchema,
   ConsoleInputField,
 } from "./types";
+import { sentenceFromIdentifier } from "./lib/console-text";
 
 const TW_META = Symbol.for("TW.Meta");
 const TW_INPUT_SCHEMA = Symbol.for("TW.InputSchema");
@@ -95,14 +96,6 @@ function routePathForAction(prefix: string, actionName: string): string {
   return `${prefix}/${actor}/${action}`;
 }
 
-function humanize(value: string): string {
-  return value
-    .replace(/[_-]+/g, " ")
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function actionParts(actionName: string): {
   actor: string;
   action: string;
@@ -112,12 +105,8 @@ function actionParts(actionName: string): {
   return {
     actor,
     action,
-    label: humanize(action) || action,
+    label: sentenceFromIdentifier(action),
   };
-}
-
-function uppercaseFirst(value: string): string {
-  return value ? `${value[0]!.toUpperCase()}${value.slice(1)}` : value;
 }
 
 function isVisibleAction(action: ConsoleAction): boolean {
@@ -342,7 +331,7 @@ function describeAction(
     id: actionName,
     actor,
     action: chatAction ? "chat" : method,
-    label: chatAction ? "Chat" : uppercaseFirst(label),
+    label: chatAction ? "Chat" : label,
     mode: chatAction ? "chat" : "form",
     description: descriptionForMeta(meta),
     route: routePathForAction(routePrefix, actionName),
