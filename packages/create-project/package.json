@@ -30,10 +30,14 @@
     "templates"
   ],
   "scripts": {
-    "check": "tsc --noEmit",
-    "test": "bun test",
-    "build": "bun ../../scripts/build-package.ts && bun run build-cli",
+    "check": "bun run check-skill && bun run check-template-versions && tsc --noEmit",
+    "test": "bun run check-skill && bun run check-template-versions && bun test",
+    "build": "bun run sync-skill && bun run sync-template-versions && bun ../../scripts/build-package.ts && bun run build-cli",
     "build-cli": "bun build-cli.ts",
+    "check-skill": "bun sync-skill.ts --check",
+    "check-template-versions": "bun sync-template-versions.ts --check",
+    "sync-skill": "bun sync-skill.ts",
+    "sync-template-versions": "bun sync-template-versions.ts",
     "start": "bun cli.ts"
   },
   "type": "module",

@@ -13,5 +13,11 @@
     "customConditions": ["source"],
     "types": ["bun"]
   },
-  "include": ["src", "cli.ts", "build-cli.ts"]
+  "include": [
+    "src",
+    "cli.ts",
+    "build-cli.ts",
+    "sync-skill.ts",
+    "sync-template-versions.ts"
+  ]
 }

@@ -7,7 +7,7 @@ export default Actor("Say hello")
   .on(z.object({ language: z.string() }))
 
   .run(
-    Step("first step", function () {
+    Step("firstStep", function () {
       return this.actions.Slack.sendMessage({
         channel: "#general",
         message: this.input.language,

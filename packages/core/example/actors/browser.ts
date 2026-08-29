@@ -19,7 +19,7 @@ actor()
   .on("BrowserActor")
 
   .run(
-    Step("first step", function () {
+    Step("firstStep", function () {
       return this.actions.slack.sendMessage({
         channel: "#general",
         message: "Hello World",
@@ -33,7 +33,7 @@ export const { browse } = actor()
   .input({ name: "string" })
 
   .run(
-    Step("first step", function () {
+    Step("firstStep", function () {
       return this.actions.slack.sendMessage({
         channel: "#general",
         message: "Hello World",
@@ -54,7 +54,7 @@ export const { browse } = actor()
       Browser.Extract("news", "NewsItem[] <= 5")
     ),
 
-    Step("last step", function () {
+    Step("lastStep", function () {
       return this.NewsItem;
     })
   );

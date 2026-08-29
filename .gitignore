@@ -4,6 +4,7 @@
 .bare/
 packages/create-project/cli
 packages/create-project/state/
+packages/create-project/templates/*/state/
 .cache
 .DS_Store
 .idea

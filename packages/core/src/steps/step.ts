@@ -28,6 +28,63 @@ type ResolveReturn<H extends (...args: any) => any> = ResolveReturnValue<
 
 type IsAny<T> = 0 extends 1 & T ? true : false;
 
+type LowercaseLetter =
+  | "a"
+  | "b"
+  | "c"
+  | "d"
+  | "e"
+  | "f"
+  | "g"
+  | "h"
+  | "i"
+  | "j"
+  | "k"
+  | "l"
+  | "m"
+  | "n"
+  | "o"
+  | "p"
+  | "q"
+  | "r"
+  | "s"
+  | "t"
+  | "u"
+  | "v"
+  | "w"
+  | "x"
+  | "y"
+  | "z";
+
+type UppercaseLetter = Uppercase<LowercaseLetter>;
+type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+type StepNameCharacter = LowercaseLetter | UppercaseLetter | Digit;
+
+type ContainsOnlyStepNameCharacters<Value extends string> =
+  Value extends ""
+    ? true
+    : Value extends `${StepNameCharacter}${infer Rest}`
+      ? ContainsOnlyStepNameCharacters<Rest>
+      : false;
+
+type CamelCaseStepName<Value extends string> = string extends Value
+  ? Value
+  : Value extends `${LowercaseLetter}${infer Rest}`
+    ? ContainsOnlyStepNameCharacters<Rest> extends true
+      ? Value
+      : never
+    : never;
+
+type ValidStepName<Value> = Value extends readonly ["|>", infer PipeName]
+  ? PipeName extends string
+    ? CamelCaseStepName<PipeName> extends never
+      ? never
+      : Value
+    : never
+  : Value extends string
+    ? CamelCaseStepName<Value>
+    : never;
+
 type ResolveYields<H extends (...args: any) => any> = IsAny<
   ReturnType<H>
 > extends true
@@ -62,7 +119,7 @@ export function Step<
     ? PipeName
     : NameParm,
 >(
-  name: NameParm,
+  name: NameParm & ValidStepName<NameParm>,
   handler: Name extends keyof Ctx["step"]["map"] ? Params : Handler,
 ): {
   [TW.Step]: (ctx: Ctx) => {
@@ -116,7 +173,7 @@ export function Step<
     : never,
   A,
 >(
-  name: Name,
+  name: Name & ValidStepName<Name>,
   handler: [
     Name extends keyof Ctx["step"]["map"] ? Params : Handler,
     (
@@ -152,7 +209,7 @@ export function Step<
   A,
   B,
 >(
-  name: Name,
+  name: Name & ValidStepName<Name>,
   handler: [
     Name extends keyof Ctx["step"]["map"] ? Params : Handler,
     (
@@ -177,6 +234,12 @@ export function Step<
 
 export function Step(name?: unknown, handler?: unknown) {
   if (name === undefined || handler === undefined) return {} as never;
+  const stepName = Array.isArray(name) && name[0] === "|>" ? name[1] : name;
+  if (typeof stepName !== "string" || !/^[a-z][a-zA-Z0-9]*$/.test(stepName)) {
+    throw new Error(
+      `Step name "${String(stepName)}" must use lower camelCase.`,
+    );
+  }
   const fn = Array.isArray(handler) ? handler[0] : handler;
 
   return Object.assign(handler as any, {

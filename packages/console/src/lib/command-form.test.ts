@@ -1,6 +1,60 @@
 import { describe, expect, test } from "bun:test";
 
-import { streamActionResponse } from "./command-form";
+import {
+  fieldPlaceholder,
+  formDefaultValues,
+  listItemDefaultValue,
+  streamActionResponse,
+} from "./command-form";
+
+describe("command form values", () => {
+  test("uses examples only as placeholders", () => {
+    const field = {
+      name: "customerName",
+      example: "Ada Lovelace",
+      schema: { type: "string" },
+    };
+
+    expect(formDefaultValues([field])).toEqual({ customerName: "" });
+    expect(fieldPlaceholder(field)).toBe("Ada Lovelace");
+  });
+
+  test("preserves explicit defaults separately from examples", () => {
+    const field = {
+      name: "customerName",
+      example: "Ada Lovelace",
+      defaultValue: "Grace Hopper",
+      schema: { type: "string" },
+    };
+
+    expect(formDefaultValues([field])).toEqual({
+      customerName: "Grace Hopper",
+    });
+    expect(fieldPlaceholder(field)).toBe("Ada Lovelace");
+  });
+
+  test("does not use nested object examples as new list item values", () => {
+    const field = {
+      name: "customers",
+      example: [{ name: "Ada Lovelace" }],
+      schema: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+              examples: ["Ada Lovelace"],
+            },
+          },
+        },
+      },
+    };
+
+    expect(formDefaultValues([field])).toEqual({ customers: [] });
+    expect(listItemDefaultValue(field)).toEqual({ name: "" });
+  });
+});
 
 async function finalStreamResult(body: string) {
   const response = new Response(body, {

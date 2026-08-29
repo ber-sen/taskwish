@@ -8,7 +8,7 @@ export const { parallel } = actor()
   .input({ user: { model: "string" } })
 
   .run(
-    Step("first step", function () {
+    Step("firstStep", function () {
       return this.actions.slack.sendMessage({
         channel: "#general",
         message: "Hello World",
@@ -16,19 +16,19 @@ export const { parallel } = actor()
     }),
 
     Parallel(
-      Step("parallel first step", function () {
+      Step("parallelFirstStep", function () {
         return this.actions.slack.sendMessage({
           channel: "#general",
           message: "Hello World",
         });
       }),
 
-      Step("parallel last step", function () {
+      Step("parallelLastStep", function () {
         return this.firstStep.length;
       })
     ),
 
-    Step("last step", function () {
+    Step("lastStep", function () {
       return this.firstStep.length;
     })
   );

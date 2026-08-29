@@ -4,7 +4,7 @@ import { createInterface, type Interface } from "node:readline";
 
 import { CreateProject } from "./src/create-project";
 
-type TemplateName = "empty" | "todo" | "customer-support";
+type TemplateName = "empty" | "todo";
 
 type CliOptions = {
   projectName?: string;
@@ -21,18 +21,13 @@ const templates: Array<{
 }> = [
   {
     name: "empty",
-    label: "Empty",
-    description: "A minimal TaskWish actor ready for your first action",
+    label: "Greeter",
+    description: "One actor and action on a TaskWish server",
   },
   {
     name: "todo",
     label: "Todo",
-    description: "Todo and activity actors with stateful actions",
-  },
-  {
-    name: "customer-support",
-    label: "Customer support",
-    description: "Customers, tickets, and support actors working together",
+    description: "Todos and a Codex motivator connected by a custom event",
   },
 ];
 
@@ -88,7 +83,9 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
 
     if (missing.length > 0) {
       throw new Error(
-        `Missing ${missing.join(", ")}. Pass --yes to accept defaults or provide all options.`,
+        `Missing ${missing.join(
+          ", ",
+        )}. Pass --yes to accept defaults or provide all options.`,
       );
     }
   } else {
@@ -109,7 +106,10 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
 }
 
 async function promptForMissingOptions(options: CliOptions): Promise<void> {
-  const prompt = createInterface({ input: process.stdin, output: process.stdout });
+  const prompt = createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
 
   try {
     console.log("\nCreate a new TaskWish project\n");
@@ -144,13 +144,13 @@ async function askText(
   label: string,
   defaultValue: string,
 ): Promise<string> {
-  const answer = (await question(prompt, `${label} (${defaultValue}): `)).trim();
+  const answer = (
+    await question(prompt, `${label} (${defaultValue}): `)
+  ).trim();
   return answer || defaultValue;
 }
 
-async function askTemplate(
-  prompt: Interface,
-): Promise<TemplateName> {
+async function askTemplate(prompt: Interface): Promise<TemplateName> {
   console.log("Select a template:");
   templates.forEach((template, index) => {
     console.log(`  ${index + 1}. ${template.label} — ${template.description}`);
@@ -187,17 +187,11 @@ function question(prompt: Interface, message: string): Promise<string> {
 }
 
 function parseTemplate(value: string): TemplateName {
-  if (
-    value === "empty" ||
-    value === "todo" ||
-    value === "customer-support"
-  ) {
+  if (value === "empty" || value === "todo") {
     return value;
   }
 
-  throw new Error(
-    `Unknown template "${value}". Choose empty, todo, or customer-support.`,
-  );
+  throw new Error(`Unknown template "${value}". Choose empty, todo.`);
 }
 
 function readValue(args: string[], index: number, option: string): string {
@@ -212,7 +206,7 @@ function printHelp(): void {
 Create a fresh TypeScript TaskWish project.
 
 Options:
-  -t, --template <name>  Template: empty, todo, or customer-support
+  -t, --template <name>  Template: empty, todo
       --install          Install dependencies
       --no-install       Skip dependency installation
       --git              Initialize a git repository
@@ -228,6 +222,8 @@ Examples:
 }
 
 main().catch((error) => {
-  console.error(`\n${error instanceof Error ? error.message : String(error)}\n`);
+  console.error(
+    `\n${error instanceof Error ? error.message : String(error)}\n`,
+  );
   process.exit(1);
 });

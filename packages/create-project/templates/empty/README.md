@@ -1,6 +1,6 @@
-# Empty TaskWish project
+# TaskWish greeter
 
-An empty TypeScript project ready for your first TaskWish actors and actions.
+A minimal TypeScript project with a Greeter actor, TaskWish server, and Console.
 
 ```sh
 bun install

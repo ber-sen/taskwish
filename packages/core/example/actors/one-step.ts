@@ -8,7 +8,7 @@ const { myAction } = actor()
   .input({ name: "string" })
 
   .run(
-    Step("first step", function () {
+    Step("firstStep", function () {
       return this.actions.slack.sendMessage({
         channel: "#general",
         message: `Hello ${this.input.name}`,

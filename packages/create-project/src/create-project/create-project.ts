@@ -1,19 +1,13 @@
 import { spawn } from "node:child_process";
 import { copyFileSync, realpathSync } from "node:fs";
-import {
-  mkdir,
-  readFile,
-  readdir,
-  stat,
-  writeFile,
-} from "node:fs/promises";
+import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
 import { Step } from "taskwish";
 
 import { actor } from "./actor";
 
-export const TEMPLATE_NAMES = ["empty", "todo", "customer-support"] as const;
+export const TEMPLATE_NAMES = ["empty", "todo"] as const;
 
 export type TemplateName = (typeof TEMPLATE_NAMES)[number];
 
@@ -55,6 +49,8 @@ type TemplatePackageJson = {
   devDependencies: Record<string, string>;
 };
 
+type TemplateVersions = Record<string, string>;
+
 export const { createProject } = actor()
   .on("Command", "createProject")
 
@@ -92,8 +88,12 @@ async function scaffoldProject(
   await mkdir(directory, { recursive: true });
   const files = await copyTemplateDirectory(templateDirectory, directory);
   copyFileSync(options.skillPath, join(directory, "SKILL.md"));
-  files.push("SKILL.md");
-  await setProjectName(directory, projectName);
+  if (!files.includes("SKILL.md")) files.push("SKILL.md");
+  await setProjectPackageJson(
+    directory,
+    projectName,
+    await readTemplateVersions(options.templateDirectory),
+  );
 
   if (options.install) await runCommand(["bun", "install"], directory);
   if (options.git) await runCommand(["git", "init"], directory);
@@ -111,16 +111,12 @@ async function scaffoldProject(
 
 function parseTemplate(template: string | undefined): TemplateName {
   const selected = template ?? "empty";
-  if (
-    selected === "empty" ||
-    selected === "todo" ||
-    selected === "customer-support"
-  ) {
+  if (selected === "empty" || selected === "todo") {
     return selected;
   }
 
   throw new Error(
-    `Unknown template "${selected}". Choose empty, todo, or customer-support.`,
+    `Unknown template "${selected}". Choose empty, todo.`,
   );
 }
 
@@ -193,13 +189,7 @@ async function defaultSkillPath(): Promise<string> {
   const packageDirectory = dirname(resolvedEntrypoint);
   const candidates = [
     join(packageDirectory, "..", "skill", "SKILL.md"),
-    join(
-      packageDirectory,
-      "node_modules",
-      "@taskwish",
-      "skill",
-      "SKILL.md",
-    ),
+    join(packageDirectory, "node_modules", "@taskwish", "skill", "SKILL.md"),
   ];
 
   for (const candidate of candidates) {
@@ -232,6 +222,14 @@ async function copyTemplateDirectory(
   const copiedFiles: string[] = [];
 
   for (const entry of entries) {
+    if (
+      entry === "node_modules" ||
+      entry === "bun.lock" ||
+      (relativeDirectory === "" && entry === "state")
+    ) {
+      continue;
+    }
+
     const input = join(source, entry);
     const outputName = entry === "gitignore" ? ".gitignore" : entry;
     const output = join(destination, outputName);
@@ -256,9 +254,43 @@ async function copyTemplateDirectory(
   return copiedFiles;
 }
 
-async function setProjectName(
+async function readTemplateVersions(
+  templateDirectory: string,
+): Promise<TemplateVersions> {
+  const versionsPath = join(templateDirectory, "versions.json");
+  try {
+    return JSON.parse(await readFile(versionsPath, "utf8")) as TemplateVersions;
+  } catch (error) {
+    if (isMissingFileError(error)) {
+      throw new Error(
+        `Template dependency versions not found: ${versionsPath}`,
+      );
+    }
+    throw error;
+  }
+}
+
+function resolveWorkspaceVersions(
+  dependencies: Record<string, string>,
+  versions: TemplateVersions,
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(dependencies).map(([name, range]) => {
+      if (range !== "workspace:*") return [name, range];
+
+      const version = versions[name];
+      if (!version) {
+        throw new Error(`Template dependency version not found for ${name}.`);
+      }
+      return [name, `^${version}`];
+    }),
+  );
+}
+
+async function setProjectPackageJson(
   directory: string,
   projectName: string,
+  versions: TemplateVersions,
 ): Promise<void> {
   const packageJsonPath = join(directory, "package.json");
   const packageJson = JSON.parse(
@@ -266,7 +298,9 @@ async function setProjectName(
   ) as TemplatePackageJson;
 
   if (packageJson.name !== "taskwish-project") {
-    throw new Error(`Template package.json is missing its project name placeholder.`);
+    throw new Error(
+      `Template package.json is missing its project name placeholder.`,
+    );
   }
 
   await writeFile(
@@ -278,8 +312,14 @@ async function setProjectName(
         private: packageJson.private,
         type: packageJson.type,
         scripts: packageJson.scripts,
-        dependencies: packageJson.dependencies,
-        devDependencies: packageJson.devDependencies,
+        dependencies: resolveWorkspaceVersions(
+          packageJson.dependencies,
+          versions,
+        ),
+        devDependencies: resolveWorkspaceVersions(
+          packageJson.devDependencies,
+          versions,
+        ),
       },
       null,
       2,
