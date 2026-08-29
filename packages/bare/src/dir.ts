@@ -352,14 +352,21 @@ function printServiceIndex(
         throw new Error(`No action file found for ${actionName}.`);
       }
 
-      lines.push(`import { ${actionName} } from "${actionModule}";`);
+      lines.push(
+        `import { ${actionName}, ${actionName}Metadata } from "${actionModule}";`
+      );
     }
 
+    lines.push("");
+    lines.push(
+      `export { ${service.actionNames.flatMap((name) => [name, `${name}Metadata`]).join(", ")} };`
+    );
     lines.push("");
     lines.push(`export const ${service.serviceName} = {`);
     for (const [index, actionName] of service.actionNames.entries()) {
       const separator = index === service.actionNames.length - 1 ? "" : ",";
-      lines.push(`  ${actionName}${separator}`);
+      lines.push(`  ${actionName},`);
+      lines.push(`  ${actionName}Metadata${separator}`);
     }
     lines.push("};");
     lines.push("");

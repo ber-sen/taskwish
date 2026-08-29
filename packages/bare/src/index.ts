@@ -7,6 +7,7 @@ import type { MorphOptions } from "./types";
 export type { MorphOptions } from "./types";
 export { morphDir } from "./dir";
 export type { MorphDirOptions } from "./dir";
+export { morphEntrypoint } from "./entrypoint";
 
 export function morph(sourceText: string, options: MorphOptions = {}): string {
   const project = new Project({

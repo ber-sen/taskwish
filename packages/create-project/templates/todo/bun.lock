@@ -18,7 +18,7 @@
       "name": "@taskwish/create-project",
       "version": "0.0.2",
       "bin": {
-        "create-taskwish-project": "./cli",
+        "create-taskwish-project": "./dist/create-taskwish-project",
       },
       "dependencies": {
         "@taskwish/skill": "workspace:*",

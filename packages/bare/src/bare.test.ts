@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { describe, expect, test } from "bun:test";
 
-import { morph, morphDir } from ".";
+import { morph, morphDir, morphEntrypoint } from ".";
 
 function expectParts(output: string, parts: string[]) {
   for (const part of parts) {
@@ -13,8 +13,31 @@ function expectParts(output: string, parts: string[]) {
 }
 
 describe("morph", () => {
+  test("flattens Terminal.elicit calls in bare entrypoints", () => {
+    const output = morphEntrypoint(`
+import { Terminal } from "@taskwish/terminal";
+import { Scaffolder } from "./src/scaffolder";
+
+Terminal.elicit(Scaffolder.createProject, {
+  formatResult(result) {
+    return result.directory;
+  },
+});
+`);
+
+    expect(output).toContain(
+      'import { elicit } from "@taskwish/terminal";',
+    );
+    expect(output).toContain(
+      "elicit(Scaffolder.createProject, Scaffolder.createProjectMetadata, " +
+        '"taskwish", [], function (result)',
+    );
+    expect(output).not.toContain("Terminal.elicit");
+  });
+
   test("converts a TaskWish actor step chain to traced runners and service helpers", () => {
     const source = `import { Actor, Step } from "../../src";
+import { Logger } from "@taskwish/wire";
 
 const { actor } = Actor("MyActor");
 
@@ -36,7 +59,7 @@ export const { runSteps } = actor()
 export const { MyActor } = actor().service({ runSteps });
 `;
     expectParts(morph(source), [
-      `import { Wire } from "@taskwish/wire";`,
+      `import { Logger, Wire } from "@taskwish/wire";`,
       `interface RunStepsAction`,
       `type RunStepsScope = { wire: Wire };`,
       `type RunStepsScopePatch = { wire?: Wire };`,
@@ -52,6 +75,43 @@ export const { MyActor } = actor().service({ runSteps });
       `export const MyActor = {
   runSteps
 };`,
+    ]);
+  });
+
+  test("preserves action metadata and input schemas for runtime integrations", () => {
+    const source = `import { Actor, Step } from "../../src";
+
+const { actor } = Actor("Greeter");
+
+export const { greet } = actor()
+  .on("Command", "greet")
+
+  .input({ name: "string", "excited?": "boolean" })
+
+  .run(
+    Step("message", function () {
+      return \`Hello \${this.input.name}\`;
+    }),
+  )
+
+  .meta({
+    description: "Greet a person",
+    input: {
+      name: {
+        elicit: { label: "Name" },
+      },
+    },
+  });
+`;
+
+    expectParts(morph(source), [
+      `export const greetMetadata = {`,
+      `greet.__taskwish = greetMetadata`,
+      `name: "Greeter::greet"`,
+      `meta: {`,
+      `description: "Greet a person"`,
+      `elicit: { label: "Name" }`,
+      `inputSchema: { name: "string", "excited?": "boolean" }`,
     ]);
   });
 
@@ -594,6 +654,10 @@ export const { Greeter } = actor().service({ hello });
       join(root, "bare", "greeter", "hello.ts"),
       "utf8"
     );
+    const indexOutput = await readFile(
+      join(root, "bare", "greeter", "index.ts"),
+      "utf8"
+    );
 
     expect(
       output.startsWith(
@@ -602,6 +666,7 @@ export const { Greeter } = actor().service({ hello });
 import { Wire } from "@taskwish/wire";`
       )
     ).toBe(true);
+    expect(indexOutput).toContain("export { hello, helloMetadata };");
   });
 
   test("morphDir resolves listener input from imported service events", async () => {

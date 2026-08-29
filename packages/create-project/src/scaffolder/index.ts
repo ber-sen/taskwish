@@ -9,4 +9,4 @@ export {
   type TemplateName,
 } from "./create-project";
 
-export const { CreateProject } = actor().service({ createProject });
+export const { Scaffolder } = actor().service({ createProject });

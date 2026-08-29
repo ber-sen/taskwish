@@ -8,7 +8,7 @@ type PackageJson = {
   devDependencies?: Record<string, string>;
 };
 
-const packageDirectory = import.meta.dir;
+const packageDirectory = join(import.meta.dir, "..");
 const packagesDirectory = join(packageDirectory, "..");
 const templatesDirectory = join(packageDirectory, "templates");
 const manifestPath = join(templatesDirectory, "versions.json");

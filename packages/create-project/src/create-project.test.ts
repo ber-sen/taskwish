@@ -2,12 +2,14 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { TW } from "taskwish";
 
-import { CreateProject } from ".";
+import { Scaffolder } from ".";
 
 const temporaryDirectories: string[] = [];
 const templateDirectory = join(import.meta.dir, "../templates");
 const skillPath = join(import.meta.dir, "../../skill/SKILL.md");
+const projectSkillPath = join(".agents", "skills", "taskwish", "SKILL.md");
 
 afterEach(async () => {
   await Promise.all(
@@ -17,7 +19,13 @@ afterEach(async () => {
   );
 });
 
-describe("CreateProject.createProject", () => {
+describe("Scaffolder.createProject", () => {
+  test("uses the Scaffolder action namespace", () => {
+    expect(Scaffolder.createProject[TW.Name]).toBe(
+      "Scaffolder::createProject",
+    );
+  });
+
   test.each([
     [
       "empty",
@@ -39,7 +47,7 @@ describe("CreateProject.createProject", () => {
       const parent = await temporaryDirectory();
       const destination = join(parent, `My ${template} App`);
 
-      const result = await CreateProject.createProject({
+      const result = await Scaffolder.createProject({
         projectName: destination,
         template,
         install: false,
@@ -60,6 +68,10 @@ describe("CreateProject.createProject", () => {
       const templateSource = await readFile(join(destination, actionPath), "utf8");
       const entrypoint = await readFile(join(destination, "taskwish.ts"), "utf8");
       const canonicalSkill = await readFile(skillPath, "utf8");
+      const agentInstructions = await readFile(
+        join(destination, "AGENTS.md"),
+        "utf8",
+      );
 
       expect(packageJson.name).toBe(`my-${template}-app`);
       expect(packageJson.scripts.test).toBe("bun test");
@@ -81,10 +93,20 @@ describe("CreateProject.createProject", () => {
       expect(entrypoint).toContain("await Server(");
       expect(entrypoint).toContain("apps: [Console()]");
       expect(
-        await readFile(join(templateDirectory, template, "SKILL.md"), "utf8"),
+        await readFile(
+          join(templateDirectory, template, projectSkillPath),
+          "utf8",
+        ),
       ).toBe(canonicalSkill);
-      expect(await readFile(join(destination, "SKILL.md"), "utf8")).toBe(
+      expect(await readFile(join(destination, projectSkillPath), "utf8")).toBe(
         canonicalSkill,
+      );
+      await expect(
+        readFile(join(destination, "SKILL.md"), "utf8"),
+      ).rejects.toThrow();
+      expect(agentInstructions).toContain("This project uses TaskWish");
+      expect(agentInstructions).toContain(
+        "`.agents/skills/taskwish/SKILL.md`",
       );
       const expectedWorkspace = `workspace: [${actorNames.join(", ")}]`;
       expect(entrypoint).toContain(expectedWorkspace);
@@ -135,8 +157,11 @@ describe("CreateProject.createProject", () => {
       expect(result.files).not.toContain("bun.lock");
       expect(result.files.some((file) => file.startsWith("state/"))).toBe(false);
       expect(result.files).toContain("taskwish.ts");
-      expect(result.files).toContain("SKILL.md");
-      expect(result.files.filter((file) => file === "SKILL.md")).toHaveLength(1);
+      expect(result.files).toContain("AGENTS.md");
+      expect(result.files).toContain(projectSkillPath);
+      expect(
+        result.files.filter((file) => file === projectSkillPath),
+      ).toHaveLength(1);
       const actionFiles = result.files.filter(
         (file) =>
           file.startsWith("src/") &&
@@ -170,7 +195,7 @@ describe("CreateProject.createProject", () => {
     const parent = await temporaryDirectory();
     const destination = join(parent, "defaults");
 
-    const result = await CreateProject.createProject({
+    const result = await Scaffolder.createProject({
       projectName: destination,
       install: false,
       git: false,
@@ -186,7 +211,7 @@ describe("CreateProject.createProject", () => {
     await writeFile(join(destination, "keep.txt"), "do not overwrite");
 
     await expect(
-      CreateProject.createProject({
+      Scaffolder.createProject({
         projectName: destination,
         template: "empty",
         install: false,
@@ -204,7 +229,7 @@ describe("CreateProject.createProject", () => {
     const parent = await temporaryDirectory();
 
     await expect(
-      CreateProject.createProject({
+      Scaffolder.createProject({
         projectName: join(parent, "invalid"),
         template: "not-a-template",
         install: false,

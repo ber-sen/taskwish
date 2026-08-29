@@ -20,6 +20,8 @@ export type ActionSpec = {
   actionName: string;
   listenEventName: string | null;
   inputType: string | null;
+  inputSchemaText: string | null;
+  metaText: string | null;
   actorDeclaration: VariableStatement;
   declaration: VariableStatement;
   steps: StepSpec[];

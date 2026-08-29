@@ -4,6 +4,7 @@ import { mkdir, readdir, rm } from "node:fs/promises";
 import { basename, extname, join, resolve } from "node:path";
 
 import { morphDir } from "./dir";
+import { morphEntrypoint } from "./entrypoint";
 
 type CliOptions = {
   entrypoint: string;
@@ -131,6 +132,8 @@ async function copyEntrypoint(
   for (const serviceDir of serviceDirs) {
     source = rewriteEntrypointServiceImport(source, serviceDir);
   }
+
+  source = morphEntrypoint(source);
 
   await Bun.write(output, source);
 }

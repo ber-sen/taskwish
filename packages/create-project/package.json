@@ -7,6 +7,8 @@
   "author": "Bersen Pajaziti",
   "dependencies": {
     "@taskwish/skill": "workspace:*",
+    "@taskwish/terminal": "workspace:*",
+    "@taskwish/wire": "workspace:*",
     "taskwish": "^0.0.8"
   },
   "description": "Create a fresh TypeScript TaskWish project",
@@ -20,12 +22,11 @@
     }
   },
   "bin": {
-    "create-taskwish-project": "./cli"
+    "create-taskwish-project": "./dist/create-taskwish-project"
   },
   "main": "./dist/index.cjs",
   "types": "./dist/index.d.ts",
   "files": [
-    "cli",
     "dist",
     "templates"
   ],
@@ -33,12 +34,12 @@
     "check": "bun run check-skill && bun run check-template-versions && tsc --noEmit",
     "test": "bun run check-skill && bun run check-template-versions && bun test",
     "build": "bun run sync-skill && bun run sync-template-versions && bun ../../scripts/build-package.ts && bun run build-cli",
-    "build-cli": "bun build-cli.ts",
-    "check-skill": "bun sync-skill.ts --check",
-    "check-template-versions": "bun sync-template-versions.ts --check",
-    "sync-skill": "bun sync-skill.ts",
-    "sync-template-versions": "bun sync-template-versions.ts",
-    "start": "bun cli.ts"
+    "build-cli": "bun scripts/build-cli.ts",
+    "check-skill": "bun scripts/sync-skill.ts --check",
+    "check-template-versions": "bun scripts/sync-template-versions.ts --check",
+    "sync-skill": "bun scripts/sync-skill.ts",
+    "sync-template-versions": "bun scripts/sync-template-versions.ts",
+    "start": "bun create-taskwish-project.ts"
   },
   "type": "module",
   "devDependencies": {

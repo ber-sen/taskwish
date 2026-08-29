@@ -14,16 +14,46 @@ export function applyBareMetalReplacements(
 
   if (actions.length > 0) {
     const importLines: string[] = [];
+    const requiredImports = [
+      "Wire",
+      actions.some((action) => action.listenEventName !== null)
+        ? "addListener"
+        : null,
+    ].filter((value): value is string => value !== null);
+    const wireImport = sourceFile
+      .getImportDeclarations()
+      .find(
+        (importDeclaration) =>
+          importDeclaration.getModuleSpecifierValue() === "@taskwish/wire"
+      );
 
-    if (!hasPackageImport(sourceFile, "@taskwish/wire")) {
-      const imports = [
-        "Wire",
-        actions.some((action) => action.listenEventName !== null)
-          ? "addListener"
-          : null,
-      ].filter((value): value is string => value !== null);
+    if (!wireImport) {
+      importLines.push(
+        `import { ${requiredImports.join(", ")} } from "@taskwish/wire";`
+      );
+    } else {
+      const namedImports = wireImport.getNamedImports();
+      const existingNames = new Set(
+        namedImports.map((namedImport) => namedImport.getName())
+      );
+      const missingImports = requiredImports.filter(
+        (name) => !existingNames.has(name)
+      );
 
-      importLines.push(`import { ${imports.join(", ")} } from "@taskwish/wire";`);
+      if (missingImports.length > 0 && namedImports.length > 0) {
+        edits.push({
+          start: namedImports[0]!.getStart(),
+          end: namedImports.at(-1)!.getEnd(),
+          text: [
+            ...namedImports.map((namedImport) => namedImport.getText()),
+            ...missingImports,
+          ].join(", "),
+        });
+      } else if (missingImports.length > 0) {
+        importLines.push(
+          `import { ${missingImports.join(", ")} } from "@taskwish/wire";`
+        );
+      }
     }
 
     if (importLines.length > 0) {
@@ -81,18 +111,6 @@ function importInsertionPosition(
   }
 
   return position;
-}
-
-function hasPackageImport(
-  sourceFile: SourceFile,
-  packageName: string
-): boolean {
-  return sourceFile
-    .getImportDeclarations()
-    .some(
-      (importDeclaration) =>
-        importDeclaration.getModuleSpecifierValue() === packageName
-    );
 }
 
 function taskWishImportEdits(

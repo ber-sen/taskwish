@@ -15,9 +15,7 @@
   },
   "include": [
     "src",
-    "cli.ts",
-    "build-cli.ts",
-    "sync-skill.ts",
-    "sync-template-versions.ts"
+    "create-taskwish-project.ts",
+    "scripts"
   ]
 }
