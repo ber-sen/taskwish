@@ -42,7 +42,7 @@ type ActionSuggestionsReference<Actions> = {
           [Method in keyof Actions[Name] &
             string]: Actions[Name][Method] extends (...args: any[]) => any
             ? ActionSuggestionsObject<
-                `${Name}.${Method}`,
+                `${Capitalize<Name>}::${Method}`,
                 Actions[Name][Method]
               >
             : never;

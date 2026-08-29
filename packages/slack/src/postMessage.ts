@@ -1,4 +1,4 @@
-import { Step, type TW } from "@taskwish/core";
+import { Step } from "@taskwish/core";
 import { actor } from "./slack";
 
 import { SlackAPIClient } from "slack-web-api-client";
@@ -7,12 +7,7 @@ import type {
   ChatPostMessageResponse,
 } from "slack-web-api-client";
 
-type PostMessageAction = TW.Action<
-  "Slack::post_message",
-  (input: ChatPostMessageRequest) => Promise<ChatPostMessageResponse>
->;
-
-export const { postMessage }: { postMessage: PostMessageAction } = actor()
+export const { postMessage } = actor()
   .on("Command", "postMessage")
 
   .input<ChatPostMessageRequest>()

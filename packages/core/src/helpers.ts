@@ -86,36 +86,15 @@ export type ToCapitalCase<T extends string> = UppercaseFirst<
   CamelCaseHelper<T>
 >;
 
-type SnakeCaseTail<T extends string> = T extends `${infer First}${infer Rest}`
-  ? First extends Lowercase<First>
-    ? `${First}${SnakeCaseTail<Rest>}`
-    : `_${Lowercase<First>}${SnakeCaseTail<Rest>}`
-  : T;
-
-export type ToSnakeCase<T extends string> = T extends Uppercase<T>
-  ? Lowercase<T>
-  : T extends `${infer First}${infer Rest}`
-  ? `${Lowercase<First>}${SnakeCaseTail<Rest>}`
-  : T;
-
 export type QualifiedActionName<
   Service extends string,
   Name extends string
-> = `${Service}::${ToSnakeCase<Name>}`;
+> = `${Service}::${Name}`;
 
 export type QualifiedEventName<
   Actor extends string,
   Name extends string
 > = `${Actor}::${Name}`;
-
-export function toSnakeCaseName(name: string): string {
-  if (/^[A-Z0-9_]+$/.test(name)) return name.toLowerCase();
-  return name
-    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
-    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
-    .replace(/[-\s.]+/g, "_")
-    .toLowerCase();
-}
 
 export function toCamelCaseName(name: string): string {
   return name.replace(/[_-\s.]+([a-zA-Z0-9])/g, (_, ch: string) =>
@@ -124,7 +103,7 @@ export function toCamelCaseName(name: string): string {
 }
 
 export function qualifyActionName(service: string, name: string): string {
-  return `${service}::${toSnakeCaseName(name)}`;
+  return `${service}::${name}`;
 }
 
 export function qualifyEventName(actor: string, name: string): string {

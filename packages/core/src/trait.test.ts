@@ -16,10 +16,10 @@ describe("Trait", () => {
     expect((log as any)[TW.Name]).toBe("::log");
   });
 
-  test("method names follow action snake-case naming", () => {
+  test("method names preserve their original casing", () => {
     const { postMessage } = Trait<{ postMessage: () => string }>();
 
-    expect((postMessage as any)[TW.Name]).toBe("::post_message");
+    expect((postMessage as any)[TW.Name]).toBe("::postMessage");
   });
 
   test("each method carries null TW.Meta at runtime", () => {

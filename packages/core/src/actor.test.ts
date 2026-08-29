@@ -45,6 +45,24 @@ describe("Actor", () => {
     expect(await greet({ name: "World" })).toEqual("Hello World");
   });
 
+  test("Command — preserves the action name casing", () => {
+    const { markTodoDone } = Actor("Todos")
+      .actor()
+      .on("Command", "markTodoDone")
+      .run(function () {
+        return true;
+      });
+
+    type check = Expect<
+      Equal<
+        typeof markTodoDone,
+        TW.Action<"Todos::markTodoDone", () => Promise<boolean>, null>
+      >
+    >;
+
+    expect(markTodoDone[TW.Name]).toBe("Todos::markTodoDone");
+  });
+
   test("Command — ctx binds execution context", async () => {
     const controller = new AbortController();
 
@@ -252,7 +270,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "Broadcaster::on_new_message",
+          "Broadcaster::onNewMessage",
           (input: {
             sender: { name: string };
             content: string;
@@ -275,10 +293,10 @@ describe("Actor", () => {
 
     expect(eventDataList(yields)).toEqual([
       {
-        ">>": "Broadcaster::on_new_message",
+        ">>": "Broadcaster::onNewMessage",
         input: { sender: { name: "Alice" }, content: "hi", channel: "general" },
       },
-      { ">>": "Broadcaster::on_new_message", result: "HI" },
+      { ">>": "Broadcaster::onNewMessage", result: "HI" },
     ]);
   });
 
@@ -353,7 +371,7 @@ describe("Actor", () => {
     type T = typeof onBillerInvoicePaid;
     type check = Expect<
       T extends TW.Action<
-        `${string}::on_biller_invoice_paid`,
+        `${string}::onBillerInvoicePaid`,
         (input: { invoiceId: string; amount: number }) => Promise<string>,
         { event: "Biller::InvoicePaid" }
       >
@@ -559,7 +577,7 @@ describe("Actor", () => {
     type T = typeof onBillerInvoicePaid;
     type check = Expect<
       T extends TW.Action<
-        "Listener::on_biller_invoice_paid",
+        "Listener::onBillerInvoicePaid",
         (input: {
           invoiceId: string;
           amount: number;
@@ -599,7 +617,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "Agent::on_voice_call",
+          "Agent::onVoiceCall",
           (input: { callId: string; from: string }) => Promise<string>,
           { event: "VoiceCall" }
         >,
@@ -682,7 +700,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "Support::open_ticket",
+          "Support::openTicket",
           (input: { id: string }) => Promise<string>,
           { event: "TicketCreated"; command: "openTicket" }
         >,
@@ -691,7 +709,7 @@ describe("Actor", () => {
     >;
 
     expect(TicketCreated[TW.Meta]).toEqual({ command: "openTicket" });
-    expect(openTicket[TW.Name]).toEqual("Support::open_ticket");
+    expect(openTicket[TW.Name]).toEqual("Support::openTicket");
     expect(openTicket[TW.Meta]).toEqual({
       event: "TicketCreated",
       command: "openTicket",
@@ -715,7 +733,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "Scheduler::on_schedule",
+          "Scheduler::onSchedule",
           (input: { expression: string; at: Date }) => Promise<string>,
           null
         >,
@@ -789,7 +807,7 @@ describe("Actor", () => {
     type T = typeof getInvoices;
     type check = Expect<
       T extends TW.Action<
-        `${string}::get_invoices`,
+        `${string}::getInvoices`,
         (input: { id: string; page: string }) => Promise<{
           id: string;
           page: string;
@@ -864,11 +882,11 @@ describe("Actor", () => {
     }
     expect(eventDataList(directYields)).toEqual([
       {
-        ">>": "InvoiceProvider::get_invoices",
+        ">>": "InvoiceProvider::getInvoices",
         input: { id: "inv-42", page: "2" },
       },
       {
-        ">>": "InvoiceProvider::get_invoices",
+        ">>": "InvoiceProvider::getInvoices",
         result: { id: "inv-42", page: "2" },
       },
     ]);
@@ -890,7 +908,7 @@ describe("Actor", () => {
     type check = Expect<
       Equal<
         TW.Action<
-          "Mailer::on_new_email",
+          "Mailer::onNewEmail",
           (input: {
             from: string;
             to: string;
@@ -937,7 +955,7 @@ describe("Actor", () => {
 
     expect(eventDataList(yields)).toEqual([
       {
-        ">>": "MailAgent::on_new_email",
+        ">>": "MailAgent::onNewEmail",
         input: {
           from: "bob@example.com",
           to: "me@co.com",
@@ -946,11 +964,11 @@ describe("Actor", () => {
         },
       },
       {
-        ">>": "MailAgent::on_new_email.log",
+        ">>": "MailAgent::onNewEmail.log",
         result: "bob@example.com: Invoice",
       },
       {
-        ">>": "MailAgent::on_new_email",
+        ">>": "MailAgent::onNewEmail",
         result: "bob@example.com: Invoice",
       },
     ]);
@@ -1244,15 +1262,15 @@ describe("Actor", () => {
       formatEvent({ ">>": "Hub::ping.upper", result: "ABC" }),
       formatEvent({ ">>": "Hub::ping", result: "ABC" }),
       formatEvent({
-        ">>": "Hub::on_new_message",
+        ">>": "Hub::onNewMessage",
         input: {
           sender: { name: "Alice" },
           content: "hello",
           channel: "general",
         },
       }),
-      formatEvent({ ">>": "Hub::on_new_message.excerpt", result: "hel" }),
-      formatEvent({ ">>": "Hub::on_new_message", result: "hel" }),
+      formatEvent({ ">>": "Hub::onNewMessage.excerpt", result: "hel" }),
+      formatEvent({ ">>": "Hub::onNewMessage", result: "hel" }),
     ]);
   });
 
@@ -1344,7 +1362,7 @@ describe("Actor", () => {
               description: "Channel receiving the message",
               example: "#general",
               suggestions: {
-                $: "slack.conversationsList",
+                $: "Slack::conversationsList",
                 "*": ($) =>
                   $.channels.map((x) => ({
                     value: x.id,
@@ -1369,7 +1387,7 @@ describe("Actor", () => {
           types: string;
         };
       };
-      expect(channelMeta.suggestions.$).toBe("slack.conversationsList");
+      expect(channelMeta.suggestions.$).toBe("Slack::conversationsList");
       expect(channelMeta.suggestions["*"][ToCEL]()).toBe(
         'result.channels.map(x, {"value": x.id, "label": x.name})',
       );
@@ -1899,7 +1917,7 @@ describe("Actor", () => {
         });
 
       expect(await onVoiceCall(new ArrayBuffer(4))).toEqual(4);
-      expect((onVoiceCall as any)[TW.Name]).toBe("Assistant::on_voice_call");
+      expect((onVoiceCall as any)[TW.Name]).toBe("Assistant::onVoiceCall");
       expect((onVoiceCall as any)[TW.Meta]).toEqual({
         event: "::VoiceCall",
       });
@@ -1908,7 +1926,7 @@ describe("Actor", () => {
         Equal<
           typeof onVoiceCall,
           TW.Action<
-            "Assistant::on_voice_call",
+            "Assistant::onVoiceCall",
             (input: ArrayBuffer) => Promise<number>,
             { event: "::VoiceCall" }
           >
@@ -1957,13 +1975,13 @@ describe("Actor", () => {
         })
       ).toEqual(8);
       expect((onVoiceCallConnect as any)[TW.Name]).toBe(
-        "Assistant::on_voice_call_connect"
+        "Assistant::onVoiceCallConnect"
       );
       expect((onVoiceCallConnect as any)[TW.Meta]).toEqual({
         event: "::VoiceCallConnect",
       });
       expect((onVoiceCallStream as any)[TW.Name]).toBe(
-        "Assistant::on_voice_call_stream"
+        "Assistant::onVoiceCallStream"
       );
       expect((onVoiceCallStream as any)[TW.Meta]).toEqual({
         event: "::VoiceCallStream",
@@ -1973,7 +1991,7 @@ describe("Actor", () => {
         Equal<
           typeof onVoiceCallConnect,
           TW.Action<
-            "Assistant::on_voice_call_connect",
+            "Assistant::onVoiceCallConnect",
             (input: { sessionId: string }) => Promise<number>,
             { event: "::VoiceCallConnect" }
           >
@@ -1983,7 +2001,7 @@ describe("Actor", () => {
         Equal<
           typeof onVoiceCallStream,
           TW.Action<
-            "Assistant::on_voice_call_stream",
+            "Assistant::onVoiceCallStream",
             (input: {
               sessionId: string;
               chunk: ArrayBuffer;

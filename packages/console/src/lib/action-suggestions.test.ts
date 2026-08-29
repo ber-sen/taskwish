@@ -22,9 +22,8 @@ const idField: ConsoleInputField = {
   required: true,
   metadata: {
     suggestions: {
-      $: "todos.list",
-      "*":
-        'result.items.filter(todo, !todo.done).map(todo, {"value": todo.id, "label": todo.description})',
+      $: "Todos::list",
+      "*": 'result.items.filter(todo, !todo.done).map(todo, {"value": todo.id, "label": todo.description})',
     },
   },
 };
@@ -50,8 +49,8 @@ describe("action suggestions", () => {
             { id: "todo-3", description: "Review PR", done: false },
           ],
         },
-        selector
-      )
+        selector,
+      ),
     ).toEqual([
       { label: "Write docs", value: "todo-1" },
       { label: "Review PR", value: "todo-3" },
@@ -66,7 +65,7 @@ describe("action suggestions", () => {
         contentType: "text/event-stream",
         body: "",
         events: [{ type: "result", data: { items: [] } }],
-      })
+      }),
     ).toEqual({ items: [] });
   });
 
@@ -91,7 +90,7 @@ describe("action suggestions", () => {
           ],
         }),
         'result.map(todo, {"value": todo.id, "label": todo.description})',
-      )
+      ),
     ).toEqual([{ label: "Write docs", value: "todo-1" }]);
   });
 });

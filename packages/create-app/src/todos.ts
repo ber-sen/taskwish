@@ -61,9 +61,9 @@ export const { markTodoDone } = actor()
     input: {
       id: {
         suggestions: {
-          $: "todos.listTodos",
-          "*": (result) =>
-            result
+          $: "Todos::listTodos",
+          "*": (items) =>
+            items
               .filter((item) => !item.done)
               .map((item) => ({ value: item.id, label: item.description })),
         },

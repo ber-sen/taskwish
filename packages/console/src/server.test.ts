@@ -11,7 +11,7 @@ describe("console config", () => {
       input: {
         id: {
           suggestions: {
-            $: "todos.listTodos",
+            $: "Todos::listTodos",
             "*": $.filter((item) => !item.done).map((item) => ({
               value: item.id,
               label: item.description,
@@ -31,13 +31,15 @@ describe("console config", () => {
     const suggestions = config.actions[0]!.input[0]!.metadata!
       .suggestions as Record<string, unknown>;
 
+    expect(config.actions[0]!.id).toBe("Todos::markTodoDone");
+    expect(config.actions[0]!.route).toBe("/tw/Todos/mark-todo-done");
     expect(suggestions["*"]).toBe(
       'result.filter(item, !item.done).map(item, {"value": item.id, "label": item.description})',
     );
     expect(JSON.parse(JSON.stringify(config)).actions[0].input[0].metadata)
       .toEqual({
         suggestions: {
-          $: "todos.listTodos",
+          $: "Todos::listTodos",
           "*":
             'result.filter(item, !item.done).map(item, {"value": item.id, "label": item.description})',
         },

@@ -82,7 +82,17 @@ function json(status: number, body: unknown): Response {
 }
 
 function routePathForAction(prefix: string, actionName: string): string {
-  return `${prefix}/${actionName.replace("::", "/").replace(/_/g, "-")}`;
+  const separator = actionName.indexOf("::");
+  if (separator === -1) return `${prefix}/${actionName.replace(/_/g, "-")}`;
+
+  const actor = actionName.slice(0, separator);
+  const action = actionName
+    .slice(separator + 2)
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
+    .replace(/_/g, "-")
+    .toLowerCase();
+  return `${prefix}/${actor}/${action}`;
 }
 
 function humanize(value: string): string {
