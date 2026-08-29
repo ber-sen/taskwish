@@ -1,0 +1,17 @@
+{
+  "name": "@taskwish/skill",
+  "publishConfig": {
+    "access": "public"
+  },
+  "version": "0.0.1",
+  "description": "Codex skill for building TypeScript TaskWish projects",
+  "license": "Elastic-2.0",
+  "author": "Bersen Pajaziti",
+  "exports": {
+    ".": "./SKILL.md",
+    "./SKILL.md": "./SKILL.md"
+  },
+  "files": [
+    "SKILL.md"
+  ]
+}

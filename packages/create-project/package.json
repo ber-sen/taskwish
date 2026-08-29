@@ -1,0 +1,45 @@
+{
+  "name": "@taskwish/create-project",
+  "publishConfig": {
+    "access": "public"
+  },
+  "version": "0.0.2",
+  "author": "Bersen Pajaziti",
+  "dependencies": {
+    "@taskwish/skill": "workspace:*",
+    "taskwish": "^0.0.8"
+  },
+  "description": "Create a fresh TypeScript TaskWish project",
+  "license": "Elastic-2.0",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "bin": {
+    "create-taskwish-project": "./cli"
+  },
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "cli",
+    "dist",
+    "templates"
+  ],
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "bun test",
+    "build": "bun ../../scripts/build-package.ts && bun run build-cli",
+    "build-cli": "bun build-cli.ts",
+    "start": "bun cli.ts"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@taskwish/bare": "workspace:*",
+    "@types/bun": "^1.3.14",
+    "typescript": "^5.9.2"
+  }
+}
