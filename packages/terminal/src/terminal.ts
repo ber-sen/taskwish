@@ -40,19 +40,30 @@ export type TerminalElicitOptions<Output = unknown> = {
   stdout?: NodeJS.WritableStream;
   stderr?: NodeJS.WritableStream;
   interactive?: boolean;
+  /** Show the Taskwish mark before an interactive prompt. */
+  logo?: boolean;
+  /** Override automatic TTY color detection. */
+  color?: boolean;
   setExitCode?: (code: number) => void;
 };
 
 type AnyAction = (...args: any[]) => any;
 type ActionOutput<Action extends AnyAction> = Awaited<ReturnType<Action>>;
 
-type Field = {
+export type TerminalPromptField = {
   name: string;
   schema: unknown;
   optional: boolean;
   description?: string;
   elicit: NonNullable<ElicitInputMetadata["elicit"]>;
+};
+
+type Field = TerminalPromptField & {
   terminal: TerminalInputOptions;
+};
+
+export type TerminalPrompt = {
+  ask(message: string): Promise<string>;
 };
 
 type ParsedArguments = {
@@ -69,6 +80,29 @@ type BareActionMetadata = {
 const META = Symbol.for("TW.Meta");
 const INPUT_SCHEMA = Symbol.for("TW.InputSchema");
 const RAW_STREAM = Symbol.for("TW.RawStream");
+const TASKWISH_ACCENT = "38;2;0;223;163";
+
+export const TASKWISH_LOGO = `
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣾⣿⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣷⣄
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣾⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⣿⣿⠟
+⣠⣾⣷⣄⠀⠀⠀⣠⣾⣿⣿⣿⡿⠋⠀⢀⣴⣿⣦⡀⠀⠀⢀⣴⣿⣿⣿⣿⠟⠁⠀
+⠻⣿⣿⣿⣷⣤⣾⣿⣿⣿⡿⠋⠀⠀⠀⠙⢿⣿⣿⣿⣦⣴⣿⣿⣿⣿⠟⠁⠀⠀⠀
+⠀⠈⠻⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠙⢿⣿⣿⣿⣿⣿⠟⠁⠀⠀⠀⠀⠀
+⠀⠀⠀⠈⠻⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⢿⣿⠟
+`;
+
+const TASKWISH_LOGO_COLORED = `
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\x1b[1m⣠⣾⣿⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\x1b[38;5;244m⢀⣴⣿⣷⣄\x1b[0m
+⠀⠀⠀⠀⠀⠀⠀⠀⠀\x1b[1m⣠⣾⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀\x1b[38;5;244m⢀⣴⣿⣿⣿⣿⠟\x1b[0m
+\x1b[1m⣠⣾⣷⣄⠀⠀⠀⣠⣾⣿⣿⣿⡿⠋⠀\x1b[38;5;244m⢀⣴⣿⣦⡀⠀⠀\x1b[38;5;244m⢀⣴⣿⣿⣿⣿⠟⠁⠀\x1b[0m
+\x1b[1m⠻⣿⣿⣿⣷⣤⣾⣿⣿⣿⡿⠋⠀⠀⠀\x1b[38;5;244m⠙⢿⣿⣿⣿⣦\x1b[38;5;244m⣴⣿⣿⣿⣿⠟⠁⠀⠀⠀\x1b[0m
+⠀\x1b[1m⠈⠻⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀\x1b[38;5;244m⠙⢿⣿⣿⣿\x1b[38;5;244m⣿⣿⠟⠁⠀⠀⠀⠀⠀\x1b[0m
+⠀⠀⠀\x1b[1m⠈⠻⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\x1b[38;5;244m⠙⢿⣿\x1b[38;5;244m⠟\x1b[0m
+`;
+
+export function taskwishLogo(color = true): string {
+  return color ? TASKWISH_LOGO_COLORED : TASKWISH_LOGO;
+}
 
 async function terminalElicit<Action extends AnyAction>(
   action: Action,
@@ -88,6 +122,9 @@ async function terminalElicit<Action extends AnyAction>(
       options.setExitCode ?? ((code: number) => (process.exitCode = code));
 
     try {
+      if (options.logo ?? interactive) {
+        stdout.write(taskwishLogo(useColor(stdout, options.color)));
+      }
       const metadata = readMetadata(action);
       const fields = readFields(
         action,
@@ -105,6 +142,8 @@ async function terminalElicit<Action extends AnyAction>(
             fields,
             options.command ?? "command",
             options.examples ?? [],
+            stdout,
+            options.color,
           ),
         );
         return undefined;
@@ -113,7 +152,14 @@ async function terminalElicit<Action extends AnyAction>(
       if (parsed.yes) {
         applyDefaults(parsed.values, fields);
       } else if (interactive) {
-        await promptForValues(parsed.values, fields, metadata, stdin, stdout);
+        await promptForValues(
+          parsed.values,
+          fields,
+          metadata,
+          stdin,
+          stdout,
+          options.color,
+        );
       } else {
         const missing = fields.filter(
           (field) =>
@@ -131,62 +177,12 @@ async function terminalElicit<Action extends AnyAction>(
       printResult(result, options, stdout);
       return result;
     } catch (error) {
-      stderr.write(`\n■  ${errorMessage(error)}\n`);
+      stderr.write(
+        `\n${paint(stderr, 31, "■", options.color)}  ${errorMessage(error)}\n`,
+      );
       setExitCode(1);
       return undefined;
     }
-}
-
-/**
- * Static form emitted by Bare.
- *
- * @param {(...args: any[]) => any} action
- * @param {{
- *   name: string,
- *   meta: {
- *     description?: string,
- *     elicit?: { title?: string },
- *     input?: Record<string, {
- *       description?: string,
- *       example?: unknown,
- *       elicit?: {
- *         label?: string,
- *         default?: unknown,
- *         hidden?: boolean,
- *         options?: readonly {
- *           value: string | number | boolean,
- *           label: string,
- *           description?: string
- *         }[]
- *       }
- *     }>
- *   },
- *   inputSchema: Record<string, unknown>
- * }} metadata
- * @param {string} command
- * @param {readonly string[]} examples
- * @param {(result: any) => string} formatResult
- * @param {readonly string[]} positionalInputs
- * @param {readonly string[]} shortInputs
- */
-export async function elicit<Action extends AnyAction>(
-  action: Action,
-  metadata: BareActionMetadata,
-  command: string,
-  examples: readonly string[],
-  formatResult: (result: ActionOutput<Action>) => string,
-  positionalInputs: readonly string[],
-  shortInputs: readonly string[],
-): Promise<ActionOutput<Action> | undefined> {
-  return staticElicit(
-    action,
-    metadata,
-    command,
-    examples,
-    formatResult,
-    positionalInputs,
-    shortInputs,
-  );
 }
 
 export const Terminal = { elicit: terminalElicit };
@@ -261,71 +257,6 @@ function fieldsFromSchema(
         staticInputOptions(name, positionalInputs, shortInputs),
     };
   });
-}
-
-async function staticElicit<Action extends AnyAction>(
-  action: Action,
-  bare: BareActionMetadata,
-  command: string,
-  examples: readonly string[],
-  formatResult: (result: ActionOutput<Action>) => string,
-  positionalInputs: readonly string[],
-  shortInputs: readonly string[],
-): Promise<ActionOutput<Action> | undefined> {
-  try {
-    if (bare.meta === null || typeof bare.meta !== "object") {
-      throw new Error("Terminal.elicit requires bare action metadata.");
-    }
-    const schema =
-      bare.inputSchema !== null &&
-      typeof bare.inputSchema === "object" &&
-      !Array.isArray(bare.inputSchema)
-        ? (bare.inputSchema as Record<string, unknown>)
-        : {};
-    const metadata = bare.meta as ElicitActionMetadata;
-    const fields = fieldsFromSchema(
-      schema,
-      metadata,
-      {},
-      positionalInputs,
-      shortInputs,
-    );
-    const parsed = parseArguments(process.argv.slice(2), fields);
-
-    if (parsed.help) {
-      process.stdout.write(formatHelp(metadata, fields, command, examples));
-      return undefined;
-    }
-
-    if (parsed.yes) {
-      applyDefaults(parsed.values, fields);
-    } else if (process.stdin.isTTY && process.stdout.isTTY) {
-      await promptForStaticValues(parsed.values, fields, metadata);
-    } else {
-      const missing = fields.filter(
-        (field) =>
-          !field.elicit.hidden && parsed.values[field.name] === undefined,
-      );
-      if (missing.length > 0) {
-        throw new Error(
-          `Missing ${missing.map(fieldLabel).join(", ")}. Pass --yes to accept defaults or provide all options.`,
-        );
-      }
-    }
-
-    assertRequiredValues(parsed.values, fields);
-    const result = await action(...(fields.length === 0 ? [] : [parsed.values]));
-    const formatted = formatResult(result);
-    const lines = formatted.split("\n");
-    process.stdout.write(`│\n└  ${lines[0] ?? "Done"}\n`);
-    if (lines.length > 1) {
-      process.stdout.write(`${lines.slice(1).join("\n")}\n`);
-    }
-    return result;
-  } catch (error) {
-    process.stderr.write(`\n■  ${errorMessage(error)}\n`);
-    process.exit(1);
-  }
 }
 
 function staticInputOptions(
@@ -438,57 +369,61 @@ function applyDefaults(values: Record<string, unknown>, fields: Field[]): void {
 
 async function promptForValues(
   values: Record<string, unknown>,
-  fields: Field[],
+  fields: readonly TerminalPromptField[],
   metadata: ElicitActionMetadata,
   input: NodeJS.ReadableStream,
   output: NodeJS.WritableStream,
+  color?: boolean,
 ): Promise<void> {
   const prompt = new LinePrompt(input, output);
-  output.write(`\n┌  ${metadata.elicit?.title ?? metadata.description ?? "Run action"}\n`);
-
-  try {
-    for (const field of fields) {
-      if (field.elicit.hidden || values[field.name] !== undefined) continue;
-      values[field.name] = await promptField(prompt, field, output);
-    }
-  } finally {
-    prompt.close();
-  }
-}
-
-async function promptForStaticValues(
-  values: Record<string, unknown>,
-  fields: Field[],
-  metadata: ElicitActionMetadata,
-): Promise<void> {
-  const prompt = createInterface({ input: process.stdin, output: process.stdout });
-  process.stdout.write(
-    `\n┌  ${metadata.elicit?.title ?? metadata.description ?? "Run action"}\n`,
+  const title = metadata.elicit?.title ?? metadata.description ?? "Run action";
+  output.write(
+    `\n${paint(output, 30, "┌", color)}  ${paint(output, TASKWISH_ACCENT, title, color)}\n`,
   );
 
   try {
     for (const field of fields) {
       if (field.elicit.hidden || values[field.name] !== undefined) continue;
-      values[field.name] = await promptStaticField(prompt, field);
+      values[field.name] = await promptField(prompt, field, output, color);
     }
   } finally {
     prompt.close();
   }
 }
 
-async function promptStaticField(
-  prompt: Interface,
-  field: Field,
+/** Prompt a statically described set of fields without invoking an action. */
+export async function promptFields(
+  fields: readonly TerminalPromptField[],
+  values: Record<string, unknown>,
+  title = "Run action",
+): Promise<Record<string, unknown>> {
+  await promptForValues(
+    values,
+    fields,
+    { elicit: { title } },
+    process.stdin,
+    process.stdout,
+  );
+  return values;
+}
+
+export async function promptField(
+  prompt: TerminalPrompt,
+  field: TerminalPromptField,
+  output: NodeJS.WritableStream = process.stdout,
+  color?: boolean,
 ): Promise<unknown> {
   const options = field.elicit.options;
   const label = promptLabel(field);
 
   if (options && options.length > 0) {
-    process.stdout.write(`│\n◆  ${label}\n`);
+    output.write(
+      `${paint(output, 90, "│", color)}\n${paint(output, TASKWISH_ACCENT, "◆", color)}  ${label}\n`,
+    );
     options.forEach((option, index) => {
       const description = option.description ? ` — ${option.description}` : "";
-      process.stdout.write(
-        `│  ${index + 1}. ${option.label}${description}\n`,
+      output.write(
+        `${paint(output, 90, "│", color)}  ${paint(output, TASKWISH_ACCENT, `${index + 1}.`, color)} ${option.label}${paint(output, 90, description, color)}\n`,
       );
     });
     const defaultIndex = options.findIndex(
@@ -497,79 +432,16 @@ async function promptStaticField(
 
     while (true) {
       const answer = (
-        await askStatic(
-          prompt,
-          `│  Select${defaultIndex >= 0 ? ` [${defaultIndex + 1}]` : ""}: `,
+        await prompt.ask(
+          `${paint(output, 90, "│", color)}  Select${defaultIndex >= 0 ? ` ${paint(output, 90, `[${defaultIndex + 1}]`, color)}` : ""}: `,
         )
       ).trim();
       if (!answer && defaultIndex >= 0) return options[defaultIndex]!.value;
       const option = options[Number(answer) - 1];
       if (option) return option.value;
-      process.stdout.write(`│  Enter a number from 1 to ${options.length}.\n`);
-    }
-  }
-
-  if (isBooleanField(field)) {
-    const defaultValue = field.elicit.default;
-    const hint =
-      defaultValue === true ? "Y/n" : defaultValue === false ? "y/N" : "y/n";
-
-    while (true) {
-      const answer = (
-        await askStatic(prompt, `│\n◆  ${label} (${hint})\n│  `)
-      )
-        .trim()
-        .toLowerCase();
-      if (!answer && typeof defaultValue === "boolean") return defaultValue;
-      if (answer === "y" || answer === "yes") return true;
-      if (answer === "n" || answer === "no") return false;
-      process.stdout.write("│  Enter yes or no.\n");
-    }
-  }
-
-  while (true) {
-    const defaultValue = field.elicit.default;
-    const hint = defaultValue === undefined ? "" : ` (${String(defaultValue)})`;
-    const answer = (
-      await askStatic(prompt, `│\n◆  ${label}${hint}\n│  `)
-    ).trim();
-    if (answer) return parseValue(field, answer, label);
-    if (defaultValue !== undefined) return defaultValue;
-    if (field.optional) return undefined;
-    process.stdout.write("│  A value is required.\n");
-  }
-}
-
-function askStatic(prompt: Interface, message: string): Promise<string> {
-  return new Promise((resolve) => prompt.question(message, resolve));
-}
-
-async function promptField(
-  prompt: LinePrompt,
-  field: Field,
-  output: NodeJS.WritableStream,
-): Promise<unknown> {
-  const options = field.elicit.options;
-  const label = promptLabel(field);
-
-  if (options && options.length > 0) {
-    output.write(`│\n◆  ${label}\n`);
-    options.forEach((option, index) => {
-      const description = option.description ? ` — ${option.description}` : "";
-      output.write(`│  ${index + 1}. ${option.label}${description}\n`);
-    });
-    const defaultIndex = options.findIndex(
-      (option) => option.value === field.elicit.default,
-    );
-
-    while (true) {
-      const answer = (
-        await prompt.ask(`│  Select${defaultIndex >= 0 ? ` [${defaultIndex + 1}]` : ""}: `)
-      ).trim();
-      if (!answer && defaultIndex >= 0) return options[defaultIndex]!.value;
-      const option = options[Number(answer) - 1];
-      if (option) return option.value;
-      output.write(`│  Enter a number from 1 to ${options.length}.\n`);
+      output.write(
+        `${paint(output, 90, "│", color)}  ${paint(output, 33, `Enter a number from 1 to ${options.length}.`, color)}\n`,
+      );
     }
   }
 
@@ -578,28 +450,40 @@ async function promptField(
     const hint = defaultValue === true ? "Y/n" : defaultValue === false ? "y/N" : "y/n";
 
     while (true) {
-      const answer = (await prompt.ask(`│\n◆  ${label} (${hint})\n│  `))
+      const answer = (
+        await prompt.ask(
+          `${paint(output, 90, "│", color)}\n${paint(output, TASKWISH_ACCENT, "◆", color)}  ${label} ${paint(output, 90, `(${hint})`, color)}\n${paint(output, 90, "│", color)}  `,
+        )
+      )
         .trim()
         .toLowerCase();
       if (!answer && typeof defaultValue === "boolean") return defaultValue;
       if (answer === "y" || answer === "yes") return true;
       if (answer === "n" || answer === "no") return false;
-      output.write("│  Enter yes or no.\n");
+      output.write(
+        `${paint(output, 90, "│", color)}  ${paint(output, 33, "Enter yes or no.", color)}\n`,
+      );
     }
   }
 
   while (true) {
     const defaultValue = field.elicit.default;
     const hint = defaultValue === undefined ? "" : ` (${String(defaultValue)})`;
-    const answer = (await prompt.ask(`│\n◆  ${label}${hint}\n│  `)).trim();
+    const answer = (
+      await prompt.ask(
+        `${paint(output, 90, "│", color)}\n${paint(output, TASKWISH_ACCENT, "◆", color)}  ${label}${paint(output, 90, hint, color)}\n${paint(output, 90, "│", color)}  `,
+      )
+    ).trim();
     if (answer) return parseValue(field, answer, label);
     if (defaultValue !== undefined) return defaultValue;
     if (field.optional) return undefined;
-    output.write("│  A value is required.\n");
+    output.write(
+      `${paint(output, 90, "│", color)}  ${paint(output, 33, "A value is required.", color)}\n`,
+    );
   }
 }
 
-class LinePrompt {
+class LinePrompt implements TerminalPrompt {
   readonly #interface: Interface;
   readonly #lines: AsyncIterator<string>;
   readonly #output: NodeJS.WritableStream;
@@ -668,7 +552,9 @@ function printResult(
         ? result
         : JSON.stringify(result, null, 2);
   const [first = "Done", ...rest] = formatted.split("\n");
-  output.write(`│\n└  ${first}\n`);
+  output.write(
+    `${paint(output, 90, "│", options.color)}\n${paint(output, 30, "└", options.color)}  ${paint(output, TASKWISH_ACCENT, first, options.color)}\n`,
+  );
   if (rest.length > 0) output.write(`${rest.join("\n")}\n`);
 }
 
@@ -677,6 +563,8 @@ function formatHelp(
   fields: Field[],
   command: string,
   examples: readonly string[],
+  output: NodeJS.WritableStream,
+  color?: boolean,
 ): string {
   const positionals = fields
     .filter((field) => field.terminal.positional && !field.elicit.hidden)
@@ -689,19 +577,19 @@ function formatHelp(
     )
     .join(" ");
   const lines = [
-    `Usage: ${command}${usagePositionals ? ` ${usagePositionals}` : ""} [options]`,
+    `${paint(output, TASKWISH_ACCENT, "Usage:", color)} ${command}${usagePositionals ? ` ${usagePositionals}` : ""} [options]`,
     "",
     metadata.description ?? "Run a TaskWish action.",
   ];
 
   if (positionals.length > 0) {
-    lines.push("", "Arguments:");
+    lines.push("", paint(output, TASKWISH_ACCENT, "Arguments:", color));
     for (const field of positionals) {
       lines.push(`  ${kebabCase(field.name).padEnd(20)} ${field.description ?? fieldLabel(field)}`);
     }
   }
 
-  lines.push("", "Options:");
+  lines.push("", paint(output, TASKWISH_ACCENT, "Options:", color));
   for (const field of fields) {
     if (field.elicit.hidden || field.terminal.positional) continue;
     const long = `--${kebabCase(field.name)}`;
@@ -719,13 +607,21 @@ function formatHelp(
   );
 
   if (examples.length > 0) {
-    lines.push("", "Examples:", ...examples.map((example) => `  ${example}`));
+    lines.push(
+      "",
+      paint(output, TASKWISH_ACCENT, "Examples:", color),
+      ...examples.map((example) => `  ${paint(output, 90, example, color)}`),
+    );
   }
 
   return `${lines.join("\n")}\n`;
 }
 
-function parseValue(field: Field, value: string, source: string): unknown {
+function parseValue(
+  field: TerminalPromptField,
+  value: string,
+  source: string,
+): unknown {
   const options = field.elicit.options;
   if (options && options.length > 0) {
     const option = options.find((candidate) => String(candidate.value) === value);
@@ -746,7 +642,7 @@ function parseValue(field: Field, value: string, source: string): unknown {
   return value;
 }
 
-function isBooleanField(field: Field): boolean {
+function isBooleanField(field: TerminalPromptField): boolean {
   return (
     field.schema === "boolean" ||
     typeof field.elicit.default === "boolean" ||
@@ -755,7 +651,7 @@ function isBooleanField(field: Field): boolean {
   );
 }
 
-function isNumberField(field: Field): boolean {
+function isNumberField(field: TerminalPromptField): boolean {
   return field.schema === "number" || typeof field.elicit.default === "number";
 }
 
@@ -765,13 +661,13 @@ function positionalOrder(field: Field): number {
     : Number.MAX_SAFE_INTEGER;
 }
 
-function fieldLabel(field: Field): string {
+function fieldLabel(field: TerminalPromptField): string {
   return (field.elicit.label ?? field.description ?? humanize(field.name))
     .replace(/[?.!]$/, "")
     .toLowerCase();
 }
 
-function promptLabel(field: Field): string {
+function promptLabel(field: TerminalPromptField): string {
   const label = field.elicit.label ?? field.description ?? humanize(field.name);
   return isBooleanField(field) && !/[?.!]$/.test(label) ? `${label}?` : label;
 }
@@ -800,4 +696,22 @@ function readArgumentValue(
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function useColor(output: NodeJS.WritableStream, override?: boolean): boolean {
+  if (override !== undefined) return override;
+  if (process.env.NO_COLOR !== undefined || process.env.FORCE_COLOR === "0") {
+    return false;
+  }
+  return process.env.FORCE_COLOR !== undefined ||
+    Boolean((output as NodeJS.WriteStream).isTTY);
+}
+
+function paint(
+  output: NodeJS.WritableStream,
+  code: number | string,
+  value: string,
+  override?: boolean,
+): string {
+  return useColor(output, override) ? `\x1b[${code}m${value}\x1b[0m` : value;
 }

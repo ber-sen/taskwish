@@ -13,7 +13,7 @@ function expectParts(output: string, parts: string[]) {
 }
 
 describe("morph", () => {
-  test("flattens Terminal.elicit calls in bare entrypoints", () => {
+  test("inlines typed Terminal.elicit calls in bare entrypoints", () => {
     const output = morphEntrypoint(`
 import { Terminal } from "@taskwish/terminal";
 import { Scaffolder } from "./src/scaffolder";
@@ -23,16 +23,111 @@ Terminal.elicit(Scaffolder.createProject, {
     return result.directory;
   },
 });
-`);
+`, {
+      actions: [
+        {
+          expression: "Scaffolder.createProject",
+          inputType: "{ projectName: string }",
+          outputType: "{ directory: string }",
+          metadataText:
+            '{ name: "Scaffolder::createProject", meta: { description: "Create project" }, inputSchema: { projectName: "string" } }',
+        },
+      ],
+    });
 
     expect(output).toContain(
-      'import { elicit } from "@taskwish/terminal";',
+      'import { taskwishLogo } from "@taskwish/terminal";',
     );
     expect(output).toContain(
-      "elicit(Scaffolder.createProject, Scaffolder.createProjectMetadata, " +
-        '"taskwish", [], function (result)',
+      'import { createInterface } from "node:readline";',
+    );
+    expect(output).toContain(
+      "const __taskwishAction = Scaffolder.createProject;",
+    );
+    expect(output).toContain(
+      'const __taskwishMetadata = { name: "Scaffolder::createProject"',
+    );
+    expect(output).toContain(
+      "__TaskwishTerminalOptions<typeof __taskwishAction>",
     );
     expect(output).not.toContain("Terminal.elicit");
+    expect(output).not.toContain("import { elicit }");
+    expect(output).not.toContain("__taskwishElicit(");
+    expect(output).not.toContain("function __taskwishFields");
+    expect(output).toContain("const fields: __TaskwishTerminalField[] = [");
+    expect(output).toContain(
+      'const __TASKWISH_ACCENT = "38;2;0;223;163";',
+    );
+    expect(output).toContain('__taskwishPaint("30", "\\u250c")');
+    expect(output).toContain('__taskwishPaint("30", "\\u2514")');
+    expect(output).toContain('__taskwishPaint(__TASKWISH_ACCENT, first)');
+    expect(output).toContain("function __taskwishArguments");
+    expect(() =>
+      new Bun.Transpiler({ loader: "ts" }).transformSync(output),
+    ).not.toThrow();
+  });
+
+  test("leaves terminal imports alone when there is no elicit call to rewrite", () => {
+    const source = `import { Terminal } from "@taskwish/terminal";\nconsole.log(Terminal);\n`;
+    expect(morphEntrypoint(source)).toBe(source);
+  });
+
+  test("runs the emitted terminal flow without the Terminal framework API", async () => {
+    const root = await mkdtemp(join(tmpdir(), "taskwish-bare-terminal-"));
+    const terminalEntry = join(
+      import.meta.dir,
+      "..",
+      "..",
+      "terminal",
+      "src",
+      "index.ts",
+    );
+    const outputPath = join(root, "entrypoint.ts");
+    const output = morphEntrypoint(`
+import { Terminal } from "@taskwish/terminal";
+
+const Scaffolder = {
+  async createProject(input: Record<string, unknown>) {
+    return { name: input.projectName };
+  },
+};
+
+Terminal.elicit(Scaffolder.createProject, {
+  command: "create-project",
+  formatResult(result) { return "Created " + result.name; },
+});
+`, {
+      actions: [
+        {
+          expression: "Scaffolder.createProject",
+          inputType: "Record<string, unknown>",
+          outputType: "{ name: unknown }",
+          metadataText: `{
+            name: "Scaffolder::createProject",
+            meta: {
+              description: "Create project",
+              input: { projectName: { elicit: { default: "demo" } } },
+            },
+            inputSchema: { projectName: "string" },
+          }`,
+        },
+      ],
+    }).replace("@taskwish/terminal", terminalEntry);
+
+    await writeFile(outputPath, output);
+    const process = Bun.spawn(["bun", outputPath, "--yes"], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const [stdout, stderr, exitCode] = await Promise.all([
+      new Response(process.stdout).text(),
+      new Response(process.stderr).text(),
+      process.exited,
+    ]);
+
+    expect(exitCode).toBe(0);
+    expect(stderr).toBe("");
+    expect(stdout).toContain("└  Created demo");
   });
 
   test("converts a TaskWish actor step chain to traced runners and service helpers", () => {
@@ -76,6 +171,26 @@ export const { MyActor } = actor().service({ runSteps });
   runSteps
 };`,
     ]);
+  });
+
+  test("can omit action metadata when a CLI entrypoint owns it", () => {
+    const output = morph(
+      `import { Actor, Step } from "../../src";
+
+const { actor } = Actor("Greeter");
+
+export const { greet } = actor()
+  .on("Command", "greet")
+  .input({ name: "string" })
+  .run(Step("message", function () { return "Hello " + this.input.name; }))
+  .meta({ description: "Greet someone" });
+`,
+      { metadata: false },
+    );
+
+    expect(output).toContain("export const greet = async function greet");
+    expect(output).not.toContain("greetMetadata");
+    expect(output).not.toContain("__taskwish");
   });
 
   test("preserves action metadata and input schemas for runtime integrations", () => {
@@ -648,7 +763,10 @@ export const { Greeter } = actor().service({ hello });
 `
     );
 
-    await morphDir("./greeter", { baseDir: join(root, "src") });
+    const result = await morphDir("./greeter", {
+      baseDir: join(root, "src"),
+      metadata: false,
+    });
 
     const output = await readFile(
       join(root, "bare", "greeter", "hello.ts"),
@@ -666,7 +784,14 @@ export const { Greeter } = actor().service({ hello });
 import { Wire } from "@taskwish/wire";`
       )
     ).toBe(true);
-    expect(indexOutput).toContain("export { hello, helloMetadata };");
+    expect(indexOutput).toContain("export { hello };");
+    expect(indexOutput).not.toContain("helloMetadata");
+    expect(result.actions).toEqual([
+      expect.objectContaining({
+        expression: "Greeter.hello",
+        metadataText: expect.stringContaining('name: "Greeter::hello"'),
+      }),
+    ]);
   });
 
   test("morphDir resolves listener input from imported service events", async () => {

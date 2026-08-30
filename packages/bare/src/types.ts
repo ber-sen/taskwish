@@ -2,6 +2,8 @@ import type { CallExpression, Node, VariableStatement } from "ts-morph";
 
 export type MorphOptions = {
   filePath?: string;
+  /** Keep runtime metadata on generated actions. CLI entrypoints can inline it instead. */
+  metadata?: boolean;
 };
 
 export type ActorBinding = {

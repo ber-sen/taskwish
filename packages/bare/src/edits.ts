@@ -7,7 +7,8 @@ export function applyBareMetalReplacements(
   sourceText: string,
   sourceFile: SourceFile,
   actions: ActionSpec[],
-  services: ServiceSpec[] = []
+  services: ServiceSpec[] = [],
+  options: { metadata?: boolean } = {},
 ): string {
   const edits: TextEdit[] = taskWishImportEdits(sourceText, sourceFile);
   const actorDeclarations = new Set<import("ts-morph").VariableStatement>();
@@ -71,7 +72,7 @@ export function applyBareMetalReplacements(
     edits.push({
       start: action.declaration.getStart(),
       end: action.declaration.getEnd(),
-      text: printAction(action),
+      text: printAction(action, options),
     });
     actorDeclarations.add(action.actorDeclaration);
   }

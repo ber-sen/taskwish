@@ -405,7 +405,9 @@ async function runCommand(command: string[], cwd: string): Promise<void> {
   const exitCode = await new Promise<number>((resolve, reject) => {
     const child = spawn(executable, args, { cwd, stdio: "inherit" });
     child.on("error", reject);
-    child.on("exit", (code) => resolve(code ?? 1));
+    child.on("exit", (code: number | null) => {
+      resolve(code ?? 1);
+    });
   });
 
   if (exitCode !== 0) {

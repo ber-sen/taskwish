@@ -1,7 +1,10 @@
 import { indent } from "./syntax";
 import type { ActionSpec, ServiceSpec } from "./types";
 
-export function printAction(action: ActionSpec): string {
+export function printAction(
+  action: ActionSpec,
+  options: { metadata?: boolean } = {},
+): string {
   if (action.steps.length === 0) {
     throw new Error(
       `${action.actorName}.${action.actionName} has no Step calls.`
@@ -42,7 +45,9 @@ export function printAction(action: ActionSpec): string {
     `  (${parameterText}): Promise<${returnTypeText}>;`,
     `  run(${parameterText}): Promise<${returnTypeText}>;`,
     `  stream(${parameterText}): Promise<${returnTypeText}>;`,
-    `  __taskwish: { name: string; meta: unknown; inputSchema: unknown };`,
+    options.metadata === false
+      ? null
+      : `  __taskwish: { name: string; meta: unknown; inputSchema: unknown };`,
     `}`,
     ``,
     `type ${scopeTypeName} = { ${scopeTypeProperties.join("; ")} };`,
@@ -53,12 +58,16 @@ export function printAction(action: ActionSpec): string {
     `  } as ${interfaceName};`,
     `${action.actionName}.run = ${ctxName}().run;`,
     `${action.actionName}.stream = ${ctxName}().stream;`,
-    `export const ${action.actionName}Metadata = {`,
-    `  name: "${actionEventName}",`,
-    `  meta: ${action.metaText ?? "null"},`,
-    `  inputSchema: ${action.inputSchemaText ?? "undefined"}`,
-    `};`,
-    `${action.actionName}.__taskwish = ${action.actionName}Metadata;`,
+    ...(options.metadata === false
+      ? []
+      : [
+          `export const ${action.actionName}Metadata = {`,
+          `  name: "${actionEventName}",`,
+          `  meta: ${action.metaText ?? "null"},`,
+          `  inputSchema: ${action.inputSchemaText ?? "undefined"}`,
+          `};`,
+          `${action.actionName}.__taskwish = ${action.actionName}Metadata;`,
+        ]),
     ``,
     `function ${ctxName}(ctx: ${scopePatchTypeName} = {}) {`,
     `  const wire = new Wire();`,

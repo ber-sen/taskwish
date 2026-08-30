@@ -3,7 +3,7 @@ import { Readable, Writable } from "node:stream";
 
 import { TW } from "@taskwish/core";
 
-import { Terminal } from ".";
+import { TASKWISH_LOGO, Terminal } from ".";
 
 function terminalAction() {
   const calls: Record<string, unknown>[] = [];
@@ -107,6 +107,29 @@ describe("Terminal.elicit", () => {
     ]);
   });
 
+  test("shows the Taskwish logo and Clack-style colors in an interactive terminal", async () => {
+    const { action } = terminalAction();
+    const output = capture();
+
+    await Terminal.elicit(action, {
+      ...terminalOptions(),
+      args: ["--yes"],
+      interactive: true,
+      color: true,
+      stdout: output.stream,
+      stderr: output.stream,
+      setExitCode: () => {},
+    });
+
+    const plainOutput = output.text().replaceAll(/\x1b\[[0-9;]*m/g, "");
+    expect(plainOutput).toContain(TASKWISH_LOGO.trim().split("\n")[0]!);
+    expect(output.text()).toContain("\x1b[38;5;244m");
+    expect(output.text()).toContain("\x1b[30m└\x1b[0m");
+    expect(output.text()).toContain(
+      "\x1b[38;2;0;223;163mCreated my-app\x1b[0m",
+    );
+  });
+
   test("reads metadata from bare action output", async () => {
     const { action, calls } = terminalAction();
     const bareAction = Object.assign(
@@ -194,6 +217,7 @@ describe("Terminal.elicit", () => {
       args: [],
       stdin: Readable.from(["custom\n2\nn\n"]),
       interactive: true,
+      color: true,
       stdout: output.stream,
       stderr: output.stream,
       setExitCode: () => {},
@@ -202,9 +226,14 @@ describe("Terminal.elicit", () => {
     expect(calls).toEqual([
       { projectName: "custom", template: "todo", install: false },
     ]);
-    expect(output.text()).toContain("┌  Create project");
-    expect(output.text()).toContain("◆  Starter template");
-    expect(output.text()).toContain("Install dependencies? (Y/n)");
+    const text = output.text();
+    const plainText = text.replaceAll(/\x1b\[[0-9;]*m/g, "");
+    expect(plainText).toContain("┌  Create project");
+    expect(plainText).toContain("◆  Starter template");
+    expect(plainText).toContain("Install dependencies? (Y/n)");
+    expect(text).toContain("\x1b[30m┌\x1b[0m");
+    expect(text).toContain("\x1b[38;2;0;223;163m◆\x1b[0m");
+    expect(text).not.toContain("\x1b[36m");
   });
 
   test("reports invalid input without invoking the action", async () => {
