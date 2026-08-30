@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@taskwish/core": ["../core/src/index.ts"],
+      "@taskwish/expr": ["../expr/src/index.ts"],
+      "@taskwish/wire": ["../wire/src/index.ts"]
+    },
+    "types": ["bun"]
+  },
+  "include": ["src"]
+}

@@ -66,10 +66,23 @@ type MetaField =
 type MetaInputField = {
   description?: string;
   example?: unknown;
+  elicit?: {
+    label?: string;
+    default?: unknown;
+    hidden?: boolean;
+    options?: readonly {
+      value: string | number | boolean;
+      label: string;
+      description?: string;
+    }[];
+  };
 };
 
 export type ActionMeta<Ctx extends Record<any, any>, Output> = {
   description?: string;
+  elicit?: {
+    title?: string;
+  };
   input?: {
     [K in keyof ActionInput<Ctx>]?:
       | string

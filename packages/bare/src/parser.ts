@@ -37,11 +37,12 @@ export function findActionSpecs(sourceFile: SourceFile): ActionSpec[] {
     const initializer = declaration.getInitializer();
     if (!initializer) continue;
 
-    const runCall = unwrapExpression(initializer);
-    if (!Node.isCallExpression(runCall)) continue;
+    const actionCall = unwrapExpression(initializer);
+    if (!Node.isCallExpression(actionCall)) continue;
 
-    const chain = collectCallChain(runCall);
-    if (chain.at(-1)?.methodName !== "run") continue;
+    const chain = collectCallChain(actionCall);
+    const runCall = chain.find((call) => call.methodName === "run")?.call;
+    if (!runCall) continue;
 
     const root = chain[0]?.receiver;
     if (!root || !Node.isCallExpression(root)) continue;
@@ -53,6 +54,7 @@ export function findActionSpecs(sourceFile: SourceFile): ActionSpec[] {
     if (!actor) continue;
 
     const inputCall = chain.find((call) => call.methodName === "input");
+    const metaCall = chain.find((call) => call.methodName === "meta");
     const eventName = actionEventName(chain);
     const runArguments = runCall.getArguments();
     const steps = runArguments.map(parseStep).filter(isDefined);
@@ -82,6 +84,8 @@ export function findActionSpecs(sourceFile: SourceFile): ActionSpec[] {
             : `${actor.actorName}::${eventName}`
           : null,
       inputType,
+      inputSchemaText: inputCall?.call.getArguments()[0]?.getText() ?? null,
+      metaText: metaCall?.call.getArguments()[0]?.getText() ?? null,
       actorDeclaration: actor.declaration,
       declaration: variableStatement,
       steps,
@@ -309,11 +313,11 @@ function findPublicActionNames(
     const initializer = declaration.getInitializer();
     if (!initializer) continue;
 
-    const runCall = unwrapExpression(initializer);
-    if (!Node.isCallExpression(runCall)) continue;
+    const actionCall = unwrapExpression(initializer);
+    if (!Node.isCallExpression(actionCall)) continue;
 
-    const chain = collectCallChain(runCall);
-    if (chain.at(-1)?.methodName !== "run") continue;
+    const chain = collectCallChain(actionCall);
+    if (!chain.some((call) => call.methodName === "run")) continue;
 
     const root = chain[0]?.receiver;
     if (!root || !Node.isCallExpression(root)) continue;

@@ -20,7 +20,7 @@ export default {
         "neutral-background": "hsl(var(--neutral-background))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        "landing-primary": "#00EEAE",
+        "landing-primary": "#00DFA3",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",

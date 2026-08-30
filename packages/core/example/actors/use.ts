@@ -8,7 +8,7 @@ export const { sendMessage } = actor()
   .on("Command", "sendMessage")
 
   .run(
-    Step("First step", function () {
+    Step("firstStep", function () {
       // `postMessage` is typed from the dynamic import above — no hardcoding needed
       return this.actions.slack.postMessage({
         channel: "#general",

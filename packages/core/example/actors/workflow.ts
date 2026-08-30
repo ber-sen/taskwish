@@ -6,7 +6,7 @@ export default Actor("Simple")
   .use(import("../package"))
 
   .run(
-    Step("first step", function () {
+    Step("firstStep", function () {
       return this.actions.Slack.sendMessage({
         channel: "#general",
         message: "Hello World",
@@ -21,7 +21,7 @@ export default Actor("Simple")
         centerElement: true,
       }),
 
-      Step("mid d", function () {
+      Step("midD", function () {
         return this.actions.Slack.sendMessage({
           [Config]: "lorem@ipsum.com:workspace",
           channel: "#general",
@@ -35,7 +35,7 @@ export default Actor("Simple")
       }),
     ), // runs workflow on bg
 
-    Step("last step", function () {
+    Step("lastStep", function () {
       return this.firstStep.length;
     }),
   );

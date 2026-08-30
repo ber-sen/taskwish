@@ -9,7 +9,7 @@ export const { runSteps } = actor()
   .input({ message: "string" })
 
   .run(
-    Step("first step", function () {
+    Step("firstStep", function () {
       return this.actions.slack.sendMessage({
         "@": "work",
         channel: "#general",

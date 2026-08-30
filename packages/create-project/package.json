@@ -1,0 +1,50 @@
+{
+  "name": "@taskwish/create-project",
+  "publishConfig": {
+    "access": "public"
+  },
+  "version": "0.0.2",
+  "author": "Bersen Pajaziti",
+  "dependencies": {
+    "@taskwish/skill": "workspace:*",
+    "@taskwish/terminal": "workspace:*",
+    "@taskwish/wire": "workspace:*",
+    "taskwish": "^0.0.8"
+  },
+  "description": "Create a fresh TypeScript TaskWish project",
+  "license": "Elastic-2.0",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "bin": {
+    "create-taskwish-project": "./dist/create-taskwish-project"
+  },
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "scripts": {
+    "check": "bun run check-skill && bun run check-template-versions && tsc --noEmit",
+    "test": "bun run check-skill && bun run check-template-versions && bun test",
+    "build": "bun run sync-skill && bun run sync-template-versions && bun ../../scripts/build-package.ts && bun run build-cli",
+    "build-cli": "bun scripts/build-cli.ts",
+    "check-skill": "bun scripts/sync-skill.ts --check",
+    "check-template-versions": "bun scripts/sync-template-versions.ts --check",
+    "sync-skill": "bun scripts/sync-skill.ts",
+    "sync-template-versions": "bun scripts/sync-template-versions.ts",
+    "start": "bun create-taskwish-project.ts"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@taskwish/bare": "workspace:*",
+    "@types/bun": "^1.3.14",
+    "typescript": "^5.9.2"
+  }
+}

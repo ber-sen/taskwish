@@ -6,7 +6,7 @@ export const { sendMessage } = actor()
   .on("Command", "sendMessage")
 
   .run(
-    Step("First step", function () {
+    Step("firstStep", function () {
       return this.actions.slack.sendMessage({
         channel: "#general",
         message: `Hello World`,

@@ -15,7 +15,7 @@ export const { withOptions } = actor()
   .input({ message: "string" })
 
   .run(
-    Step("first step", [
+    Step("firstStep", [
       function () {
         return this.actions.slack.sendMessage({
           channel: "#general",
@@ -25,7 +25,7 @@ export const { withOptions } = actor()
       StepOptions.Retry(5),
     ]),
 
-    Step("last step", function () {
+    Step("lastStep", function () {
       return this.firstStep.length;
     })
   );

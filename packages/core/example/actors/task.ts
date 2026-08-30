@@ -8,7 +8,7 @@ export default Actor("Simple")
   .use(import("../package"))
 
   .run(
-    Step("first step", function () {
+    Step("firstStep", function () {
       return this.actions.Slack.sendMessage({
         channel: "#general",
         message: "Hello World",
@@ -16,7 +16,7 @@ export default Actor("Simple")
     }),
 
     Task(
-      Step("last step", function () {
+      Step("lastStep", function () {
         return this.firstStep.length;
       }),
 
@@ -30,13 +30,13 @@ export default Actor("Simple")
           id: "container-id",
           index: 2,
         }),
-        Step("end mob", function () {
+        Step("endMob", function () {
           return 3;
         }),
       ),
     ),
 
-    Step("last step", function () {
+    Step("lastStep", function () {
       return this.firstStep.length;
     }),
   );

@@ -4,6 +4,8 @@ import { mkdir, readdir, rm } from "node:fs/promises";
 import { basename, extname, join, resolve } from "node:path";
 
 import { morphDir } from "./dir";
+import type { BareEntrypointAction } from "./dir";
+import { morphEntrypoint } from "./entrypoint";
 
 type CliOptions = {
   entrypoint: string;
@@ -29,16 +31,21 @@ async function buildBarePackage(options: CliOptions): Promise<void> {
   await rm(options.outputDir, { recursive: true, force: true });
   await mkdir(options.outputDir, { recursive: true });
 
-  await Promise.all(
+  const results = await Promise.all(
     serviceDirs.map((serviceDir) =>
       morphDir(serviceDir, {
         baseDir: options.sourceDir,
         outputDir: join(options.outputDir, serviceDir),
+        metadata: false,
       }),
     ),
   );
 
-  await copyEntrypoint(options, serviceDirs);
+  await copyEntrypoint(
+    options,
+    serviceDirs,
+    results.flatMap((result) => result.actions),
+  );
 }
 
 function parseArgs(args: string[]): CliOptions {
@@ -123,6 +130,7 @@ async function findServiceDirs(sourceDir: string): Promise<string[]> {
 async function copyEntrypoint(
   options: CliOptions,
   serviceDirs: string[],
+  actions: BareEntrypointAction[],
 ): Promise<void> {
   const input = resolve(options.packageDir, options.entrypoint);
   const output = join(options.outputDir, basename(options.entrypoint));
@@ -131,6 +139,8 @@ async function copyEntrypoint(
   for (const serviceDir of serviceDirs) {
     source = rewriteEntrypointServiceImport(source, serviceDir);
   }
+
+  source = morphEntrypoint(source, { actions });
 
   await Bun.write(output, source);
 }

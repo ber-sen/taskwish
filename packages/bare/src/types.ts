@@ -2,6 +2,8 @@ import type { CallExpression, Node, VariableStatement } from "ts-morph";
 
 export type MorphOptions = {
   filePath?: string;
+  /** Keep runtime metadata on generated actions. CLI entrypoints can inline it instead. */
+  metadata?: boolean;
 };
 
 export type ActorBinding = {
@@ -20,6 +22,8 @@ export type ActionSpec = {
   actionName: string;
   listenEventName: string | null;
   inputType: string | null;
+  inputSchemaText: string | null;
+  metaText: string | null;
   actorDeclaration: VariableStatement;
   declaration: VariableStatement;
   steps: StepSpec[];

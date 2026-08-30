@@ -8,7 +8,7 @@ export const { loop } = actor()
   .input({ user: { name: "string", age: "number" } })
 
   .run(
-    Step("first step", function () {
+    Step("firstStep", function () {
       return this.actions.slack.sendMessage({
         channel: "#general",
         message: "Hello World",
@@ -25,7 +25,7 @@ export const { loop } = actor()
         });
       }),
 
-      Step("loop step 2", function () {
+      Step("loopStep2", function () {
         return this.actions.slack.sendMessage({
           channel: "#general",
           message: this.gt,
@@ -33,7 +33,7 @@ export const { loop } = actor()
       })
     ),
 
-    Step("last step", function () {
+    Step("lastStep", function () {
       return this.actions.slack.sendMessage({
         channel: "#general",
         message: "Hello World",

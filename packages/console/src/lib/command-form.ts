@@ -77,7 +77,6 @@ export function listItemDefaultValue(field: ConsoleInputField): ListItemValue {
 
 function rawFieldDefaultValue(field: ConsoleInputField): unknown {
   if (field.defaultValue !== undefined) return field.defaultValue;
-  if (field.example !== undefined) return field.example;
 
   const type = schemaType(field.schema);
   if (type === "boolean") return false;

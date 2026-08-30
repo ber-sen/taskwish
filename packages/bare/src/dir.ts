@@ -14,6 +14,17 @@ export type MorphDirOptions = MorphOptions & {
   outputDir?: string | URL;
 };
 
+export type BareEntrypointAction = {
+  expression: string;
+  inputType: string | null;
+  outputType: string;
+  metadataText: string;
+};
+
+export type MorphDirResult = {
+  actions: BareEntrypointAction[];
+};
+
 type SourceModule = {
   actionNames: string[];
   fileName: string;
@@ -35,7 +46,7 @@ type SourceSplit = {
 export async function morphDir(
   directory: string | URL,
   options: MorphDirOptions = {}
-): Promise<void> {
+): Promise<MorphDirResult> {
   const baseDir = defaultBaseDir(options.baseDir);
   const inputDirectory = resolvePath(directory, baseDir);
   const outputDirectory = options.outputDir
@@ -72,31 +83,59 @@ export async function morphDir(
   const actorSource = actorModules.map((module) => module.source).join("\n\n");
   const actorImports = new Set(importLines(actorSource));
 
-  await Promise.all(
-    actionModules.map((actionModule) => {
+  const generatedActions = await Promise.all(
+    actionModules.map(async (actionModule) => {
       const actionSource = splitDirectivePrologue(actionModule.source);
       const input = stripLocalImports(
         `${actorSource}\n\n${actionSource.body}`,
         localModules
       );
+      const sourceFile = createSourceFile(actionModule.filePath, input, project);
+      const actions = findActionSpecs(sourceFile);
       const output = actionSource.directivePrologue + stripActorImports(
         exportRunHelpers(
-          morphSource(input, {
-            ...options,
-            filePath: actionModule.filePath,
-          }, project)
+          applyBareMetalReplacements(
+            input,
+            sourceFile,
+            actions,
+            [],
+            options,
+          ).trim(),
         ),
         actorImports
       );
 
-      return writeOutput(join(outputDirectory, actionModule.fileName), output);
+      await writeOutput(join(outputDirectory, actionModule.fileName), output);
+      return actions;
     })
   );
 
   await writeOutput(
     join(outputDirectory, "index.ts"),
-    printServiceIndex(serviceIndexes, actionModules)
+    printServiceIndex(serviceIndexes, actionModules, options.metadata !== false)
   );
+
+  const actionsByName = new Map(
+    generatedActions
+      .flat()
+      .map((action) => [action.actionName, action] as const),
+  );
+
+  return {
+    actions: serviceIndexes.flatMap((service) =>
+      service.actionNames.map((actionName) => {
+        const action = actionsByName.get(actionName);
+        if (!action) throw new Error(`No generated action found for ${actionName}.`);
+
+        return {
+          expression: `${service.serviceName}.${actionName}`,
+          inputType: action.inputType,
+          outputType: action.steps.at(-1)!.propertyType,
+          metadataText: `{ name: "${action.actorName}::${action.actionName}", meta: ${action.metaText ?? "null"}, inputSchema: ${action.inputSchemaText ?? "undefined"} }`,
+        };
+      }),
+    ),
+  };
 }
 
 async function readSourceModules(directory: string): Promise<SourceModule[]> {
@@ -333,7 +372,8 @@ function exportRunHelpers(source: string): string {
 
 function printServiceIndex(
   services: ServiceIndex[],
-  actionModules: SourceModule[]
+  actionModules: SourceModule[],
+  metadata: boolean,
 ): string {
   const actionFiles = new Map<string, string>();
 
@@ -352,14 +392,29 @@ function printServiceIndex(
         throw new Error(`No action file found for ${actionName}.`);
       }
 
-      lines.push(`import { ${actionName} } from "${actionModule}";`);
+      lines.push(
+        metadata
+          ? `import { ${actionName}, ${actionName}Metadata } from "${actionModule}";`
+          : `import { ${actionName} } from "${actionModule}";`,
+      );
     }
 
+    lines.push("");
+    lines.push(
+      metadata
+        ? `export { ${service.actionNames.flatMap((name) => [name, `${name}Metadata`]).join(", ")} };`
+        : `export { ${service.actionNames.join(", ")} };`,
+    );
     lines.push("");
     lines.push(`export const ${service.serviceName} = {`);
     for (const [index, actionName] of service.actionNames.entries()) {
       const separator = index === service.actionNames.length - 1 ? "" : ",";
-      lines.push(`  ${actionName}${separator}`);
+      if (metadata) {
+        lines.push(`  ${actionName},`);
+        lines.push(`  ${actionName}Metadata${separator}`);
+      } else {
+        lines.push(`  ${actionName}${separator}`);
+      }
     }
     lines.push("};");
     lines.push("");
@@ -418,7 +473,13 @@ function morphSource(
     throw new Error("No TaskWish actor action chain found.");
   }
 
-  return applyBareMetalReplacements(sourceText, sourceFile, actions).trim();
+  return applyBareMetalReplacements(
+    sourceText,
+    sourceFile,
+    actions,
+    [],
+    options,
+  ).trim();
 }
 
 function defaultBaseDir(baseDir?: string | URL): string {

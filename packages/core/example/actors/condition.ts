@@ -13,12 +13,12 @@ export default Actor("Greeding")
     If(
       () => 2 > 1,
 
-      Step("get name", function () {
+      Step("getName", function () {
         return this.input.user.name;
       }),
     ),
     Else(
-      Step("get name", function () {
+      Step("getName", function () {
         return this.input.user.name;
       }),
     ),

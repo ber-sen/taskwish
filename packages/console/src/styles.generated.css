@@ -1248,7 +1248,7 @@
     background-color: hsl(var(--input));
   }
   .bg-landing-primary {
-    background-color: #00EEAE;
+    background-color: #00DFA3;
   }
   .bg-muted {
     background-color: hsl(var(--muted));
@@ -2295,7 +2295,7 @@
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   }
   .data-\[selected\=true\]\:ring-landing-primary[data-selected="true"] {
-    --tw-ring-color: #00EEAE;
+    --tw-ring-color: #00DFA3;
   }
   .data-\[side\=bottom\]\:translate-y-1[data-side="bottom"] {
     --tw-translate-y: var(--spacing);
