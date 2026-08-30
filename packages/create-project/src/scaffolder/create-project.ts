@@ -13,6 +13,8 @@ export const TEMPLATE_NAMES = ["empty", "todo"] as const;
 export type TemplateName = (typeof TEMPLATE_NAMES)[number];
 
 const PROJECT_SKILL_PATH = join(".agents", "skills", "taskwish", "SKILL.md");
+const EMBEDDED_TEMPLATE_FILES: Readonly<Record<string, string>> = {};
+const EMBEDDED_SKILL = "";
 const silentLogger = {
   log() {},
   info() {},
@@ -122,32 +124,44 @@ export const { createProject } = actor()
 
     Step("copyFiles", async function () {
       const project = this.resolveProject;
-      const files = await copyTemplateDirectory(
-        join(project.templateDirectory, project.template),
-        project.directory,
-      );
+      const files = project.templateDirectory
+        ? await copyTemplateDirectory(
+            join(project.templateDirectory, project.template),
+            project.directory,
+          )
+        : await copyEmbeddedTemplate(project.template, project.directory);
       const projectSkillPath = join(project.directory, PROJECT_SKILL_PATH);
       await mkdir(dirname(projectSkillPath), { recursive: true });
-      copyFileSync(project.skillPath, projectSkillPath);
+      if (project.skillPath) {
+        copyFileSync(project.skillPath, projectSkillPath);
+      } else {
+        await writeFile(projectSkillPath, EMBEDDED_SKILL);
+      }
       if (!files.includes(PROJECT_SKILL_PATH)) files.push(PROJECT_SKILL_PATH);
       return files;
     }),
 
     Step("configurePackage", async function () {
       const project = this.resolveProject;
-      const versionsPath = join(project.templateDirectory, "versions.json");
       let versions: TemplateVersions;
-      try {
-        versions = JSON.parse(
-          await readFile(versionsPath, "utf8"),
-        ) as TemplateVersions;
-      } catch (error) {
-        if (isMissingFileError(error)) {
-          throw new Error(
-            `Template dependency versions not found: ${versionsPath}`,
-          );
+      if (project.templateDirectory) {
+        const versionsPath = join(project.templateDirectory, "versions.json");
+        try {
+          versions = JSON.parse(
+            await readFile(versionsPath, "utf8"),
+          ) as TemplateVersions;
+        } catch (error) {
+          if (isMissingFileError(error)) {
+            throw new Error(
+              `Template dependency versions not found: ${versionsPath}`,
+            );
+          }
+          throw error;
         }
-        throw error;
+      } else {
+        versions = JSON.parse(
+          requiredEmbeddedFile("versions.json"),
+        ) as TemplateVersions;
       }
 
       const packageJsonPath = join(project.directory, "package.json");
@@ -270,7 +284,7 @@ function isMissingFileError(error: unknown): boolean {
   return error instanceof Error && "code" in error && error.code === "ENOENT";
 }
 
-async function defaultTemplateDirectory(): Promise<string> {
+async function defaultTemplateDirectory(): Promise<string | undefined> {
   const candidates = runtimeDirectories().flatMap((directory) => [
     join(directory, "templates"),
     join(directory, "..", "templates"),
@@ -285,10 +299,12 @@ async function defaultTemplateDirectory(): Promise<string> {
     }
   }
 
+  if (EMBEDDED_TEMPLATE_FILES["versions.json"] !== undefined) return undefined;
+
   throw new Error(`Cannot locate @taskwish/create-project templates.`);
 }
 
-async function defaultSkillPath(): Promise<string> {
+async function defaultSkillPath(): Promise<string | undefined> {
   const packageDirectories = runtimeDirectories().flatMap((directory) => [
     directory,
     dirname(directory),
@@ -306,6 +322,8 @@ async function defaultSkillPath(): Promise<string> {
       if (!isMissingFileError(error)) throw error;
     }
   }
+
+  if (EMBEDDED_SKILL) return undefined;
 
   throw new Error(`Cannot locate @taskwish/skill/SKILL.md.`);
 }
@@ -379,6 +397,42 @@ async function copyTemplateDirectory(
   }
 
   return copiedFiles;
+}
+
+async function copyEmbeddedTemplate(
+  template: string,
+  destination: string,
+): Promise<string[]> {
+  const prefix = `${template}/`;
+  const files = Object.entries(EMBEDDED_TEMPLATE_FILES).filter(([path]) =>
+    path.startsWith(prefix),
+  );
+
+  if (files.length === 0) {
+    throw new Error(`Embedded template not found: ${template}`);
+  }
+
+  const copiedFiles: string[] = [];
+  for (const [path, contents] of files) {
+    const segments = path.slice(prefix.length).split("/");
+    const lastIndex = segments.length - 1;
+    if (segments[lastIndex] === "gitignore") segments[lastIndex] = ".gitignore";
+    const outputRelative = join(...segments);
+    const output = join(destination, outputRelative);
+    await mkdir(dirname(output), { recursive: true });
+    await writeFile(output, contents);
+    copiedFiles.push(outputRelative);
+  }
+
+  return copiedFiles;
+}
+
+function requiredEmbeddedFile(path: string): string {
+  const contents = EMBEDDED_TEMPLATE_FILES[path];
+  if (contents === undefined) {
+    throw new Error(`Embedded template file not found: ${path}`);
+  }
+  return contents;
 }
 
 function resolveWorkspaceVersions(
