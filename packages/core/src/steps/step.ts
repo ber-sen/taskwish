@@ -1,10 +1,4 @@
-import {
-  Append,
-  FindInferTypeFilter,
-  PrettyScope,
-  RawEntry,
-  ResolveScope,
-} from "../helpers";
+import { FindInferTypeFilter, PrettyScope, RawEntry, ResolveScope } from "../helpers";
 import { TW } from "../core";
 
 type BranchLike = {
@@ -240,8 +234,6 @@ export function Step(name?: unknown, handler?: unknown) {
       `Step name "${String(stepName)}" must use lower camelCase.`,
     );
   }
-  const fn = Array.isArray(handler) ? handler[0] : handler;
-
   return Object.assign(handler as any, {
     [TW.Name]: name,
   }) as never;

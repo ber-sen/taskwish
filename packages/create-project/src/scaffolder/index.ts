@@ -1,4 +1,4 @@
-import { actor } from "./actor";
+import { actor } from "./scaffolder";
 import { createProject } from "./create-project";
 
 export {

@@ -166,13 +166,22 @@ type RegularAction<
   ): RegularAction<Ctx, Last, DeepWriteable<MergeMeta<Meta, NextMeta>>>;
 };
 
+type ContextWithLastScope<Ctx, Last> = Ctx extends Record<any, any>
+  ? Last extends { scope: infer Scope }
+    ? Omit<Ctx, "scope"> & { scope: Scope }
+    : Ctx
+  : Ctx;
+
 export interface ActionResultKind extends ResultKind {
   type: this["ctx"] extends Record<any, any>
     ? "name" extends keyof this["ctx"]
       ? this["ctx"]["name"] extends string
         ? FindInferTypeFilter<this["ctx"]["plugins"]> extends infer Filter
           ? [Filter] extends [never]
-            ? RegularAction<this["ctx"], this["last"]>
+            ? RegularAction<
+                ContextWithLastScope<this["ctx"], this["last"]>,
+                this["last"]
+              >
             : this["last"] extends { steps: infer S }
               ? this["ctx"] extends { name: infer N extends string }
                 ? Filter extends string

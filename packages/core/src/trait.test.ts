@@ -1,3 +1,5 @@
+/* oxlint-disable no-unused-vars -- Compile-time assertions intentionally have no runtime use. */
+
 import { describe, expect, test } from "bun:test";
 import { Expect, Equal } from "./helpers";
 import { TW } from "./core";
@@ -80,6 +82,7 @@ describe("Trait", () => {
 
     type check = Expect<Equal<typeof Logger, Trait<{ log: () => string }>>>;
 
+    // oxlint-disable-next-line no-constant-condition -- This block only verifies compile-time errors.
     if (false) {
       // @ts-expect-error options are only accepted by Trait(options)<T>()
       Logger({ service: "Logger" });

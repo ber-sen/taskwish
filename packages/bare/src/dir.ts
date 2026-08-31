@@ -457,31 +457,6 @@ function createSourceFile(filePath: string, source: string, project = createProj
   return project.createSourceFile(filePath, source, { overwrite: true });
 }
 
-function morphSource(
-  sourceText: string,
-  options: MorphOptions = {},
-  project?: Project
-): string {
-  const sourceFile = createSourceFile(
-    options.filePath ?? "actor.ts",
-    sourceText,
-    project
-  );
-  const actions = findActionSpecs(sourceFile);
-
-  if (actions.length === 0) {
-    throw new Error("No TaskWish actor action chain found.");
-  }
-
-  return applyBareMetalReplacements(
-    sourceText,
-    sourceFile,
-    actions,
-    [],
-    options,
-  ).trim();
-}
-
 function defaultBaseDir(baseDir?: string | URL): string {
   if (baseDir) return resolvePath(baseDir, process.cwd());
 

@@ -1,4 +1,4 @@
-import { actor } from "./actor";
+import { actor } from "./todos";
 import { addTodo } from "./add-todo";
 import { completeTodo } from "./complete-todo";
 import { listTodos } from "./list-todos";

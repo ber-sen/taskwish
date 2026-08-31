@@ -123,7 +123,7 @@ async function verifyRelocatedExecutable(executable: string): Promise<void> {
     await copyFile(executable, relocatedExecutable);
     await chmod(relocatedExecutable, (await stat(executable)).mode);
 
-    for (const template of ["empty", "todo"]) {
+    for (const template of ["empty", "todo", "agent-loops"]) {
       const projectName = `generated-${template}-project`;
       const project = join(directory, projectName);
       await Bun.$`${relocatedExecutable} ${project} --template ${template} --no-install --no-git --yes`.quiet();

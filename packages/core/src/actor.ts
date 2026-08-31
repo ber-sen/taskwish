@@ -390,14 +390,7 @@ export interface Behavior<Ctx extends Record<any, any>> {
   on<
     const Method extends "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
     const Path extends string,
-    const Schema,
-    I = Pretty<
-      { path: string } & (Schema extends { params: infer P }
-        ? { params: InferSchema<P> }
-        : {}) &
-        (Schema extends { query: infer Q } ? { query: InferSchema<Q> } : {}) &
-        (Schema extends { body: infer B } ? { body: InferSchema<B> } : {})
-    >
+    const Schema
   >(
     behavior: Method,
     path: Path,
@@ -567,7 +560,7 @@ function makeBehaviorMod(
   if (behavior === "Schedule") {
     return (args) => ({
       args: [
-        { expression: config, ...((args[0] as Record<string, unknown>) ?? {}) },
+        { expression: config, ...(args[0] as Record<string, unknown>) },
       ],
       scope: {},
     });
@@ -951,7 +944,7 @@ function createBehavior(
                 ...(traitMeta !== null ? { trait: traitMeta } : {}),
                 ...(eventMeta !== null ? { event: eventMeta } : {}),
                 ...(eventCommand !== null ? { command: eventCommand } : {}),
-                ...(actionMeta ?? {}),
+                ...actionMeta,
               }
             : null;
         const action = Object.assign(consume, {
@@ -968,7 +961,7 @@ function createBehavior(
           [actionName]: action,
           meta(meta: Record<string, unknown>) {
             actionMeta = {
-              ...(actionMeta ?? {}),
+              ...actionMeta,
               ...resolveMetaExpressionBuilders(meta),
             };
             action[TW.Meta] = resolveMeta();
@@ -993,7 +986,7 @@ function createBehavior(
               ? (actionMeta.stateCommands as Record<string, unknown>)
               : {};
           actionMeta = {
-            ...(actionMeta ?? {}),
+            ...actionMeta,
             stateCommands: {
               ...currentCommands,
               [alias]: commands,

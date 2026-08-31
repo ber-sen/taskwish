@@ -1,3 +1,5 @@
+/* oxlint-disable no-unused-vars -- Compile-time assertions intentionally have no runtime use. */
+
 import { describe, test } from "bun:test";
 import { Expect, Equal } from "./helpers";
 import { TW } from "./core";
