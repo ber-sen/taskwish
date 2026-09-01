@@ -134,6 +134,7 @@ export async function Server(
     apiKey,
     nodeName: name,
     apps: config.apps,
+    mcp: config.mcp,
   });
 
   const server = registerServerForShutdown(

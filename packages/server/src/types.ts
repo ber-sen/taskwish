@@ -7,7 +7,23 @@ export type Action = ((...args: unknown[]) => unknown) & {
   stream?: (...args: unknown[]) => AsyncGenerator<unknown, unknown, unknown>;
   [TW.Name]?: string;
   [TW.Meta]?: unknown;
+  [TW.InputSchema]?: unknown;
 };
+
+export type McpToolSelector = string | Action;
+
+export interface McpEndpointConfig {
+  /** URL that serves this MCP tool collection. Defaults to `/actor`. */
+  path?: string;
+  /** Actions to expose. Omit this to expose every registered action. */
+  tools?: readonly McpToolSelector[];
+}
+
+export type McpConfig =
+  | boolean
+  | string
+  | McpEndpointConfig
+  | readonly McpEndpointConfig[];
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
@@ -37,6 +53,8 @@ export interface NodeApp {
 export interface NodeConfig {
   workspace?: readonly ServiceReference[];
   apps?: readonly NodeApp[];
+  /** MCP endpoints. Enabled at `/actor` by default; set to `false` to disable. */
+  mcp?: McpConfig;
   apiKey?: string;
   port?: number;
   hostname?: string;

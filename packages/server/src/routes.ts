@@ -1,5 +1,6 @@
 import { TW } from "@taskwish/core";
 import { invoke, invokeRouteAction } from "./invoke";
+import { createMcpRoutes } from "./mcp";
 import { matchPathParams } from "./request";
 import { errorResponse, json } from "./response";
 import type {
@@ -10,6 +11,7 @@ import type {
   NodeRouteHandler,
   NodeRoutes,
   NodeApp,
+  McpConfig,
   RouteMeta,
 } from "./types";
 import { generateApiKey, isRecord } from "./utils";
@@ -107,12 +109,22 @@ export async function createRoutes(
     apiKey: string;
     nodeName?: string;
     apps?: readonly NodeApp[];
+    mcp?: McpConfig;
   },
 ): Promise<NodeRoutes> {
   const routePrefix = normalizePrefix(options.prefix ?? "/tw");
   const nodeName = options.nodeName ?? "TaskWish";
   const services = await registry;
   const routes: NodeRoutes = {};
+
+  Object.assign(
+    routes,
+    createMcpRoutes(services, {
+      apiKey: options.apiKey,
+      nodeName,
+      mcp: options.mcp,
+    }),
+  );
 
   for (const app of options.apps ?? []) {
     Object.assign(
@@ -168,6 +180,7 @@ export function createFetchHandler(
     apiKey?: string;
     nodeName?: string;
     apps?: readonly NodeApp[];
+    mcp?: McpConfig;
   } = {},
 ): (request: Request) => Promise<Response> {
   const apiKey = options.apiKey ?? generateApiKey();
@@ -176,6 +189,7 @@ export function createFetchHandler(
     apiKey,
     nodeName: options.nodeName,
     apps: options.apps,
+    mcp: options.mcp,
   });
   const routePrefix = normalizePrefix(options.prefix ?? "/tw");
 
