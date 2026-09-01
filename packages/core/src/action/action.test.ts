@@ -8,7 +8,13 @@ import { Actor } from "../actor";
 import { TW } from "../core";
 import { Step } from "../steps";
 import { InferType } from "../use";
-import { Logger, Trace, formatEvent, messageLogData } from "@taskwish/wire";
+import {
+  Logger,
+  Message,
+  Trace,
+  formatEvent,
+  messageLogData,
+} from "@taskwish/wire";
 import { Event } from "../event";
 
 const eventDataList = (values: unknown[]) => values.map(messageLogData);
@@ -1355,5 +1361,42 @@ describe("Action", () => {
     while (!item.done) item = await stream.next();
 
     expect(item.value).toBe(8);
+  });
+
+  test("action observers publish events while an awaited promise is running", async () => {
+    let publish: ((event: unknown) => void) | undefined;
+    let finish: ((value: string) => void) | undefined;
+    let disposed = false;
+    const observer = {
+      [TW.ActionObserver](_actionName: string, emit: (event: unknown) => void) {
+        publish = emit;
+        return Object.assign(() => [], {
+          dispose() {
+            disposed = true;
+          },
+        });
+      },
+    };
+    const { waitForAgent } = Action("waitForAgent").run(
+      Step("answer", async function () {
+        publish?.(new Message("ACP::AgentThoughtChunk", { text: "thinking" }));
+        return await new Promise<string>((resolve) => {
+          finish = resolve;
+        });
+      }),
+    );
+    const stream = waitForAgent.ctx({ observer }).stream();
+
+    expect((await stream.next()).value).toBeInstanceOf(Trace);
+    const update = await stream.next();
+    expect(update.done).toBe(false);
+    expect(update.value).toBeInstanceOf(Message);
+    expect((update.value as Message).message).toBe("ACP::AgentThoughtChunk");
+
+    finish?.("done");
+    let next = await stream.next();
+    while (!next.done) next = await stream.next();
+    expect(next.value).toBe("done");
+    expect(disposed).toBe(true);
   });
 });

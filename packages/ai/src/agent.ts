@@ -1,4 +1,5 @@
 import { TW } from "@taskwish/core";
+import { acpMessage } from "@taskwish/wire";
 import {
   CodexAgent,
   type CodexAgentOptions,
@@ -51,22 +52,18 @@ export interface AgentRuntime {
     input: Input,
   ): Input extends TW.Union<infer Data>
     ? Data extends void
-      ? TW.Branch<
-          { input: void },
-          AgentChatThread,
-          Promise<AgentChatThread>
-        >
-      : TW.Branch<
-          { input: Data },
-          string,
-          AsyncGenerator<string, string>
-        >
+      ? TW.Branch<{ input: void }, AgentChatThread, Promise<AgentChatThread>>
+      : TW.Branch<{ input: Data }, string, AsyncGenerator<string, string>>
     : never;
   prompt(
     input?: CodexPromptInput | CodexPromptOptions,
   ): AsyncGenerator<string, string>;
   generate(options: { prompt: string }): Promise<string>;
   close(): Promise<void>;
+  [TW.ActionObserver]?(
+    actionName: string,
+    publish: (event: unknown) => void,
+  ): (() => Iterable<unknown>) & { dispose?: () => void };
 }
 
 type AgentStep<Name extends string, Ctx extends Record<any, any>> = {
@@ -113,8 +110,14 @@ export function Agent(first: unknown, second?: unknown) {
   function agentStep(this: unknown): AgentRuntime {
     const scope = this as Record<string, unknown>;
     const override = scope[configuredName];
-    if (override !== undefined) return override as AgentRuntime;
-    if (runtime) return runtime;
+    if (override !== undefined) {
+      registerActionObserver(scope, override);
+      return override as AgentRuntime;
+    }
+    if (runtime) {
+      registerActionObserver(scope, runtime);
+      return runtime;
+    }
 
     const configuredOptions =
       typeof optionsOrFactory === "function"
@@ -140,6 +143,7 @@ export function Agent(first: unknown, second?: unknown) {
     }
 
     runtime = createAgentRuntime(options, scope);
+    registerActionObserver(scope, runtime);
     return runtime;
   }
 
@@ -160,6 +164,16 @@ export function Agent(first: unknown, second?: unknown) {
   }) as never;
 }
 
+function registerActionObserver(
+  scope: Record<string | symbol, unknown>,
+  value: unknown,
+): void {
+  const register = scope[TW.ActionObserver];
+  if (typeof register === "function") {
+    (register as (value: unknown) => void)(value);
+  }
+}
+
 function createAgentRuntime(
   options: AgentOptions,
   scope: Record<string, unknown>,
@@ -168,10 +182,29 @@ function createAgentRuntime(
     return createAiSdkAgentRuntime(options, scope);
   }
 
-  const createClient =
-    options.runtime === "fx"
-      ? (opts: AgentOptions) => new FxAgent(opts as FxAgentOptions)
-      : (opts: AgentOptions) => new CodexAgent(opts as CodexAgentOptions);
+  type SessionMessage = Parameters<
+    NonNullable<CodexAgentOptions["onSessionUpdate"]>
+  >[0];
+  const actionPublishers = new Set<(event: unknown) => void>();
+  const publishSessionMessage = (message: SessionMessage) => {
+    const event = acpMessage(message);
+    for (const publish of actionPublishers) publish(event);
+  };
+  const createClient = (opts: AgentOptions) => {
+    const acpOptions = opts as CodexAgentOptions;
+    const onSessionUpdate = acpOptions.onSessionUpdate;
+    const observedOptions = {
+      ...opts,
+      async onSessionUpdate(message: SessionMessage) {
+        publishSessionMessage(message);
+        await onSessionUpdate?.(message);
+      },
+    };
+
+    return options.runtime === "fx"
+      ? new FxAgent(observedOptions as FxAgentOptions)
+      : new CodexAgent(observedOptions as CodexAgentOptions);
+  };
   const client = createClient(options);
   const sessionClients = new Map<string, CodexAgent>();
 
@@ -182,16 +215,8 @@ function createAgentRuntime(
     input: Input,
   ): Input extends TW.Union<infer Data>
     ? Data extends void
-      ? TW.Branch<
-          { input: void },
-          AgentChatThread,
-          Promise<AgentChatThread>
-        >
-      : TW.Branch<
-          { input: Data },
-          string,
-          AsyncGenerator<string, string>
-        >
+      ? TW.Branch<{ input: void }, AgentChatThread, Promise<AgentChatThread>>
+      : TW.Branch<{ input: Data }, string, AsyncGenerator<string, string>>
     : never;
   function chat(
     input?: AgentChatInput | TW.Union<AgentChatInput | void> | void,
@@ -250,6 +275,14 @@ function createAgentRuntime(
       return client.generateText(prompt);
     },
 
+    [TW.ActionObserver](_actionName, publish) {
+      actionPublishers.add(publish);
+      const observation = Object.assign(() => [], {
+        dispose: () => actionPublishers.delete(publish),
+      });
+      return observation;
+    },
+
     async close() {
       await Promise.all([
         client.close(),
@@ -294,7 +327,14 @@ function createAiSdkAgentRuntime(
   options: AiSdkAgentOptions,
   scope: Record<string, unknown>,
 ): AgentRuntime {
-  const client = new AiSdkAgent(options, resolveTools(options.tools, scope));
+  const actionPublishers = new Set<(event: unknown) => void>();
+  const client = new AiSdkAgent(
+    options,
+    resolveTools(options.tools, scope),
+    (event) => {
+      for (const publish of actionPublishers) publish(event);
+    },
+  );
 
   function chat(): Promise<AgentChatThread>;
   function chat(input: void): Promise<AgentChatThread>;
@@ -303,16 +343,8 @@ function createAiSdkAgentRuntime(
     input: Input,
   ): Input extends TW.Union<infer Data>
     ? Data extends void
-      ? TW.Branch<
-          { input: void },
-          AgentChatThread,
-          Promise<AgentChatThread>
-        >
-      : TW.Branch<
-          { input: Data },
-          string,
-          AsyncGenerator<string, string>
-        >
+      ? TW.Branch<{ input: void }, AgentChatThread, Promise<AgentChatThread>>
+      : TW.Branch<{ input: Data }, string, AsyncGenerator<string, string>>
     : never;
   function chat(
     input?: AgentChatInput | TW.Union<AgentChatInput | void> | void,
@@ -339,6 +371,13 @@ function createAiSdkAgentRuntime(
 
     generate({ prompt }) {
       return client.generateText(prompt);
+    },
+
+    [TW.ActionObserver](_actionName, publish) {
+      actionPublishers.add(publish);
+      return Object.assign(() => [], {
+        dispose: () => actionPublishers.delete(publish),
+      });
     },
 
     close() {

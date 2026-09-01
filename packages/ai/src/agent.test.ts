@@ -1,5 +1,14 @@
 import { describe, expect, mock, test } from "bun:test";
 import { Actor, Step } from "@taskwish/core";
+import {
+  AcpAgentMessageChunk,
+  AcpAgentThoughtChunk,
+  AcpStop,
+  AcpToolCall,
+  AcpToolCallUpdate,
+  AcpUsageUpdate,
+  AcpUserMessageChunk,
+} from "@taskwish/wire";
 import { MockLanguageModelV3 } from "ai/test";
 
 import { Agent } from "./agent";
@@ -113,6 +122,83 @@ describe("Agent AI SDK runtime", () => {
     );
   });
 
+  test("emits ACP wire messages from AI SDK generate calls", async () => {
+    let releaseTool: ((value: string) => void) | undefined;
+    const model = new MockLanguageModelV3({
+      doGenerate: [
+        {
+          content: [
+            {
+              type: "tool-call" as const,
+              toolCallId: "call-1",
+              toolName: "wait",
+              input: JSON.stringify({}),
+            },
+          ],
+          finishReason: { unified: "tool-calls" as const, raw: undefined },
+          usage,
+          warnings: [],
+        },
+        {
+          content: [{ type: "text" as const, text: "Finished" }],
+          finishReason: { unified: "stop" as const, raw: undefined },
+          usage,
+          warnings: [],
+        },
+      ],
+    });
+    const { actor } = Actor("AiSdkUpdates");
+    const { generate } = actor()
+      .on("Command", "generate")
+      .run(
+        Tool("wait", {
+          description: "Wait for release",
+          input: {},
+          run() {
+            return new Promise<string>((resolve) => {
+              releaseTool = resolve;
+            });
+          },
+        }),
+        Agent({ model, tools: ["wait"] }),
+        Step("answer", function () {
+          return this.agent.generate({ prompt: "Wait, then answer" });
+        }),
+      );
+
+    const stream = generate.stream();
+    const events: unknown[] = [];
+    let update = await stream.next();
+    while (!update.done && !(update.value instanceof AcpToolCall)) {
+      events.push(update.value);
+      update = await stream.next();
+    }
+
+    expect(update.done).toBe(false);
+    if (!update.done) events.push(update.value);
+    expect(events.some((event) => event instanceof AcpUserMessageChunk)).toBe(
+      true,
+    );
+    expect(events.some((event) => event instanceof AcpToolCall)).toBe(true);
+
+    releaseTool?.("released");
+    update = await stream.next();
+    while (!update.done) {
+      events.push(update.value);
+      update = await stream.next();
+    }
+
+    expect(update.value).toBe("Finished");
+    expect(events.some((event) => event instanceof AcpToolCallUpdate)).toBe(
+      true,
+    );
+    expect(events.some((event) => event instanceof AcpAgentMessageChunk)).toBe(
+      true,
+    );
+    expect(events.some((event) => event instanceof AcpUsageUpdate)).toBe(true);
+    expect(events.some((event) => event instanceof AcpStop)).toBe(true);
+  });
+
   test("preserves an explicitly selected Codex runtime", async () => {
     const { actor } = Actor("ExplicitRuntime");
     const { inspectRuntime } = actor()
@@ -131,6 +217,59 @@ describe("Agent AI SDK runtime", () => {
       );
 
     await expect(inspectRuntime()).resolves.toBe("codex");
+  });
+
+  test("streams ACP updates emitted while generate-style promises are awaited", async () => {
+    let finish: ((value: string) => void) | undefined;
+    const { actor } = Actor("AcpUpdates");
+    const { generate } = actor()
+      .on("Command", "generate")
+
+      .run(
+        Agent({ runtime: "codex", command: "unused" }),
+
+        Step("answer", async function () {
+          const notify = (
+            this.agent.client as unknown as {
+              options: {
+                onSessionUpdate(message: unknown): Promise<void>;
+              };
+            }
+          ).options.onSessionUpdate;
+          await notify({
+            kind: "session_update",
+            notification: {
+              sessionId: "session-1",
+              update: {
+                sessionUpdate: "agent_thought_chunk",
+                content: { type: "text", text: "Thinking" },
+              },
+            },
+            update: {
+              sessionUpdate: "agent_thought_chunk",
+              content: { type: "text", text: "Thinking" },
+            },
+          });
+          return await new Promise<string>((resolve) => {
+            finish = resolve;
+          });
+        }),
+      );
+    const stream = generate.stream();
+
+    let update = await stream.next();
+    while (!update.done && !(update.value instanceof AcpAgentThoughtChunk)) {
+      update = await stream.next();
+    }
+    expect(update.done).toBe(false);
+    if (!update.done) {
+      expect(update.value).toBeInstanceOf(AcpAgentThoughtChunk);
+    }
+
+    finish?.("done");
+    let next = await stream.next();
+    while (!next.done) next = await stream.next();
+    expect(next.value).toBe("done");
   });
 
   test("exposes named agents under their configured scope names", async () => {

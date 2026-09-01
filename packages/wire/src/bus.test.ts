@@ -1,7 +1,13 @@
 import { describe, expect, test } from "bun:test";
 
 import { Wire, configureWire, getWireConfig, ulid } from "./bus";
-import { messageData, messageLogData } from "./messages";
+import {
+  AcpStop,
+  acpMessage,
+  acpSessionUpdateMessage,
+  messageData,
+  messageLogData,
+} from "./messages";
 
 describe("Wire", () => {
   test("exposes message constructors", () => {
@@ -68,6 +74,59 @@ describe("Wire", () => {
       "->": "Greeter::Message",
       data: { name: "Ada" },
     });
+  });
+
+  test("creates a dedicated wire message for every ACP session event", () => {
+    const thought = new Wire.AcpAgentThoughtChunk({
+      sessionId: "session-1",
+      update: {
+        sessionUpdate: "agent_thought_chunk",
+        content: { type: "text", text: "Thinking" },
+      },
+    });
+    expect(thought).toBeInstanceOf(Wire.Message);
+    expect(thought.message).toBe("ACP::AgentThoughtChunk");
+    expect(thought.data.update.content).toEqual({
+      type: "text",
+      text: "Thinking",
+    });
+
+    const updates = [
+      ["user_message_chunk", "ACP::UserMessageChunk"],
+      ["agent_message_chunk", "ACP::AgentMessageChunk"],
+      ["agent_thought_chunk", "ACP::AgentThoughtChunk"],
+      ["tool_call", "ACP::ToolCall"],
+      ["tool_call_update", "ACP::ToolCallUpdate"],
+      ["plan", "ACP::Plan"],
+      ["plan_update", "ACP::PlanUpdate"],
+      ["plan_removed", "ACP::PlanRemoved"],
+      ["available_commands_update", "ACP::AvailableCommandsUpdate"],
+      ["current_mode_update", "ACP::CurrentModeUpdate"],
+      ["config_option_update", "ACP::ConfigOptionUpdate"],
+      ["session_info_update", "ACP::SessionInfoUpdate"],
+      ["usage_update", "ACP::UsageUpdate"],
+      ["compaction_update", "ACP::CompactionUpdate"],
+      ["compaction_summary_chunk", "ACP::CompactionSummaryChunk"],
+    ] as const;
+
+    for (const [sessionUpdate, messageType] of updates) {
+      const notification = {
+        sessionId: "session-1",
+        update: { sessionUpdate },
+      };
+      const message = acpSessionUpdateMessage(notification);
+
+      expect(message.message).toBe(messageType);
+      expect(messageData(message)).toBe(notification);
+    }
+
+    const stop = acpMessage({
+      kind: "stop",
+      response: { stopReason: "end_turn" },
+      stopReason: "end_turn",
+    });
+    expect(stop).toBeInstanceOf(AcpStop);
+    expect(stop.message).toBe("ACP::Stop");
   });
 
   test("generates a ULID thread id by default", () => {

@@ -190,6 +190,11 @@ function responseFromActionSseStream(
             } else if (isStreamEvent(item.value)) {
               controller.enqueue(item.value.toSSE());
               return;
+            } else if (item.value instanceof Message) {
+              if (options.includeWire) {
+                controller.enqueue(item.value.toSSE());
+                return;
+              }
             } else {
               const result = new Result(item.value);
               controller.enqueue(result.toSSE());

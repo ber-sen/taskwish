@@ -15,6 +15,7 @@ export type ListItemValue = Record<string, unknown>;
 export type ActionRunEvent = {
   type: string;
   data: unknown;
+  message?: string;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -321,10 +322,12 @@ function parseSseMessage(message: string): ActionRunEvent | null {
     "TW::Result": "result",
     "TW::Error": "error",
   };
+  const acpMessage = eventType.startsWith("ACP::") ? eventType : undefined;
 
   return {
-    type: normalizedType[eventType] ?? eventType,
+    type: acpMessage ? "acp" : normalizedType[eventType] ?? eventType,
     data: wireLogData(eventType, parseSseData(data.join("\n"))),
+    ...(acpMessage ? { message: acpMessage } : {}),
   };
 }
 
