@@ -24,6 +24,16 @@ const PRIMITIVE_ARK_SCHEMAS = new Set([
 ]);
 
 type Action = (...args: unknown[]) => unknown;
+type McpToolSelector = string | Action;
+type McpEndpointConfig = {
+  path?: string;
+  tools?: readonly McpToolSelector[];
+};
+type McpConfig =
+  | boolean
+  | string
+  | McpEndpointConfig
+  | readonly McpEndpointConfig[];
 type NodeRegistry = {
   actions: Map<string, Action>;
   states?: Map<string, Record<string, unknown>>;
@@ -38,6 +48,7 @@ type NodeAppContext = {
   nodeName: string;
   apiKey: string;
   prefix: string;
+  mcp?: McpConfig;
 };
 type NodeAppReadyContext = NodeAppContext & {
   server: Bun.Server<any>;
@@ -55,6 +66,83 @@ export type ConsoleOptions = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+const DEFAULT_MCP_PATH = "/actor";
+
+function normalizeMcpPath(path: string): string {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return normalized.endsWith("/") && normalized.length > 1
+    ? normalized.slice(0, -1)
+    : normalized;
+}
+
+function mcpEndpointConfigs(
+  config: McpConfig | undefined,
+): McpEndpointConfig[] {
+  if (config === false) return [];
+  if (config === undefined || config === true) {
+    return [{ path: DEFAULT_MCP_PATH }];
+  }
+  if (typeof config === "string") return [{ path: config }];
+  return Array.isArray(config) ? [...config] : [config as McpEndpointConfig];
+}
+
+function isMcpActionSelected(
+  actionName: string,
+  action: Action,
+  selectors: readonly McpToolSelector[] | undefined,
+): boolean {
+  if (selectors === undefined) return true;
+
+  return selectors.some((selector) => {
+    if (typeof selector !== "string") return selector === action;
+    if (selector === actionName) return true;
+    if (selector.endsWith("::*")) {
+      return actionName.startsWith(`${selector.slice(0, -3)}::`);
+    }
+    return !selector.includes("::") && actionName.startsWith(`${selector}::`);
+  });
+}
+
+function mcpToolName(actionName: string): string {
+  return actionName
+    .replace(/::/g, ".")
+    .replace(/[^A-Za-z0-9._-]+/g, "_")
+    .slice(0, 128);
+}
+
+function mcpToolDescription(actionName: string, action: Action): string {
+  const meta = metaForAction(action);
+  if (typeof meta.description === "string") return meta.description;
+
+  const route = meta.route;
+  if (Array.isArray(route) && isRecord(route[2])) {
+    const description = route[2].description;
+    if (typeof description === "string") return description;
+  }
+
+  return `Invoke ${actionName}`;
+}
+
+function describeMcp(
+  registry: NodeRegistry,
+  config: McpConfig | undefined,
+): ConsoleConfig["mcp"] {
+  const endpoints = mcpEndpointConfigs(config).map((endpoint) => ({
+    path: normalizeMcpPath(endpoint.path ?? DEFAULT_MCP_PATH),
+    tools: Array.from(registry.actions)
+      .filter(([actionName, action]) =>
+        isMcpActionSelected(actionName, action, endpoint.tools),
+      )
+      .map(([actionName, action]) => ({
+        name: mcpToolName(actionName),
+        action: actionName,
+        description: mcpToolDescription(actionName, action),
+      })),
+  }));
+
+  return { enabled: endpoints.length > 0, endpoints };
 }
 
 function serializeCELExpressions(value: unknown): unknown {
@@ -344,12 +432,18 @@ function describeAction(
 
 export function consoleConfig(
   registry: NodeRegistry,
-  options: { nodeName: string; apiKey: string; prefix: string },
+  options: {
+    nodeName: string;
+    apiKey: string;
+    prefix: string;
+    mcp?: McpConfig;
+  },
 ): ConsoleConfig {
   return {
     nodeName: options.nodeName,
     apiKey: options.apiKey,
     apiPrefix: options.prefix,
+    mcp: describeMcp(registry, options.mcp),
     actions: Array.from(registry.actions)
       .map(([actionName, action]) =>
         describeAction(actionName, action, options.prefix),
@@ -365,7 +459,12 @@ export function consoleConfig(
 
 export function createConsoleRoutes(
   registry: NodeRegistry,
-  options: { nodeName: string; apiKey: string; prefix: string },
+  options: {
+    nodeName: string;
+    apiKey: string;
+    prefix: string;
+    mcp?: McpConfig;
+  },
 ): NodeRoutes {
   const config: NodeRouteHandler = () =>
     json(200, consoleConfig(registry, options));
@@ -441,6 +540,7 @@ export function Console(options: ConsoleOptions = {}): ConsoleApp {
         nodeName: context.nodeName,
         apiKey: context.apiKey,
         prefix: context.prefix,
+        mcp: context.mcp,
       });
     },
     async ready(context) {

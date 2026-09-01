@@ -15,6 +15,65 @@ describe("console config", () => {
     );
 
     expect(config.actions[0]!.label).toBe("Add todo");
+    expect(config.mcp).toEqual({
+      enabled: true,
+      endpoints: [
+        {
+          path: "/actor",
+          tools: [
+            {
+              name: "Todos.addTodo",
+              action: "Todos::addTodo",
+              description: "Invoke Todos::addTodo",
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  test("describes disabled and custom MCP endpoints", () => {
+    const add = (() => undefined) as () => undefined;
+    const remove = (() => undefined) as () => undefined;
+    const registry = {
+      actions: new Map([
+        ["Todos::add", add],
+        ["Todos::remove", remove],
+      ]),
+      states: new Map(),
+    };
+
+    expect(
+      consoleConfig(registry, {
+        nodeName: "Test",
+        apiKey: "test",
+        prefix: "/tw",
+        mcp: false,
+      }).mcp,
+    ).toEqual({ enabled: false, endpoints: [] });
+
+    expect(
+      consoleConfig(registry, {
+        nodeName: "Test",
+        apiKey: "test",
+        prefix: "/tw",
+        mcp: { path: "todos/", tools: [remove] },
+      }).mcp,
+    ).toEqual({
+      enabled: true,
+      endpoints: [
+        {
+          path: "/todos",
+          tools: [
+            {
+              name: "Todos.remove",
+              action: "Todos::remove",
+              description: "Invoke Todos::remove",
+            },
+          ],
+        },
+      ],
+    });
   });
 
   test("converts expression metadata to CEL before JSON transport", () => {

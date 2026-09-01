@@ -9,6 +9,7 @@ import {
   ActionForm,
   type ActionFormHandle,
 } from "./components/console/action-form";
+import { McpServerControl } from "./components/console/mcp-server-control";
 import { TaskWishLogo } from "./components/console/taskwish-logo";
 import {
   Drawer,
@@ -256,6 +257,8 @@ export function Console() {
           </CommandPrimitive.List>
         </div>
       </CommandPrimitive>
+
+      <McpServerControl config={loadState.config} />
 
       <Drawer
         open={Boolean(selectedAction)}

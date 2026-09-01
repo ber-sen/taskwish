@@ -6,4 +6,7 @@ export type {
   ConsoleActorState,
   ConsoleJsonSchema,
   ConsoleInputField,
+  ConsoleMcpConfig,
+  ConsoleMcpEndpoint,
+  ConsoleMcpTool,
 } from "./types";

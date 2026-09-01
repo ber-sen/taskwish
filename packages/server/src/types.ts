@@ -13,7 +13,7 @@ export type Action = ((...args: unknown[]) => unknown) & {
 export type McpToolSelector = string | Action;
 
 export interface McpEndpointConfig {
-  /** URL that serves this MCP tool collection. Defaults to `/actor`. */
+  /** URL that serves this MCP tool collection. Defaults to `/actor` (for example `/mcp/todos`). */
   path?: string;
   /** Actions to expose. Omit this to expose every registered action. */
   tools?: readonly McpToolSelector[];
@@ -38,6 +38,8 @@ export interface NodeAppContext {
   nodeName: string;
   apiKey: string;
   prefix: string;
+  /** MCP configuration exposed by this node. */
+  mcp?: McpConfig;
 }
 
 export interface NodeAppReadyContext extends NodeAppContext {
@@ -53,7 +55,7 @@ export interface NodeApp {
 export interface NodeConfig {
   workspace?: readonly ServiceReference[];
   apps?: readonly NodeApp[];
-  /** MCP endpoints. Enabled at `/actor` by default; set to `false` to disable. */
+  /** MCP endpoints. Configure paths such as `/mcp/todos`; enabled at `/actor` by default. */
   mcp?: McpConfig;
   apiKey?: string;
   port?: number;

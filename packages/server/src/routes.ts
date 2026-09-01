@@ -134,6 +134,7 @@ export async function createRoutes(
         nodeName,
         apiKey: options.apiKey,
         prefix: routePrefix,
+        mcp: options.mcp,
       }),
     );
   }
