@@ -1,5 +1,7 @@
 import { Agent, Step, Tool } from "taskwish";
 
+import { ollamaModel } from "../shared/ollama";
+
 import { actor } from "./tool-calling-loop";
 
 export const { runToolCallingLoop } = actor()
@@ -24,7 +26,7 @@ export const { runToolCallingLoop } = actor()
     }),
 
     Agent({
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Solve arithmetic problems with the calculate tool and explain the result.",
       tools: ["calculate"],
     }),

@@ -4,6 +4,8 @@
 .bare/
 packages/create-project/state/
 packages/create-project/templates/*/state/
+packages/create-project/templates/agent-loops/playwright-report/
+packages/create-project/templates/agent-loops/test-results/
 .cache
 .DS_Store
 .idea

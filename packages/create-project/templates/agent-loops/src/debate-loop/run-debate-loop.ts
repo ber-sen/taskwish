@@ -1,5 +1,7 @@
 import { Agent, Step } from "taskwish";
 
+import { ollamaModel } from "../shared/ollama";
+
 import { actor } from "./debate-loop";
 
 export const { runDebateLoop } = actor()
@@ -9,17 +11,17 @@ export const { runDebateLoop } = actor()
 
   .run(
     Agent("proposer", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Argue for the strongest answer to the question.",
     }),
 
     Agent("challenger", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Find flaws and propose a competing answer.",
     }),
 
     Agent("judge", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Impartially judge competing arguments and return the best-supported answer.",
     }),
 

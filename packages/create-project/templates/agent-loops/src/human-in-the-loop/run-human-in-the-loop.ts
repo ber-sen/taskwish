@@ -1,5 +1,7 @@
 import { Agent, Step } from "taskwish";
 
+import { ollamaModel } from "../shared/ollama";
+
 import { actor } from "./human-in-the-loop";
 
 export const { runHumanInTheLoop } = actor()
@@ -14,7 +16,7 @@ export const { runHumanInTheLoop } = actor()
 
   .run(
     Agent({
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Propose safe actions and execute only after explicit human approval.",
     }),
 

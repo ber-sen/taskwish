@@ -1,5 +1,7 @@
 import { Agent, Step } from "taskwish";
 
+import { ollamaModel } from "../shared/ollama";
+
 import { actor } from "./event-driven-loop";
 
 export const { onGitHubIssueOpened } = actor()
@@ -7,7 +9,7 @@ export const { onGitHubIssueOpened } = actor()
 
   .run(
     Agent({
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Decide and return one concrete response action for a newly opened GitHub issue.",
     }),
 

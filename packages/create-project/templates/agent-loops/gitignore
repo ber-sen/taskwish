@@ -3,3 +3,5 @@ state
 dist
 .env
 *.log
+playwright-report
+test-results

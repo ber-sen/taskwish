@@ -1,5 +1,7 @@
 import { Agent, Step } from "taskwish";
 
+import { ollamaModel } from "../shared/ollama";
+
 import { actor } from "./reflection-loop";
 
 export const { runReflectionLoop } = actor()
@@ -9,17 +11,17 @@ export const { runReflectionLoop } = actor()
 
   .run(
     Agent("generator", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Produce a useful first draft.",
     }),
 
     Agent("critic", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Identify specific weaknesses and omissions in a draft.",
     }),
 
     Agent("improver", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Rewrite a draft using the critique. Return only the improved result.",
     }),
 

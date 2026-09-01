@@ -1,5 +1,7 @@
 import { Agent, Step } from "taskwish";
 
+import { ollamaModel } from "../shared/ollama";
+
 import { actor } from "./retry-error-correction-loop";
 
 export const { runRetryErrorCorrectionLoop } = actor()
@@ -9,12 +11,12 @@ export const { runRetryErrorCorrectionLoop } = actor()
 
   .run(
     Agent("worker", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Return a concrete action for the requested task.",
     }),
 
     Agent("fixer", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Correct an action after an execution error.",
     }),
 

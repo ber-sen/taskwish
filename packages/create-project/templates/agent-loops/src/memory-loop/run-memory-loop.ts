@@ -1,5 +1,7 @@
 import { Agent, Step } from "taskwish";
 
+import { ollamaModel } from "../shared/ollama";
+
 import { actor } from "./memory-loop";
 
 export const { runMemoryLoop } = actor()
@@ -9,7 +11,7 @@ export const { runMemoryLoop } = actor()
 
   .run(
     Agent({
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Use retrieved memories to reason, act, and summarize what should be remembered.",
     }),
 

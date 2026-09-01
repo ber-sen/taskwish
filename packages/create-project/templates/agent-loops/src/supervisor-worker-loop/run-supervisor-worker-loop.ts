@@ -1,5 +1,7 @@
 import { Agent, Step } from "taskwish";
 
+import { ollamaModel } from "../shared/ollama";
+
 import { actor } from "./supervisor-worker-loop";
 
 export const { runSupervisorWorkerLoop } = actor()
@@ -9,12 +11,12 @@ export const { runSupervisorWorkerLoop } = actor()
 
   .run(
     Agent("supervisor", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Delegate precise work and evaluate the worker's result.",
     }),
 
     Agent("worker", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Execute delegated work and return a complete result.",
     }),
 

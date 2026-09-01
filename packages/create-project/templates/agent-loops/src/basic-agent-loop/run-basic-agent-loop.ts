@@ -1,5 +1,7 @@
 import { Agent, Step } from "taskwish";
 
+import { ollamaModel } from "../shared/ollama";
+
 import { actor } from "./basic-agent-loop";
 
 export const { runBasicAgentLoop } = actor()
@@ -9,7 +11,7 @@ export const { runBasicAgentLoop } = actor()
 
   .run(
     Agent({
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Think carefully, then choose a concrete next action.",
     }),
 

@@ -1,5 +1,7 @@
 import { Agent, Step } from "taskwish";
 
+import { ollamaModel } from "../shared/ollama";
+
 import { numericScore } from "../shared/text";
 import { actor } from "./environment-loop";
 
@@ -10,7 +12,7 @@ export const { runEnvironmentLoop } = actor()
 
   .run(
     Agent({
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Control a number-line environment. Reply with only -1, 0, or 1.",
     }),
 

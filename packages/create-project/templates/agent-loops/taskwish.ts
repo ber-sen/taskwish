@@ -22,6 +22,7 @@ import { ToolCallingLoop } from "./src/tool-calling-loop";
 import { TreeSearchLoop } from "./src/tree-search-loop";
 
 await Server("TaskWish Agent Loops", {
+  port: Number(process.env.PORT ?? 0),
   apps: [Console()],
   workspace: [
     BasicAgentLoop,

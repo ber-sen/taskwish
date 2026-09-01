@@ -1,5 +1,7 @@
 import { Agent, Step } from "taskwish";
 
+import { ollamaModel } from "../shared/ollama";
+
 import { listItems } from "../shared/text";
 import { actor } from "./plan-execute-replan-loop";
 
@@ -10,17 +12,17 @@ export const { runPlanExecuteReplanLoop } = actor()
 
   .run(
     Agent("planner", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Create an ordered plan with one step per line.",
     }),
 
     Agent("executor", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Execute a single plan step and report what happened.",
     }),
 
     Agent("replanner", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Revise the remaining plan after seeing execution results. Return one step per line.",
     }),
 

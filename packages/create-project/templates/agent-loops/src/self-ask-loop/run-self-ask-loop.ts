@@ -1,5 +1,7 @@
 import { Agent, Step } from "taskwish";
 
+import { ollamaModel } from "../shared/ollama";
+
 import { actor } from "./self-ask-loop";
 
 export const { runSelfAskLoop } = actor()
@@ -9,12 +11,12 @@ export const { runSelfAskLoop } = actor()
 
   .run(
     Agent("questioner", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Ask the most useful next sub-question. Return only the question.",
     }),
 
     Agent("researcher", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Answer one focused sub-question using the supplied context.",
     }),
 

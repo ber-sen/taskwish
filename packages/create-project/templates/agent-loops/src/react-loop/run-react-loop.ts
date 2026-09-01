@@ -1,5 +1,7 @@
 import { Agent, Step, Tool } from "taskwish";
 
+import { ollamaModel } from "../shared/ollama";
+
 import { actor } from "./react-loop";
 
 const facts = [
@@ -26,7 +28,7 @@ export const { runReactLoop } = actor()
     }),
 
     Agent({
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Use lookupFact as needed. Reason, act, observe the result, and repeat until you can answer.",
       tools: ["lookupFact"],
     }),

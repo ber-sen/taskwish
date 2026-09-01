@@ -1,5 +1,7 @@
 import { Agent, Step } from "taskwish";
 
+import { ollamaModel } from "../shared/ollama";
+
 import { listItems, numericScore } from "../shared/text";
 import { actor } from "./tree-search-loop";
 
@@ -10,12 +12,12 @@ export const { runTreeSearchLoop } = actor()
 
   .run(
     Agent("explorer", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Generate exactly three distinct next actions, one per line.",
     }),
 
     Agent("evaluator", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Score one candidate from 0 to 100. Start with the numeric score.",
     }),
 

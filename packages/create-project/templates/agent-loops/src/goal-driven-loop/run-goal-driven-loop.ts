@@ -1,5 +1,7 @@
 import { Agent, Step } from "taskwish";
 
+import { ollamaModel } from "../shared/ollama";
+
 import { actor } from "./goal-driven-loop";
 
 export const { runGoalDrivenLoop } = actor()
@@ -9,7 +11,7 @@ export const { runGoalDrivenLoop } = actor()
 
   .run(
     Agent({
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Choose the single best next action given a goal and progress so far.",
     }),
 

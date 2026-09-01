@@ -1,5 +1,7 @@
 import { Agent, Step } from "taskwish";
 
+import { ollamaModel } from "../shared/ollama";
+
 import { actor } from "./multi-agent-loop";
 
 export const { runMultiAgentLoop } = actor()
@@ -9,12 +11,12 @@ export const { runMultiAgentLoop } = actor()
 
   .run(
     Agent("agentA", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Develop a proposal and incorporate useful feedback from Agent B.",
     }),
 
     Agent("agentB", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Review Agent A's proposal and respond with improvements.",
     }),
 

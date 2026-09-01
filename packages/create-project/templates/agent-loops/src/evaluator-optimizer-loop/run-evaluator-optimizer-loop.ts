@@ -1,5 +1,7 @@
 import { Agent, Step } from "taskwish";
 
+import { ollamaModel } from "../shared/ollama";
+
 import { passedEvaluation } from "../shared/text";
 import { actor } from "./evaluator-optimizer-loop";
 
@@ -10,17 +12,17 @@ export const { runEvaluatorOptimizerLoop } = actor()
 
   .run(
     Agent("generator", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Generate a strong candidate answer.",
     }),
 
     Agent("evaluator", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Evaluate against the task. Start with PASS or IMPROVE, then explain.",
     }),
 
     Agent("optimizer", {
-      model: "openai/gpt-5-mini",
+      model: ollamaModel,
       instructions: "Optimize a candidate using evaluator feedback.",
     }),
 
