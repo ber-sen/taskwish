@@ -8,5 +8,5 @@ export const { actor } = Actor("GitHub").scope(
     title: "string",
     body: "string",
     url: "string",
-  }),
+  })
 );

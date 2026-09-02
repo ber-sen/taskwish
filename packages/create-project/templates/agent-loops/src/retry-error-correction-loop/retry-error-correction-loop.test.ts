@@ -10,7 +10,7 @@ test("fixes an action after an error and retries it", async () => {
   await expect(
     RetryErrorCorrectionLoop.runRetryErrorCorrectionLoop
       .ctx({ worker, fixer })
-      .run({ task: "Submit report", maxRetries: 1 }),
+      .run({ task: "Submit report", maxRetries: 1 })
   ).resolves.toEqual({
     result: "Executed: corrected action",
     attempts: [

@@ -19,7 +19,7 @@ const bareAction = join(
   packageDirectory,
   ".bare",
   "scaffolder",
-  "create-project.ts",
+  "create-project.ts"
 );
 
 await Bun.$`bare create-taskwish-project`;
@@ -36,7 +36,7 @@ const staticWire = `class Wire {
 }`;
 
 const embeddedTemplatesDeclaration =
-  'const EMBEDDED_TEMPLATE_FILES: Readonly<Record<string, string>> = {};';
+  "const EMBEDDED_TEMPLATE_FILES: Readonly<Record<string, string>> = {};";
 const embeddedSkillDeclaration = 'const EMBEDDED_SKILL = "";';
 
 if (!source.includes(embeddedTemplatesDeclaration)) {
@@ -49,38 +49,37 @@ if (!source.includes(embeddedSkillDeclaration)) {
 const embeddedTemplateFiles = await readTemplateFiles(templatesDirectory);
 const embeddedSkill = await readFile(
   join(packageDirectory, "..", "skill", "SKILL.md"),
-  "utf8",
+  "utf8"
 );
 
 const standaloneSource = source
   .replace(wireImport, staticWire)
   .replace(
     embeddedTemplatesDeclaration,
-    `const EMBEDDED_TEMPLATE_FILES: Readonly<Record<string, string>> = ${JSON.stringify(embeddedTemplateFiles)};`,
+    () =>
+      `const EMBEDDED_TEMPLATE_FILES: Readonly<Record<string, string>> = ${JSON.stringify(
+        embeddedTemplateFiles
+      )};`
   )
   .replace(
     embeddedSkillDeclaration,
-    `const EMBEDDED_SKILL = ${JSON.stringify(embeddedSkill)};`,
+    () => `const EMBEDDED_SKILL = ${JSON.stringify(embeddedSkill)};`
   );
 
 await writeFile(bareAction, standaloneSource);
 
-const executable = join(
-  packageDirectory,
-  "dist",
-  "create-taskwish-project",
-);
+const executable = join(packageDirectory, "dist", "create-taskwish-project");
 
 await Bun.$`scriptc build ${join(
   packageDirectory,
   ".bare",
-  "create-taskwish-project.ts",
+  "create-taskwish-project.ts"
 )} -o ${executable} --npm-static @taskwish/terminal --no-keep-c`;
 
 await verifyRelocatedExecutable(executable);
 
 async function readTemplateFiles(
-  directory: string,
+  directory: string
 ): Promise<Record<string, string>> {
   const files: Record<string, string> = {};
   await visit(directory);
@@ -94,15 +93,23 @@ async function readTemplateFiles(
       const path = join(currentDirectory, entry.name);
       const embeddedPath = relative(directory, path).split(sep).join("/");
       if (entry.isDirectory()) {
-        if (entry.name === "node_modules") continue;
         if (
-          entry.name === "state" &&
-          embeddedPath.split("/").length === 2
+          entry.name === "node_modules" ||
+          entry.name === "dist" ||
+          entry.name === "playwright-report" ||
+          entry.name === "test-results"
         ) {
           continue;
         }
+        if (entry.name === "state" && embeddedPath.split("/").length === 2) {
+          continue;
+        }
         await visit(path);
-      } else if (entry.isFile() && entry.name !== "bun.lock") {
+      } else if (
+        entry.isFile() &&
+        entry.name !== "bun.lock" &&
+        entry.name !== ".DS_Store"
+      ) {
         if (embeddedPath.endsWith(`/${PROJECT_SKILL_PATH}`)) continue;
         files[embeddedPath] = await readFile(path, "utf8");
       }
@@ -115,7 +122,7 @@ async function verifyRelocatedExecutable(executable: string): Promise<void> {
   const executableDirectory = join(directory, "bin");
   const relocatedExecutable = join(
     executableDirectory,
-    "create-taskwish-project",
+    "create-taskwish-project"
   );
 
   try {
@@ -128,11 +135,11 @@ async function verifyRelocatedExecutable(executable: string): Promise<void> {
       const project = join(directory, projectName);
       await Bun.$`${relocatedExecutable} ${project} --template ${template} --no-install --no-git --yes`.quiet();
       const packageJson = JSON.parse(
-        await readFile(join(project, "package.json"), "utf8"),
+        await readFile(join(project, "package.json"), "utf8")
       ) as { name?: string };
       if (packageJson.name !== projectName) {
         throw new Error(
-          `Relocated CLI generated an invalid ${template} package.json.`,
+          `Relocated CLI generated an invalid ${template} package.json.`
         );
       }
       if (!(await readFile(join(project, PROJECT_SKILL_PATH), "utf8"))) {

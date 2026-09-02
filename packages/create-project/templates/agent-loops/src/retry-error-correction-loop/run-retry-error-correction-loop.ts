@@ -1,7 +1,5 @@
 import { Agent, Step } from "taskwish";
 
-import { ollamaModel } from "../shared/ollama";
-
 import { actor } from "./retry-error-correction-loop";
 
 export const { runRetryErrorCorrectionLoop } = actor()
@@ -11,12 +9,12 @@ export const { runRetryErrorCorrectionLoop } = actor()
 
   .run(
     Agent("worker", {
-      model: ollamaModel,
+      model: "ollama/qwen3:4b",
       instructions: "Return a concrete action for the requested task.",
     }),
 
     Agent("fixer", {
-      model: ollamaModel,
+      model: "ollama/qwen3:4b",
       instructions: "Correct an action after an execution error.",
     }),
 
@@ -31,10 +29,12 @@ export const { runRetryErrorCorrectionLoop } = actor()
 
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
-          if (attempt === 0) throw new Error("Simulated transient execution failure");
+          if (attempt === 0)
+            throw new Error("Simulated transient execution failure");
           return { result: `Executed: ${candidate}`, attempts };
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           attempts.push({ candidate, error: message });
           if (attempt === maxRetries) throw error;
           candidate = await this.fixer.generate({
@@ -44,13 +44,19 @@ export const { runRetryErrorCorrectionLoop } = actor()
       }
 
       throw new Error("Retry loop ended unexpectedly.");
-    }),
+    })
   )
 
   .meta({
     description: "Act, inspect an error, correct the action, and retry",
     input: {
-      task: { description: "Task whose action should be retried", example: "Submit a report to an unreliable service" },
-      maxRetries: { description: "Maximum corrections after failure", example: 2 },
+      task: {
+        description: "Task whose action should be retried",
+        example: "Submit a report to an unreliable service",
+      },
+      maxRetries: {
+        description: "Maximum corrections after failure",
+        example: 2,
+      },
     },
   });

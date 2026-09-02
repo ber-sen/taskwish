@@ -1,3 +1,5 @@
 import { Actor } from "taskwish";
 
-export const { actor } = Actor("EnvironmentLoop");
+import { Ollama } from "../shared/ollama";
+
+export const { actor } = Actor("EnvironmentLoop").use(Ollama);

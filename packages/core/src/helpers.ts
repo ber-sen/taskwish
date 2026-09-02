@@ -448,17 +448,24 @@ export type EventsFromPlugin<U> = U extends Promise<infer M>
   ? {}
   : EventsFromRecord<U>;
 
+type ScopeFromPlugin<U> = U extends Promise<infer Plugin>
+  ? ScopeFromPlugin<Plugin>
+  : U extends { [TW.Scope]: infer Scope extends Record<string, unknown> }
+  ? Scope
+  : {};
+
 /** Merge actions from a plugin into Ctx["scope"]["actions"]. */
 export type AddActionsToCtx<Ctx extends Record<any, any>, U> = {
   [K in keyof Ctx]: K extends "scope"
-    ? Omit<Ctx["scope"], "actions"> & {
-        actions: Pretty<
-          ("actions" extends keyof Ctx["scope"]
-            ? Ctx["scope"]["actions"]
-            : {}) &
-            ActionsFromPlugin<U>
-        >;
-      } & EventsFromPlugin<U>
+    ? Omit<Ctx["scope"], "actions"> &
+        ScopeFromPlugin<U> & {
+          actions: Pretty<
+            ("actions" extends keyof Ctx["scope"]
+              ? Ctx["scope"]["actions"]
+              : {}) &
+              ActionsFromPlugin<U>
+          >;
+        } & EventsFromPlugin<U>
     : Ctx[K];
 };
 

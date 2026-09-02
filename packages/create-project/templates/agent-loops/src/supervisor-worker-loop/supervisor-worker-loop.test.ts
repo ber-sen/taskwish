@@ -10,7 +10,7 @@ test("delegates, executes, and evaluates work", async () => {
   await expect(
     SupervisorWorkerLoop.runSupervisorWorkerLoop
       .ctx({ supervisor, worker })
-      .run({ task: "Create an interview guide" }),
+      .run({ task: "Create an interview guide" })
   ).resolves.toBe("approved");
   expect(supervisor.generate).toHaveBeenCalledTimes(2);
   expect(worker.generate).toHaveBeenCalledTimes(1);

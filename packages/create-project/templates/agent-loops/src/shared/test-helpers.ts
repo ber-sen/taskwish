@@ -4,7 +4,7 @@ import { TW } from "taskwish";
 export function expectCommandActor(
   value: unknown,
   actorName: string,
-  commandName: string,
+  commandName: string
 ): void {
   const actor = value as Record<string | symbol, unknown>;
   const command = actor[commandName] as Record<string | symbol, unknown>;

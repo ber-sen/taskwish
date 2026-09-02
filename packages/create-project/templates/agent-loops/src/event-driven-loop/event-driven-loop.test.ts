@@ -20,6 +20,6 @@ test("handles the GitHub issue event with a mocked agent", async () => {
       title: "Add an event loop",
       body: "Please add the example.",
       url: "https://github.com/taskwish/taskwish/issues/42",
-    }),
+    })
   ).resolves.toBe("triage and label the issue");
 });

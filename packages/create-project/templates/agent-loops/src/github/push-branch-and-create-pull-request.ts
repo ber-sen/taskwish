@@ -46,7 +46,9 @@ export const { pushBranchAndCreatePullRequest } = actor()
         throw new Error("GITHUB_TOKEN is required to create a pull request.");
       }
       if (this.input.branch === (this.input.base ?? "main")) {
-        throw new Error("The pull request branch must differ from its base branch.");
+        throw new Error(
+          "The pull request branch must differ from its base branch."
+        );
       }
       return {
         directory: this.input.directory ?? process.cwd(),
@@ -67,11 +69,14 @@ export const { pushBranchAndCreatePullRequest } = actor()
     Step("createPullRequest", async function () {
       await this.pushBranch;
       const token = process.env.GITHUB_TOKEN;
-      if (!token) throw new Error("GITHUB_TOKEN is required to create a pull request.");
+      if (!token)
+        throw new Error("GITHUB_TOKEN is required to create a pull request.");
 
       const apiUrl = process.env.GITHUB_API_URL ?? "https://api.github.com";
       const response = await fetch(
-        `${apiUrl}/repos/${encodeURIComponent(this.input.owner)}/${encodeURIComponent(this.input.repository)}/pulls`,
+        `${apiUrl}/repos/${encodeURIComponent(
+          this.input.owner
+        )}/${encodeURIComponent(this.input.repository)}/pulls`,
         {
           method: "POST",
           headers: {
@@ -86,14 +91,18 @@ export const { pushBranchAndCreatePullRequest } = actor()
             head: this.input.branch,
             base: this.validateConfiguration.base,
           }),
-        },
+        }
       );
 
       if (!response.ok) {
-        throw new Error(`GitHub pull request creation failed (${response.status}): ${await response.text()}`);
+        throw new Error(
+          `GitHub pull request creation failed (${
+            response.status
+          }): ${await response.text()}`
+        );
       }
 
-      const pullRequest = await response.json() as Partial<GitHubPullRequest>;
+      const pullRequest = (await response.json()) as Partial<GitHubPullRequest>;
       if (
         typeof pullRequest.number !== "number" ||
         typeof pullRequest.html_url !== "string" ||
@@ -109,19 +118,34 @@ export const { pushBranchAndCreatePullRequest } = actor()
         branch: this.input.branch,
         base: this.validateConfiguration.base,
       };
-    }),
+    })
   )
 
   .meta({
     description: "Push a local branch and create a GitHub pull request",
     input: {
       owner: { description: "GitHub repository owner", example: "taskwish" },
-      repository: { description: "GitHub repository name", example: "taskwish" },
-      branch: { description: "Local branch to push", example: "feature/event-loop" },
-      title: { description: "Pull request title", example: "Add an event-driven loop" },
+      repository: {
+        description: "GitHub repository name",
+        example: "taskwish",
+      },
+      branch: {
+        description: "Local branch to push",
+        example: "feature/event-loop",
+      },
+      title: {
+        description: "Pull request title",
+        example: "Add an event-driven loop",
+      },
       body: { description: "Pull request description" },
       base: { description: "Base branch; defaults to main", example: "main" },
-      directory: { description: "Local Git working directory; defaults to the current directory" },
-      remote: { description: "Git remote; defaults to origin", example: "origin" },
+      directory: {
+        description:
+          "Local Git working directory; defaults to the current directory",
+      },
+      remote: {
+        description: "Git remote; defaults to origin",
+        example: "origin",
+      },
     },
   });

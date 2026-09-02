@@ -9,7 +9,7 @@ test("observes the environment after every action", async () => {
   await expect(
     EnvironmentLoop.runEnvironmentLoop
       .ctx({ agent })
-      .run({ target: 2, maxIterations: 2 }),
+      .run({ target: 2, maxIterations: 2 })
   ).resolves.toEqual({
     position: 2,
     target: 2,

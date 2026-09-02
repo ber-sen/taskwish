@@ -1,7 +1,5 @@
 import { Agent, Step } from "taskwish";
 
-import { ollamaModel } from "../shared/ollama";
-
 import { actor } from "./supervisor-worker-loop";
 
 export const { runSupervisorWorkerLoop } = actor()
@@ -11,12 +9,12 @@ export const { runSupervisorWorkerLoop } = actor()
 
   .run(
     Agent("supervisor", {
-      model: ollamaModel,
+      model: "ollama/qwen3:4b",
       instructions: "Delegate precise work and evaluate the worker's result.",
     }),
 
     Agent("worker", {
-      model: ollamaModel,
+      model: "ollama/qwen3:4b",
       instructions: "Execute delegated work and return a complete result.",
     }),
 
@@ -34,12 +32,16 @@ export const { runSupervisorWorkerLoop } = actor()
       return this.supervisor.generate({
         prompt: `Original task: ${this.input.task}\nDelegation: ${this.delegateTask}\nWorker result:\n${this.executeDelegation}\nEvaluate the result and give the final decision.`,
       });
-    }),
+    })
   )
 
   .meta({
-    description: "Have a supervisor delegate, a worker execute, and the supervisor evaluate",
+    description:
+      "Have a supervisor delegate, a worker execute, and the supervisor evaluate",
     input: {
-      task: { description: "Task the supervisor should delegate", example: "Draft a customer interview guide" },
+      task: {
+        description: "Task the supervisor should delegate",
+        example: "Draft a customer interview guide",
+      },
     },
   });

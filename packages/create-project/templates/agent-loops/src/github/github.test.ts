@@ -20,7 +20,7 @@ test("receives an issue webhook and emits GitHub::IssueOpened", async () => {
   const apiKey = "test-api-key";
   const fetchIntegration = createFetchHandler(
     createNodeRegistry([Promise.resolve({ GitHub })]),
-    { apiKey },
+    { apiKey }
   );
   const response = await fetchIntegration(
     new Request("http://localhost/integrations/github/issues", {
@@ -42,7 +42,7 @@ test("receives an issue webhook and emits GitHub::IssueOpened", async () => {
           owner: { login: "taskwish" },
         },
       }),
-    }),
+    })
   );
 
   expect(response.status).toBe(200);
@@ -68,7 +68,7 @@ test("requires credentials before pushing a branch", async () => {
         repository: "taskwish",
         branch: "feature/event-loop",
         title: "Add an event-driven loop",
-      }),
+      })
     ).rejects.toThrow("GITHUB_TOKEN is required");
   } finally {
     restoreEnvironment("GITHUB_TOKEN", previousToken);
@@ -82,7 +82,9 @@ test("pushes a branch and creates a pull request", async () => {
   const previousToken = process.env.GITHUB_TOKEN;
   const previousApiUrl = process.env.GITHUB_API_URL;
   const previousFetch = globalThis.fetch;
-  let apiRequest: { url: string; authorization: string | null; body: unknown } | undefined;
+  let apiRequest:
+    | { url: string; authorization: string | null; body: unknown }
+    | undefined;
 
   try {
     await runGit(root, ["init", "--bare", remote]);
@@ -95,7 +97,10 @@ test("pushes a branch and creates a pull request", async () => {
     await runGit(checkout, ["remote", "add", "origin", remote]);
     await runGit(checkout, ["push", "origin", "main"]);
     await runGit(checkout, ["checkout", "-b", "feature/event-loop"]);
-    await writeFile(join(checkout, "event-loop.md"), "Event loop implementation\n");
+    await writeFile(
+      join(checkout, "event-loop.md"),
+      "Event loop implementation\n"
+    );
     await runGit(checkout, ["add", "event-loop.md"]);
     await runGit(checkout, ["commit", "-m", "Add event loop"]);
 
@@ -108,11 +113,14 @@ test("pushes a branch and creates a pull request", async () => {
         authorization: headers.get("Authorization"),
         body: JSON.parse(String(init?.body)),
       };
-      return Response.json({
-        number: 17,
-        html_url: "https://github.example.test/taskwish/taskwish/pull/17",
-        title: "Add an event-driven loop",
-      }, { status: 201 });
+      return Response.json(
+        {
+          number: 17,
+          html_url: "https://github.example.test/taskwish/taskwish/pull/17",
+          title: "Add an event-driven loop",
+        },
+        { status: 201 }
+      );
     }) as typeof fetch;
 
     await expect(
@@ -123,7 +131,7 @@ test("pushes a branch and creates a pull request", async () => {
         title: "Add an event-driven loop",
         body: "Implements the GitHub event flow.",
         directory: checkout,
-      }),
+      })
     ).resolves.toEqual({
       number: 17,
       url: "https://github.example.test/taskwish/taskwish/pull/17",
@@ -132,9 +140,14 @@ test("pushes a branch and creates a pull request", async () => {
       base: "main",
     });
 
-    expect(await runGit(root, ["--git-dir", remote, "rev-parse", "refs/heads/feature/event-loop"])).toMatch(
-      /^[0-9a-f]{40,64}$/,
-    );
+    expect(
+      await runGit(root, [
+        "--git-dir",
+        remote,
+        "rev-parse",
+        "refs/heads/feature/event-loop",
+      ])
+    ).toMatch(/^[0-9a-f]{40,64}$/);
     expect(apiRequest).toEqual({
       url: "https://github.example.test/api/v3/repos/taskwish/taskwish/pulls",
       authorization: "Bearer test-token",

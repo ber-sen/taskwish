@@ -9,7 +9,7 @@ test("runs Observe → Think → Act with a mocked agent", async () => {
   await expect(
     BasicAgentLoop.runBasicAgentLoop
       .ctx({ agent })
-      .run({ goal: "Prepare launch", context: "Seven days remain" }),
+      .run({ goal: "Prepare launch", context: "Seven days remain" })
   ).resolves.toBe("send the launch checklist");
   expect(agent.generate).toHaveBeenCalledTimes(2);
 });

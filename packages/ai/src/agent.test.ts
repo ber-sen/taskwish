@@ -1,5 +1,5 @@
 import { describe, expect, mock, test } from "bun:test";
-import { Actor, Step } from "@taskwish/core";
+import { Actor, Step, TW } from "@taskwish/core";
 import {
   AcpAgentMessageChunk,
   AcpAgentThoughtChunk,
@@ -12,6 +12,7 @@ import {
 import { MockLanguageModelV3 } from "ai/test";
 
 import { Agent } from "./agent";
+import { Provider } from "./provider";
 import { Tool } from "./tool";
 
 const usage = {
@@ -45,6 +46,34 @@ describe("Tool", () => {
 });
 
 describe("Agent AI SDK runtime", () => {
+  test("resolves merged provider-qualified model names from internal actor scope", async () => {
+    const { Ollama } = Provider("Ollama", {
+      baseURL: "http://127.0.0.1:11434/v1",
+      models: ["qwen3:4b"],
+    });
+    const { Vllm } = Provider("Vllm", {
+      baseURL: "http://127.0.0.1:8000/v1",
+      models: ["deepseek-r1"],
+    });
+    const expectedModel =
+      Ollama[TW.Scope][TW.Provider].Ollama.model("qwen3:4b");
+    const { actor } = Actor("ProviderAgent").use(Ollama).use(Vllm);
+    const { inspectModel } = actor()
+      .on("Command", "inspectModel")
+      .run(
+        Agent({ model: "ollama/qwen3:4b" }),
+
+        Step("model", function () {
+          // Provider registries are framework metadata, not user-facing scope.
+          // @ts-expect-error TW.Provider is hidden from handler scope
+          this[TW.Provider];
+          return (this.agent.client as any).client.settings.model;
+        })
+      );
+
+    expect(await inspectModel()).toBe(expectedModel);
+  });
+
   test("defaults to AI SDK and executes named TaskWish tools", async () => {
     const toolInputs: Array<{ left: number; right: number }> = [];
     const model = new MockLanguageModelV3({
@@ -91,7 +120,7 @@ describe("Agent AI SDK runtime", () => {
           return this.agent.generate({
             prompt: "What is 2 + 3? Use the add tool.",
           });
-        }),
+        })
       );
 
     await expect(calculate()).resolves.toBe("The answer is 5.");
@@ -114,11 +143,11 @@ describe("Agent AI SDK runtime", () => {
 
         Step("answer", function () {
           return this.agent.generate({ prompt: "Hello" });
-        }),
+        })
       );
 
     await expect(runAgent()).rejects.toThrow(
-      'Agent tool "missing" was not registered',
+      'Agent tool "missing" was not registered'
     );
   });
 
@@ -163,7 +192,7 @@ describe("Agent AI SDK runtime", () => {
         Agent({ model, tools: ["wait"] }),
         Step("answer", function () {
           return this.agent.generate({ prompt: "Wait, then answer" });
-        }),
+        })
       );
 
     const stream = generate.stream();
@@ -177,7 +206,7 @@ describe("Agent AI SDK runtime", () => {
     expect(update.done).toBe(false);
     if (!update.done) events.push(update.value);
     expect(events.some((event) => event instanceof AcpUserMessageChunk)).toBe(
-      true,
+      true
     );
     expect(events.some((event) => event instanceof AcpToolCall)).toBe(true);
 
@@ -190,10 +219,10 @@ describe("Agent AI SDK runtime", () => {
 
     expect(update.value).toBe("Finished");
     expect(events.some((event) => event instanceof AcpToolCallUpdate)).toBe(
-      true,
+      true
     );
     expect(events.some((event) => event instanceof AcpAgentMessageChunk)).toBe(
-      true,
+      true
     );
     expect(events.some((event) => event instanceof AcpUsageUpdate)).toBe(true);
     expect(events.some((event) => event instanceof AcpStop)).toBe(true);
@@ -213,7 +242,7 @@ describe("Agent AI SDK runtime", () => {
 
         Step("runtime", function () {
           return this.agent.runtime;
-        }),
+        })
       );
 
     await expect(inspectRuntime()).resolves.toBe("codex");
@@ -253,7 +282,7 @@ describe("Agent AI SDK runtime", () => {
           return await new Promise<string>((resolve) => {
             finish = resolve;
           });
-        }),
+        })
       );
     const stream = generate.stream();
 
@@ -291,7 +320,7 @@ describe("Agent AI SDK runtime", () => {
         Step("plan", function () {
           expect(this.planner.name).toBe("planner");
           return this.planner.generate({ prompt: "Create a plan" });
-        }),
+        })
       );
 
     await expect(createPlan()).resolves.toBe("A plan");
@@ -315,7 +344,7 @@ describe("Agent AI SDK runtime", () => {
             default: await this.agent.generate({ prompt: "default" }),
             plan: await this.planner.generate({ prompt: "plan" }),
           };
-        }),
+        })
       );
 
     await expect(
@@ -324,7 +353,7 @@ describe("Agent AI SDK runtime", () => {
           agent: { generate: defaultGenerate },
           planner: { generate: plannerGenerate },
         })
-        .run(),
+        .run()
     ).resolves.toEqual({
       default: "mock default",
       plan: "mock plan",

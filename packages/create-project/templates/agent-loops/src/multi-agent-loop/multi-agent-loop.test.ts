@@ -10,7 +10,7 @@ test("alternates between two mocked agents", async () => {
   await expect(
     MultiAgentLoop.runMultiAgentLoop
       .ctx({ agentA, agentB })
-      .run({ topic: "Onboarding", rounds: 1 }),
+      .run({ topic: "Onboarding", rounds: 1 })
   ).resolves.toEqual([
     { agent: "A", message: "proposal" },
     { agent: "B", message: "review" },

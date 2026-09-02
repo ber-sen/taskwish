@@ -16,11 +16,21 @@ Then, in another terminal:
 bun start
 ```
 
-All agents use the local Ollama server at `http://127.0.0.1:11434/v1` by
-default. Override the model or endpoint when needed:
+All agents use `ollama/qwen3:4b` from the shared AI scope and connect to the
+local Ollama server at `http://127.0.0.1:11434/v1`. Override the endpoint when
+needed:
 
 ```sh
-OLLAMA_MODEL=qwen3:8b OLLAMA_BASE_URL=http://127.0.0.1:11434/v1 bun start
+OLLAMA_BASE_URL=http://127.0.0.1:11434/v1 bun start
+```
+
+```ts
+export const { Ollama } = Provider("Ollama", {
+  baseURL: process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434/v1",
+  models: ["qwen3:4b"],
+});
+
+export const { actor } = Actor("MyAgent").use(Ollama);
 ```
 
 The Playwright end-to-end tests start the console locally and mock every agent

@@ -1,7 +1,5 @@
 import { Agent, Step } from "taskwish";
 
-import { ollamaModel } from "../shared/ollama";
-
 import { actor } from "./event-driven-loop";
 
 export const { onGitHubIssueOpened } = actor()
@@ -9,8 +7,9 @@ export const { onGitHubIssueOpened } = actor()
 
   .run(
     Agent({
-      model: ollamaModel,
-      instructions: "Decide and return one concrete response action for a newly opened GitHub issue.",
+      model: "ollama/qwen3:4b",
+      instructions:
+        "Decide and return one concrete response action for a newly opened GitHub issue.",
     }),
 
     Step("decideAction", function () {
@@ -23,7 +22,7 @@ export const { onGitHubIssueOpened } = actor()
           "Decide the next action.",
         ].join("\n"),
       });
-    }),
+    })
   )
 
   .meta({

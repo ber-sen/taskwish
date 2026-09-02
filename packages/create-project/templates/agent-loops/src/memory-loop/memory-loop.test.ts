@@ -19,14 +19,14 @@ test("retrieves and stores mocked state through ctx", async () => {
     memories.push = ((...items: Array<{ id?: string; text: string }>) =>
       Array.prototype.push.apply(
         memories,
-        items.map((item) => ({ id: item.id ?? "memory-2", text: item.text })),
+        items.map((item) => ({ id: item.id ?? "memory-2", text: item.text }))
       )) as typeof memories.push;
     const state = { memories };
 
     await expect(
       MemoryLoop.runMemoryLoop
         .ctx({ agent, state })
-        .run({ goal: "Improve the release checklist" }),
+        .run({ goal: "Improve the release checklist" })
     ).resolves.toEqual({
       result: "release completed",
       stored: {

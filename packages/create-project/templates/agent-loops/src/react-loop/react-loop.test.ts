@@ -9,7 +9,7 @@ test("runs Reason → Act → Observe with a mocked agent", async () => {
   await expect(
     ReActLoop.runReactLoop
       .ctx({ agent })
-      .run({ question: "How are actions exposed?" }),
+      .run({ question: "How are actions exposed?" })
   ).resolves.toBe("TaskWish actors expose actions through services.");
   expect(agent.generate).toHaveBeenCalledTimes(1);
 });

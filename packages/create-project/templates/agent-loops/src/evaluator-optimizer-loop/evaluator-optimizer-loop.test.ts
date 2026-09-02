@@ -11,7 +11,7 @@ test("evaluates and optimizes until the candidate passes", async () => {
   await expect(
     EvaluatorOptimizerLoop.runEvaluatorOptimizerLoop
       .ctx({ generator, evaluator, optimizer })
-      .run({ task: "Write an announcement", maxIterations: 2 }),
+      .run({ task: "Write an announcement", maxIterations: 2 })
   ).resolves.toEqual({
     candidate: "draft with evidence",
     history: [

@@ -1,7 +1,5 @@
 import { Agent, Step } from "taskwish";
 
-import { ollamaModel } from "../shared/ollama";
-
 import { actor } from "./human-in-the-loop";
 
 export const { runHumanInTheLoop } = actor()
@@ -16,8 +14,9 @@ export const { runHumanInTheLoop } = actor()
 
   .run(
     Agent({
-      model: ollamaModel,
-      instructions: "Propose safe actions and execute only after explicit human approval.",
+      model: "ollama/qwen3:4b",
+      instructions:
+        "Propose safe actions and execute only after explicit human approval.",
     }),
 
     Step("proposeAction", function () {
@@ -48,17 +47,27 @@ export const { runHumanInTheLoop } = actor()
         };
       }
       return this.agent.generate({
-        prompt: `Goal: ${this.input.goal}\nApproved action: ${this.requestApproval.proposal}\nHuman feedback: ${this.input.feedback ?? "None"}\nContinue with the approved action and report the result.`,
+        prompt: `Goal: ${this.input.goal}\nApproved action: ${
+          this.requestApproval.proposal
+        }\nHuman feedback: ${
+          this.input.feedback ?? "None"
+        }\nContinue with the approved action and report the result.`,
       });
-    }),
+    })
   )
 
   .meta({
     description: "Propose an action, pause for human approval, then continue",
     input: {
-      goal: { description: "Goal requiring human oversight", example: "Send a customer-facing announcement" },
+      goal: {
+        description: "Goal requiring human oversight",
+        example: "Send a customer-facing announcement",
+      },
       proposal: { description: "Proposal returned by the previous call" },
       decision: { description: "Use approve or reject", example: "approve" },
-      feedback: { description: "Optional human guidance", example: "Use a warmer tone" },
+      feedback: {
+        description: "Optional human guidance",
+        example: "Use a warmer tone",
+      },
     },
   });

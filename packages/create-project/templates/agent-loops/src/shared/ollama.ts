@@ -1,8 +1,6 @@
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { Provider } from "taskwish";
 
-const ollama = createOpenAICompatible({
-  name: "ollama",
+export const { Ollama } = Provider("Ollama", {
   baseURL: process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434/v1",
+  models: ["qwen3:4b"],
 });
-
-export const ollamaModel = ollama(process.env.OLLAMA_MODEL ?? "qwen3:4b");

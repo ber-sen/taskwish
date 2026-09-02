@@ -559,9 +559,7 @@ function makeBehaviorMod(
 ): (args: unknown[]) => BehaviorMod {
   if (behavior === "Schedule") {
     return (args) => ({
-      args: [
-        { expression: config, ...(args[0] as Record<string, unknown>) },
-      ],
+      args: [{ expression: config, ...(args[0] as Record<string, unknown>) }],
       scope: {},
     });
   }
@@ -633,7 +631,10 @@ function collectScope(
     ) {
       scope[key] = (
         value as {
-          [TW.ActorScope](actorName: string, steps: readonly unknown[]): unknown;
+          [TW.ActorScope](
+            actorName: string,
+            steps: readonly unknown[]
+          ): unknown;
         }
       )[TW.ActorScope](actorName, steps);
       return;
@@ -725,7 +726,7 @@ function createBehavior(
 
   async function resolveBehaviorScope() {
     let resolved = await resolveInitialScope();
-    if (Object.keys(behaviorScope).length > 0) {
+    if (Reflect.ownKeys(behaviorScope).length > 0) {
       resolved = mergeActorScope(resolved, behaviorScope);
     }
     if (pendingBehaviorScopes.length > 0) {
@@ -750,7 +751,7 @@ function createBehavior(
     }
 
     const incoming = collectPluginScope(plugin);
-    if (Object.keys(incoming).length > 0) applyScope(incoming);
+    if (Reflect.ownKeys(incoming).length > 0) applyScope(incoming);
   }
 
   const self = {
@@ -830,7 +831,7 @@ function createBehavior(
 
       async function resolveActionScope() {
         let resolved = await resolveBehaviorScope();
-        if (Object.keys(actionScope).length > 0) {
+        if (Reflect.ownKeys(actionScope).length > 0) {
           resolved = mergeActorScope(resolved, actionScope);
         }
         if (pendingActionScopes.length > 0) {
@@ -1506,7 +1507,19 @@ function collectEvents(plugin: unknown): Record<string, unknown> {
 
 function collectPluginScope(plugin: unknown): Record<string, unknown> {
   const actions = collectActions(plugin);
+  const declaredScope =
+    plugin !== null &&
+    typeof plugin === "object" &&
+    TW.Scope in plugin &&
+    (plugin as Record<symbol, unknown>)[TW.Scope] !== null &&
+    typeof (plugin as Record<symbol, unknown>)[TW.Scope] === "object"
+      ? ((plugin as Record<symbol, unknown>)[TW.Scope] as Record<
+          string,
+          unknown
+        >)
+      : {};
   return {
+    ...declaredScope,
     ...collectEvents(plugin),
     ...(Object.keys(actions).length > 0 ? { actions } : {}),
   };
@@ -1517,10 +1530,21 @@ function mergeActorScope(
   incoming: Record<string, unknown>
 ): Record<string, unknown> {
   const { actions: incomingActions, ...incomingScope } = incoming;
+  const existingProviders = (existing as Record<symbol, unknown>)[TW.Provider];
+  const incomingProviders = (incoming as Record<symbol, unknown>)[TW.Provider];
   const next: Record<string, unknown> = {
     ...existing,
     ...incomingScope,
   };
+
+  if (incomingProviders !== null && typeof incomingProviders === "object") {
+    (next as Record<symbol, unknown>)[TW.Provider] = {
+      ...(existingProviders !== null && typeof existingProviders === "object"
+        ? existingProviders
+        : {}),
+      ...incomingProviders,
+    };
+  }
 
   if (
     incomingActions !== null &&
@@ -1624,7 +1648,7 @@ function makeActorBuilder(
       }
 
       const incoming = collectPluginScope(plugin);
-      if (Object.keys(incoming).length === 0)
+      if (Reflect.ownKeys(incoming).length === 0)
         return makeActorBuilder(actorName, actorScope);
 
       return makeActorBuilder(

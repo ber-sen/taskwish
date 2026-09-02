@@ -10,7 +10,7 @@ test("creates a plan and executes every step", async () => {
   await expect(
     PlanExecuteLoop.runPlanExecuteLoop
       .ctx({ planner, executor })
-      .run({ goal: "Publish an article" }),
+      .run({ goal: "Publish an article" })
   ).resolves.toEqual(["inspection complete", "publication complete"]);
   expect(executor.generate).toHaveBeenCalledTimes(2);
 });

@@ -25,6 +25,32 @@ export namespace TW {
 
   export const Scope = Symbol.for("TW.Ctx");
 
+  /** Stores language-model providers in an actor's internal scope. */
+  export const Provider = Symbol.for("TW.Provider");
+
+  export interface AIProviderRegistration<
+    Name extends string = string,
+    Models extends readonly string[] = readonly string[],
+    Model = unknown
+  > {
+    readonly provider: Lowercase<Name>;
+    readonly models: Models;
+    readonly model: (modelId: Models[number]) => Model;
+  }
+
+  export interface AIProvider<
+    Name extends string = string,
+    Models extends readonly string[] = readonly string[],
+    Model = unknown
+  > extends AIProviderRegistration<Name, Models, Model> {
+    readonly [Scope]: {
+      readonly [Provider]: Record<
+        Name,
+        AIProviderRegistration<Name, Models, Model>
+      >;
+    };
+  }
+
   export const Listeners = Symbol.for("TW.Listeners");
 
   export const Type = Symbol.for("TW.Type");
@@ -96,6 +122,8 @@ export namespace TW {
 
   type UserScope<S> = {
     [K in keyof StripEventKinds<S> as K extends typeof Branch
+      ? never
+      : K extends typeof Provider
       ? never
       : K]: StripBranch<StripEventKinds<S>[K]>;
   };

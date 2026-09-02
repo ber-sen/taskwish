@@ -11,7 +11,7 @@ test("replans after executing the first step", async () => {
   await expect(
     PlanExecuteReplanLoop.runPlanExecuteReplanLoop
       .ctx({ planner, executor, replanner })
-      .run({ goal: "Migrate the service" }),
+      .run({ goal: "Migrate the service" })
   ).resolves.toEqual({
     first: { step: "Inspect", result: "inspection complete" },
     revisedPlan: "1. Stage\n2. Deploy",

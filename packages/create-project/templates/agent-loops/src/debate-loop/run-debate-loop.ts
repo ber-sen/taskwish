@@ -1,7 +1,5 @@
 import { Agent, Step } from "taskwish";
 
-import { ollamaModel } from "../shared/ollama";
-
 import { actor } from "./debate-loop";
 
 export const { runDebateLoop } = actor()
@@ -11,24 +9,27 @@ export const { runDebateLoop } = actor()
 
   .run(
     Agent("proposer", {
-      model: ollamaModel,
+      model: "ollama/qwen3:4b",
       instructions: "Argue for the strongest answer to the question.",
     }),
 
     Agent("challenger", {
-      model: ollamaModel,
+      model: "ollama/qwen3:4b",
       instructions: "Find flaws and propose a competing answer.",
     }),
 
     Agent("judge", {
-      model: ollamaModel,
-      instructions: "Impartially judge competing arguments and return the best-supported answer.",
+      model: "ollama/qwen3:4b",
+      instructions:
+        "Impartially judge competing arguments and return the best-supported answer.",
     }),
 
     Step("proposeAnswers", async function () {
       const [proposal, challenge] = await Promise.all([
         this.proposer.generate({ prompt: this.input.question }),
-        this.challenger.generate({ prompt: `Develop a skeptical answer to: ${this.input.question}` }),
+        this.challenger.generate({
+          prompt: `Develop a skeptical answer to: ${this.input.question}`,
+        }),
       ]);
       return { proposal, challenge };
     }),
@@ -47,14 +48,24 @@ export const { runDebateLoop } = actor()
 
     Step("judgeDebate", function () {
       return this.judge.generate({
-        prompt: `Question: ${this.input.question}\nOpening arguments: ${JSON.stringify(this.proposeAnswers)}\nResponses: ${JSON.stringify(this.challengeAnswers)}\nDecide the answer.`,
+        prompt: `Question: ${
+          this.input.question
+        }\nOpening arguments: ${JSON.stringify(
+          this.proposeAnswers
+        )}\nResponses: ${JSON.stringify(
+          this.challengeAnswers
+        )}\nDecide the answer.`,
       });
-    }),
+    })
   )
 
   .meta({
-    description: "Have agents propose and challenge answers before a judge decides",
+    description:
+      "Have agents propose and challenge answers before a judge decides",
     input: {
-      question: { description: "Question to debate", example: "Should this service use a queue?" },
+      question: {
+        description: "Question to debate",
+        example: "Should this service use a queue?",
+      },
     },
   });

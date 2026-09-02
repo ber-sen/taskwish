@@ -1,7 +1,5 @@
 import { Agent, Step } from "taskwish";
 
-import { ollamaModel } from "../shared/ollama";
-
 import { actor } from "./multi-agent-loop";
 
 export const { runMultiAgentLoop } = actor()
@@ -11,18 +9,21 @@ export const { runMultiAgentLoop } = actor()
 
   .run(
     Agent("agentA", {
-      model: ollamaModel,
-      instructions: "Develop a proposal and incorporate useful feedback from Agent B.",
+      model: "ollama/qwen3:4b",
+      instructions:
+        "Develop a proposal and incorporate useful feedback from Agent B.",
     }),
 
     Agent("agentB", {
-      model: ollamaModel,
+      model: "ollama/qwen3:4b",
       instructions: "Review Agent A's proposal and respond with improvements.",
     }),
 
     Step("alternateAgents", async function () {
       const transcript: Array<{ agent: "A" | "B"; message: string }> = [];
-      let message = await this.agentA.generate({ prompt: `Propose an approach for: ${this.input.topic}` });
+      let message = await this.agentA.generate({
+        prompt: `Propose an approach for: ${this.input.topic}`,
+      });
       transcript.push({ agent: "A", message });
       const rounds = Math.max(1, Math.min(this.input.rounds ?? 2, 6));
 
@@ -38,13 +39,16 @@ export const { runMultiAgentLoop } = actor()
       }
 
       return transcript;
-    }),
+    })
   )
 
   .meta({
     description: "Alternate messages between two agents for several rounds",
     input: {
-      topic: { description: "Topic the agents should develop", example: "Design an onboarding flow" },
+      topic: {
+        description: "Topic the agents should develop",
+        example: "Design an onboarding flow",
+      },
       rounds: { description: "Number of A/B exchanges", example: 2 },
     },
   });

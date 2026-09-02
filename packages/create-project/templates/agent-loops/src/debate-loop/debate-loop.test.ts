@@ -11,7 +11,7 @@ test("lets agents debate before a judge decides", async () => {
   await expect(
     DebateLoop.runDebateLoop
       .ctx({ proposer, challenger, judge })
-      .run({ question: "Should this service use a queue?" }),
+      .run({ question: "Should this service use a queue?" })
   ).resolves.toBe("Use a queue for failure isolation.");
   expect(judge.generate).toHaveBeenCalledTimes(1);
 });

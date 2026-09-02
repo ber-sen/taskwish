@@ -10,7 +10,7 @@ test("evaluates branches and explores the best path", async () => {
   await expect(
     TreeSearchLoop.runTreeSearchLoop
       .ctx({ explorer, evaluator })
-      .run({ goal: "Reduce latency", depth: 1 }),
+      .run({ goal: "Reduce latency", depth: 1 })
   ).resolves.toEqual({
     bestPath: ["Cache reads"],
     explored: [

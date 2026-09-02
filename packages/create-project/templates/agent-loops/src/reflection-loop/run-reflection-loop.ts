@@ -1,7 +1,5 @@
 import { Agent, Step } from "taskwish";
 
-import { ollamaModel } from "../shared/ollama";
-
 import { actor } from "./reflection-loop";
 
 export const { runReflectionLoop } = actor()
@@ -11,18 +9,19 @@ export const { runReflectionLoop } = actor()
 
   .run(
     Agent("generator", {
-      model: ollamaModel,
+      model: "ollama/qwen3:4b",
       instructions: "Produce a useful first draft.",
     }),
 
     Agent("critic", {
-      model: ollamaModel,
+      model: "ollama/qwen3:4b",
       instructions: "Identify specific weaknesses and omissions in a draft.",
     }),
 
     Agent("improver", {
-      model: ollamaModel,
-      instructions: "Rewrite a draft using the critique. Return only the improved result.",
+      model: "ollama/qwen3:4b",
+      instructions:
+        "Rewrite a draft using the critique. Return only the improved result.",
     }),
 
     Step("generateDraft", function () {
@@ -39,12 +38,15 @@ export const { runReflectionLoop } = actor()
       return this.improver.generate({
         prompt: `Request: ${this.input.prompt}\nDraft:\n${this.generateDraft}\nCritique:\n${this.critiqueDraft}`,
       });
-    }),
+    })
   )
 
   .meta({
     description: "Generate a draft, critique it, and improve it",
     input: {
-      prompt: { description: "Content request to refine", example: "Explain agent loops to a beginner" },
+      prompt: {
+        description: "Content request to refine",
+        example: "Explain agent loops to a beginner",
+      },
     },
   });

@@ -1,3 +1,5 @@
 import { Actor } from "taskwish";
 
-export const { actor } = Actor("SelfAskLoop");
+import { Ollama } from "../shared/ollama";
+
+export const { actor } = Actor("SelfAskLoop").use(Ollama);

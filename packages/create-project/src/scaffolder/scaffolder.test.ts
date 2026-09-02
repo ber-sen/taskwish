@@ -15,15 +15,13 @@ afterEach(async () => {
   await Promise.all(
     temporaryDirectories
       .splice(0)
-      .map((directory) => rm(directory, { recursive: true, force: true })),
+      .map((directory) => rm(directory, { recursive: true, force: true }))
   );
 });
 
 describe("Scaffolder.createProject", () => {
   test("uses the Scaffolder action namespace", () => {
-    expect(Scaffolder.createProject[TW.Name]).toBe(
-      "Scaffolder::createProject",
-    );
+    expect(Scaffolder.createProject[TW.Name]).toBe("Scaffolder::createProject");
   });
 
   test.each([
@@ -84,57 +82,65 @@ describe("Scaffolder.createProject", () => {
       });
 
       const packageJson = JSON.parse(
-        await readFile(join(destination, "package.json"), "utf8"),
+        await readFile(join(destination, "package.json"), "utf8")
       );
       const templatePackageJson = JSON.parse(
         await readFile(
           join(templateDirectory, template, "package.json"),
-          "utf8",
-        ),
+          "utf8"
+        )
       );
-      const templateSource = await readFile(join(destination, actionPath), "utf8");
-      const entrypoint = await readFile(join(destination, "taskwish.ts"), "utf8");
+      const templateSource = await readFile(
+        join(destination, actionPath),
+        "utf8"
+      );
+      const entrypoint = await readFile(
+        join(destination, "taskwish.ts"),
+        "utf8"
+      );
       const canonicalSkill = await readFile(skillPath, "utf8");
       const agentInstructions = await readFile(
         join(destination, "AGENTS.md"),
-        "utf8",
+        "utf8"
       );
 
       expect(packageJson.name).toBe(`my-${template}-app`);
-      expect(packageJson.scripts.test).toBe("bun test");
+      expect(packageJson.scripts.test).toBe(
+        template === "agent-loops" ? "bun test src" : "bun test"
+      );
       expect(templatePackageJson.workspaces).toEqual(["../../../*"]);
       expect(packageJson.workspaces).toBeUndefined();
       expect(templatePackageJson.dependencies.taskwish).toBe("workspace:*");
       expect(templatePackageJson.dependencies["@taskwish/console"]).toBe(
-        "workspace:*",
+        "workspace:*"
       );
       expect(templatePackageJson.dependencies["@taskwish/server"]).toBe(
-        "workspace:*",
+        "workspace:*"
       );
       expect(packageJson.dependencies.taskwish).toBe("^0.0.8");
       expect(packageJson.dependencies["@taskwish/console"]).toBe("^0.0.1");
       expect(packageJson.dependencies["@taskwish/server"]).toBe("^0.0.1");
       expect(templateSource).toContain(actorSource);
-      expect(entrypoint).toContain('import { Console } from "@taskwish/console"');
+      expect(entrypoint).toContain(
+        'import { Console } from "@taskwish/console"'
+      );
       expect(entrypoint).toContain('import { Server } from "@taskwish/server"');
       expect(entrypoint).toContain("await Server(");
       expect(entrypoint).toContain("apps: [Console()]");
       expect(
         await readFile(
           join(templateDirectory, template, projectSkillPath),
-          "utf8",
-        ),
+          "utf8"
+        )
       ).toBe(canonicalSkill);
       expect(await readFile(join(destination, projectSkillPath), "utf8")).toBe(
-        canonicalSkill,
+        canonicalSkill
       );
       await expect(
-        readFile(join(destination, "SKILL.md"), "utf8"),
+        readFile(join(destination, "SKILL.md"), "utf8")
       ).rejects.toThrow();
       expect(agentInstructions).toContain("This project uses TaskWish");
-      expect(agentInstructions).toContain(
-        "`.agents/skills/taskwish/SKILL.md`",
-      );
+      expect(agentInstructions).toContain("`.agents/skills/taskwish/SKILL.md`");
       const normalizedEntrypoint = entrypoint
         .replace(/\s+/g, " ")
         .replace(/\[\s+/g, "[")
@@ -142,7 +148,7 @@ describe("Scaffolder.createProject", () => {
       const expectedWorkspace = `workspace: [${actorNames.join(", ")}]`;
       expect(normalizedEntrypoint).toContain(expectedWorkspace);
       expect(normalizedEntrypoint).not.toContain(
-        `workspace: [{ ${actorNames.join(", ")} }]`,
+        `workspace: [{ ${actorNames.join(", ")} }]`
       );
       if (template === "empty") {
         expect(entrypoint).not.toContain("Greeter.greet");
@@ -150,63 +156,62 @@ describe("Scaffolder.createProject", () => {
       if (template === "todo") {
         const completeTodoSource = await readFile(
           join(destination, "src/todos/complete-todo.ts"),
-          "utf8",
+          "utf8"
         );
         expect(completeTodoSource).toContain('.addStateCommand("item"');
         expect(completeTodoSource).toContain("suggestions: {");
         expect(completeTodoSource).toContain('$: "Todos::listTodos"');
         expect(completeTodoSource).toContain(
-          'this.signal("Todos::TodoCompleted"',
+          'this.signal("Todos::TodoCompleted"'
         );
         expect(entrypoint).not.toContain("Reminders");
       }
       if (template === "agent-loops") {
         const toolCallingSource = await readFile(
           join(destination, "src/tool-calling-loop/run-tool-calling-loop.ts"),
-          "utf8",
+          "utf8"
         );
         const multiAgentSource = await readFile(
           join(destination, "src/multi-agent-loop/run-multi-agent-loop.ts"),
-          "utf8",
+          "utf8"
         );
         const humanLoopSource = await readFile(
           join(destination, "src/human-in-the-loop/run-human-in-the-loop.ts"),
-          "utf8",
+          "utf8"
         );
         const githubWebhookSource = await readFile(
           join(destination, "src/github/receive-issue-webhook.ts"),
-          "utf8",
+          "utf8"
         );
         const githubPullRequestSource = await readFile(
-          join(destination, "src/github/push-branch-and-create-pull-request.ts"),
-          "utf8",
+          join(
+            destination,
+            "src/github/push-branch-and-create-pull-request.ts"
+          ),
+          "utf8"
         );
         const eventLoopSource = await readFile(
           join(destination, "src/event-driven-loop/on-github-issue-opened.ts"),
-          "utf8",
+          "utf8"
         );
         expect(toolCallingSource).toContain('Tool("calculate"');
         expect(toolCallingSource).toContain('tools: ["calculate"]');
         expect(toolCallingSource).not.toContain('runtime: "codex"');
-        expect(toolCallingSource).toContain('model: "openai/gpt-5-mini"');
+        expect(toolCallingSource).toContain('model: "ollama/qwen3:4b"');
         expect(multiAgentSource).toContain('Agent("agentA"');
         expect(multiAgentSource).toContain('Agent("agentB"');
         expect(humanLoopSource).toContain('status: "approvalRequired"');
         expect(githubWebhookSource).toContain(
-          '.on("POST", "/integrations/github/issues"',
+          '.on("POST", "/integrations/github/issues"'
         );
         expect(githubWebhookSource).toContain(
-          'this.signal("GitHub::IssueOpened"',
+          'this.signal("GitHub::IssueOpened"'
         );
         expect(githubPullRequestSource).toContain(
-          '.on("Command", "pushBranchAndCreatePullRequest")',
+          '.on("Command", "pushBranchAndCreatePullRequest")'
         );
-        expect(githubPullRequestSource).toContain(
-          '["git", ...args]',
-        );
-        expect(githubPullRequestSource).toContain(
-          '"https://api.github.com"',
-        );
+        expect(githubPullRequestSource).toContain('["git", ...args]');
+        expect(githubPullRequestSource).toContain('"https://api.github.com"');
         expect(eventLoopSource).toContain('.on("GitHub::IssueOpened")');
         expect(entrypoint).toContain("GitHub,");
       }
@@ -220,16 +225,18 @@ describe("Scaffolder.createProject", () => {
       expect(result.gitInitialized).toBe(false);
       expect(result.files).toContain(actionPath);
       expect(result.files).toContain(testPath);
-      expect(result.files.some((file) => file.startsWith("node_modules/"))).toBe(
-        false,
-      );
+      expect(
+        result.files.some((file) => file.startsWith("node_modules/"))
+      ).toBe(false);
       expect(result.files).not.toContain("bun.lock");
-      expect(result.files.some((file) => file.startsWith("state/"))).toBe(false);
+      expect(result.files.some((file) => file.startsWith("state/"))).toBe(
+        false
+      );
       expect(result.files).toContain("taskwish.ts");
       expect(result.files).toContain("AGENTS.md");
       expect(result.files).toContain(projectSkillPath);
       expect(
-        result.files.filter((file) => file === projectSkillPath),
+        result.files.filter((file) => file === projectSkillPath)
       ).toHaveLength(1);
       const actionFiles = result.files.filter((file) => {
         const parts = file.split("/");
@@ -246,13 +253,16 @@ describe("Scaffolder.createProject", () => {
       });
       const actionStepCounts: number[] = [];
       for (const actionFile of actionFiles) {
-        const actionSource = await readFile(join(destination, actionFile), "utf8");
+        const actionSource = await readFile(
+          join(destination, actionFile),
+          "utf8"
+        );
         const stepNames = Array.from(
           actionSource.matchAll(/Step\("([^"]+)"/g),
-          (match) => match[1]!,
+          (match) => match[1]!
         );
         const isHttpRouteAction = /\.on\("(?:GET|POST|PUT|DELETE|PATCH)"/.test(
-          actionSource,
+          actionSource
         );
         if (!isHttpRouteAction) expect(stepNames.length).toBeGreaterThan(0);
         expect(actionSource).toContain(".meta({");
@@ -265,10 +275,7 @@ describe("Scaffolder.createProject", () => {
       expect(actionStepCounts.some((count) => count > 1)).toBe(true);
       const actorFiles = result.files.filter((file) => {
         const parts = file.split("/");
-        return (
-          file.startsWith("src/") &&
-          parts.at(-1) === `${parts.at(-2)}.ts`
-        );
+        return file.startsWith("src/") && parts.at(-1) === `${parts.at(-2)}.ts`;
       });
       expect(actorFiles).toHaveLength(actorNames.length);
       for (const actorFile of actorFiles) {
@@ -278,7 +285,7 @@ describe("Scaffolder.createProject", () => {
       }
       if (template === "agent-loops") {
         const serviceTests = result.files.filter(
-          (file) => file.startsWith("src/") && file.endsWith(".test.ts"),
+          (file) => file.startsWith("src/") && file.endsWith(".test.ts")
         );
         expect(serviceTests).toHaveLength(actorNames.length);
         for (const serviceTest of serviceTests) {
@@ -287,7 +294,7 @@ describe("Scaffolder.createProject", () => {
           expect(parts.at(-1)).toBe(`${serviceName}.test.ts`);
         }
       }
-    },
+    }
   );
 
   test("uses the empty template by default", async () => {
@@ -317,10 +324,10 @@ describe("Scaffolder.createProject", () => {
         git: false,
         templateDirectory,
         skillPath,
-      }),
+      })
     ).rejects.toThrow("the directory is not empty");
     expect(await readFile(join(destination, "keep.txt"), "utf8")).toBe(
-      "do not overwrite",
+      "do not overwrite"
     );
   });
 
@@ -335,7 +342,7 @@ describe("Scaffolder.createProject", () => {
         git: false,
         templateDirectory,
         skillPath,
-      }),
+      })
     ).rejects.toThrow('Unknown template "not-a-template"');
   });
 });

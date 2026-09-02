@@ -21,13 +21,16 @@ import {
 
 import { ToolDefinition, type TaskWishTool } from "./tool";
 
+/** A concrete AI SDK model implementation, excluding its global string catalog. */
+export type TaskWishLanguageModel = Exclude<LanguageModel, string>;
+
 export type AiSdkAgentOptions = Omit<
   ToolLoopAgentSettings<never, ToolSet>,
   "id" | "model" | "tools"
 > & {
   runtime?: "ai-sdk";
   name?: string;
-  model: LanguageModel | (string & {});
+  model: TaskWishLanguageModel | (string & {});
   tools?: readonly string[];
 };
 
@@ -48,7 +51,7 @@ export class AiSdkAgent {
   constructor(
     options: AiSdkAgentOptions,
     tools: Record<string, TaskWishTool> = {},
-    private readonly onWireMessage?: AiSdkWireObserver,
+    private readonly onWireMessage?: AiSdkWireObserver
   ) {
     const {
       runtime: _runtime,
@@ -114,7 +117,7 @@ export class AiSdkAgent {
     const result = this.stream(
       { messages: [...history, userMessage] },
       input.sessionId,
-      input.content,
+      input.content
     );
     let text = "";
     let next = await result.next();
@@ -136,7 +139,7 @@ export class AiSdkAgent {
   private async *stream(
     input: Parameters<AiSdkToolLoopAgent["stream"]>[0],
     sessionId: string,
-    prompt: string,
+    prompt: string
   ): AsyncGenerator<string, Awaited<ReturnType<AiSdkToolLoopAgent["stream"]>>> {
     this.publishUpdate(sessionId, {
       sessionUpdate: "user_message_chunk",
@@ -157,7 +160,7 @@ export class AiSdkAgent {
   private publishStreamPart(
     sessionId: string,
     part: TextStreamPart<ToolSet>,
-    toolInputs: Map<string, string>,
+    toolInputs: Map<string, string>
   ): string | undefined {
     switch (part.type) {
       case "text-delta":
@@ -256,7 +259,7 @@ export class AiSdkAgent {
 
   private publishToolStart(
     sessionId: string,
-    event: ToolExecutionStartEvent,
+    event: ToolExecutionStartEvent
   ): void {
     const call = event.toolCall;
     this.publishUpdate(sessionId, {
@@ -272,7 +275,7 @@ export class AiSdkAgent {
 
   private publishToolEnd(
     sessionId: string,
-    event: ToolExecutionEndEvent,
+    event: ToolExecutionEndEvent
   ): void {
     const call = event.toolCall;
     const output = event.toolOutput;
@@ -328,7 +331,7 @@ export class AiSdkAgent {
 
   private publishUpdate(sessionId: string, update: AcpSessionUpdate): void {
     this.onWireMessage?.(
-      acpSessionUpdateMessage({ sessionId, update } as AcpSessionNotification),
+      acpSessionUpdateMessage({ sessionId, update } as AcpSessionNotification)
     );
   }
 
@@ -368,6 +371,6 @@ function toAiSdkTools(tools: Record<string, TaskWishTool>): ToolSet {
           execute: (input) => taskwishTool(input),
         }),
       ];
-    }),
+    })
   );
 }

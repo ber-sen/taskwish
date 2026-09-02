@@ -9,7 +9,7 @@ test("chooses actions until the goal condition is satisfied", async () => {
   await expect(
     GoalDrivenLoop.runGoalDrivenLoop
       .ctx({ agent })
-      .run({ goal: "Release", requiredActions: 2 }),
+      .run({ goal: "Release", requiredActions: 2 })
   ).resolves.toEqual({
     goal: "Release",
     satisfied: true,

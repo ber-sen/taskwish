@@ -1,7 +1,5 @@
 import { Agent, Step } from "taskwish";
 
-import { ollamaModel } from "../shared/ollama";
-
 import { actor } from "./memory-loop";
 
 export const { runMemoryLoop } = actor()
@@ -11,20 +9,25 @@ export const { runMemoryLoop } = actor()
 
   .run(
     Agent({
-      model: ollamaModel,
-      instructions: "Use retrieved memories to reason, act, and summarize what should be remembered.",
+      model: "ollama/qwen3:4b",
+      instructions:
+        "Use retrieved memories to reason, act, and summarize what should be remembered.",
     }),
 
     Step("retrieveMemory", function () {
       const words = this.input.goal.toLowerCase().split(/\W+/).filter(Boolean);
       return this.state.memories
-        .filter((memory) => words.some((word) => memory.text.toLowerCase().includes(word)))
+        .filter((memory) =>
+          words.some((word) => memory.text.toLowerCase().includes(word))
+        )
         .slice(-5);
     }),
 
     Step("reasonWithMemory", function () {
       return this.agent.generate({
-        prompt: `Goal: ${this.input.goal}\nRelevant memories: ${JSON.stringify(this.retrieveMemory)}\nReason about the next action.`,
+        prompt: `Goal: ${this.input.goal}\nRelevant memories: ${JSON.stringify(
+          this.retrieveMemory
+        )}\nReason about the next action.`,
       });
     }),
 
@@ -42,12 +45,15 @@ export const { runMemoryLoop } = actor()
         result: this.actFromMemory,
         stored: this.state.memories.at(-1)!,
       };
-    }),
+    })
   )
 
   .meta({
     description: "Retrieve memories, reason and act, then store the outcome",
     input: {
-      goal: { description: "Goal used for retrieval and action", example: "Improve the release checklist" },
+      goal: {
+        description: "Goal used for retrieval and action",
+        example: "Improve the release checklist",
+      },
     },
   });

@@ -11,6 +11,6 @@ test("generates, critiques, and improves a draft", async () => {
   await expect(
     ReflectionLoop.runReflectionLoop
       .ctx({ generator, critic, improver })
-      .run({ prompt: "Explain agent loops" }),
+      .run({ prompt: "Explain agent loops" })
   ).resolves.toBe("improved draft with an example");
 });

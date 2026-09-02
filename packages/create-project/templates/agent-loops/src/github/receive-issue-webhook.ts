@@ -22,7 +22,9 @@ export const { receiveIssueWebhook } = actor()
 
   .run(function () {
     if (this.input.action !== "opened") {
-      throw new Error(`Expected an opened issue, received ${this.input.action}.`);
+      throw new Error(
+        `Expected an opened issue, received ${this.input.action}.`
+      );
     }
     return this.signal("GitHub::IssueOpened", {
       owner: this.input.repository.owner.login,
