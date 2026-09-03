@@ -1,8 +1,6 @@
-"use client";
-
-import { ArrowLeft, ArrowRight, BookOpen, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { CodeBlock } from "./code-block";
+import { DocsMenu } from "./docs-menu";
 
 type DocPage = { slug: string; title: string; description: string; content: React.ReactNode };
 
@@ -78,17 +76,11 @@ const pages: DocPage[] = [
 ];
 
 export function Docs({ slug }: { slug: string }) {
-  const [open, setOpen] = useState(false);
   const index = Math.max(0, pages.findIndex((page) => page.slug === slug));
   const page = pages[index];
 
   return <main className="docs-shell">
-    <button className="docs-menu-button" onClick={() => setOpen(!open)}>{open ? <X size={18} /> : <Menu size={18} />} Contents</button>
-    <aside className={open ? "docs-sidebar open" : "docs-sidebar"}>
-      <div className="docs-label"><BookOpen size={16} /> Documentation</div>
-      <nav>{pages.map((item) => <a key={item.slug} className={item.slug === page.slug ? "active" : ""} href={`/docs/${item.slug}`}>{item.title}</a>)}</nav>
-      <div className="docs-help"><span>Need a working example?</span><a href="https://github.com/ber-sen/taskwish/tree/main/packages/create-project/templates" target="_blank" rel="noreferrer">Browse the starters ↗</a></div>
-    </aside>
+    <DocsMenu pages={pages} activeSlug={page.slug} />
     <article className="doc-article">
       <div className="doc-breadcrumb"><a href="/docs">Docs</a><span>/</span>{page.title}</div>
       <h1>{page.title}</h1><p className="doc-description">{page.description}</p>
