@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://taskwish.sh/</loc></url>
+  <url><loc>https://taskwish.sh/docs</loc></url>
+  <url><loc>https://taskwish.sh/docs/getting-started</loc></url>
+  <url><loc>https://taskwish.sh/docs/actors</loc></url>
+  <url><loc>https://taskwish.sh/docs/steps</loc></url>
+  <url><loc>https://taskwish.sh/docs/state-and-events</loc></url>
+  <url><loc>https://taskwish.sh/docs/agents</loc></url>
+  <url><loc>https://taskwish.sh/docs/server-and-console</loc></url>
+</urlset>
