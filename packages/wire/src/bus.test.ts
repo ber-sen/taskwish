@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
 import { Wire, configureWire, getWireConfig, ulid } from "./bus";
+import { formatEvent } from "./format";
+import { dispatch } from "./logger";
 import {
   AcpStop,
   acpMessage,
@@ -90,6 +92,12 @@ describe("Wire", () => {
       type: "text",
       text: "Thinking",
     });
+    expect(thought.log).toEqual({
+      "~>": "ACP::AgentThoughtChunk",
+      sessionId: "session-1",
+      sessionUpdate: "agent_thought_chunk",
+      content: { type: "text", text: "Thinking" },
+    });
 
     const updates = [
       ["user_message_chunk", "ACP::UserMessageChunk"],
@@ -127,6 +135,30 @@ describe("Wire", () => {
     });
     expect(stop).toBeInstanceOf(AcpStop);
     expect(stop.message).toBe("ACP::Stop");
+  });
+
+  test("formats ACP messages instead of logging class instances", () => {
+    const logs: unknown[] = [];
+    const infos: unknown[] = [];
+    const errors: unknown[] = [];
+    const message = new Wire.AcpAgentMessageChunk({
+      sessionId: "session-1",
+      update: {
+        sessionUpdate: "agent_message_chunk",
+        messageId: "txt-0",
+        content: { type: "text", text: "Hello" },
+      },
+    });
+
+    dispatch({
+      log: (event) => logs.push(event),
+      info: (event) => infos.push(event),
+      error: (event) => errors.push(event),
+    })(message);
+
+    expect(logs).toEqual([]);
+    expect(errors).toEqual([]);
+    expect(infos).toEqual([formatEvent(message.log)]);
   });
 
   test("generates a ULID thread id by default", () => {

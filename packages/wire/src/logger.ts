@@ -15,7 +15,8 @@ export function dispatch(target: ConsoleLike): DispatchFn {
     if (
       formattedEvent !== null &&
       typeof formattedEvent === "object" &&
-      ("==" in (formattedEvent as object) ||
+      ("~>" in (formattedEvent as object) ||
+        "==" in (formattedEvent as object) ||
         ">>" in (formattedEvent as object) ||
         "->" in (formattedEvent as object) ||
         ":=" in (formattedEvent as object) ||

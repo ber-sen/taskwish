@@ -44,6 +44,7 @@ export type { ConsoleLike, DispatchFn, LoggerConfig, LogFn } from "./logger";
 export type { Pretty } from "./types";
 export type {
   AcpActiveSessionMessage,
+  AcpMessageLog,
   AcpSessionMessage,
   AcpSessionNotification,
   AcpSessionUpdate,

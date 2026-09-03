@@ -12,7 +12,7 @@ export class Message<
     public data: Data,
     public readonly symbol?: string
   ) {
-    this.log = constructLog(data, symbol) as Log;
+    this.log = constructLog(message, data, symbol) as Log;
   }
 
   toSSE(): Uint8Array {
@@ -30,7 +30,11 @@ export class Message<
   }
 }
 
-function constructLog(data: unknown, symbol?: string): unknown {
+function constructLog(
+  message: string,
+  data: unknown,
+  symbol?: string
+): unknown {
   if (symbol === undefined || data === null || typeof data !== "object") {
     return data;
   }
@@ -38,7 +42,14 @@ function constructLog(data: unknown, symbol?: string): unknown {
   const record = data as Record<string, unknown>;
   const subjectKey =
     "path" in record ? "path" : "event" in record ? "event" : null;
-  if (subjectKey === null) return data;
+  if (subjectKey === null) {
+    const update = record.update;
+    if (update !== null && typeof update === "object") {
+      const { update: _update, ...metadata } = record;
+      return Object.assign({ [symbol]: message }, metadata, update);
+    }
+    return Object.assign({ [symbol]: message }, record);
+  }
 
   const { [subjectKey]: subject, ...params } = record;
   return Object.assign({ [symbol]: subject }, params);
@@ -115,138 +126,158 @@ export type AcpSessionNotification<
   _meta?: Record<string, unknown> | null;
 };
 
+export type AcpMessageLog<MessageType extends string> = {
+  "~>": MessageType;
+  [key: string]: unknown;
+};
+
 export class AcpUserMessageChunk extends Message<
   "ACP::UserMessageChunk",
-  AcpSessionNotification<"user_message_chunk">
+  AcpSessionNotification<"user_message_chunk">,
+  AcpMessageLog<"ACP::UserMessageChunk">
 > {
   constructor(data: AcpSessionNotification<"user_message_chunk">) {
-    super("ACP::UserMessageChunk", data);
+    super("ACP::UserMessageChunk", data, "~>");
   }
 }
 
 export class AcpAgentMessageChunk extends Message<
   "ACP::AgentMessageChunk",
-  AcpSessionNotification<"agent_message_chunk">
+  AcpSessionNotification<"agent_message_chunk">,
+  AcpMessageLog<"ACP::AgentMessageChunk">
 > {
   constructor(data: AcpSessionNotification<"agent_message_chunk">) {
-    super("ACP::AgentMessageChunk", data);
+    super("ACP::AgentMessageChunk", data, "~>");
   }
 }
 
 export class AcpAgentThoughtChunk extends Message<
   "ACP::AgentThoughtChunk",
-  AcpSessionNotification<"agent_thought_chunk">
+  AcpSessionNotification<"agent_thought_chunk">,
+  AcpMessageLog<"ACP::AgentThoughtChunk">
 > {
   constructor(data: AcpSessionNotification<"agent_thought_chunk">) {
-    super("ACP::AgentThoughtChunk", data);
+    super("ACP::AgentThoughtChunk", data, "~>");
   }
 }
 
 export class AcpToolCall extends Message<
   "ACP::ToolCall",
-  AcpSessionNotification<"tool_call">
+  AcpSessionNotification<"tool_call">,
+  AcpMessageLog<"ACP::ToolCall">
 > {
   constructor(data: AcpSessionNotification<"tool_call">) {
-    super("ACP::ToolCall", data);
+    super("ACP::ToolCall", data, "~>");
   }
 }
 
 export class AcpToolCallUpdate extends Message<
   "ACP::ToolCallUpdate",
-  AcpSessionNotification<"tool_call_update">
+  AcpSessionNotification<"tool_call_update">,
+  AcpMessageLog<"ACP::ToolCallUpdate">
 > {
   constructor(data: AcpSessionNotification<"tool_call_update">) {
-    super("ACP::ToolCallUpdate", data);
+    super("ACP::ToolCallUpdate", data, "~>");
   }
 }
 
 export class AcpPlan extends Message<
   "ACP::Plan",
-  AcpSessionNotification<"plan">
+  AcpSessionNotification<"plan">,
+  AcpMessageLog<"ACP::Plan">
 > {
   constructor(data: AcpSessionNotification<"plan">) {
-    super("ACP::Plan", data);
+    super("ACP::Plan", data, "~>");
   }
 }
 
 export class AcpPlanUpdate extends Message<
   "ACP::PlanUpdate",
-  AcpSessionNotification<"plan_update">
+  AcpSessionNotification<"plan_update">,
+  AcpMessageLog<"ACP::PlanUpdate">
 > {
   constructor(data: AcpSessionNotification<"plan_update">) {
-    super("ACP::PlanUpdate", data);
+    super("ACP::PlanUpdate", data, "~>");
   }
 }
 
 export class AcpPlanRemoved extends Message<
   "ACP::PlanRemoved",
-  AcpSessionNotification<"plan_removed">
+  AcpSessionNotification<"plan_removed">,
+  AcpMessageLog<"ACP::PlanRemoved">
 > {
   constructor(data: AcpSessionNotification<"plan_removed">) {
-    super("ACP::PlanRemoved", data);
+    super("ACP::PlanRemoved", data, "~>");
   }
 }
 
 export class AcpAvailableCommandsUpdate extends Message<
   "ACP::AvailableCommandsUpdate",
-  AcpSessionNotification<"available_commands_update">
+  AcpSessionNotification<"available_commands_update">,
+  AcpMessageLog<"ACP::AvailableCommandsUpdate">
 > {
   constructor(data: AcpSessionNotification<"available_commands_update">) {
-    super("ACP::AvailableCommandsUpdate", data);
+    super("ACP::AvailableCommandsUpdate", data, "~>");
   }
 }
 
 export class AcpCurrentModeUpdate extends Message<
   "ACP::CurrentModeUpdate",
-  AcpSessionNotification<"current_mode_update">
+  AcpSessionNotification<"current_mode_update">,
+  AcpMessageLog<"ACP::CurrentModeUpdate">
 > {
   constructor(data: AcpSessionNotification<"current_mode_update">) {
-    super("ACP::CurrentModeUpdate", data);
+    super("ACP::CurrentModeUpdate", data, "~>");
   }
 }
 
 export class AcpConfigOptionUpdate extends Message<
   "ACP::ConfigOptionUpdate",
-  AcpSessionNotification<"config_option_update">
+  AcpSessionNotification<"config_option_update">,
+  AcpMessageLog<"ACP::ConfigOptionUpdate">
 > {
   constructor(data: AcpSessionNotification<"config_option_update">) {
-    super("ACP::ConfigOptionUpdate", data);
+    super("ACP::ConfigOptionUpdate", data, "~>");
   }
 }
 
 export class AcpSessionInfoUpdate extends Message<
   "ACP::SessionInfoUpdate",
-  AcpSessionNotification<"session_info_update">
+  AcpSessionNotification<"session_info_update">,
+  AcpMessageLog<"ACP::SessionInfoUpdate">
 > {
   constructor(data: AcpSessionNotification<"session_info_update">) {
-    super("ACP::SessionInfoUpdate", data);
+    super("ACP::SessionInfoUpdate", data, "~>");
   }
 }
 
 export class AcpUsageUpdate extends Message<
   "ACP::UsageUpdate",
-  AcpSessionNotification<"usage_update">
+  AcpSessionNotification<"usage_update">,
+  AcpMessageLog<"ACP::UsageUpdate">
 > {
   constructor(data: AcpSessionNotification<"usage_update">) {
-    super("ACP::UsageUpdate", data);
+    super("ACP::UsageUpdate", data, "~>");
   }
 }
 
 export class AcpCompactionUpdate extends Message<
   "ACP::CompactionUpdate",
-  AcpSessionNotification<"compaction_update">
+  AcpSessionNotification<"compaction_update">,
+  AcpMessageLog<"ACP::CompactionUpdate">
 > {
   constructor(data: AcpSessionNotification<"compaction_update">) {
-    super("ACP::CompactionUpdate", data);
+    super("ACP::CompactionUpdate", data, "~>");
   }
 }
 
 export class AcpCompactionSummaryChunk extends Message<
   "ACP::CompactionSummaryChunk",
-  AcpSessionNotification<"compaction_summary_chunk">
+  AcpSessionNotification<"compaction_summary_chunk">,
+  AcpMessageLog<"ACP::CompactionSummaryChunk">
 > {
   constructor(data: AcpSessionNotification<"compaction_summary_chunk">) {
-    super("ACP::CompactionSummaryChunk", data);
+    super("ACP::CompactionSummaryChunk", data, "~>");
   }
 }
 
@@ -256,9 +287,13 @@ export type AcpStopData = {
 };
 
 /** The final response produced by an ACP active session. */
-export class AcpStop extends Message<"ACP::Stop", AcpStopData> {
+export class AcpStop extends Message<
+  "ACP::Stop",
+  AcpStopData,
+  AcpMessageLog<"ACP::Stop">
+> {
   constructor(data: AcpStopData) {
-    super("ACP::Stop", data);
+    super("ACP::Stop", data, "~>");
   }
 }
 
