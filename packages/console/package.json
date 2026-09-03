@@ -18,6 +18,13 @@
       "source": "./src/types.ts",
       "types": "./dist/types.d.ts"
     },
+    "./react": {
+      "source": "./src/react.ts",
+      "import": "./dist/react.mjs",
+      "require": "./dist/react.cjs",
+      "types": "./dist/react.d.ts"
+    },
+    "./styles.css": "./src/styles.generated.css",
     "./index.html": {
       "source": "./src/index.html",
       "default": "./src/index.html"

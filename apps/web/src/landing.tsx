@@ -2,7 +2,8 @@ import { ArrowRight, GitBranch, Network, Repeat2, Terminal } from "lucide-react"
 import { ConsoleDemo } from "./console-demo";
 import { CopyButton } from "./copy-button";
 
-const installCommand = "curl -fsSL https://taskwish.sh/install.sh | bash";
+const installCommand = "curl -fsSL https://taskwish.sh/create-project | bash";
+const bunxCommand = "bunx @taskwish/create-project";
 
 export function Landing() {
   return (
@@ -11,7 +12,7 @@ export function Landing() {
         <div className="console-hero-copy">
           <span className="framework-label">Open-source TypeScript framework</span>
           <h1>TaskWish <span>—</span> The framework for building autonomous companies.</h1>
-          <p>Define your company as typed actors. Give them tools, state, and AI. Run it locally and inspect every decision.</p>
+          <p>Build apps for the agentic era as typed actors with tools, state, and agents. Designed to be discovered, called, and composed by other agents.</p>
         </div>
         <ConsoleDemo />
       </section>
@@ -49,6 +50,11 @@ export function Landing() {
               <Terminal size={18} aria-hidden="true" />
               <code>{installCommand}</code>
               <CopyButton value={installCommand} />
+            </div>
+            <div className="install-alt">
+              <span>Or use</span>
+              <code>{bunxCommand}</code>
+              <CopyButton value={bunxCommand} />
             </div>
             <a className="install-docs-link" href="/docs">Read the installation guide <ArrowRight size={15} /></a>
           </div>

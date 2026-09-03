@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Command as CommandPrimitive } from "cmdk";
 import { Search } from "lucide-react";
@@ -32,6 +34,12 @@ type LoadState =
   | { status: "ready"; config: ConsoleConfig }
   | { status: "error"; message: string };
 
+export type ConsoleViewProps = {
+  config?: ConsoleConfig;
+  autoFocus?: boolean;
+  showMcpServer?: boolean;
+};
+
 async function loadConfig(): Promise<ConsoleConfig> {
   const response = await fetch("/tw/console/config");
   if (!response.ok) {
@@ -44,8 +52,22 @@ async function loadConfig(): Promise<ConsoleConfig> {
   };
 }
 
-export function Console() {
-  const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
+export function Console({
+  config: providedConfig,
+  autoFocus = true,
+  showMcpServer = true,
+}: ConsoleViewProps = {}) {
+  const [loadState, setLoadState] = useState<LoadState>(() =>
+    providedConfig
+      ? {
+          status: "ready",
+          config: {
+            ...providedConfig,
+            actions: normalizeActions(providedConfig.actions),
+          },
+        }
+      : { status: "loading" },
+  );
   const [search, setSearch] = useState("");
   const [selectedAction, setSelectedAction] = useState<ConsoleAction | null>(
     null
@@ -62,6 +84,16 @@ export function Console() {
   const actionFormRef = useRef<ActionFormHandle>(null);
 
   useEffect(() => {
+    if (providedConfig) {
+      const config = {
+        ...providedConfig,
+        actions: normalizeActions(providedConfig.actions),
+      };
+      setLoadState({ status: "ready", config });
+      setSelectedValue(config.actions.find(isActionCardVisible)?.id ?? "");
+      return;
+    }
+
     let cancelled = false;
     void loadConfig()
       .then((config) => {
@@ -83,7 +115,7 @@ export function Console() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [providedConfig]);
 
   useEffect(() => {
     setIsActionHeaderCollapsed(false);
@@ -249,7 +281,7 @@ export function Console() {
               value={search}
               onValueChange={setSearch}
               placeholder="Search actions..."
-              autoFocus
+              autoFocus={autoFocus}
               className="flex h-11 w-full rounded-lg border border-input bg-background py-1 pl-9 pr-2 text-base transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
@@ -270,7 +302,7 @@ export function Console() {
         </div>
       </CommandPrimitive>
 
-      <McpServerControl config={loadState.config} />
+      {showMcpServer ? <McpServerControl config={loadState.config} /> : null}
 
       <Drawer
         open={Boolean(selectedAction)}
