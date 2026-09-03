@@ -66,6 +66,20 @@ describe("Scaffolder.createProject", () => {
       ],
       "src/basic-agent-loop/basic-agent-loop.test.ts",
     ],
+    [
+      "agent-graphs",
+      "src/sequential-graph/run-sequential-graph.ts",
+      "runSequentialGraph",
+      [
+        "SequentialGraph",
+        "RoutingGraph",
+        "ParallelGraph",
+        "MapReduceGraph",
+        "HierarchicalGraph",
+        "FallbackGraph",
+      ],
+      "src/sequential-graph/sequential-graph.test.ts",
+    ],
   ] as const)(
     "creates the %s TypeScript template",
     async (template, actionPath, actorSource, actorNames, testPath) => {
@@ -106,7 +120,9 @@ describe("Scaffolder.createProject", () => {
 
       expect(packageJson.name).toBe(`my-${template}-app`);
       expect(packageJson.scripts.test).toBe(
-        template === "agent-loops" ? "bun test src" : "bun test"
+        template === "agent-loops" || template === "agent-graphs"
+          ? "bun test src"
+          : "bun test"
       );
       expect(templatePackageJson.workspaces).toEqual(["../../../*"]);
       expect(packageJson.workspaces).toBeUndefined();
@@ -215,6 +231,23 @@ describe("Scaffolder.createProject", () => {
         expect(eventLoopSource).toContain('.on("GitHub::IssueOpened")');
         expect(entrypoint).toContain("GitHub,");
       }
+      if (template === "agent-graphs") {
+        const parallelSource = await readFile(
+          join(destination, "src/parallel-graph/run-parallel-graph.ts"),
+          "utf8"
+        );
+        const routingSource = await readFile(
+          join(destination, "src/routing-graph/route-request.ts"),
+          "utf8"
+        );
+        const fallbackSource = await readFile(
+          join(destination, "src/fallback-graph/run-fallback-graph.ts"),
+          "utf8"
+        );
+        expect(parallelSource).toContain("Promise.all");
+        expect(routingSource).toContain("runSelectedBranch");
+        expect(fallbackSource).toContain('path: "fallback"');
+      }
       for (const actorName of actorNames) {
         expect(entrypoint).toContain(actorName);
         expect(entrypoint).not.toContain(`await ${actorName}.`);
@@ -283,7 +316,7 @@ describe("Scaffolder.createProject", () => {
         const serviceName = parts.at(-2);
         expect(parts.at(-1)).toBe(`${serviceName}.ts`);
       }
-      if (template === "agent-loops") {
+      if (template === "agent-loops" || template === "agent-graphs") {
         const serviceTests = result.files.filter(
           (file) => file.startsWith("src/") && file.endsWith(".test.ts")
         );

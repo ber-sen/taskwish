@@ -8,7 +8,12 @@ import { Logger } from "@taskwish/wire";
 
 import { actor } from "./scaffolder";
 
-export const TEMPLATE_NAMES = ["empty", "todo", "agent-loops"] as const;
+export const TEMPLATE_NAMES = [
+  "empty",
+  "todo",
+  "agent-loops",
+  "agent-graphs",
+] as const;
 
 export type TemplateName = (typeof TEMPLATE_NAMES)[number];
 
@@ -72,10 +77,11 @@ export const { createProject } = actor()
       if (
         template !== "empty" &&
         template !== "todo" &&
-        template !== "agent-loops"
+        template !== "agent-loops" &&
+        template !== "agent-graphs"
       ) {
         throw new Error(
-          `Unknown template "${template}". Choose empty, todo, agent-loops.`,
+          `Unknown template "${template}". Choose empty, todo, agent-loops, agent-graphs.`,
         );
       }
 
@@ -266,6 +272,12 @@ export const { createProject } = actor()
               label: "Agent loops",
               description:
                 "Eighteen actors demonstrating common AI agent loop patterns",
+            },
+            {
+              value: "agent-graphs",
+              label: "Agent graphs",
+              description:
+                "Six actors demonstrating common AI agent graph patterns",
             },
           ],
         },
