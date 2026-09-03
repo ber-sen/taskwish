@@ -135,6 +135,7 @@ async function verifyRelocatedExecutable(executable: string): Promise<void> {
       "todo",
       "agent-loops",
       "agent-graphs",
+      "software-factory",
     ]) {
       const projectName = `generated-${template}-project`;
       const project = join(directory, projectName);

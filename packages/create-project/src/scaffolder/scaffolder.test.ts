@@ -80,6 +80,13 @@ describe("Scaffolder.createProject", () => {
       ],
       "src/sequential-graph/sequential-graph.test.ts",
     ],
+    [
+      "software-factory",
+      "src/github/receive-issue-webhook.ts",
+      "receiveIssueWebhook",
+      ["GitHub", "CodingAgent", "ReviewAgent"],
+      "src/github/github.test.ts",
+    ],
   ] as const)(
     "creates the %s TypeScript template",
     async (template, actionPath, actorSource, actorNames, testPath) => {
@@ -120,7 +127,9 @@ describe("Scaffolder.createProject", () => {
 
       expect(packageJson.name).toBe(`my-${template}-app`);
       expect(packageJson.scripts.test).toBe(
-        template === "agent-loops" || template === "agent-graphs"
+        template === "agent-loops" ||
+        template === "agent-graphs" ||
+        template === "software-factory"
           ? "bun test src"
           : "bun test"
       );
@@ -248,6 +257,27 @@ describe("Scaffolder.createProject", () => {
         expect(routingSource).toContain("runSelectedBranch");
         expect(fallbackSource).toContain('path: "fallback"');
       }
+      if (template === "software-factory") {
+        const codingSource = await readFile(
+          join(destination, "src/coding-agent/on-github-issue-opened.ts"),
+          "utf8"
+        );
+        const reviewSource = await readFile(
+          join(destination, "src/review-agent/on-change-proposed.ts"),
+          "utf8"
+        );
+        expect(packageJson.dependencies["@taskwish/slack"]).toBe("^0.0.2");
+        expect(codingSource).toContain('.on("GitHub::IssueOpened")');
+        expect(codingSource).toContain(
+          'this.signal("CodingAgent::ChangeProposed"'
+        );
+        expect(reviewSource).toContain(
+          '.on("CodingAgent::ChangeProposed")'
+        );
+        expect(reviewSource).toContain(
+          "this.actions.slack.postMessage"
+        );
+      }
       for (const actorName of actorNames) {
         expect(entrypoint).toContain(actorName);
         expect(entrypoint).not.toContain(`await ${actorName}.`);
@@ -316,7 +346,11 @@ describe("Scaffolder.createProject", () => {
         const serviceName = parts.at(-2);
         expect(parts.at(-1)).toBe(`${serviceName}.ts`);
       }
-      if (template === "agent-loops" || template === "agent-graphs") {
+      if (
+        template === "agent-loops" ||
+        template === "agent-graphs" ||
+        template === "software-factory"
+      ) {
         const serviceTests = result.files.filter(
           (file) => file.startsWith("src/") && file.endsWith(".test.ts")
         );
