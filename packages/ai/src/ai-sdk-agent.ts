@@ -3,11 +3,7 @@ import {
   tool as aiSdkTool,
   type LanguageModel,
   type ModelMessage,
-  type OnFinishEvent,
-  type OnStepFinishEvent,
   type TextStreamPart,
-  type ToolExecutionEndEvent,
-  type ToolExecutionStartEvent,
   type ToolSet,
   type ToolLoopAgentSettings,
 } from "ai";
@@ -70,19 +66,10 @@ export class AiSdkAgent {
   }
 
   async generateText(prompt: string): Promise<string> {
-    const sessionId = crypto.randomUUID();
-    this.publishUpdate(sessionId, {
-      sessionUpdate: "user_message_chunk",
-      content: { type: "text", text: prompt },
-    });
-    const result = await this.client.generate({
-      prompt,
-      onToolExecutionStart: (event) => this.publishToolStart(sessionId, event),
-      onToolExecutionEnd: (event) => this.publishToolEnd(sessionId, event),
-      onStepEnd: (event) => this.publishStep(sessionId, event),
-      onEnd: (event) => this.publishEnd(sessionId, event),
-    });
-    return result.text;
+    const stream = this.stream({ prompt }, crypto.randomUUID(), prompt);
+    let next = await stream.next();
+    while (!next.done) next = await stream.next();
+    return await next.value.text;
   }
 
   async *streamPrompt(prompt: string): AsyncGenerator<string, string> {
@@ -199,16 +186,22 @@ export class AiSdkAgent {
         });
         return;
       }
-      case "tool-call":
-        this.publishUpdate(sessionId, {
-          sessionUpdate: "tool_call_update",
+      case "tool-call": {
+        const update = {
           toolCallId: part.toolCallId,
           title: part.title ?? part.toolName,
           name: part.toolName,
           status: "in_progress",
           rawInput: part.input,
-        });
+        } as const;
+        this.publishUpdate(
+          sessionId,
+          toolInputs.has(part.toolCallId)
+            ? { sessionUpdate: "tool_call_update", ...update }
+            : { sessionUpdate: "tool_call", kind: "other", ...update }
+        );
         return;
+      }
       case "tool-result":
         this.publishUpdate(sessionId, {
           sessionUpdate: "tool_call_update",
@@ -255,78 +248,6 @@ export class AiSdkAgent {
       default:
         return;
     }
-  }
-
-  private publishToolStart(
-    sessionId: string,
-    event: ToolExecutionStartEvent
-  ): void {
-    const call = event.toolCall;
-    this.publishUpdate(sessionId, {
-      sessionUpdate: "tool_call",
-      toolCallId: call.toolCallId,
-      title: call.title ?? call.toolName,
-      name: call.toolName,
-      kind: "other",
-      status: "in_progress",
-      rawInput: call.input,
-    });
-  }
-
-  private publishToolEnd(
-    sessionId: string,
-    event: ToolExecutionEndEvent
-  ): void {
-    const call = event.toolCall;
-    const output = event.toolOutput;
-    this.publishUpdate(sessionId, {
-      sessionUpdate: "tool_call_update",
-      toolCallId: call.toolCallId,
-      title: call.title ?? call.toolName,
-      name: call.toolName,
-      status: output.type === "tool-error" ? "failed" : "completed",
-      rawOutput:
-        output.type === "tool-error"
-          ? serializableError(output.error)
-          : output.output,
-    });
-  }
-
-  private publishStep(sessionId: string, event: OnStepFinishEvent): void {
-    event.content.forEach((part, index) => {
-      const messageId = `${event.callId}:${event.stepNumber}:${index}`;
-      if (part.type === "text") {
-        this.publishUpdate(sessionId, {
-          sessionUpdate: "agent_message_chunk",
-          messageId,
-          content: { type: "text", text: part.text },
-        });
-      } else if (part.type === "reasoning") {
-        this.publishUpdate(sessionId, {
-          sessionUpdate: "agent_thought_chunk",
-          messageId,
-          content: { type: "text", text: part.text },
-        });
-      }
-    });
-  }
-
-  private publishEnd(sessionId: string, event: OnFinishEvent): void {
-    const used =
-      (event.totalUsage.inputTokens ?? 0) +
-      (event.totalUsage.outputTokens ?? 0);
-    this.publishUpdate(sessionId, {
-      sessionUpdate: "usage_update",
-      used,
-      // AI SDK exposes token usage but not the provider context-window size.
-      size: used,
-      _meta: {
-        runtime: "ai-sdk",
-        contextWindowSizeUnavailable: true,
-        usage: event.totalUsage,
-      },
-    });
-    this.publishStop(sessionId, finishReason(event.finishReason));
   }
 
   private publishUpdate(sessionId: string, update: AcpSessionUpdate): void {

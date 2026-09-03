@@ -29,6 +29,24 @@ const usage = {
   },
 };
 
+type MockStreamResult = Awaited<
+  ReturnType<MockLanguageModelV3["doStream"]>
+>;
+type MockStreamPart = MockStreamResult["stream"] extends ReadableStream<infer Part>
+  ? Part
+  : never;
+
+function streamResult(parts: readonly MockStreamPart[]): MockStreamResult {
+  return {
+    stream: new ReadableStream({
+      start(controller) {
+        for (const part of parts) controller.enqueue(part);
+        controller.close();
+      },
+    }),
+  };
+}
+
 describe("Tool", () => {
   test("is directly executable", async () => {
     const add = Tool("add", {
@@ -77,26 +95,32 @@ describe("Agent AI SDK runtime", () => {
   test("defaults to AI SDK and executes named TaskWish tools", async () => {
     const toolInputs: Array<{ left: number; right: number }> = [];
     const model = new MockLanguageModelV3({
-      doGenerate: [
-        {
-          content: [
-            {
-              type: "tool-call" as const,
-              toolCallId: "call-1",
-              toolName: "add",
-              input: JSON.stringify({ left: 2, right: 3 }),
-            },
-          ],
-          finishReason: { unified: "tool-calls" as const, raw: undefined },
-          usage,
-          warnings: [],
-        },
-        {
-          content: [{ type: "text" as const, text: "The answer is 5." }],
-          finishReason: { unified: "stop" as const, raw: undefined },
-          usage,
-          warnings: [],
-        },
+      doStream: [
+        streamResult([
+          { type: "stream-start", warnings: [] },
+          {
+            type: "tool-call",
+            toolCallId: "call-1",
+            toolName: "add",
+            input: JSON.stringify({ left: 2, right: 3 }),
+          },
+          {
+            type: "finish",
+            finishReason: { unified: "tool-calls", raw: undefined },
+            usage,
+          },
+        ]),
+        streamResult([
+          { type: "stream-start", warnings: [] },
+          { type: "text-start", id: "text-1" },
+          { type: "text-delta", id: "text-1", delta: "The answer is 5." },
+          { type: "text-end", id: "text-1" },
+          {
+            type: "finish",
+            finishReason: { unified: "stop", raw: undefined },
+            usage,
+          },
+        ]),
       ],
     });
     const { actor } = Actor("Calculator");
@@ -125,8 +149,8 @@ describe("Agent AI SDK runtime", () => {
 
     await expect(calculate()).resolves.toBe("The answer is 5.");
     expect(toolInputs).toEqual([{ left: 2, right: 3 }]);
-    expect(model.doGenerateCalls).toHaveLength(2);
-    expect(model.doGenerateCalls[0]?.tools?.[0]).toMatchObject({
+    expect(model.doStreamCalls).toHaveLength(2);
+    expect(model.doStreamCalls[0]?.tools?.[0]).toMatchObject({
       name: "add",
       description: "Add two numbers",
     });
@@ -154,26 +178,32 @@ describe("Agent AI SDK runtime", () => {
   test("emits ACP wire messages from AI SDK generate calls", async () => {
     let releaseTool: ((value: string) => void) | undefined;
     const model = new MockLanguageModelV3({
-      doGenerate: [
-        {
-          content: [
-            {
-              type: "tool-call" as const,
-              toolCallId: "call-1",
-              toolName: "wait",
-              input: JSON.stringify({}),
-            },
-          ],
-          finishReason: { unified: "tool-calls" as const, raw: undefined },
-          usage,
-          warnings: [],
-        },
-        {
-          content: [{ type: "text" as const, text: "Finished" }],
-          finishReason: { unified: "stop" as const, raw: undefined },
-          usage,
-          warnings: [],
-        },
+      doStream: [
+        streamResult([
+          { type: "stream-start", warnings: [] },
+          {
+            type: "tool-call",
+            toolCallId: "call-1",
+            toolName: "wait",
+            input: JSON.stringify({}),
+          },
+          {
+            type: "finish",
+            finishReason: { unified: "tool-calls", raw: undefined },
+            usage,
+          },
+        ]),
+        streamResult([
+          { type: "stream-start", warnings: [] },
+          { type: "text-start", id: "text-1" },
+          { type: "text-delta", id: "text-1", delta: "Finished" },
+          { type: "text-end", id: "text-1" },
+          {
+            type: "finish",
+            finishReason: { unified: "stop", raw: undefined },
+            usage,
+          },
+        ]),
       ],
     });
     const { actor } = Actor("AiSdkUpdates");
@@ -226,6 +256,67 @@ describe("Agent AI SDK runtime", () => {
     );
     expect(events.some((event) => event instanceof AcpUsageUpdate)).toBe(true);
     expect(events.some((event) => event instanceof AcpStop)).toBe(true);
+  });
+
+  test("streams generated text chunks before generate resolves", async () => {
+    let releaseStream: (() => void) | undefined;
+    const model = new MockLanguageModelV3({
+      doStream: async () => ({
+        stream: new ReadableStream({
+          start(controller) {
+            controller.enqueue({ type: "stream-start", warnings: [] });
+            controller.enqueue({ type: "text-start", id: "text-1" });
+            controller.enqueue({
+              type: "text-delta",
+              id: "text-1",
+              delta: "Hel",
+            });
+            releaseStream = () => {
+              controller.enqueue({
+                type: "text-delta",
+                id: "text-1",
+                delta: "lo",
+              });
+              controller.enqueue({ type: "text-end", id: "text-1" });
+              controller.enqueue({
+                type: "finish",
+                finishReason: { unified: "stop", raw: undefined },
+                usage,
+              });
+              controller.close();
+            };
+          },
+        }),
+      }),
+    });
+    const { actor } = Actor("ChunkedGenerate");
+    const { generate } = actor()
+      .on("Command", "generate")
+      .run(
+        Agent({ model }),
+        Step("answer", function () {
+          return this.agent.generate({ prompt: "Hello" });
+        })
+      );
+    const stream = generate.stream();
+
+    let next = await stream.next();
+    while (!next.done && !(next.value instanceof AcpAgentMessageChunk)) {
+      next = await stream.next();
+    }
+
+    expect(next.done).toBe(false);
+    if (!next.done) {
+      const chunk = next.value as unknown as AcpAgentMessageChunk;
+      expect(chunk.data.update.content).toEqual({
+        type: "text",
+        text: "Hel",
+      });
+    }
+
+    releaseStream?.();
+    while (!next.done) next = await stream.next();
+    expect(next.value).toBe("Hello");
   });
 
   test("preserves an explicitly selected Codex runtime", async () => {
@@ -303,12 +394,17 @@ describe("Agent AI SDK runtime", () => {
 
   test("exposes named agents under their configured scope names", async () => {
     const model = new MockLanguageModelV3({
-      doGenerate: {
-        content: [{ type: "text", text: "A plan" }],
-        finishReason: { unified: "stop", raw: undefined },
-        usage,
-        warnings: [],
-      },
+      doStream: streamResult([
+        { type: "stream-start", warnings: [] },
+        { type: "text-start", id: "text-1" },
+        { type: "text-delta", id: "text-1", delta: "A plan" },
+        { type: "text-end", id: "text-1" },
+        {
+          type: "finish",
+          finishReason: { unified: "stop", raw: undefined },
+          usage,
+        },
+      ]),
     });
     const { actor } = Actor("NamedAgent");
     const { createPlan } = actor()
