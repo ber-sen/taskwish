@@ -117,4 +117,41 @@ describe("console config", () => {
         },
       });
   });
+
+  test("describes event listeners for the console UI", () => {
+    const event = (() => undefined) as (() => undefined) &
+      Record<symbol, unknown>;
+    event[Symbol.for("TW.Meta")] = { event: "GitHub::IssueOpened" };
+
+    const config = consoleConfig(
+      {
+        actions: new Map([["EventDrivenLoop::handleIssue", event]]),
+        states: new Map(),
+      },
+      { nodeName: "Test", apiKey: "test", prefix: "/tw" },
+    );
+
+    expect(config.actions).toHaveLength(1);
+    expect(config.actions[0]!.source).toBe("event");
+  });
+
+  test("keeps message event actions available as chat", () => {
+    const message = (() => undefined) as (() => undefined) &
+      Record<symbol, unknown>;
+    message[Symbol.for("TW.Meta")] = {
+      event: "Message",
+      command: "chat",
+    };
+
+    const config = consoleConfig(
+      {
+        actions: new Map([["Assistant::chat", message]]),
+        states: new Map(),
+      },
+      { nodeName: "Test", apiKey: "test", prefix: "/tw" },
+    );
+
+    expect(config.actions).toHaveLength(1);
+    expect(config.actions[0]!.mode).toBe("chat");
+  });
 });

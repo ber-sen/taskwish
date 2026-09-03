@@ -24,6 +24,7 @@ export function ActionDrawerHeader({
   onRun,
   onNewRun,
   onCancel,
+  showTrace = true,
 }: {
   action: ConsoleAction;
   collapsed: boolean;
@@ -35,6 +36,7 @@ export function ActionDrawerHeader({
   onRun: () => void;
   onNewRun: () => void;
   onCancel: () => void;
+  showTrace?: boolean;
 }) {
   const logsId = `trace-${action.id}`;
   const miniLogsId = `mini-trace-${action.id}`;
@@ -47,7 +49,7 @@ export function ActionDrawerHeader({
     >
       <div className="relative">
         <div className="absolute top-0.5 right-0 hidden items-center gap-2 mini-app:flex">
-          {!collapsed ? (
+          {showTrace && !collapsed ? (
             <div className="flex h-9 items-center gap-2 rounded-full border border-input px-3">
               <Label htmlFor={miniLogsId} className="text-xs">
                 Trace
@@ -124,7 +126,7 @@ export function ActionDrawerHeader({
             {collapsed ? action.actor : actionDescription(action)}
           </DrawerDescription>
         </div>
-        {!collapsed ? (
+        {showTrace && !collapsed ? (
           <div className="ml-auto flex h-8 items-center gap-2 mini-app:hidden">
             <Label htmlFor={logsId} className="text-xs">
               Trace

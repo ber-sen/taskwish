@@ -10,6 +10,7 @@ import {
   type ActionFormHandle,
 } from "./components/console/action-form";
 import { McpServerControl } from "./components/console/mcp-server-control";
+import { HttpActionInstructions } from "./components/console/http-action-instructions";
 import { TaskWishLogo } from "./components/console/taskwish-logo";
 import {
   Drawer,
@@ -18,7 +19,11 @@ import {
   DrawerFooter,
 } from "./components/ui/drawer";
 import { Button } from "./components/ui/button";
-import { isChatAction, normalizeActions } from "./lib/command-actions";
+import {
+  isActionCardVisible,
+  isChatAction,
+  normalizeActions,
+} from "./lib/command-actions";
 import type { ActionRunEvent } from "./lib/command-form";
 import type { ConsoleAction, ConsoleConfig } from "./types";
 
@@ -62,7 +67,9 @@ export function Console() {
       .then((config) => {
         if (!cancelled) {
           setLoadState({ status: "ready", config });
-          setSelectedValue(config.actions[0]?.id ?? "");
+          setSelectedValue(
+            config.actions.find(isActionCardVisible)?.id ?? ""
+          );
         }
       })
       .catch((error) => {
@@ -88,6 +95,10 @@ export function Console() {
   const actions = useMemo(
     () => (loadState.status === "ready" ? loadState.config.actions : []),
     [loadState]
+  );
+  const actionCards = useMemo(
+    () => actions.filter(isActionCardVisible),
+    [actions]
   );
 
   const getVisibleActionValues = () =>
@@ -181,6 +192,7 @@ export function Console() {
   const selectedActionIsChat = selectedAction
     ? isChatAction(selectedAction)
     : false;
+  const selectedActionIsHttp = selectedAction?.source === "http";
   const isActionFinalized =
     isActionChatMode && !selectedActionIsChat && !isActionRunning;
 
@@ -247,7 +259,7 @@ export function Console() {
             <CommandPrimitive.Empty className="col-span-full py-16 text-center text-sm text-muted-foreground">
               No actions found for &ldquo;{search}&rdquo;
             </CommandPrimitive.Empty>
-            {actions.map((action) => (
+            {actionCards.map((action) => (
               <ActionCommandItem
                 key={action.id}
                 action={action}
@@ -281,20 +293,27 @@ export function Console() {
                 action={selectedAction}
                 collapsed={isActionHeaderCollapsed}
                 showLogs={showLogs}
-                canRun={!isActionChatMode && !selectedActionIsChat}
+                canRun={
+                  !selectedActionIsHttp &&
+                  !isActionChatMode &&
+                  !selectedActionIsChat
+                }
                 isRunning={isActionRunning}
                 isFinalized={isActionFinalized}
                 onLogsChange={setShowLogs}
                 onRun={submitSelectedAction}
                 onNewRun={startNewRun}
                 onCancel={cancelSelectedAction}
+                showTrace={!selectedActionIsHttp}
               />
 
-              <ActorStateSummary
-                actor={selectedAction.actor}
-                config={loadState.config}
-                refreshToken={stateRefreshToken}
-              />
+              {!selectedActionIsHttp ? (
+                <ActorStateSummary
+                  actor={selectedAction.actor}
+                  config={loadState.config}
+                  refreshToken={stateRefreshToken}
+                />
+              ) : null}
 
               <div
                 className={
@@ -306,24 +325,28 @@ export function Console() {
                   setIsActionHeaderCollapsed(event.currentTarget.scrollTop > 8)
                 }
               >
-                <ActionForm
-                  ref={actionFormRef}
-                  action={selectedAction}
-                  config={loadState.config}
-                  resetToken={actionRunResetToken}
-                  showLogs={showLogs}
-                  onChatModeChange={handleActionChatModeChange}
-                  onRunStateChange={setIsActionRunning}
-                  onStateChange={handleStateChange}
-                  onResultScrollChange={(scrollTop) =>
-                    setIsActionHeaderCollapsed(scrollTop > 8)
-                  }
-                />
+                {selectedActionIsHttp ? (
+                  <HttpActionInstructions action={selectedAction} />
+                ) : (
+                  <ActionForm
+                    ref={actionFormRef}
+                    action={selectedAction}
+                    config={loadState.config}
+                    resetToken={actionRunResetToken}
+                    showLogs={showLogs}
+                    onChatModeChange={handleActionChatModeChange}
+                    onRunStateChange={setIsActionRunning}
+                    onStateChange={handleStateChange}
+                    onResultScrollChange={(scrollTop) =>
+                      setIsActionHeaderCollapsed(scrollTop > 8)
+                    }
+                  />
+                )}
               </div>
 
               {!selectedActionIsChat ? (
                 <DrawerFooter className="shrink-0 flex-row bg-background mini-app:hidden">
-                  {isActionRunning ? (
+                  {selectedActionIsHttp ? null : isActionRunning ? (
                     <Button
                       key="cancel-run"
                       type="button"

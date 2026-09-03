@@ -197,11 +197,6 @@ function actionParts(actionName: string): {
   };
 }
 
-function isVisibleAction(action: ConsoleAction): boolean {
-  if (action.mode === "chat") return true;
-  return !action.action.toLowerCase().startsWith("on");
-}
-
 function metaForAction(action: Action): Record<string, unknown> {
   const meta = (action as unknown as Record<symbol, unknown>)[TW_META];
   return isRecord(meta) ? meta : {};
@@ -448,7 +443,6 @@ export function consoleConfig(
       .map(([actionName, action]) =>
         describeAction(actionName, action, options.prefix),
       )
-      .filter(isVisibleAction)
       .sort((left, right) =>
         `${left.actor} ${left.label}`.localeCompare(
           `${right.actor} ${right.label}`,
