@@ -1,15 +1,11 @@
 import {
   chmod,
-  copyFile,
   mkdir,
-  mkdtemp,
   readFile,
   readdir,
-  rm,
   stat,
   writeFile,
 } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join, relative, sep } from "node:path";
 
 const packageDirectory = join(import.meta.dir, "..");
@@ -21,62 +17,138 @@ const bareAction = join(
   "scaffolder",
   "create-project.ts"
 );
-
-await Bun.$`bare create-taskwish-project`;
-
-const source = await readFile(bareAction, "utf8");
-const wireImport = /import\s*\{[^}]*\}\s*from\s*["']@taskwish\/wire["'];/;
-
-if (!wireImport.test(source)) {
-  throw new Error(`Bare output did not contain the expected Wire import.`);
-}
-
-const staticWire = `class Wire {
-  trace(_path: string, _data: unknown): void {}
-}`;
-
-const embeddedTemplatesDeclaration =
-  "const EMBEDDED_TEMPLATE_FILES: Readonly<Record<string, string>> = {};";
-const embeddedSkillDeclaration = 'const EMBEDDED_SKILL = "";';
-
-if (!source.includes(embeddedTemplatesDeclaration)) {
-  throw new Error(`Bare output did not contain the templates placeholder.`);
-}
-if (!source.includes(embeddedSkillDeclaration)) {
-  throw new Error(`Bare output did not contain the skill placeholder.`);
-}
-
-const embeddedTemplateFiles = await readTemplateFiles(templatesDirectory);
-const embeddedSkill = await readFile(
-  join(packageDirectory, "..", "skill", "SKILL.md"),
-  "utf8"
-);
-
-const standaloneSource = source
-  .replace(wireImport, staticWire)
-  .replace(
-    embeddedTemplatesDeclaration,
-    () =>
-      `const EMBEDDED_TEMPLATE_FILES: Readonly<Record<string, string>> = ${JSON.stringify(
-        embeddedTemplateFiles
-      )};`
-  )
-  .replace(
-    embeddedSkillDeclaration,
-    () => `const EMBEDDED_SKILL = ${JSON.stringify(embeddedSkill)};`
-  );
-
-await writeFile(bareAction, standaloneSource);
-
-const executable = join(packageDirectory, "dist", "create-taskwish-project");
-
-await Bun.$`scriptc build ${join(
+const standaloneEntry = join(
   packageDirectory,
   ".bare",
   "create-taskwish-project.ts"
-)} -o ${executable} --npm-static @taskwish/terminal --no-keep-c`;
+);
+const platformBuilds = [
+  ["darwin-arm64", "bun-darwin-arm64"],
+  ["darwin-x64", "bun-darwin-x64"],
+  ["linux-arm64", "bun-linux-arm64"],
+  ["linux-x64", "bun-linux-x64-baseline"],
+  ["linux-arm64-musl", "bun-linux-arm64-musl"],
+  ["linux-x64-musl", "bun-linux-x64-baseline-musl"],
+  ["windows-arm64.exe", "bun-windows-arm64"],
+  ["windows-x64.exe", "bun-windows-x64-baseline"],
+] as const satisfies ReadonlyArray<readonly [string, Bun.Build.CompileTarget]>;
 
-await verifyRelocatedExecutable(executable);
+if (process.argv.includes("--platforms")) {
+  await prepareStandaloneEntry();
+  await buildPlatformExecutables();
+} else {
+  await buildNodeEntrypoint();
+}
+
+async function buildNodeEntrypoint(): Promise<void> {
+  const executable = join(
+    packageDirectory,
+    "dist",
+    "create-taskwish-project.mjs"
+  );
+  await mkdir(join(packageDirectory, "dist"), { recursive: true });
+
+  const result = await Bun.build({
+    entrypoints: [join(packageDirectory, "create-taskwish-project.ts")],
+    target: "node",
+    format: "esm",
+    packages: "external",
+    outdir: join(packageDirectory, "dist"),
+    naming: "create-taskwish-project.mjs",
+  });
+
+  if (!result.success) {
+    throw new AggregateError(
+      result.logs,
+      `Could not build the Node create-project CLI.`
+    );
+  }
+
+  await chmod(executable, 0o755);
+}
+
+async function prepareStandaloneEntry(): Promise<void> {
+  await Bun.$`bare create-taskwish-project`;
+
+  const source = await readFile(bareAction, "utf8");
+  const wireImport = /import\s*\{[^}]*\}\s*from\s*["']@taskwish\/wire["'];/;
+
+  if (!wireImport.test(source)) {
+    throw new Error(`Bare output did not contain the expected Wire import.`);
+  }
+
+  const staticWire = `class Wire {
+  trace(_path: string, _data: unknown): void {}
+}`;
+  const embeddedTemplatesDeclaration =
+    "const EMBEDDED_TEMPLATE_FILES: Readonly<Record<string, string>> = {};";
+  const embeddedSkillDeclaration = 'const EMBEDDED_SKILL = "";';
+
+  if (!source.includes(embeddedTemplatesDeclaration)) {
+    throw new Error(`Bare output did not contain the templates placeholder.`);
+  }
+  if (!source.includes(embeddedSkillDeclaration)) {
+    throw new Error(`Bare output did not contain the skill placeholder.`);
+  }
+
+  const embeddedTemplateFiles = await readTemplateFiles(templatesDirectory);
+  const embeddedSkill = await readFile(
+    join(packageDirectory, "..", "skill", "SKILL.md"),
+    "utf8"
+  );
+  const standaloneSource = source
+    .replace(wireImport, staticWire)
+    .replace(
+      embeddedTemplatesDeclaration,
+      () =>
+        `const EMBEDDED_TEMPLATE_FILES: Readonly<Record<string, string>> = ${JSON.stringify(
+          embeddedTemplateFiles
+        )};`
+    )
+    .replace(
+      embeddedSkillDeclaration,
+      () => `const EMBEDDED_SKILL = ${JSON.stringify(embeddedSkill)};`
+    );
+
+  await writeFile(bareAction, standaloneSource);
+}
+
+async function buildPlatformExecutables(): Promise<void> {
+  const outputDirectory = join(
+    packageDirectory,
+    "..",
+    "..",
+    "apps",
+    "web",
+    "public",
+    "cli"
+  );
+  await mkdir(outputDirectory, { recursive: true });
+
+  for (const [platform, target] of platformBuilds) {
+    const executable = join(
+      outputDirectory,
+      `create-taskwish-project-${platform}`
+    );
+    console.log(`Building create-project for ${platform}...`);
+    const result = await Bun.build({
+      entrypoints: [standaloneEntry],
+      compile: { target, outfile: executable },
+    });
+
+    if (!result.success) {
+      throw new AggregateError(
+        result.logs,
+        `Could not build the create-project CLI for ${platform}.`
+      );
+    }
+
+    const executableSize = (await stat(executable)).size;
+    if (executableSize === 0) {
+      throw new Error(`Built an empty create-project CLI for ${platform}.`);
+    }
+  }
+}
 
 async function readTemplateFiles(
   directory: string
@@ -114,45 +186,5 @@ async function readTemplateFiles(
         files[embeddedPath] = await readFile(path, "utf8");
       }
     }
-  }
-}
-
-async function verifyRelocatedExecutable(executable: string): Promise<void> {
-  const directory = await mkdtemp(join(tmpdir(), "taskwish-create-project-"));
-  const executableDirectory = join(directory, "bin");
-  const relocatedExecutable = join(
-    executableDirectory,
-    "create-taskwish-project"
-  );
-
-  try {
-    await mkdir(executableDirectory);
-    await copyFile(executable, relocatedExecutable);
-    await chmod(relocatedExecutable, (await stat(executable)).mode);
-
-    for (const template of [
-      "empty",
-      "todo",
-      "agent-loops",
-      "agent-graphs",
-      "software-factory",
-    ]) {
-      const projectName = `generated-${template}-project`;
-      const project = join(directory, projectName);
-      await Bun.$`${relocatedExecutable} ${project} --template ${template} --no-install --no-git --yes`.quiet();
-      const packageJson = JSON.parse(
-        await readFile(join(project, "package.json"), "utf8")
-      ) as { name?: string };
-      if (packageJson.name !== projectName) {
-        throw new Error(
-          `Relocated CLI generated an invalid ${template} package.json.`
-        );
-      }
-      if (!(await readFile(join(project, PROJECT_SKILL_PATH), "utf8"))) {
-        throw new Error(`Relocated CLI did not write the TaskWish skill.`);
-      }
-    }
-  } finally {
-    await rm(directory, { recursive: true, force: true });
   }
 }

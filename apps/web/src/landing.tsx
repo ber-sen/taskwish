@@ -2,7 +2,7 @@ import { ArrowRight, GitBranch, Network, Repeat2, Terminal } from "lucide-react"
 import { ConsoleDemo } from "./console-demo";
 import { CopyButton } from "./copy-button";
 
-const installCommand = "curl -fsSL https://taskwish.sh/create-project | bash";
+const installCommand = "curl -fsSL https://taskwish.ai/create-project.sh | bash";
 const bunxCommand = "bunx @taskwish/create-project";
 
 export function Landing() {
@@ -43,7 +43,7 @@ export function Landing() {
           <div className="install-final-copy">
             <span>Start here</span>
             <h2 id="install-title">Create a TaskWish project.</h2>
-            <p>The installer sets up Bun if needed, lets you choose a starter, installs its dependencies, and initializes Git.</p>
+            <p>The installer selects the right CLI for your platform, lets you choose a starter, installs its dependencies, and initializes Git.</p>
           </div>
           <div>
             <div className="install-command">

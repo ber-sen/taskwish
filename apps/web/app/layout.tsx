@@ -5,7 +5,7 @@ import { Header } from "../src/header";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://taskwish.sh"),
+  metadataBase: new URL("https://taskwish.ai"),
   title: {
     default: "TaskWish — The framework for building autonomous companies",
     template: "%s · TaskWish",
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "TaskWish — The framework for building autonomous companies",
     description: "Build autonomous companies from typed actors, tools, state, and AI workflows in TypeScript.",
-    url: "https://taskwish.sh",
+    url: "https://taskwish.ai",
     siteName: "TaskWish",
     type: "website",
   },
