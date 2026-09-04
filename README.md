@@ -71,7 +71,9 @@ const { actor } = Actor("Greeter");
 
 const { greet } = actor()
   .on("Command", "greet")
+  
   .input({ name: "string" })
+
   .run(
     Step("createGreeting", function () {
       return `Hello, ${this.input.name.trim()}!`;
