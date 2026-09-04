@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { Actor, TW } from "@taskwish/core";
+import { Actor, Step, TW } from "@taskwish/core";
 import { Store, State, statePayload } from "./index";
 
 const temporaryDirectories: string[] = [];
@@ -105,6 +105,27 @@ describe("State", () => {
     expect(await decrease()).toBe(0);
   });
 
+  test("ctx overrides state for isolated tests", async () => {
+    const directory = temporaryStateDirectory();
+    const { actor } = Actor("MockedCounter").scope(
+      Store({ adapter: "fs", directory }),
+      State({ count: 0 })
+    );
+    const { increase } = actor()
+      .on("Command", "increase")
+
+      .run(
+        Step("increase", function () {
+          return ++this.state.count;
+        })
+      );
+    const state = { count: 40 };
+
+    await expect(increase.ctx({ state }).run()).resolves.toBe(41);
+    expect(state.count).toBe(41);
+    await expect(increase()).resolves.toBe(1);
+  });
+
   test("State.List is mutable in actor scope and persists", async () => {
     const directory = temporaryStateDirectory();
     const { actor } = Actor("Todos").scope(
@@ -172,6 +193,7 @@ describe("State", () => {
         return item;
       });
 
+    // oxlint-disable-next-line no-constant-condition -- This block only verifies compile-time errors.
     if (false) {
       actor()
         .on("Command", "invalidStateCommand")

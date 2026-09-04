@@ -35,7 +35,7 @@ export function actionSuggestion(
   );
   if (!action) return null;
 
-  const { $, "*": selector, ...payload } = suggestions;
+  const { $: _reference, "*": selector, ...payload } = suggestions;
   return { action, payload, selector };
 }
 

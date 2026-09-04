@@ -8,7 +8,7 @@ export default Actor("SayHello")
   .steps(
     Loop(),
 
-    If(2 > 1),
+    If(() => true),
 
     Return()
   );

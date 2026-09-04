@@ -1,4 +1,5 @@
 export * from "./agent";
+export * from "./ai-sdk-agent";
 export * from "./codex-agent";
 export * from "./fx-agent";
 export * from "./generate-text";

@@ -82,7 +82,7 @@ export const FFI = {
     const Runtime extends "python" | undefined = undefined,
     const Result extends RuntimeSchema<Runtime> = RuntimeSchema<Runtime>
   >(
-    ...args:
+    ..._args:
       | [
           name: CamelCase<Name>,
           run: ((ctx: TW.Scope<Ctx["scope"]>) => string) | string,

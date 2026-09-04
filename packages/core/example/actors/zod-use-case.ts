@@ -37,6 +37,6 @@ type UnionToTuple<U> =
 // Count the number of keys
 type KeyCount<T> = UnionToTuple<keyof T>["length"];
 
-type Zero = KeyCount<{}>; // 0
-type One = KeyCount<{ a: 1 }>; // 1
-type Two = KeyCount<{ a: 1; b: 2 }>; // 2
+type _Zero = KeyCount<{}>; // 0
+type _One = KeyCount<{ a: 1 }>; // 1
+type _Two = KeyCount<{ a: 1; b: 2 }>; // 2

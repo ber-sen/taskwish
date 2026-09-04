@@ -52,6 +52,6 @@ const { QuickConnections } = Widget(
   Lorem: { Header: "Hello" },
 });
 
-const node = Node({
+Node({
   workspace: [import("./greeter"), Connections, QuickConnections],
 });

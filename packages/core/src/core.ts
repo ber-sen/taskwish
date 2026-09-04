@@ -293,7 +293,7 @@ export namespace TW {
 
   export interface ScriptStep<
     Name extends string,
-    Handler extends (...args: any) => any
+    _Handler extends (...args: any) => any
   > {
     $: "step";
     "=": Name;
