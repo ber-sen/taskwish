@@ -79,6 +79,7 @@ const { greet } = actor()
       return `Hello, ${this.input.name.trim()}!`;
     }),
   )
+  
   .meta({
     description: "Greet a person by name",
     input: { name: { example: "Ada" } },
