@@ -2,12 +2,14 @@
   "name": "@taskwish/monorepo",
   "private": true,
   "workspaces": [
+    "apps/*",
     "packages/*"
   ],
   "packageManager": "bun@1.1.45",
   "license": "Elastic License 2.0",
   "scripts": {
-    "build": "turbo build"
+    "build": "turbo build",
+    "dev:web": "bun --cwd apps/web dev"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",

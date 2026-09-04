@@ -4,6 +4,8 @@ import { rollup } from "rollup";
 import dts from "rollup-plugin-dts";
 
 type PackageJson = {
+  dependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
   exports?: {
     ".": string | { source?: string; import?: string; require?: string };
     [key: string]:
@@ -64,6 +66,10 @@ function sourceEntries(): SourceEntry[] {
 }
 
 const entries = sourceEntries();
+const externalPackages = [
+  ...Object.keys(packageJson.dependencies ?? {}),
+  ...Object.keys(packageJson.peerDependencies ?? {}),
+].map((dependency) => `--external=${dependency}`);
 const dist = join(packageDir, "dist");
 const declarationDist = join(packageDir, ".types");
 
@@ -79,18 +85,32 @@ for (const entry of entries) {
       ["esm", "mjs"],
       ["cjs", "cjs"],
     ] as const) {
-      await Bun.$`bun build ${absoluteEntry} --target=node --format=${format} --packages=external --outfile=${join(
-        dist,
-        `${entry.outputName}.${extension}`,
-      )}`;
+      const output = join(dist, `${entry.outputName}.${extension}`);
+      if (entry.exportPath === "./react") {
+        await Bun.$`bun build ${absoluteEntry} --target=browser --format=${format} --production --banner=${'"use client";'} ${externalPackages} --outfile=${output}`;
+      } else {
+        await Bun.$`bun build ${absoluteEntry} --target=node --format=${format} --packages=external --outfile=${output}`;
+      }
     }
   }
 
-  const declarations =
-    await Bun.$`tsc ${absoluteEntry} --declaration --emitDeclarationOnly --declarationDir ${declarationDist} --rootDir ${join(
-      packageDir,
-      dirname(entry.source),
-    )} --target esnext --module esnext --moduleResolution Bundler --jsx react-jsx --strict --strictNullChecks --esModuleInterop --skipLibCheck --types bun`;
+  const declarationConfig = join(declarationDist, "tsconfig.json");
+  await Bun.write(
+    declarationConfig,
+    JSON.stringify({
+      extends: join(packageDir, "tsconfig.json"),
+      compilerOptions: {
+        declaration: true,
+        declarationDir: declarationDist,
+        emitDeclarationOnly: true,
+        noEmit: false,
+        rootDir: join(packageDir, dirname(entry.source)),
+      },
+      files: [absoluteEntry],
+      include: [],
+    }),
+  );
+  const declarations = await Bun.$`tsc --project ${declarationConfig}`;
 
   if (declarations.exitCode !== 0) process.exit(declarations.exitCode);
 

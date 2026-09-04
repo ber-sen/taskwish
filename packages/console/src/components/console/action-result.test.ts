@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { signalPayloadLine, TraceLine } from "./action-result";
+import { buildRunBubbles, signalPayloadLine, TraceLine } from "./action-result";
 
 describe("signal trace formatting", () => {
   test("uses the wire signal marker and unwraps protocol data", () => {
@@ -39,5 +39,112 @@ describe("signal trace formatting", () => {
         name: "Ada",
       })
     ).toBe("-> Message { name: Ada }");
+  });
+});
+
+describe("ACP result formatting", () => {
+  test("renders awaited agent output and merges tool lifecycle updates", () => {
+    const bubbles = buildRunBubbles(
+      {
+        status: 200,
+        ok: true,
+        contentType: "text/event-stream",
+        body: "",
+        streaming: true,
+        events: [
+          {
+            type: "acp",
+            message: "ACP::AgentMessageChunk",
+            data: {
+              sessionId: "session-1",
+              update: {
+                sessionUpdate: "agent_message_chunk",
+                messageId: "message-1",
+                content: { type: "text", text: "Hello " },
+              },
+            },
+          },
+          {
+            type: "acp",
+            message: "ACP::AgentMessageChunk",
+            data: {
+              sessionId: "session-1",
+              update: {
+                sessionUpdate: "agent_message_chunk",
+                messageId: "message-1",
+                content: { type: "text", text: "world" },
+              },
+            },
+          },
+          {
+            type: "acp",
+            message: "ACP::ToolCall",
+            data: {
+              sessionId: "session-1",
+              update: {
+                sessionUpdate: "tool_call",
+                toolCallId: "tool-1",
+                title: "Search",
+                status: "in_progress",
+                rawInput: { query: "TaskWish" },
+              },
+            },
+          },
+          {
+            type: "acp",
+            message: "ACP::ToolCallUpdate",
+            data: {
+              sessionId: "session-1",
+              update: {
+                sessionUpdate: "tool_call_update",
+                toolCallId: "tool-1",
+                status: "completed",
+                rawOutput: "Found",
+              },
+            },
+          },
+          { type: "result", data: "Hello world" },
+        ],
+      },
+      false
+    );
+
+    expect(bubbles).toHaveLength(2);
+    expect(bubbles[0]).toMatchObject({ type: "agent", body: "Hello world" });
+    expect(bubbles[1]).toMatchObject({
+      type: "tool",
+      title: "Search",
+    });
+    expect(bubbles[1]?.body).toContain('"status": "completed"');
+    expect(bubbles[1]?.body).toContain('"rawOutput": "Found"');
+  });
+
+  test("does not duplicate ACP agent text when TW stream output exists", () => {
+    const bubbles = buildRunBubbles(
+      {
+        status: 200,
+        ok: true,
+        contentType: "text/event-stream",
+        body: "Hello",
+        streaming: true,
+        events: [
+          {
+            type: "acp",
+            message: "ACP::AgentMessageChunk",
+            data: {
+              update: {
+                sessionUpdate: "agent_message_chunk",
+                content: { type: "text", text: "Hello" },
+              },
+            },
+          },
+          { type: "yield", data: "Hello" },
+        ],
+      },
+      false
+    );
+
+    expect(bubbles.filter((bubble) => bubble.type === "agent")).toHaveLength(0);
+    expect(bubbles.filter((bubble) => bubble.type === "yield")).toHaveLength(1);
   });
 });

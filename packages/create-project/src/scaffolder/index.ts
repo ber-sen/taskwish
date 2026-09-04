@@ -1,4 +1,4 @@
-import { actor } from "./actor";
+import { actor } from "./scaffolder";
 import { createProject } from "./create-project";
 
 export {
@@ -6,6 +6,7 @@ export {
   TEMPLATE_NAMES,
   type CreateProjectOptions,
   type CreateProjectResult,
+  type PackageManager,
   type TemplateName,
 } from "./create-project";
 

@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Command as CommandPrimitive } from "cmdk";
 import { Search } from "lucide-react";
@@ -9,6 +11,8 @@ import {
   ActionForm,
   type ActionFormHandle,
 } from "./components/console/action-form";
+import { McpServerControl } from "./components/console/mcp-server-control";
+import { HttpActionInstructions } from "./components/console/http-action-instructions";
 import { TaskWishLogo } from "./components/console/taskwish-logo";
 import {
   Drawer,
@@ -17,7 +21,11 @@ import {
   DrawerFooter,
 } from "./components/ui/drawer";
 import { Button } from "./components/ui/button";
-import { isChatAction, normalizeActions } from "./lib/command-actions";
+import {
+  isActionCardVisible,
+  isChatAction,
+  normalizeActions,
+} from "./lib/command-actions";
 import type { ActionRunEvent } from "./lib/command-form";
 import type { ConsoleAction, ConsoleConfig } from "./types";
 
@@ -25,6 +33,12 @@ type LoadState =
   | { status: "loading" }
   | { status: "ready"; config: ConsoleConfig }
   | { status: "error"; message: string };
+
+export type ConsoleViewProps = {
+  config?: ConsoleConfig;
+  autoFocus?: boolean;
+  showMcpServer?: boolean;
+};
 
 async function loadConfig(): Promise<ConsoleConfig> {
   const response = await fetch("/tw/console/config");
@@ -38,8 +52,22 @@ async function loadConfig(): Promise<ConsoleConfig> {
   };
 }
 
-export function Console() {
-  const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
+export function Console({
+  config: providedConfig,
+  autoFocus = true,
+  showMcpServer = true,
+}: ConsoleViewProps = {}) {
+  const [loadState, setLoadState] = useState<LoadState>(() =>
+    providedConfig
+      ? {
+          status: "ready",
+          config: {
+            ...providedConfig,
+            actions: normalizeActions(providedConfig.actions),
+          },
+        }
+      : { status: "loading" },
+  );
   const [search, setSearch] = useState("");
   const [selectedAction, setSelectedAction] = useState<ConsoleAction | null>(
     null
@@ -56,12 +84,24 @@ export function Console() {
   const actionFormRef = useRef<ActionFormHandle>(null);
 
   useEffect(() => {
+    if (providedConfig) {
+      const config = {
+        ...providedConfig,
+        actions: normalizeActions(providedConfig.actions),
+      };
+      setLoadState({ status: "ready", config });
+      setSelectedValue(config.actions.find(isActionCardVisible)?.id ?? "");
+      return;
+    }
+
     let cancelled = false;
     void loadConfig()
       .then((config) => {
         if (!cancelled) {
           setLoadState({ status: "ready", config });
-          setSelectedValue(config.actions[0]?.id ?? "");
+          setSelectedValue(
+            config.actions.find(isActionCardVisible)?.id ?? ""
+          );
         }
       })
       .catch((error) => {
@@ -75,7 +115,7 @@ export function Console() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [providedConfig]);
 
   useEffect(() => {
     setIsActionHeaderCollapsed(false);
@@ -87,6 +127,10 @@ export function Console() {
   const actions = useMemo(
     () => (loadState.status === "ready" ? loadState.config.actions : []),
     [loadState]
+  );
+  const actionCards = useMemo(
+    () => actions.filter(isActionCardVisible),
+    [actions]
   );
 
   const getVisibleActionValues = () =>
@@ -180,6 +224,7 @@ export function Console() {
   const selectedActionIsChat = selectedAction
     ? isChatAction(selectedAction)
     : false;
+  const selectedActionIsHttp = selectedAction?.source === "http";
   const isActionFinalized =
     isActionChatMode && !selectedActionIsChat && !isActionRunning;
 
@@ -236,7 +281,7 @@ export function Console() {
               value={search}
               onValueChange={setSearch}
               placeholder="Search actions..."
-              autoFocus
+              autoFocus={autoFocus}
               className="flex h-11 w-full rounded-lg border border-input bg-background py-1 pl-9 pr-2 text-base transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
@@ -246,7 +291,7 @@ export function Console() {
             <CommandPrimitive.Empty className="col-span-full py-16 text-center text-sm text-muted-foreground">
               No actions found for &ldquo;{search}&rdquo;
             </CommandPrimitive.Empty>
-            {actions.map((action) => (
+            {actionCards.map((action) => (
               <ActionCommandItem
                 key={action.id}
                 action={action}
@@ -256,6 +301,8 @@ export function Console() {
           </CommandPrimitive.List>
         </div>
       </CommandPrimitive>
+
+      {showMcpServer ? <McpServerControl config={loadState.config} /> : null}
 
       <Drawer
         open={Boolean(selectedAction)}
@@ -278,20 +325,27 @@ export function Console() {
                 action={selectedAction}
                 collapsed={isActionHeaderCollapsed}
                 showLogs={showLogs}
-                canRun={!isActionChatMode && !selectedActionIsChat}
+                canRun={
+                  !selectedActionIsHttp &&
+                  !isActionChatMode &&
+                  !selectedActionIsChat
+                }
                 isRunning={isActionRunning}
                 isFinalized={isActionFinalized}
                 onLogsChange={setShowLogs}
                 onRun={submitSelectedAction}
                 onNewRun={startNewRun}
                 onCancel={cancelSelectedAction}
+                showTrace={!selectedActionIsHttp}
               />
 
-              <ActorStateSummary
-                actor={selectedAction.actor}
-                config={loadState.config}
-                refreshToken={stateRefreshToken}
-              />
+              {!selectedActionIsHttp ? (
+                <ActorStateSummary
+                  actor={selectedAction.actor}
+                  config={loadState.config}
+                  refreshToken={stateRefreshToken}
+                />
+              ) : null}
 
               <div
                 className={
@@ -303,24 +357,28 @@ export function Console() {
                   setIsActionHeaderCollapsed(event.currentTarget.scrollTop > 8)
                 }
               >
-                <ActionForm
-                  ref={actionFormRef}
-                  action={selectedAction}
-                  config={loadState.config}
-                  resetToken={actionRunResetToken}
-                  showLogs={showLogs}
-                  onChatModeChange={handleActionChatModeChange}
-                  onRunStateChange={setIsActionRunning}
-                  onStateChange={handleStateChange}
-                  onResultScrollChange={(scrollTop) =>
-                    setIsActionHeaderCollapsed(scrollTop > 8)
-                  }
-                />
+                {selectedActionIsHttp ? (
+                  <HttpActionInstructions action={selectedAction} />
+                ) : (
+                  <ActionForm
+                    ref={actionFormRef}
+                    action={selectedAction}
+                    config={loadState.config}
+                    resetToken={actionRunResetToken}
+                    showLogs={showLogs}
+                    onChatModeChange={handleActionChatModeChange}
+                    onRunStateChange={setIsActionRunning}
+                    onStateChange={handleStateChange}
+                    onResultScrollChange={(scrollTop) =>
+                      setIsActionHeaderCollapsed(scrollTop > 8)
+                    }
+                  />
+                )}
               </div>
 
               {!selectedActionIsChat ? (
                 <DrawerFooter className="shrink-0 flex-row bg-background mini-app:hidden">
-                  {isActionRunning ? (
+                  {selectedActionIsHttp ? null : isActionRunning ? (
                     <Button
                       key="cancel-run"
                       type="button"

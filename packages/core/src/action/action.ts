@@ -1252,19 +1252,50 @@ export async function* runAction(
 ): AsyncGenerator<unknown, unknown> {
   const ctx: Record<string | symbol, unknown> = { ...scope };
   const observed = new Set<object>();
-  const actionObservers: Array<() => Iterable<unknown>> = [];
-  for (const value of Object.values(ctx)) {
+  type ActionObservation = (() => Iterable<unknown>) & {
+    dispose?: () => void;
+  };
+  const actionObservers: ActionObservation[] = [];
+  const publishedEvents: unknown[] = [];
+  let eventWaiter: (() => void) | null = null;
+  let acceptingEvents = true;
+
+  const publish = (event: unknown) => {
+    if (!acceptingEvents) return;
+    publishedEvents.push(event);
+    eventWaiter?.();
+    eventWaiter = null;
+  };
+
+  const waitForPublishedEvent = () =>
+    publishedEvents.length > 0
+      ? Promise.resolve()
+      : new Promise<void>((resolve) => {
+          eventWaiter = resolve;
+        });
+
+  const observeValue = (value: unknown) => {
     if (value === null || typeof value !== "object" || observed.has(value)) {
-      continue;
+      return;
     }
     observed.add(value);
     const observe = (value as Record<symbol, unknown>)[TW.ActionObserver];
     if (typeof observe === "function") {
       actionObservers.push(
-        (observe as (actionName: string) => () => Iterable<unknown>)(name)
+        (
+          observe as (
+            actionName: string,
+            publish: (event: unknown) => void
+          ) => ActionObservation
+        )(name, publish)
       );
     }
-  }
+  };
+
+  // Steps that materialize scoped resources after the action has started can
+  // register those values with the same observer lifecycle.
+  ctx[TW.ActionObserver] = observeValue;
+  for (const value of Object.values(ctx)) observeValue(value);
 
   const observedEvents = () =>
     actionObservers.flatMap((observe) => Array.from(observe()));
@@ -1273,16 +1304,44 @@ export async function* runAction(
     scope.input instanceof TW.Union ? scope.input.unwrap() : scope.input;
   yield new Trace(name, { input: traceInput });
 
+  const handlerStream = runHandlerList(
+    name,
+    handlers,
+    ctx,
+    null,
+    transparent,
+    name,
+    handlers
+  );
+
+  const runHandlers = async function* () {
+    let handlerNext = handlerStream.next();
+
+    while (true) {
+      while (publishedEvents.length > 0) {
+        yield publishedEvents.shift();
+      }
+
+      const next = await Promise.race([
+        handlerNext.then((value) => ({ source: "handler" as const, value })),
+        waitForPublishedEvent().then(() => ({ source: "observer" as const })),
+      ]);
+
+      if (next.source === "observer") continue;
+      if (next.value.done) {
+        while (publishedEvents.length > 0) {
+          yield publishedEvents.shift();
+        }
+        return next.value.value;
+      }
+
+      yield next.value.value;
+      handlerNext = handlerStream.next();
+    }
+  };
+
   try {
-    const r = yield* runHandlerList(
-      name,
-      handlers,
-      ctx,
-      null,
-      transparent,
-      name,
-      handlers
-    );
+    const r = yield* runHandlers();
     for (const event of observedEvents()) yield event;
     yield new Trace(name, { result: r.last });
     return r.last;
@@ -1290,6 +1349,10 @@ export async function* runAction(
     for (const event of observedEvents()) yield event;
     yield new Trace(name, { error });
     throw error;
+  } finally {
+    acceptingEvents = false;
+    eventWaiter = null;
+    for (const observe of actionObservers) observe.dispose?.();
   }
 }
 

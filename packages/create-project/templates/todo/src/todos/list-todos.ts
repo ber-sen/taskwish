@@ -1,6 +1,6 @@
 import { Step } from "taskwish";
 
-import { actor } from "./actor";
+import { actor } from "./todos";
 
 export const { listTodos } = actor()
   .on("Command", "listTodos")

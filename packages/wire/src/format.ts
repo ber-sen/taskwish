@@ -49,7 +49,9 @@ const BOLD_KEYS = new Set(["result", "error", "input"]);
 export function formatEvent(event: object): string {
   const e = messageLogData(event) as Record<string, unknown>;
   const kind =
-    e[">>"] !== undefined
+    e["~>"] !== undefined
+      ? "~>"
+      : e[">>"] !== undefined
       ? ">>"
       : e["=="] !== undefined
       ? "=="

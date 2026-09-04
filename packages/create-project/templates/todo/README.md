@@ -1,8 +1,10 @@
 # TaskWish todo
 
-A multi-actor example with Todos and a Codex-powered Motivator running on a TaskWish server with Console. Completing a todo signals Motivator to generate and add your next task.
+A stateful Todos actor running on a TaskWish server with Console. Add, list, and complete todos; completing one emits a `Todos::TodoCompleted` event.
 
 ```sh
 bun install
 bun start
 ```
+
+With Node.js 20+, use `npm install` and `npm run start:node` instead.

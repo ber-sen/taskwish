@@ -7,7 +7,10 @@ export type Action = ((...args: unknown[]) => unknown) & {
   stream?: (...args: unknown[]) => AsyncGenerator<unknown, unknown, unknown>;
   [TW.Name]?: string;
   [TW.Meta]?: unknown;
+  [TW.InputSchema]?: unknown;
 };
+
+export type McpConfig = boolean;
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
@@ -22,10 +25,12 @@ export interface NodeAppContext {
   nodeName: string;
   apiKey: string;
   prefix: string;
+  /** MCP configuration exposed by this node. */
+  mcp?: McpConfig;
 }
 
 export interface NodeAppReadyContext extends NodeAppContext {
-  server: Bun.Server<any>;
+  server: RuntimeServer;
 }
 
 export interface NodeApp {
@@ -37,6 +42,8 @@ export interface NodeApp {
 export interface NodeConfig {
   workspace?: readonly ServiceReference[];
   apps?: readonly NodeApp[];
+  /** Expose every registered action through MCP at `/actor`. Enabled by default. */
+  mcp?: McpConfig;
   apiKey?: string;
   port?: number;
   hostname?: string;
@@ -56,11 +63,18 @@ export type NodeRouteHandler = (
 
 export type NodeRouteMap = Partial<Record<HttpMethod, NodeRouteHandler>>;
 
-export type NodeStaticRoute = Response | Bun.HTMLBundle;
+export type NodeStaticRoute = Response;
 
 export type NodeRoutes = Record<string, NodeRouteMap | NodeStaticRoute>;
 
-export type TaskWishNode = Bun.Server<any> & {
+export interface RuntimeServer {
+  url: URL;
+  port: number;
+  hostname: string;
+  stop(closeActiveConnections?: boolean): void | Promise<void>;
+}
+
+export type TaskWishNode = RuntimeServer & {
   name: string;
   apiKey: string;
   routes: NodeRoutes;

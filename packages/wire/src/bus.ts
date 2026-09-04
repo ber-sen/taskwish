@@ -211,6 +211,22 @@ export namespace Wire {
   export import Result = WireMessage.Result;
   export import StateChange = WireMessage.StateChange;
   export import StateResult = WireMessage.StateResult;
+  export import AcpUserMessageChunk = WireMessage.AcpUserMessageChunk;
+  export import AcpAgentMessageChunk = WireMessage.AcpAgentMessageChunk;
+  export import AcpAgentThoughtChunk = WireMessage.AcpAgentThoughtChunk;
+  export import AcpToolCall = WireMessage.AcpToolCall;
+  export import AcpToolCallUpdate = WireMessage.AcpToolCallUpdate;
+  export import AcpPlan = WireMessage.AcpPlan;
+  export import AcpPlanUpdate = WireMessage.AcpPlanUpdate;
+  export import AcpPlanRemoved = WireMessage.AcpPlanRemoved;
+  export import AcpAvailableCommandsUpdate = WireMessage.AcpAvailableCommandsUpdate;
+  export import AcpCurrentModeUpdate = WireMessage.AcpCurrentModeUpdate;
+  export import AcpConfigOptionUpdate = WireMessage.AcpConfigOptionUpdate;
+  export import AcpSessionInfoUpdate = WireMessage.AcpSessionInfoUpdate;
+  export import AcpUsageUpdate = WireMessage.AcpUsageUpdate;
+  export import AcpCompactionUpdate = WireMessage.AcpCompactionUpdate;
+  export import AcpCompactionSummaryChunk = WireMessage.AcpCompactionSummaryChunk;
+  export import AcpStop = WireMessage.AcpStop;
 }
 
 function encodeTime(now: number, length: number): string {

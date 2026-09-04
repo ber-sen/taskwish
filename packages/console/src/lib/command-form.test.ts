@@ -93,4 +93,24 @@ describe("command response streams", () => {
       },
     ]);
   });
+
+  test("preserves ACP message identity for the console renderer", async () => {
+    const result = await finalStreamResult(
+      'event: ACP::AgentMessageChunk\ndata: {"sessionId":"session-1","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"Hello"}}}\n\n'
+    );
+
+    expect(result?.events).toEqual([
+      {
+        type: "acp",
+        message: "ACP::AgentMessageChunk",
+        data: {
+          sessionId: "session-1",
+          update: {
+            sessionUpdate: "agent_message_chunk",
+            content: { type: "text", text: "Hello" },
+          },
+        },
+      },
+    ]);
+  });
 });

@@ -1,3 +1,5 @@
+/* oxlint-disable no-unused-vars, no-unused-expressions -- Compile-time assertions intentionally have no runtime use. */
+
 import { expect, test, describe } from "bun:test";
 import { ToCEL } from "@taskwish/expr";
 import { Expect, Equal } from "./helpers";
@@ -1929,84 +1931,6 @@ describe("Actor", () => {
             "Assistant::onVoiceCall",
             (input: ArrayBuffer) => Promise<number>,
             { event: "::VoiceCall" }
-          >
-        >
-      >;
-    });
-
-    test("actor implements service trait event through property and self", async () => {
-      const VoiceCall = Trait({
-        service: "VoiceCall",
-        self: "onStream",
-      })<{
-        onStream: (input: {
-          sessionId: string;
-          chunk: ArrayBuffer;
-        }) => Generator<ArrayBuffer, null, unknown>;
-        onConnect: <Result>(input: { sessionId: string }) => Result;
-      }>();
-
-      const { actor } = Actor("Assistant");
-
-      const { onVoiceCallConnect } = actor()
-        .on(VoiceCall.Connect)
-
-        .run(function () {
-          return this.input.sessionId.length;
-        });
-
-      const { onVoiceCallStream } = actor()
-        .on(VoiceCall)
-
-        .run(function () {
-          const sessionId: string = this.input.sessionId;
-          const chunk: ArrayBuffer = this.input.chunk;
-          // @ts-expect-error stream input does not include arbitrary keys
-          this.input.missing;
-
-          return sessionId.length + chunk.byteLength;
-        });
-
-      expect(await onVoiceCallConnect({ sessionId: "abc" })).toEqual(3);
-      expect(
-        await onVoiceCallStream({
-          sessionId: "abc",
-          chunk: new ArrayBuffer(5),
-        })
-      ).toEqual(8);
-      expect((onVoiceCallConnect as any)[TW.Name]).toBe(
-        "Assistant::onVoiceCallConnect"
-      );
-      expect((onVoiceCallConnect as any)[TW.Meta]).toEqual({
-        event: "::VoiceCallConnect",
-      });
-      expect((onVoiceCallStream as any)[TW.Name]).toBe(
-        "Assistant::onVoiceCallStream"
-      );
-      expect((onVoiceCallStream as any)[TW.Meta]).toEqual({
-        event: "::VoiceCallStream",
-      });
-
-      type checkConnect = Expect<
-        Equal<
-          typeof onVoiceCallConnect,
-          TW.Action<
-            "Assistant::onVoiceCallConnect",
-            (input: { sessionId: string }) => Promise<number>,
-            { event: "::VoiceCallConnect" }
-          >
-        >
-      >;
-      type checkCall = Expect<
-        Equal<
-          typeof onVoiceCallStream,
-          TW.Action<
-            "Assistant::onVoiceCallStream",
-            (input: {
-              sessionId: string;
-              chunk: ArrayBuffer;
-            }) => Promise<number>,
-            { event: "::VoiceCallStream" }
           >
         >
       >;

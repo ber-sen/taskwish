@@ -36,11 +36,28 @@ export type ConsoleAction = {
   meta?: unknown;
 };
 
+export type ConsoleMcpTool = {
+  name: string;
+  action: string;
+  description: string;
+};
+
+export type ConsoleMcpEndpoint = {
+  path: string;
+  tools: ConsoleMcpTool[];
+};
+
+export type ConsoleMcpConfig = {
+  enabled: boolean;
+  endpoints: ConsoleMcpEndpoint[];
+};
+
 export type ConsoleConfig = {
   nodeName: string;
   apiKey: string;
   apiPrefix: string;
   actions: ConsoleAction[];
+  mcp: ConsoleMcpConfig;
 };
 
 export type ConsoleActorState = {

@@ -151,12 +151,6 @@ export type RawEntry<R, Ops extends string[] = [], Yields = never> = {
   operator: Ops;
 };
 
-type AddOp<Op extends string, T> = T extends string[]
-  ? [Op, ...T]
-  : T extends object
-  ? { [K in keyof T]: AddOp<Op, T[K]> }
-  : T;
-
 type RemoveEndOps<
   T extends readonly string[],
   A extends string[] = []
@@ -454,17 +448,24 @@ export type EventsFromPlugin<U> = U extends Promise<infer M>
   ? {}
   : EventsFromRecord<U>;
 
+type ScopeFromPlugin<U> = U extends Promise<infer Plugin>
+  ? ScopeFromPlugin<Plugin>
+  : U extends { [TW.Scope]: infer Scope extends Record<string, unknown> }
+  ? Scope
+  : {};
+
 /** Merge actions from a plugin into Ctx["scope"]["actions"]. */
 export type AddActionsToCtx<Ctx extends Record<any, any>, U> = {
   [K in keyof Ctx]: K extends "scope"
-    ? Omit<Ctx["scope"], "actions"> & {
-        actions: Pretty<
-          ("actions" extends keyof Ctx["scope"]
-            ? Ctx["scope"]["actions"]
-            : {}) &
-            ActionsFromPlugin<U>
-        >;
-      } & EventsFromPlugin<U>
+    ? Omit<Ctx["scope"], "actions"> &
+        ScopeFromPlugin<U> & {
+          actions: Pretty<
+            ("actions" extends keyof Ctx["scope"]
+              ? Ctx["scope"]["actions"]
+              : {}) &
+              ActionsFromPlugin<U>
+          >;
+        } & EventsFromPlugin<U>
     : Ctx[K];
 };
 
@@ -472,6 +473,8 @@ type DefaultContextActionKeys = "generateText";
 
 type DeepPartialContext<T> = T extends (...args: any[]) => any
   ? T
+  : T extends readonly (infer Item)[]
+  ? Array<DeepPartialContext<Item>>
   : T extends object
   ? { [K in keyof T]?: DeepPartialContext<T[K]> }
   : T;
@@ -479,14 +482,32 @@ type DeepPartialContext<T> = T extends (...args: any[]) => any
 export type ActionContextScope<Scope> = Scope extends {
   actions: infer Actions;
 }
-  ? Exclude<keyof Actions, DefaultContextActionKeys> extends never
-    ? {}
-    : {
-        actions?: TW.Configurable<
-          DeepPartialContext<Omit<Actions, DefaultContextActionKeys>>
-        >;
-      }
+  ? ContextValueOverrides<Scope> &
+      (Exclude<keyof Actions, DefaultContextActionKeys> extends never
+        ? {}
+        : {
+            actions?: TW.Configurable<
+              DeepPartialContext<Omit<Actions, DefaultContextActionKeys>>
+            >;
+          })
+  : ContextValueOverrides<Scope>;
+
+type StateContextOverride<Scope> = "state" extends keyof Scope
+  ? { state?: TW.Configurable<DeepPartialContext<Scope["state"]>> }
   : {};
+
+type AgentContextOverride<Scope> = "agent" extends keyof Scope
+  ? { agent?: TW.Configurable<DeepPartialContext<Scope["agent"]>> }
+  : {};
+
+type ContextValueOverrides<Scope> = StateContextOverride<Scope> &
+  AgentContextOverride<Scope> & {
+    [Key in keyof Scope as Scope[Key] extends {
+      generate: (...args: any[]) => any;
+    }
+      ? Key
+      : never]?: TW.Configurable<DeepPartialContext<Scope[Key]>>;
+  };
 
 export type ActionCtx<Scope> = {
   abortSignal?: TW.Configurable<AbortSignal>;

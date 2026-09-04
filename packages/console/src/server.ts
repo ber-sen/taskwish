@@ -1,6 +1,9 @@
+import { spawn } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import { extname, join } from "node:path";
 import { createInterface } from "node:readline/promises";
+import { fileURLToPath } from "node:url";
 import { type as arkType } from "arktype";
-import consoleIndex from "@taskwish/console/index.html";
 import { ToCEL } from "@taskwish/expr";
 import type {
   ConsoleAction,
@@ -24,6 +27,7 @@ const PRIMITIVE_ARK_SCHEMAS = new Set([
 ]);
 
 type Action = (...args: unknown[]) => unknown;
+type McpConfig = boolean;
 type NodeRegistry = {
   actions: Map<string, Action>;
   states?: Map<string, Record<string, unknown>>;
@@ -31,16 +35,17 @@ type NodeRegistry = {
 type NodeRouteHandler = (request: Request) => Response | Promise<Response>;
 type NodeRoutes = Record<
   string,
-  Partial<Record<string, NodeRouteHandler>> | Response | Bun.HTMLBundle
+  Partial<Record<string, NodeRouteHandler>> | Response
 >;
 type NodeAppContext = {
   registry: NodeRegistry;
   nodeName: string;
   apiKey: string;
   prefix: string;
+  mcp?: McpConfig;
 };
 type NodeAppReadyContext = NodeAppContext & {
-  server: Bun.Server<any>;
+  server: { url: URL };
 };
 
 export type ConsoleApp = {
@@ -55,6 +60,49 @@ export type ConsoleOptions = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+const DEFAULT_MCP_PATH = "/actor";
+
+function mcpToolName(actionName: string): string {
+  return actionName
+    .replace(/::/g, ".")
+    .replace(/[^A-Za-z0-9._-]+/g, "_")
+    .slice(0, 128);
+}
+
+function mcpToolDescription(actionName: string, action: Action): string {
+  const meta = metaForAction(action);
+  if (typeof meta.description === "string") return meta.description;
+
+  const route = meta.route;
+  if (Array.isArray(route) && isRecord(route[2])) {
+    const description = route[2].description;
+    if (typeof description === "string") return description;
+  }
+
+  return `Invoke ${actionName}`;
+}
+
+function describeMcp(
+  registry: NodeRegistry,
+  config: McpConfig | undefined,
+): ConsoleConfig["mcp"] {
+  if (config === false) return { enabled: false, endpoints: [] };
+
+  return {
+    enabled: true,
+    endpoints: [
+      {
+        path: DEFAULT_MCP_PATH,
+        tools: Array.from(registry.actions).map(([actionName, action]) => ({
+          name: mcpToolName(actionName),
+          action: actionName,
+          description: mcpToolDescription(actionName, action),
+        })),
+      },
+    ],
+  };
 }
 
 function serializeCELExpressions(value: unknown): unknown {
@@ -107,11 +155,6 @@ function actionParts(actionName: string): {
     action,
     label: sentenceFromIdentifier(action),
   };
-}
-
-function isVisibleAction(action: ConsoleAction): boolean {
-  if (action.mode === "chat") return true;
-  return !action.action.toLowerCase().startsWith("on");
 }
 
 function metaForAction(action: Action): Record<string, unknown> {
@@ -344,17 +387,22 @@ function describeAction(
 
 export function consoleConfig(
   registry: NodeRegistry,
-  options: { nodeName: string; apiKey: string; prefix: string },
+  options: {
+    nodeName: string;
+    apiKey: string;
+    prefix: string;
+    mcp?: McpConfig;
+  },
 ): ConsoleConfig {
   return {
     nodeName: options.nodeName,
     apiKey: options.apiKey,
     apiPrefix: options.prefix,
+    mcp: describeMcp(registry, options.mcp),
     actions: Array.from(registry.actions)
       .map(([actionName, action]) =>
         describeAction(actionName, action, options.prefix),
       )
-      .filter(isVisibleAction)
       .sort((left, right) =>
         `${left.actor} ${left.label}`.localeCompare(
           `${right.actor} ${right.label}`,
@@ -365,7 +413,12 @@ export function consoleConfig(
 
 export function createConsoleRoutes(
   registry: NodeRegistry,
-  options: { nodeName: string; apiKey: string; prefix: string },
+  options: {
+    nodeName: string;
+    apiKey: string;
+    prefix: string;
+    mcp?: McpConfig;
+  },
 ): NodeRoutes {
   const config: NodeRouteHandler = () =>
     json(200, consoleConfig(registry, options));
@@ -377,10 +430,11 @@ export function createConsoleRoutes(
         state: Object.assign({}, ...Object.values(actorStates)),
       })).sort((left, right) => left.actor.localeCompare(right.actor)),
     );
+  const asset: NodeRouteHandler = (request) => consoleAsset(request);
 
   return {
-    "/": consoleIndex,
-    "/*": consoleIndex,
+    "/": { GET: asset },
+    "/*": { GET: asset },
     [`${options.prefix}/console/config`]: {
       GET: config,
     },
@@ -388,6 +442,56 @@ export function createConsoleRoutes(
       GET: states,
     },
   };
+}
+
+const CONTENT_TYPES: Record<string, string> = {
+  ".css": "text/css; charset=utf-8",
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".map": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp",
+};
+
+const consoleAppDirectories = [
+  fileURLToPath(new URL("./app/", import.meta.url)),
+  fileURLToPath(new URL("../dist/app/", import.meta.url)),
+];
+
+async function consoleAsset(request: Request): Promise<Response> {
+  const pathname = decodeURIComponent(new URL(request.url).pathname);
+  const requestedFile = pathname === "/" ? "index.html" : pathname.slice(1);
+  const safeFile = requestedFile.includes("..") ? "index.html" : requestedFile;
+
+  for (const directory of consoleAppDirectories) {
+    for (const file of
+      safeFile === "index.html" ? [safeFile] : [safeFile, "index.html"]) {
+      try {
+        const body = await readFile(join(directory, file));
+        const bytes = new Uint8Array(body.byteLength);
+        bytes.set(body);
+        return new Response(bytes, {
+          headers: {
+            "Content-Type":
+              CONTENT_TYPES[extname(file)] ?? "application/octet-stream",
+          },
+        });
+      } catch (error) {
+        if (
+          !(
+            error instanceof Error &&
+            "code" in error &&
+            error.code === "ENOENT"
+          )
+        ) {
+          throw error;
+        }
+      }
+    }
+  }
+
+  return new Response("Console assets are not built.", { status: 503 });
 }
 
 function isInteractiveTerminal(): boolean {
@@ -421,11 +525,18 @@ function browserOpenCommand(url: string): string[] {
 }
 
 async function openBrowser(url: string): Promise<void> {
-  const subprocess = Bun.spawn(browserOpenCommand(url), {
-    stdout: "ignore",
-    stderr: "ignore",
+  const [command, ...args] = browserOpenCommand(url);
+  await new Promise<void>((resolve, reject) => {
+    const subprocess = spawn(command!, args, {
+      stdio: "ignore",
+      detached: process.platform !== "win32",
+    });
+    subprocess.once("error", reject);
+    subprocess.once("spawn", () => {
+      subprocess.unref();
+      resolve();
+    });
   });
-  await subprocess.exited;
 }
 
 function handleOpenBrowserError(error: unknown): void {
@@ -441,6 +552,7 @@ export function Console(options: ConsoleOptions = {}): ConsoleApp {
         nodeName: context.nodeName,
         apiKey: context.apiKey,
         prefix: context.prefix,
+        mcp: context.mcp,
       });
     },
     async ready(context) {

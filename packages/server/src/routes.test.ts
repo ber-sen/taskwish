@@ -137,6 +137,26 @@ test("exports console config when the app is installed", async () => {
     nodeName: "test-node",
     apiKey,
     apiPrefix: "/tw",
+    mcp: {
+      enabled: true,
+      endpoints: [
+        {
+          path: "/actor",
+          tools: [
+            {
+              name: "Greeter.hello",
+              action: "Greeter::hello",
+              description: "Greet a person by name",
+            },
+            {
+              name: "Biller.onGreeterMessage",
+              action: "Biller::onGreeterMessage",
+              description: "Invoke Biller::onGreeterMessage",
+            },
+          ],
+        },
+      ],
+    },
     actions: [
       {
         id: "Greeter::hello",
@@ -198,4 +218,21 @@ test("exports live actor state for the console command summary", async () => {
       state: { items: [{ id: "one", done: false }] },
     },
   ]);
+});
+
+test("forwards disabled MCP configuration to console apps", async () => {
+  const routes = await createRoutes(createNodeRegistry([]), {
+    apiKey,
+    nodeName: "test-node",
+    apps: [Console()],
+    mcp: false,
+  });
+
+  const route = routeMap(routes, "/tw/console/config");
+  const response = await route.GET!(
+    new Request("http://localhost/tw/console/config"),
+  );
+  const config = (await response.json()) as { mcp: unknown };
+
+  expect(config.mcp).toEqual({ enabled: false, endpoints: [] });
 });

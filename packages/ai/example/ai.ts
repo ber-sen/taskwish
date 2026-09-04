@@ -1,10 +1,10 @@
-import { Action, Actor, Step } from "@taskwish/core";
+import { Action, Step } from "@taskwish/core";
 import { Tool } from "../src";
 // import tsEvent from "../events/ts-event";
 
 const Type = <const T, const D>(
-  type: T,
-  meta?: { desciption: D },
+  _type: T,
+  _meta?: { desciption: D },
 ): readonly [T, "|", never] => {
   return {} as never;
 };

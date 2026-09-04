@@ -10,9 +10,9 @@ function splitActionName(
   return { actor, action, label: label || action };
 }
 
-function isVisibleAction(action: ConsoleAction): boolean {
+export function isActionCardVisible(action: ConsoleAction): boolean {
   if (isChatAction(action)) return true;
-  return !action.action.toLowerCase().startsWith("on");
+  return action.source !== "event";
 }
 
 function normalizeAction(raw: ConsoleAction): ConsoleAction {
@@ -30,7 +30,7 @@ function normalizeAction(raw: ConsoleAction): ConsoleAction {
 }
 
 export function normalizeActions(actions: ConsoleAction[]): ConsoleAction[] {
-  return actions.map(normalizeAction).filter(isVisibleAction);
+  return actions.map(normalizeAction);
 }
 
 export function getActionValue(action: ConsoleAction) {

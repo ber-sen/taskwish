@@ -40,10 +40,22 @@ type StateBubblePayload = {
 
 type RunBubble = {
   id: string;
-  type: "yield" | "wire" | "result" | "error" | "state" | "state-change";
+  type:
+    | "yield"
+    | "agent"
+    | "thought"
+    | "tool"
+    | "plan"
+    | "activity"
+    | "wire"
+    | "result"
+    | "error"
+    | "state"
+    | "state-change";
   body: string;
   title?: string;
   state?: StateBubblePayload;
+  acpId?: string;
 };
 
 type AppendedStateActionBubble =
@@ -97,6 +109,40 @@ function eventBody(value: unknown): string {
   return typeof value === "string"
     ? value
     : JSON.stringify(value, null, 2) ?? String(value);
+}
+
+function recordValue(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function acpUpdate(event: ActionRunEvent): Record<string, unknown> | null {
+  return recordValue(recordValue(event.data)?.update);
+}
+
+function acpText(event: ActionRunEvent): string {
+  const content = recordValue(acpUpdate(event)?.content);
+  return typeof content?.text === "string" ? content.text : "";
+}
+
+function acpDisplayName(message: string | undefined): string {
+  return sentenceFromIdentifier(message?.replace(/^ACP::/, "") ?? "Agent");
+}
+
+function acpActivityBody(event: ActionRunEvent): string {
+  const update = acpUpdate(event);
+  if (event.message === "ACP::UsageUpdate" && update) {
+    const used = update.used;
+    return typeof used === "number" ? `${used.toLocaleString()} tokens` : "";
+  }
+  if (event.message === "ACP::Stop") {
+    const stopReason = recordValue(event.data)?.stopReason;
+    return typeof stopReason === "string"
+      ? sentenceFromIdentifier(stopReason)
+      : "Completed";
+  }
+  return update ? eventBody(update) : eventBody(event.data);
 }
 
 function stateBubblePayload(value: unknown): StateBubblePayload | null {
@@ -412,12 +458,7 @@ export function TraceLine({ line }: { line: string }) {
   const parts = line.split(/(├─|└─|│|✓|->)/g).filter(Boolean);
 
   return (
-    <span
-      className={cn(
-        "block",
-        isTraceErrorLine(line) && "text-destructive"
-      )}
-    >
+    <span className={cn("block", isTraceErrorLine(line) && "text-destructive")}>
       {parts.map((part, index) => {
         if (part === "├─" || part === "└─" || part === "│") {
           return (
@@ -452,7 +493,7 @@ export function TraceLine({ line }: { line: string }) {
   );
 }
 
-function buildRunBubbles(
+export function buildRunBubbles(
   result: ActionRunResult | null,
   showLogs: boolean
 ): RunBubble[] {
@@ -471,8 +512,11 @@ function buildRunBubbles(
   const bubbles: RunBubble[] = [];
   let currentYield = "";
   const wireEvents: ActionRunEvent[] = [];
+  const toolStates = new Map<string, Record<string, unknown>>();
+  const toolBubbles = new Map<string, RunBubble>();
   let wireBubble: RunBubble | null = null;
   let hasFinalEvent = false;
+  const hasYieldEvents = result.events.some((event) => event.type === "yield");
 
   const flushYield = (index: number) => {
     if (!currentYield) return;
@@ -511,6 +555,129 @@ function buildRunBubbles(
       return;
     }
 
+    if (event.type === "acp") {
+      const update = acpUpdate(event);
+      const messageId =
+        typeof update?.messageId === "string" ? update.messageId : undefined;
+
+      if (event.message === "ACP::UserMessageChunk") {
+        // The command/chat input is already rendered as the user message.
+        return;
+      }
+
+      if (event.message === "ACP::AgentMessageChunk") {
+        // Streaming actions already render their TW::Stream text. ACP remains
+        // the source for awaited generate() calls that do not yield text.
+        if (hasYieldEvents) return;
+        flushYield(index);
+        const text = acpText(event);
+        if (!text) return;
+        const previous = bubbles.at(-1);
+        if (
+          previous?.type === "agent" &&
+          (!messageId || previous.acpId === messageId)
+        ) {
+          previous.body += text;
+        } else {
+          bubbles.push({
+            id: `acp-agent-${index}`,
+            type: "agent",
+            body: text,
+            acpId: messageId,
+          });
+        }
+        return;
+      }
+
+      if (event.message === "ACP::AgentThoughtChunk") {
+        flushYield(index);
+        const text = acpText(event);
+        if (!text) return;
+        const previous = bubbles.at(-1);
+        if (
+          previous?.type === "thought" &&
+          (!messageId || previous.acpId === messageId)
+        ) {
+          previous.body += text;
+        } else {
+          bubbles.push({
+            id: `acp-thought-${index}`,
+            type: "thought",
+            title: "Thinking",
+            body: text,
+            acpId: messageId,
+          });
+        }
+        return;
+      }
+
+      if (
+        event.message === "ACP::ToolCall" ||
+        event.message === "ACP::ToolCallUpdate"
+      ) {
+        flushYield(index);
+        if (!update) return;
+        const toolCallId = String(update.toolCallId ?? `tool-${index}`);
+        const state = { ...toolStates.get(toolCallId), ...update };
+        toolStates.set(toolCallId, state);
+        const title = String(state.title ?? state.name ?? "Tool");
+        const details = Object.fromEntries(
+          Object.entries(state).filter(
+            ([key]) =>
+              ![
+                "sessionUpdate",
+                "toolCallId",
+                "title",
+                "name",
+                "_meta",
+              ].includes(key)
+          )
+        );
+        const body = eventBody(details);
+        const existing = toolBubbles.get(toolCallId);
+        if (existing) {
+          existing.title = title;
+          existing.body = body;
+        } else {
+          const bubble: RunBubble = {
+            id: `acp-tool-${toolCallId}`,
+            type: "tool",
+            title,
+            body,
+            acpId: toolCallId,
+          };
+          toolBubbles.set(toolCallId, bubble);
+          bubbles.push(bubble);
+        }
+        return;
+      }
+
+      if (
+        event.message === "ACP::Plan" ||
+        event.message === "ACP::PlanUpdate" ||
+        event.message === "ACP::PlanRemoved"
+      ) {
+        flushYield(index);
+        bubbles.push({
+          id: `acp-plan-${index}`,
+          type: "plan",
+          title: acpDisplayName(event.message),
+          body: update ? eventBody(update) : "",
+        });
+        return;
+      }
+
+      flushYield(index);
+      hasFinalEvent = hasFinalEvent || event.message === "ACP::Stop";
+      bubbles.push({
+        id: `acp-activity-${index}`,
+        type: "activity",
+        title: acpDisplayName(event.message),
+        body: acpActivityBody(event),
+      });
+      return;
+    }
+
     if (event.type === "state" || event.type === "state-change") {
       flushYield(index);
       const state = stateBubblePayload(event.data);
@@ -528,13 +695,24 @@ function buildRunBubbles(
 
     flushYield(index);
     hasFinalEvent = event.type === "result" || event.type === "error";
+    const body =
+      event.type === "error"
+        ? errorBubbleBody(event.data)
+        : eventBody(event.data);
+    if (
+      event.type === "result" &&
+      bubbles.some((bubble) => bubble.type === "agent") &&
+      bubbles
+        .filter((bubble) => bubble.type === "agent")
+        .map((bubble) => bubble.body)
+        .join("") === body
+    ) {
+      return;
+    }
     bubbles.push({
       id: `${event.type}-${index}`,
       type: event.type === "error" ? "error" : "result",
-      body:
-        event.type === "error"
-          ? errorBubbleBody(event.data)
-          : eventBody(event.data),
+      body,
     });
   });
 
@@ -569,7 +747,7 @@ function yamlScalar(value: unknown): string {
       .map((line) => `  ${line}`)
       .join("\n")}`;
   }
-  if (/[:#{}\[\],&*?|\-<>=!%@`"']|\s$|^\s|^(true|false|null)$/i.test(value)) {
+  if (/[:#{}[\],&*?|\-<>=!%@`"']|\s$|^\s|^(true|false|null)$/i.test(value)) {
     return JSON.stringify(value);
   }
   return value;
@@ -1095,7 +1273,7 @@ function StateBubble({
     ...state,
     actions: {
       ...discoveredActions,
-      ...(state.actions ?? {}),
+      ...state.actions,
     },
   };
 
@@ -1260,7 +1438,7 @@ export function ActionResult({
   showLogs,
   config,
   action,
-  onScrollChange,
+  onScrollChange: _onScrollChange,
 }: {
   className?: string;
   input?: unknown;
@@ -1361,7 +1539,7 @@ export function ActionResult({
               ),
               ...(bubbles.length
                 ? bubbles.map((bubble) =>
-                    bubble.type === "yield" ? (
+                    bubble.type === "yield" || bubble.type === "agent" ? (
                       <Message key={`${run.id}-${bubble.id}`} from="assistant">
                         <div
                           className="max-w-[88%] text-foreground"
@@ -1389,6 +1567,11 @@ export function ActionResult({
                           >
                             {bubble.type === "wire"
                               ? bubble.title
+                              : bubble.type === "thought" ||
+                                bubble.type === "tool" ||
+                                bubble.type === "plan" ||
+                                bubble.type === "activity"
+                              ? bubble.title
                               : bubble.type === "state"
                               ? `Result`
                               : bubble.type === "state-change"
@@ -1406,6 +1589,12 @@ export function ActionResult({
                           className={cn(
                             bubble.type === "wire" &&
                               "border-l-[1.5px] border-border px-4 py-3 text-muted-foreground",
+                            (bubble.type === "thought" ||
+                              bubble.type === "activity") &&
+                              "border-l-[1.5px] border-border px-4 py-3 text-muted-foreground",
+                            (bubble.type === "tool" ||
+                              bubble.type === "plan") &&
+                              "rounded-lg border border-border bg-action px-4 py-3 text-foreground",
                             (bubble.type === "state" ||
                               bubble.type === "state-change") &&
                               "w-full",
