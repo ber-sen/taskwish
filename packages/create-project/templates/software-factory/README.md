@@ -50,3 +50,6 @@ model server:
 ```sh
 bun test
 ```
+
+To run the application on Node.js 20+, use `npm install` followed by
+`npm run start:node`. Tests continue to use Bun's built-in test runner.

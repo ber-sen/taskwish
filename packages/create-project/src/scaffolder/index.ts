@@ -6,6 +6,7 @@ export {
   TEMPLATE_NAMES,
   type CreateProjectOptions,
   type CreateProjectResult,
+  type PackageManager,
   type TemplateName,
 } from "./create-project";
 

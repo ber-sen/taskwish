@@ -7,6 +7,7 @@ export type {
   NodeRoutes,
   ServiceModule,
   ServiceReference,
+  RuntimeServer,
   TaskWishNode,
 } from "./types";
 

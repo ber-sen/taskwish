@@ -53,6 +53,9 @@ The existing AI SDK agent runtime connects to Ollama through its OpenAI-compatib
 API and continues to publish the same ACP lifecycle events. Each actor directory
 contains its own `<service-name>.test.ts`; run all of them with `bun test`.
 
+To run the application on Node.js 20+, use `npm install` followed by
+`npm run start:node`. Tests continue to use Bun's built-in test runner.
+
 | Actor                      | Loop                                              |
 | -------------------------- | ------------------------------------------------- |
 | `BasicAgentLoop`           | Observe → Think → Act                             |

@@ -1,7 +1,9 @@
 import { expect, test } from "bun:test";
+import { execFile } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { promisify } from "node:util";
 import { createFetchHandler, createNodeRegistry } from "@taskwish/server";
 import { TW } from "taskwish";
 
@@ -167,17 +169,9 @@ test("pushes a branch and creates a pull request", async () => {
 });
 
 async function runGit(directory: string, args: string[]): Promise<string> {
-  const child = Bun.spawn(["git", ...args], {
+  const { stdout } = await promisify(execFile)("git", args, {
     cwd: directory,
-    stdout: "pipe",
-    stderr: "pipe",
   });
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(child.stdout).text(),
-    new Response(child.stderr).text(),
-    child.exited,
-  ]);
-  if (exitCode !== 0) throw new Error(stderr || stdout);
   return stdout.trim();
 }
 

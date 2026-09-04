@@ -17,4 +17,4 @@ Format fluent actor and action definitions with a blank line between `.use(...)`
 
 Add Bun unit tests for public service behavior and multi-actor workflows. Exercise public actions with `Service.action.ctx({ ...mocks }).run(input)`. Mock default agents with `agent`, named agents with their configured names, and state with `state`; keep provider calls and persistent state out of unit tests. When importing a stateful actor still initializes its store, point `TW_DEFAULT_STORE_PATH` to a temporary directory before dynamically importing it, then restore the environment and remove the directory after the test so state cannot leak between runs.
 
-Update `taskwish.ts` when a runnable scenario helps demonstrate a changed workflow. Run `bun run check` and `bun test` after changing actor contracts, and run `bun start` to verify the project behavior.
+Update `taskwish.ts` when a runnable scenario helps demonstrate a changed workflow. Run `bun run check` and `bun test` after changing actor contracts. Run `bun start` by default, or `npm run start:node` when specifically verifying Node.js compatibility.

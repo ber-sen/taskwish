@@ -10,7 +10,7 @@ const pages: DocPage[] = [
   {
     slug: "getting-started", title: "Getting started", description: "Create and run a local TaskWish service.",
     content: <>
-      <h2>Requirements</h2><p>TaskWish projects run on <a href="https://bun.sh" target="_blank" rel="noreferrer">Bun</a>. The installer can install Bun for you, or you can use the package directly.</p>
+      <h2>Requirements</h2><p>TaskWish uses <a href="https://bun.sh" target="_blank" rel="noreferrer">Bun</a> by default and also supports Node.js 20+. Use <code>bunx</code> and <code>bun</code>, <code>npx</code> and <code>npm run start:node</code>, or the platform installer.</p>
       <CodeBlock title="Terminal" language="sh" code={`${createCommand}\ncd my-taskwish-app\nbun start`} />
       <h2>Choose a starter</h2><p>The interactive installer offers five templates: <code>empty</code>, <code>todo</code>, <code>agent-loops</code>, <code>agent-graphs</code>, and <code>software-factory</code>.</p>
       <CodeBlock title="Terminal" language="sh" code="bunx @taskwish/create-project my-app --template todo" />
@@ -64,7 +64,7 @@ const pages: DocPage[] = [
   {
     slug: "server-and-console", title: "Server, Console & MCP", description: "Run and inspect the complete workspace from one local process.",
     content: <>
-      <h2>Server</h2><p><code>Server()</code> registers the services in your workspace, mounts applications, and starts a Bun server. By default it chooses an available local port and creates an API key.</p>
+      <h2>Server</h2><p><code>Server()</code> registers the services in your workspace and mounts applications using the active Node.js or Bun runtime. By default it chooses an available local port and creates an API key.</p>
       <CodeBlock code={`import { Console } from "@taskwish/console";\nimport { Server } from "@taskwish/server";\n\nawait Server("My workspace", {\n  apps: [Console()],\n  workspace: [Todos, Researcher],\n  mcp: true,\n});`} />
       <h2>Console</h2><p>Console is a TaskWish server app. Use it to browse actors, inspect schemas and state, run actions, and follow streamed step and agent output.</p>
       <h2>MCP</h2><p>Set <code>mcp: true</code> to expose registered actions at the default MCP endpoint. For tighter control, specify endpoint paths and select only the actions that should become tools.</p>

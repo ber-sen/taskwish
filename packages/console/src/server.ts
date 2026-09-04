@@ -1,6 +1,9 @@
+import { spawn } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import { extname, join } from "node:path";
 import { createInterface } from "node:readline/promises";
+import { fileURLToPath } from "node:url";
 import { type as arkType } from "arktype";
-import consoleIndex from "@taskwish/console/index.html";
 import { ToCEL } from "@taskwish/expr";
 import type {
   ConsoleAction,
@@ -41,7 +44,7 @@ type NodeRegistry = {
 type NodeRouteHandler = (request: Request) => Response | Promise<Response>;
 type NodeRoutes = Record<
   string,
-  Partial<Record<string, NodeRouteHandler>> | Response | Bun.HTMLBundle
+  Partial<Record<string, NodeRouteHandler>> | Response
 >;
 type NodeAppContext = {
   registry: NodeRegistry;
@@ -51,7 +54,7 @@ type NodeAppContext = {
   mcp?: McpConfig;
 };
 type NodeAppReadyContext = NodeAppContext & {
-  server: Bun.Server<any>;
+  server: { url: URL };
 };
 
 export type ConsoleApp = {
@@ -470,10 +473,11 @@ export function createConsoleRoutes(
         state: Object.assign({}, ...Object.values(actorStates)),
       })).sort((left, right) => left.actor.localeCompare(right.actor)),
     );
+  const asset: NodeRouteHandler = (request) => consoleAsset(request);
 
   return {
-    "/": consoleIndex,
-    "/*": consoleIndex,
+    "/": { GET: asset },
+    "/*": { GET: asset },
     [`${options.prefix}/console/config`]: {
       GET: config,
     },
@@ -481,6 +485,56 @@ export function createConsoleRoutes(
       GET: states,
     },
   };
+}
+
+const CONTENT_TYPES: Record<string, string> = {
+  ".css": "text/css; charset=utf-8",
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".map": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp",
+};
+
+const consoleAppDirectories = [
+  fileURLToPath(new URL("./app/", import.meta.url)),
+  fileURLToPath(new URL("../dist/app/", import.meta.url)),
+];
+
+async function consoleAsset(request: Request): Promise<Response> {
+  const pathname = decodeURIComponent(new URL(request.url).pathname);
+  const requestedFile = pathname === "/" ? "index.html" : pathname.slice(1);
+  const safeFile = requestedFile.includes("..") ? "index.html" : requestedFile;
+
+  for (const directory of consoleAppDirectories) {
+    for (const file of
+      safeFile === "index.html" ? [safeFile] : [safeFile, "index.html"]) {
+      try {
+        const body = await readFile(join(directory, file));
+        const bytes = new Uint8Array(body.byteLength);
+        bytes.set(body);
+        return new Response(bytes, {
+          headers: {
+            "Content-Type":
+              CONTENT_TYPES[extname(file)] ?? "application/octet-stream",
+          },
+        });
+      } catch (error) {
+        if (
+          !(
+            error instanceof Error &&
+            "code" in error &&
+            error.code === "ENOENT"
+          )
+        ) {
+          throw error;
+        }
+      }
+    }
+  }
+
+  return new Response("Console assets are not built.", { status: 503 });
 }
 
 function isInteractiveTerminal(): boolean {
@@ -514,11 +568,18 @@ function browserOpenCommand(url: string): string[] {
 }
 
 async function openBrowser(url: string): Promise<void> {
-  const subprocess = Bun.spawn(browserOpenCommand(url), {
-    stdout: "ignore",
-    stderr: "ignore",
+  const [command, ...args] = browserOpenCommand(url);
+  await new Promise<void>((resolve, reject) => {
+    const subprocess = spawn(command!, args, {
+      stdio: "ignore",
+      detached: process.platform !== "win32",
+    });
+    subprocess.once("error", reject);
+    subprocess.once("spawn", () => {
+      subprocess.unref();
+      resolve();
+    });
   });
-  await subprocess.exited;
 }
 
 function handleOpenBrowserError(error: unknown): void {

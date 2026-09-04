@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { copyFileSync, realpathSync } from "node:fs";
 import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
@@ -17,6 +17,7 @@ export const TEMPLATE_NAMES = [
 ] as const;
 
 export type TemplateName = (typeof TEMPLATE_NAMES)[number];
+export type PackageManager = "bun" | "npm";
 
 const PROJECT_SKILL_PATH = join(".agents", "skills", "taskwish", "SKILL.md");
 const EMBEDDED_TEMPLATE_FILES: Readonly<Record<string, string>> = {};
@@ -34,6 +35,7 @@ export type CreateProjectOptions = {
   git?: boolean;
   templateDirectory?: string;
   skillPath?: string;
+  packageManager?: PackageManager;
 };
 
 export type CreateProjectResult = {
@@ -41,6 +43,7 @@ export type CreateProjectResult = {
   relativeDirectory: string;
   projectName: string;
   template: TemplateName;
+  packageManager: PackageManager;
   installed: boolean;
   gitInitialized: boolean;
   files: string[];
@@ -70,6 +73,7 @@ export const { createProject } = actor()
     "git?": "boolean",
     "templateDirectory?": "string",
     "skillPath?": "string",
+    "packageManager?": "string",
   })
 
   .run(
@@ -97,11 +101,20 @@ export const { createProject } = actor()
         throw new Error(`Cannot derive a package name from ${directory}.`);
       }
 
+      const packageManager =
+        this.input.packageManager ?? preferredPackageManager();
+      if (packageManager !== "bun" && packageManager !== "npm") {
+        throw new Error(
+          `Unknown package manager "${packageManager}". Choose bun or npm.`,
+        );
+      }
+
       return {
         directory,
         relativeDirectory: relative(process.cwd(), directory) || ".",
         projectName,
         template,
+        packageManager,
         install: this.input.install ?? true,
         git: this.input.git ?? true,
         templateDirectory:
@@ -213,7 +226,10 @@ export const { createProject } = actor()
 
     Step("installDependencies", async function () {
       if (this.resolveProject.install) {
-        await runCommand(["bun", "install"], this.resolveProject.directory);
+        await runCommand(
+          [this.resolveProject.packageManager, "install"],
+          this.resolveProject.directory,
+        );
       }
       return this.resolveProject.install;
     }),
@@ -231,6 +247,7 @@ export const { createProject } = actor()
         relativeDirectory: this.resolveProject.relativeDirectory,
         projectName: this.resolveProject.projectName,
         template: this.resolveProject.template,
+        packageManager: this.resolveProject.packageManager,
         installed: this.installDependencies,
         gitInitialized: this.initializeRepository,
         files: this.copyFiles,
@@ -306,8 +323,27 @@ export const { createProject } = actor()
       skillPath: {
         elicit: { hidden: true },
       },
+      packageManager: {
+        description: "Package manager used to install and run the project",
+        example: "npm",
+        elicit: { hidden: true },
+      },
     },
   });
+
+function preferredPackageManager(): PackageManager {
+  const userAgent = process.env.npm_config_user_agent?.toLowerCase();
+  if (userAgent?.startsWith("bun/")) return "bun";
+  if (userAgent?.startsWith("npm/")) return "npm";
+  if (process.versions.bun && commandExists("bun")) return "bun";
+  if (commandExists("npm")) return "npm";
+  if (commandExists("bun")) return "bun";
+  return "npm";
+}
+
+function commandExists(command: PackageManager): boolean {
+  return spawnSync(command, ["--version"], { stdio: "ignore" }).status === 0;
+}
 
 function isMissingFileError(error: unknown): boolean {
   return error instanceof Error && "code" in error && error.code === "ENOENT";

@@ -98,6 +98,7 @@ describe("Scaffolder.createProject", () => {
         template,
         install: false,
         git: false,
+        packageManager: "npm",
         templateDirectory,
         skillPath,
       });
@@ -126,6 +127,8 @@ describe("Scaffolder.createProject", () => {
       );
 
       expect(packageJson.name).toBe(`my-${template}-app`);
+      expect(packageJson.scripts.start).toBe("bun taskwish.ts");
+      expect(packageJson.scripts["start:node"]).toBe("tsx taskwish.ts");
       expect(packageJson.scripts.test).toBe(
         template === "agent-loops" ||
         template === "agent-graphs" ||
@@ -133,6 +136,9 @@ describe("Scaffolder.createProject", () => {
           ? "bun test src"
           : "bun test"
       );
+      expect(packageJson.devDependencies["@types/bun"]).toBeDefined();
+      expect(packageJson.devDependencies["@types/node"]).toBeDefined();
+      expect(packageJson.devDependencies.tsx).toBeDefined();
       expect(templatePackageJson.workspaces).toEqual(["../../../*"]);
       expect(packageJson.workspaces).toBeUndefined();
       expect(templatePackageJson.dependencies.taskwish).toBe("workspace:*");
@@ -235,7 +241,7 @@ describe("Scaffolder.createProject", () => {
         expect(githubPullRequestSource).toContain(
           '.on("Command", "pushBranchAndCreatePullRequest")'
         );
-        expect(githubPullRequestSource).toContain('["git", ...args]');
+        expect(githubPullRequestSource).toContain('execFileAsync("git", args');
         expect(githubPullRequestSource).toContain('"https://api.github.com"');
         expect(eventLoopSource).toContain('.on("GitHub::IssueOpened")');
         expect(entrypoint).toContain("GitHub,");
@@ -284,6 +290,7 @@ describe("Scaffolder.createProject", () => {
       }
       expect(entrypoint).not.toContain("console.log(");
       expect(result.template).toBe(template);
+      expect(result.packageManager).toBe("npm");
       expect(result.installed).toBe(false);
       expect(result.gitInitialized).toBe(false);
       expect(result.files).toContain(actionPath);

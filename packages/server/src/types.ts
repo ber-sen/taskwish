@@ -43,7 +43,7 @@ export interface NodeAppContext {
 }
 
 export interface NodeAppReadyContext extends NodeAppContext {
-  server: Bun.Server<any>;
+  server: RuntimeServer;
 }
 
 export interface NodeApp {
@@ -76,11 +76,18 @@ export type NodeRouteHandler = (
 
 export type NodeRouteMap = Partial<Record<HttpMethod, NodeRouteHandler>>;
 
-export type NodeStaticRoute = Response | Bun.HTMLBundle;
+export type NodeStaticRoute = Response;
 
 export type NodeRoutes = Record<string, NodeRouteMap | NodeStaticRoute>;
 
-export type TaskWishNode = Bun.Server<any> & {
+export interface RuntimeServer {
+  url: URL;
+  port: number;
+  hostname: string;
+  stop(closeActiveConnections?: boolean): void | Promise<void>;
+}
+
+export type TaskWishNode = RuntimeServer & {
   name: string;
   apiKey: string;
   routes: NodeRoutes;

@@ -8,7 +8,7 @@ Actors keep domain behavior together. Actions expose typed commands and HTTP end
 
 ## Create a project
 
-TaskWish projects run on [Bun](https://bun.sh).
+TaskWish projects use [Bun](https://bun.sh) by default and can also run on Node.js 20+.
 
 Use the platform-aware installer:
 
@@ -18,10 +18,12 @@ curl -fsSL https://taskwish.ai/create-project.sh | bash
 
 The installer detects macOS, Linux, or Windows along with the current architecture and downloads the matching native create-project CLI.
 
-Alternatively, run the JavaScript CLI through Bun:
+Alternatively, run the JavaScript CLI through Bun or Node.js:
 
 ```sh
 bunx @taskwish/create-project
+# or
+npx @taskwish/create-project
 ```
 
 Create a project without interactive prompts:
@@ -118,6 +120,7 @@ Packages keep their tests beside the implementation. Run a focused suite with:
 ```sh
 bun test packages/core
 bun test packages/server
+bun --cwd packages/server run test:node
 ```
 
 ## License

@@ -3,7 +3,7 @@ import { ConsoleDemo } from "./console-demo";
 import { CopyButton } from "./copy-button";
 
 const installCommand = "curl -fsSL https://taskwish.ai/create-project.sh | bash";
-const bunxCommand = "bunx @taskwish/create-project";
+const packageCommand = "bunx @taskwish/create-project";
 
 export function Landing() {
   return (
@@ -53,8 +53,8 @@ export function Landing() {
             </div>
             <div className="install-alt">
               <span>Or use</span>
-              <code>{bunxCommand}</code>
-              <CopyButton value={bunxCommand} />
+              <code>{packageCommand}</code>
+              <CopyButton value={packageCommand} />
             </div>
             <a className="install-docs-link" href="/docs">Read the installation guide <ArrowRight size={15} /></a>
           </div>

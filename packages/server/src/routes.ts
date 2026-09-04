@@ -80,7 +80,10 @@ function withAuth(apiKey: string, handler: NodeRouteHandler): NodeRouteHandler {
   };
 }
 
-function routeForPath(routes: NodeRoutes, pathname: string): NodeRoutes[string] | null {
+function routeForPath(
+  routes: NodeRoutes,
+  pathname: string,
+): NodeRoutes[string] | null {
   const decodedPath = decodeURIComponent(pathname);
   const exact = routes[decodedPath];
   if (exact) return exact;
@@ -94,6 +97,9 @@ function routeForPath(routes: NodeRoutes, pathname: string): NodeRoutes[string] 
       return route;
     }
   }
+
+  const wildcard = routes["/*"];
+  if (wildcard) return wildcard;
 
   return null;
 }
@@ -194,6 +200,13 @@ export function createFetchHandler(
   });
   const routePrefix = normalizePrefix(options.prefix ?? "/tw");
 
+  return createFetchHandlerFromRoutes(routes, routePrefix);
+}
+
+export function createFetchHandlerFromRoutes(
+  routes: NodeRoutes | Promise<NodeRoutes>,
+  routePrefix = "/tw",
+): (request: Request) => Promise<Response> {
   return async function fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const routeMap = await routes;

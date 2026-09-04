@@ -23,7 +23,8 @@
   "type": "module",
   "scripts": {
     "build": "bun ../../scripts/build-package.ts",
-    "test": "bun test"
+    "test": "bun test",
+    "test:node": "bun run build && node test/node-runtime.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.0.0",

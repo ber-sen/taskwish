@@ -1,3 +1,5 @@
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { Step } from "taskwish";
 
 import { actor } from "./github";
@@ -8,22 +10,25 @@ type GitHubPullRequest = {
   title: string;
 };
 
-async function runGit(directory: string, args: string[]): Promise<string> {
-  const child = Bun.spawn(["git", ...args], {
-    cwd: directory,
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(child.stdout).text(),
-    new Response(child.stderr).text(),
-    child.exited,
-  ]);
+const execFileAsync = promisify(execFile);
 
-  if (exitCode !== 0) {
-    throw new Error(`git ${args[0]} failed: ${stderr.trim() || stdout.trim()}`);
+async function runGit(directory: string, args: string[]): Promise<string> {
+  try {
+    const { stdout } = await execFileAsync("git", args, { cwd: directory });
+    return stdout.trim();
+  } catch (error) {
+    const output =
+      error && typeof error === "object"
+        ? String(
+            "stderr" in error
+              ? error.stderr
+              : "stdout" in error
+                ? error.stdout
+                : "",
+          )
+        : "";
+    throw new Error(`git ${args[0]} failed: ${output.trim()}`);
   }
-  return stdout.trim();
 }
 
 export const { pushBranchAndCreatePullRequest } = actor()

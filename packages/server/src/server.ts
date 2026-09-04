@@ -1,12 +1,24 @@
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
+import type { AddressInfo } from "node:net";
+
 import { createNodeRegistry } from "./registry";
 import { json } from "./response";
 import { normalizePrefix } from "./routes";
-import { createRoutes } from "./routes";
-import type { NodeAppReadyContext, NodeConfig, TaskWishNode } from "./types";
+import { createFetchHandlerFromRoutes, createRoutes } from "./routes";
+import type {
+  NodeAppReadyContext,
+  NodeConfig,
+  RuntimeServer,
+  TaskWishNode,
+} from "./types";
 import { generateApiKey, isRecord } from "./utils";
 
 const shutdownSignals: NodeJS.Signals[] = ["SIGINT", "SIGTERM", "SIGHUP"];
-const activeServers = new Set<Bun.Server<any>>();
+const activeServers = new Set<RuntimeServer>();
 let shutdownHandlersInstalled = false;
 let shutdownInProgress = false;
 
@@ -49,7 +61,7 @@ function installShutdownHandlers(): void {
   }
 }
 
-function registerServerForShutdown<T extends Bun.Server<any>>(server: T): T {
+function registerServerForShutdown<T extends RuntimeServer>(server: T): T {
   installShutdownHandlers();
   activeServers.add(server);
 
@@ -79,8 +91,128 @@ function randomPort(): number {
   return 49152 + Math.floor(Math.random() * (65535 - 49152 + 1));
 }
 
+function hasBunServer(): boolean {
+  return typeof globalThis.Bun?.serve === "function";
+}
+
+async function nodeRequest(
+  request: IncomingMessage,
+  origin: string,
+): Promise<Request> {
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(request.headers)) {
+    if (Array.isArray(value)) {
+      for (const item of value) headers.append(name, item);
+    } else if (value !== undefined) {
+      headers.set(name, value);
+    }
+  }
+
+  const method = request.method ?? "GET";
+  let body: Uint8Array<ArrayBuffer> | undefined;
+  if (method !== "GET" && method !== "HEAD") {
+    const chunks: Buffer[] = [];
+    for await (const chunk of request) {
+      chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+    }
+    const buffer = Buffer.concat(chunks);
+    body = new Uint8Array(buffer.byteLength);
+    body.set(buffer);
+  }
+
+  return new Request(new URL(request.url ?? "/", origin), {
+    method,
+    headers,
+    body,
+  });
+}
+
+async function sendNodeResponse(
+  response: Response,
+  output: ServerResponse,
+): Promise<void> {
+  output.statusCode = response.status;
+  response.headers.forEach((value, name) => output.setHeader(name, value));
+
+  if (!response.body) {
+    output.end();
+    return;
+  }
+
+  const reader = response.body.getReader();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!output.write(value)) {
+        await new Promise<void>((resolve) => output.once("drain", resolve));
+      }
+    }
+  } finally {
+    output.end();
+    reader.releaseLock();
+  }
+}
+
+async function serveWithNode(
+  fetch: (request: Request) => Promise<Response>,
+  config: NodeConfig,
+): Promise<RuntimeServer> {
+  const hostname = config.hostname ?? "0.0.0.0";
+  let origin = `http://${hostname}:${config.port ?? 0}`;
+  const nodeServer = createServer(async (request, response) => {
+    try {
+      await sendNodeResponse(
+        await fetch(await nodeRequest(request, origin)),
+        response,
+      );
+    } catch (error) {
+      await sendNodeResponse(
+        json(500, {
+          error: error instanceof Error ? error.message : String(error),
+        }),
+        response,
+      );
+    }
+  });
+
+  let port = config.port ?? 0;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        nodeServer.once("error", reject);
+        nodeServer.listen(port, hostname, () => {
+          nodeServer.off("error", reject);
+          resolve();
+        });
+      });
+      break;
+    } catch (error) {
+      if (!isPortUnavailableError(error) || attempt === 9) throw error;
+      port = randomPort();
+    }
+  }
+
+  const address = nodeServer.address() as AddressInfo;
+  const publicHostname =
+    hostname === "0.0.0.0" || hostname === "::" ? "localhost" : hostname;
+  origin = `http://${publicHostname}:${address.port}`;
+
+  return {
+    url: new URL(origin),
+    port: address.port,
+    hostname,
+    async stop(closeActiveConnections = false) {
+      if (closeActiveConnections) nodeServer.closeAllConnections?.();
+      await new Promise<void>((resolve, reject) =>
+        nodeServer.close((error) => (error ? reject(error) : resolve())),
+      );
+    },
+  };
+}
+
 function serveWithRandomPortFallback(
-  options: Parameters<typeof Bun.serve>[0],
+  options: Bun.Serve.Options<any, any>,
 ): Bun.Server<any> {
   const requestedPort = "port" in options ? options.port : undefined;
   let nextOptions =
@@ -104,7 +236,7 @@ function serveWithRandomPortFallback(
 }
 
 function printStartupMessage(
-  server: Bun.Server<any>,
+  server: RuntimeServer,
   name: string,
   apiKey: string,
 ): void {
@@ -137,17 +269,20 @@ export async function Server(
     mcp: config.mcp,
   });
 
+  const fetch = createFetchHandlerFromRoutes(routes, routePrefix);
   const server = registerServerForShutdown(
-    serveWithRandomPortFallback({
-      port: config.port ?? 0,
-      hostname: config.hostname,
-      development: config.development,
-      routes,
-      idleTimeout: 0,
-      fetch() {
-        return json(404, { error: "Not Found" });
-      },
-    } as Parameters<typeof Bun.serve>[0]),
+    hasBunServer()
+      ? (serveWithRandomPortFallback({
+          port: config.port ?? 0,
+          hostname: config.hostname,
+          development: config.development,
+          routes,
+          idleTimeout: 0,
+          fetch() {
+            return json(404, { error: "Not Found" });
+          },
+        }) as unknown as RuntimeServer)
+      : await serveWithNode(fetch, config),
   );
 
   printStartupMessage(server, name, apiKey);
