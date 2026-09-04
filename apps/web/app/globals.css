@@ -147,7 +147,7 @@ footer { border-top: 1px solid var(--line); }
 
 /* Documentation */
 .docs-shell { width: min(1400px, 100%); min-height: calc(100vh - 72px); margin-inline: auto; display: grid; grid-template-columns: 250px minmax(0, 760px) 190px; justify-content: center; gap: 64px; }
-.docs-sidebar { position: sticky; top: 72px; height: calc(100vh - 72px); padding: 50px 24px 40px; border-right: 1px solid var(--line); }
+.docs-sidebar { position: sticky; top: 72px; height: calc(100vh - 72px); padding: 50px 24px 40px 0; border-right: 1px solid var(--line); }
 .docs-label { display: flex; align-items: center; gap: 9px; margin-bottom: 25px; color: #77858d; font: 11px var(--font-mono); text-transform: uppercase; letter-spacing: .08em; }
 .docs-label svg { color: var(--acid); }
 .docs-sidebar nav { display: grid; gap: 4px; }
@@ -232,7 +232,7 @@ footer { border-top: 1px solid var(--line); }
   .footer-inner > div { align-items: flex-start; flex-direction: column; gap: 10px; }
   .docs-shell { display: block; width: 100%; padding: 0 18px; }
   .docs-menu-button { position: sticky; top: 64px; z-index: 20; width: 100%; min-height: 43px; padding: 0; display: flex; align-items: center; gap: 8px; border: 0; border-bottom: 1px solid var(--line); background: var(--ink); color: #a6b1b7; font: 11px var(--font-mono); }
-  .docs-sidebar { display: none; position: fixed; top: 107px; left: 0; right: 0; z-index: 30; height: auto; padding: 20px 18px 30px; border-right: 0; border-bottom: 1px solid var(--line); background: #090d10; }
+  .docs-sidebar { display: none; position: fixed; top: 107px; left: 0; right: 0; z-index: 30; height: auto; padding: 20px 18px 30px 0; border-right: 0; border-bottom: 1px solid var(--line); background: #090d10; }
   .docs-sidebar.open { display: block; }
   .docs-help { display: none; }
   .doc-article { padding-top: 45px; }
@@ -487,7 +487,7 @@ body:has(.minimal-landing) .footer-inner a:hover { color: #3000ff; }
 .examples-heading h2 { max-width: 680px; margin: 0; font-size: clamp(38px, 4.4vw, 62px); line-height: 1.06; letter-spacing: -.055em; }
 .examples-heading p { grid-column: 2; max-width: 570px; margin: 13px 0 0; color: #909090; font-size: 16px; line-height: 1.65; }
 .diagram-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.workflow-card { min-width: 0; padding: 22px; border: 1px solid #333; border-radius: 9px; background: #171717; }
+.workflow-card { min-width: 0; padding: 22px; display: flex; flex-direction: column; border: 1px solid #333; border-radius: 9px; background: #171717; }
 .workflow-card-head { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
 .workflow-card-head > span { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 6px; background: rgba(0,238,174,.1); color: var(--tw-green); }
 .workflow-card-head > span svg { width: 18px; }
@@ -501,19 +501,19 @@ body:has(.minimal-landing) .footer-inner a:hover { color: #3000ff; }
 .loop-back { position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; color: #666; font: 9px var(--font-mono); }
 .diagram-branch {
   position: relative;
-  width: 35px;
+  width: 58px;
   height: 102px;
   display: block;
   background:
-    linear-gradient(#444, #444) right 0 top 15px / 1px 72px no-repeat,
-    linear-gradient(#444, #444) left 0 top 15px / 100% 1px no-repeat,
+    linear-gradient(#444, #444) left 20px top 15px / 1px 72px no-repeat,
+    linear-gradient(#444, #444) left 20px top 15px / calc(100% - 20px) 1px no-repeat,
     linear-gradient(#444, #444) left 0 top 51px / 100% 1px no-repeat,
-    linear-gradient(#444, #444) left 0 top 87px / 100% 1px no-repeat;
+    linear-gradient(#444, #444) left 20px top 87px / calc(100% - 20px) 1px no-repeat;
 }
-.diagram-branch i { position: absolute; right: -3px; width: 5px; height: 5px; border-radius: 50%; background: #666; }
-.diagram-branch i:first-child { top: 12px; }.diagram-branch i:nth-child(2) { top: 48px; }.diagram-branch i:last-child { top: 84px; }
 .worker-stack { display: grid; gap: 6px; }
 .worker-stack .diagram-node { min-height: 30px; }
+.workflow-card-link { margin-top: auto; padding-top: 16px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #2d2d2d; color: #8d8d8d; font: 10px var(--font-mono); text-transform: uppercase; letter-spacing: .04em; }
+.workflow-card-link:hover { color: var(--tw-green); }
 
 .install-section-final { padding: 105px 0; background: #f4f4f4; color: #111; }
 .install-final-inner { display: grid; grid-template-columns: .8fr 1.2fr; align-items: center; gap: 80px; }

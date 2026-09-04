@@ -17,10 +17,10 @@ export function Landing() {
         <ConsoleDemo />
       </section>
 
-      <section className="workflow-examples" id="examples">
+      <section className="workflow-examples" id="use-cases">
         <div className="minimal-shell">
           <div className="examples-heading">
-            <span>Examples</span>
+            <span>Use Cases</span>
             <h2>Common agent patterns, expressed as code.</h2>
             <p>Start from a working workflow, then replace the actors, tools, and models with your own.</p>
           </div>
@@ -65,7 +65,9 @@ export function Landing() {
 }
 
 function WorkflowCard({ icon, title, command, children }: { icon: React.ReactNode; title: string; command: string; children: React.ReactNode }) {
-  return <article className="workflow-card"><div className="workflow-card-head"><span>{icon}</span><h3>{title}</h3><code>{command}</code></div><div className="mini-diagram">{children}</div></article>;
+  const sourceUrl = `https://github.com/yama-otoko/taskwish/tree/main/packages/create-project/templates/${command}`;
+
+  return <article className="workflow-card"><div className="workflow-card-head"><span>{icon}</span><h3>{title}</h3><code>{command}</code></div><div className="mini-diagram">{children}</div><a className="workflow-card-link" href={sourceUrl} target="_blank" rel="noreferrer">Explore this use case <ArrowRight size={13} /></a></article>;
 }
 
 function Node({ label, tone = "plain" }: { label: string; tone?: "plain" | "green" | "blue" }) {
@@ -74,4 +76,4 @@ function Node({ label, tone = "plain" }: { label: string; tone?: "plain" | "gree
 
 function Connector() { return <span className="diagram-connector"><ArrowRight size={13} /></span>; }
 function LoopBack({ label }: { label: string }) { return <span className="loop-back"><Repeat2 size={12} />{label}</span>; }
-function Branch() { return <span className="diagram-branch"><i /><i /><i /></span>; }
+function Branch() { return <span className="diagram-branch" />; }
