@@ -10,20 +10,7 @@ export type Action = ((...args: unknown[]) => unknown) & {
   [TW.InputSchema]?: unknown;
 };
 
-export type McpToolSelector = string | Action;
-
-export interface McpEndpointConfig {
-  /** URL that serves this MCP tool collection. Defaults to `/actor` (for example `/mcp/todos`). */
-  path?: string;
-  /** Actions to expose. Omit this to expose every registered action. */
-  tools?: readonly McpToolSelector[];
-}
-
-export type McpConfig =
-  | boolean
-  | string
-  | McpEndpointConfig
-  | readonly McpEndpointConfig[];
+export type McpConfig = boolean;
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
@@ -55,7 +42,7 @@ export interface NodeApp {
 export interface NodeConfig {
   workspace?: readonly ServiceReference[];
   apps?: readonly NodeApp[];
-  /** MCP endpoints. Configure paths such as `/mcp/todos`; enabled at `/actor` by default. */
+  /** Expose every registered action through MCP at `/actor`. Enabled by default. */
   mcp?: McpConfig;
   apiKey?: string;
   port?: number;

@@ -1,6 +1,5 @@
 {
   "@taskwish/console": "0.0.1",
   "@taskwish/server": "0.0.1",
-  "@taskwish/slack": "0.0.2",
   "taskwish": "0.0.8"
 }

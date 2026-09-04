@@ -27,16 +27,7 @@ const PRIMITIVE_ARK_SCHEMAS = new Set([
 ]);
 
 type Action = (...args: unknown[]) => unknown;
-type McpToolSelector = string | Action;
-type McpEndpointConfig = {
-  path?: string;
-  tools?: readonly McpToolSelector[];
-};
-type McpConfig =
-  | boolean
-  | string
-  | McpEndpointConfig
-  | readonly McpEndpointConfig[];
+type McpConfig = boolean;
 type NodeRegistry = {
   actions: Map<string, Action>;
   states?: Map<string, Record<string, unknown>>;
@@ -73,41 +64,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 const DEFAULT_MCP_PATH = "/actor";
 
-function normalizeMcpPath(path: string): string {
-  const normalized = path.startsWith("/") ? path : `/${path}`;
-  return normalized.endsWith("/") && normalized.length > 1
-    ? normalized.slice(0, -1)
-    : normalized;
-}
-
-function mcpEndpointConfigs(
-  config: McpConfig | undefined,
-): McpEndpointConfig[] {
-  if (config === false) return [];
-  if (config === undefined || config === true) {
-    return [{ path: DEFAULT_MCP_PATH }];
-  }
-  if (typeof config === "string") return [{ path: config }];
-  return Array.isArray(config) ? [...config] : [config as McpEndpointConfig];
-}
-
-function isMcpActionSelected(
-  actionName: string,
-  action: Action,
-  selectors: readonly McpToolSelector[] | undefined,
-): boolean {
-  if (selectors === undefined) return true;
-
-  return selectors.some((selector) => {
-    if (typeof selector !== "string") return selector === action;
-    if (selector === actionName) return true;
-    if (selector.endsWith("::*")) {
-      return actionName.startsWith(`${selector.slice(0, -3)}::`);
-    }
-    return !selector.includes("::") && actionName.startsWith(`${selector}::`);
-  });
-}
-
 function mcpToolName(actionName: string): string {
   return actionName
     .replace(/::/g, ".")
@@ -132,20 +88,21 @@ function describeMcp(
   registry: NodeRegistry,
   config: McpConfig | undefined,
 ): ConsoleConfig["mcp"] {
-  const endpoints = mcpEndpointConfigs(config).map((endpoint) => ({
-    path: normalizeMcpPath(endpoint.path ?? DEFAULT_MCP_PATH),
-    tools: Array.from(registry.actions)
-      .filter(([actionName, action]) =>
-        isMcpActionSelected(actionName, action, endpoint.tools),
-      )
-      .map(([actionName, action]) => ({
-        name: mcpToolName(actionName),
-        action: actionName,
-        description: mcpToolDescription(actionName, action),
-      })),
-  }));
+  if (config === false) return { enabled: false, endpoints: [] };
 
-  return { enabled: endpoints.length > 0, endpoints };
+  return {
+    enabled: true,
+    endpoints: [
+      {
+        path: DEFAULT_MCP_PATH,
+        tools: Array.from(registry.actions).map(([actionName, action]) => ({
+          name: mcpToolName(actionName),
+          action: actionName,
+          description: mcpToolDescription(actionName, action),
+        })),
+      },
+    ],
+  };
 }
 
 function serializeCELExpressions(value: unknown): unknown {

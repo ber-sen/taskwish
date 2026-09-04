@@ -1,3 +1,3 @@
-import { Actor } from "@taskwish/core";
+import { Actor } from "taskwish";
 
 export const { actor } = Actor("Slack");

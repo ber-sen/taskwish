@@ -26,7 +26,8 @@ subscribes and proposes an implementation. `ReviewAgent` subscribes to that
 proposal, reviews it, posts the result to Slack, and emits a final event.
 
 The two agents never call each other directly. Events carry the work between
-actors, while Slack is used as a normal injected actor action.
+actors, while the template's local Slack actor posts notifications through the
+Slack Web API.
 
 ## Run locally
 

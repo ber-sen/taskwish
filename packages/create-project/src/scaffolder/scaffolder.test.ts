@@ -84,7 +84,7 @@ describe("Scaffolder.createProject", () => {
       "software-factory",
       "src/github/receive-issue-webhook.ts",
       "receiveIssueWebhook",
-      ["GitHub", "CodingAgent", "ReviewAgent"],
+      ["GitHub", "Slack", "CodingAgent", "ReviewAgent"],
       "src/github/github.test.ts",
     ],
   ] as const)(
@@ -272,7 +272,15 @@ describe("Scaffolder.createProject", () => {
           join(destination, "src/review-agent/on-change-proposed.ts"),
           "utf8"
         );
-        expect(packageJson.dependencies["@taskwish/slack"]).toBe("^0.0.2");
+        const reviewActorSource = await readFile(
+          join(destination, "src/review-agent/review-agent.ts"),
+          "utf8"
+        );
+        const slackSource = await readFile(
+          join(destination, "src/slack/post-message.ts"),
+          "utf8"
+        );
+        expect(packageJson.dependencies["@taskwish/slack"]).toBeUndefined();
         expect(codingSource).toContain('.on("GitHub::IssueOpened")');
         expect(codingSource).toContain(
           'this.signal("CodingAgent::ChangeProposed"'
@@ -282,6 +290,10 @@ describe("Scaffolder.createProject", () => {
         );
         expect(reviewSource).toContain(
           "this.actions.slack.postMessage"
+        );
+        expect(reviewActorSource).toContain('from "../slack"');
+        expect(slackSource).toContain(
+          'fetch("https://slack.com/api/chat.postMessage"'
         );
       }
       for (const actorName of actorNames) {

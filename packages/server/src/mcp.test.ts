@@ -126,30 +126,19 @@ test("calls MCP tools through the TaskWish action runtime", async () => {
   });
 });
 
-test("supports custom MCP URLs with handpicked actions", async () => {
-  const { Greeter, goodbye } = greeterActions();
-  const routes = await createRoutes(createNodeRegistry([{ Greeter }]), {
-    apiKey,
-    nodeName: "test-node",
-    mcp: { path: "/greeter", tools: [goodbye] },
-  });
-
-  expect(routes["/actor"]).toBeUndefined();
-  const { message } = await mcpRequest(routes, "/greeter", {
-    jsonrpc: "2.0",
-    id: 3,
-    method: "tools/list",
-    params: {},
-  });
-  expect(message.result.tools.map((tool: { name: string }) => tool.name)).toEqual([
-    "Greeter.goodbye",
-  ]);
-});
-
 test("can disable the MCP endpoint", async () => {
   const routes = await createRoutes(createNodeRegistry([]), {
     apiKey,
     mcp: false,
   });
   expect(routes["/actor"]).toBeUndefined();
+});
+
+test("rejects custom MCP configuration", async () => {
+  await expect(
+    createRoutes(createNodeRegistry([]), {
+      apiKey,
+      mcp: { path: "/mcp/custom" } as never,
+    }),
+  ).rejects.toThrow("MCP configuration must be true or false");
 });

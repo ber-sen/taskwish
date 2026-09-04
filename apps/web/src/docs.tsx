@@ -67,8 +67,7 @@ const pages: DocPage[] = [
       <h2>Server</h2><p><code>Server()</code> registers the services in your workspace and mounts applications using the active Node.js or Bun runtime. By default it chooses an available local port and creates an API key.</p>
       <CodeBlock code={`import { Console } from "@taskwish/console";\nimport { Server } from "@taskwish/server";\n\nawait Server("My workspace", {\n  apps: [Console()],\n  workspace: [Todos, Researcher],\n  mcp: true,\n});`} />
       <h2>Console</h2><p>Console is a TaskWish server app. Use it to browse actors, inspect schemas and state, run actions, and follow streamed step and agent output.</p>
-      <h2>MCP</h2><p>Set <code>mcp: true</code> to expose registered actions at the default MCP endpoint. For tighter control, specify endpoint paths and select only the actions that should become tools.</p>
-      <CodeBlock code={`await Server("My workspace", {\n  workspace: [Todos],\n  mcp: {\n    path: "/mcp/todos",\n    tools: [Todos.addTodo, Todos.listTodos],\n  },\n});`} />
+      <h2>MCP</h2><p>Set <code>mcp: true</code> to expose all registered actions at <code>/actor</code>, or <code>mcp: false</code> to disable MCP.</p>
       <h2>Testing</h2><p>Call public actions with an injected context so providers and state remain outside unit tests.</p>
       <CodeBlock code={`const result = await Greeter.greet\n  .ctx({ ...mocks })\n  .run({ name: "Ada" });\n\nexpect(result).toBe("Hello, Ada!");`} />
     </>,

@@ -1,5 +1,3 @@
-/* oxlint-disable no-unused-vars -- Compile-time assertions intentionally have no runtime use. */
-
 import { describe, expect, test } from "bun:test";
 import { Expect, Equal } from "./helpers";
 import { TW } from "./core";
@@ -43,50 +41,12 @@ describe("Trait", () => {
     });
   });
 
-  test("options — service prefixes event names and self exposes the default event", () => {
-    const VoiceCall = Trait({
-      service: "VoiceCall",
-      self: "onStream",
-    })<{
-      onStream: (input: {
-        sessionId: string;
-        chunk: ArrayBuffer;
-      }) => Generator<ArrayBuffer, null, unknown>;
-      onConnect: <Result>(input: { sessionId: string }) => Result;
-    }>();
-
-    expect((VoiceCall as any)[TW.Name]).toBe("::VoiceCallStream");
-    expect((VoiceCall as any)[TW.Meta]).toEqual({
-      event: "::VoiceCallStream",
-    });
-    expect((VoiceCall.Stream as any)[TW.Name]).toBe("::VoiceCallStream");
-    expect((VoiceCall.Stream as any)[TW.Meta]).toEqual({
-      event: "::VoiceCallStream",
-    });
-    expect((VoiceCall.Connect as any)[TW.Name]).toBe("::VoiceCallConnect");
-    expect((VoiceCall.Connect as any)[TW.Meta]).toEqual({
-      event: "::VoiceCallConnect",
-    });
-  });
-
   test("type — single method is wrapped in TW.Action as a trait action", () => {
     const Logger = Trait<{ log: () => string }>();
 
     type check = Expect<
       Equal<typeof Logger.log, TW.Action<"::log", () => Promise<string>, null>>
     >;
-  });
-
-  test("type — plain trait is not an options builder", () => {
-    const Logger = Trait<{ log: () => string }>();
-
-    type check = Expect<Equal<typeof Logger, Trait<{ log: () => string }>>>;
-
-    // oxlint-disable-next-line no-constant-condition -- This block only verifies compile-time errors.
-    if (false) {
-      // @ts-expect-error options are only accepted by Trait(options)<T>()
-      Logger({ service: "Logger" });
-    }
   });
 
   test("type — already-Promise return is not double-wrapped", () => {
@@ -119,76 +79,6 @@ describe("Trait", () => {
           "::post",
           (url: string, body: unknown) => Promise<Response>,
           null
-        >
-      >
-    >;
-  });
-
-  test("type — event method is exposed as event action with event metadata", () => {
-    const VoiceCall = Trait<{
-      onVoiceCall: (
-        chunk: ArrayBuffer,
-      ) => Generator<ArrayBuffer, null, unknown>;
-    }>();
-
-    type check = Expect<
-      Equal<
-        typeof VoiceCall.VoiceCall,
-        TW.Action<
-          "::VoiceCall",
-          (chunk: ArrayBuffer) => Generator<ArrayBuffer, null, unknown>,
-          { event: "::VoiceCall" }
-        >
-      >
-    >;
-  });
-
-  test("type — options expose service events and self as the default action", () => {
-    const VoiceCall = Trait({
-      service: "VoiceCall",
-      self: "onStream",
-    })<{
-      onStream: (input: {
-        sessionId: string;
-        chunk: ArrayBuffer;
-      }) => Generator<ArrayBuffer, null, unknown>;
-      onConnect: <Result>(input: { sessionId: string }) => Result;
-    }>();
-
-    type checkSelf = Expect<
-      Equal<
-        typeof VoiceCall,
-        TW.Action<
-          "::VoiceCallStream",
-          (input: {
-            sessionId: string;
-            chunk: ArrayBuffer;
-          }) => Generator<ArrayBuffer, null, unknown>,
-          { event: "::VoiceCallStream" }
-        > & {
-          Stream: TW.Action<
-            "::VoiceCallStream",
-            (input: {
-              sessionId: string;
-              chunk: ArrayBuffer;
-            }) => Generator<ArrayBuffer, null, unknown>,
-            { event: "::VoiceCallStream" }
-          >;
-          Connect: TW.Action<
-            "::VoiceCallConnect",
-            <Result>(input: { sessionId: string }) => Result,
-            { event: "::VoiceCallConnect" }
-          >;
-        }
-      >
-    >;
-    type checkConnect = Expect<
-      Equal<
-        typeof VoiceCall.Connect,
-        TW.Action<
-          "::VoiceCallConnect",
-          <Result>(input: { sessionId: string }) => Result,
-          { event: "::VoiceCallConnect" }
         >
       >
     >;

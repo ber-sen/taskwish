@@ -236,24 +236,3 @@ test("forwards disabled MCP configuration to console apps", async () => {
 
   expect(config.mcp).toEqual({ enabled: false, endpoints: [] });
 });
-
-test("reports configurable MCP paths in the console", async () => {
-  const routes = await createRoutes(createNodeRegistry([]), {
-    apiKey,
-    nodeName: "test-node",
-    apps: [Console()],
-    mcp: { path: "/mcp/actor-name" },
-  });
-
-  const route = routeMap(routes, "/tw/console/config");
-  const response = await route.GET!(
-    new Request("http://localhost/tw/console/config"),
-  );
-  const config = (await response.json()) as {
-    mcp: { endpoints: Array<{ path: string }> };
-  };
-
-  expect(config.mcp.endpoints.map((endpoint) => endpoint.path)).toEqual([
-    "/mcp/actor-name",
-  ]);
-});

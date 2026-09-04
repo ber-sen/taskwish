@@ -1,7 +1,5 @@
 export type {
   McpConfig,
-  McpEndpointConfig,
-  McpToolSelector,
   NodeConfig,
   NodeRegistry,
   NodeRoutes,

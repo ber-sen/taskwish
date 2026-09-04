@@ -1,8 +1,8 @@
-import { Slack } from "@taskwish/slack";
 import { Actor, Event } from "taskwish";
 
 import { CodingAgent } from "../coding-agent";
 import { Ollama } from "../shared/ollama";
+import { Slack } from "../slack";
 
 const { actor: createActor } = Actor("ReviewAgent")
   .use(Ollama)

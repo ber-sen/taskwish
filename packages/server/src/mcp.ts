@@ -11,8 +11,6 @@ import { json } from "./response";
 import type {
   Action,
   McpConfig,
-  McpEndpointConfig,
-  McpToolSelector,
   NodeRegistry,
   NodeRouteHandler,
   NodeRoutes,
@@ -25,13 +23,6 @@ type PreparedInput = {
   schema?: StandardSchemaWithJSON;
   payload: (input: unknown) => unknown;
 };
-
-function normalizePath(path: string): string {
-  const normalized = path.startsWith("/") ? path : `/${path}`;
-  return normalized.endsWith("/") && normalized.length > 1
-    ? normalized.slice(0, -1)
-    : normalized;
-}
 
 function authorized(request: Request, apiKey: string): boolean {
   const authorization = request.headers.get("Authorization");
@@ -46,30 +37,6 @@ function withAuth(apiKey: string, handler: NodeRouteHandler): NodeRouteHandler {
     }
     return handler(request);
   };
-}
-
-function endpointConfigs(config: McpConfig | undefined): McpEndpointConfig[] {
-  if (config === false) return [];
-  if (config === undefined || config === true) return [{ path: DEFAULT_MCP_PATH }];
-  if (typeof config === "string") return [{ path: config }];
-  return Array.isArray(config) ? [...config] : [config as McpEndpointConfig];
-}
-
-function actionSelected(
-  actionName: string,
-  action: Action,
-  selectors: readonly McpToolSelector[] | undefined,
-): boolean {
-  if (selectors === undefined) return true;
-
-  return selectors.some((selector) => {
-    if (typeof selector !== "string") return selector === action;
-    if (selector === actionName) return true;
-    if (selector.endsWith("::*")) {
-      return actionName.startsWith(`${selector.slice(0, -3)}::`);
-    }
-    return !selector.includes("::") && actionName.startsWith(`${selector}::`);
-  });
 }
 
 function toolNameForAction(actionName: string): string {
@@ -257,22 +224,20 @@ export function createMcpRoutes(
   registry: NodeRegistry,
   options: { apiKey: string; nodeName: string; mcp?: McpConfig },
 ): NodeRoutes {
-  const routes: NodeRoutes = {};
+  if (options.mcp === false) return {};
+  if (options.mcp !== undefined && options.mcp !== true) {
+    throw new Error("MCP configuration must be true or false.");
+  }
 
-  for (const endpoint of endpointConfigs(options.mcp)) {
-    const path = normalizePath(endpoint.path ?? DEFAULT_MCP_PATH);
-    const tools = Array.from(registry.actions).filter(([actionName, action]) =>
-      actionSelected(actionName, action, endpoint.tools),
-    );
-    const handler = createEndpointHandler(registry, options.nodeName, tools);
-    const fetch = withAuth(options.apiKey, (request) => handler.fetch(request));
+  const tools = Array.from(registry.actions);
+  const handler = createEndpointHandler(registry, options.nodeName, tools);
+  const fetch = withAuth(options.apiKey, (request) => handler.fetch(request));
 
-    routes[path] = {
+  return {
+    [DEFAULT_MCP_PATH]: {
       GET: fetch,
       POST: fetch,
       DELETE: fetch,
-    };
-  }
-
-  return routes;
+    },
+  };
 }

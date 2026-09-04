@@ -32,14 +32,10 @@ describe("console config", () => {
     });
   });
 
-  test("describes disabled and custom MCP endpoints", () => {
+  test("describes disabled MCP", () => {
     const add = (() => undefined) as () => undefined;
-    const remove = (() => undefined) as () => undefined;
     const registry = {
-      actions: new Map([
-        ["Todos::add", add],
-        ["Todos::remove", remove],
-      ]),
+      actions: new Map([["Todos::add", add]]),
       states: new Map(),
     };
 
@@ -51,29 +47,6 @@ describe("console config", () => {
         mcp: false,
       }).mcp,
     ).toEqual({ enabled: false, endpoints: [] });
-
-    expect(
-      consoleConfig(registry, {
-        nodeName: "Test",
-        apiKey: "test",
-        prefix: "/tw",
-        mcp: { path: "todos/", tools: [remove] },
-      }).mcp,
-    ).toEqual({
-      enabled: true,
-      endpoints: [
-        {
-          path: "/todos",
-          tools: [
-            {
-              name: "Todos.remove",
-              action: "Todos::remove",
-              description: "Invoke Todos::remove",
-            },
-          ],
-        },
-      ],
-    });
   });
 
   test("converts expression metadata to CEL before JSON transport", () => {

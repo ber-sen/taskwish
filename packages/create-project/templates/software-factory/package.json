@@ -15,7 +15,6 @@
   "dependencies": {
     "@taskwish/console": "workspace:*",
     "@taskwish/server": "workspace:*",
-    "@taskwish/slack": "workspace:*",
     "taskwish": "workspace:*"
   },
   "devDependencies": {
