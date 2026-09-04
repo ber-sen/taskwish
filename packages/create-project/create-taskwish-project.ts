@@ -9,7 +9,6 @@ Terminal.elicit(Scaffolder.createProject, {
   examples: [
     "bunx @taskwish/create-project",
     "bunx @taskwish/create-project my-app --template todo",
-    "bunx @taskwish/create-project my-agents --template agent-loops",
     "bunx @taskwish/create-project my-app --yes",
   ],
   input: {

@@ -11,7 +11,7 @@ export default Actor("Greeding")
 
   .run(
     If(
-      () => true,
+      () => 2 > 1,
 
       Step("getName", function () {
         return this.input.user.name;

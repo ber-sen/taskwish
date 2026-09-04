@@ -1,4 +1,4 @@
-import { Actor, Agent, Desc, Step, Tool } from "../../src";
+import { Actor, Agent, Desc, Step, Tool, Type } from "../../src";
 
 const { actor } = Actor("ChatBot");
 

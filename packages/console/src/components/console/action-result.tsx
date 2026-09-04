@@ -569,7 +569,7 @@ function yamlScalar(value: unknown): string {
       .map((line) => `  ${line}`)
       .join("\n")}`;
   }
-  if (/[:#{}[\],&*?|\-<>=!%@`"']|\s$|^\s|^(true|false|null)$/i.test(value)) {
+  if (/[:#{}\[\],&*?|\-<>=!%@`"']|\s$|^\s|^(true|false|null)$/i.test(value)) {
     return JSON.stringify(value);
   }
   return value;
@@ -1095,7 +1095,7 @@ function StateBubble({
     ...state,
     actions: {
       ...discoveredActions,
-      ...state.actions,
+      ...(state.actions ?? {}),
     },
   };
 
@@ -1260,7 +1260,7 @@ export function ActionResult({
   showLogs,
   config,
   action,
-  onScrollChange: _onScrollChange,
+  onScrollChange,
 }: {
   className?: string;
   input?: unknown;

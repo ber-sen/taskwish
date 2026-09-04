@@ -121,7 +121,6 @@ describe("Terminal.elicit", () => {
       setExitCode: () => {},
     });
 
-    // oxlint-disable-next-line no-control-regex -- ANSI escape sequences begin with ESC.
     const plainOutput = output.text().replaceAll(/\x1b\[[0-9;]*m/g, "");
     expect(plainOutput).toContain(TASKWISH_LOGO.trim().split("\n")[0]!);
     expect(output.text()).toContain("\x1b[38;5;244m");
@@ -228,7 +227,6 @@ describe("Terminal.elicit", () => {
       { projectName: "custom", template: "todo", install: false },
     ]);
     const text = output.text();
-    // oxlint-disable-next-line no-control-regex -- ANSI escape sequences begin with ESC.
     const plainText = text.replaceAll(/\x1b\[[0-9;]*m/g, "");
     expect(plainText).toContain("┌  Create project");
     expect(plainText).toContain("◆  Starter template");

@@ -1,5 +1,6 @@
 import {
   Actor,
+  ScopeResultKind,
   Step,
   Steps,
   SubSteps,

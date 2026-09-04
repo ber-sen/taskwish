@@ -6,9 +6,9 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { Step } from "taskwish";
 import { Logger } from "@taskwish/wire";
 
-import { actor } from "./scaffolder";
+import { actor } from "./actor";
 
-export const TEMPLATE_NAMES = ["empty", "todo", "agent-loops"] as const;
+export const TEMPLATE_NAMES = ["empty", "todo"] as const;
 
 export type TemplateName = (typeof TEMPLATE_NAMES)[number];
 
@@ -69,13 +69,9 @@ export const { createProject } = actor()
   .run(
     Step("resolveProject", async function () {
       const template = this.input.template ?? "empty";
-      if (
-        template !== "empty" &&
-        template !== "todo" &&
-        template !== "agent-loops"
-      ) {
+      if (template !== "empty" && template !== "todo") {
         throw new Error(
-          `Unknown template "${template}". Choose empty, todo, agent-loops.`,
+          `Unknown template "${template}". Choose empty, todo.`,
         );
       }
 
@@ -259,13 +255,8 @@ export const { createProject } = actor()
             {
               value: "todo",
               label: "Todo",
-              description: "Stateful todos with a completion event",
-            },
-            {
-              value: "agent-loops",
-              label: "Agent loops",
               description:
-                "Eighteen actors demonstrating common AI agent loop patterns",
+                "Todos and a Codex motivator connected by a custom event",
             },
           ],
         },

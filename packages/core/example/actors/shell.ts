@@ -11,7 +11,7 @@ export const Shell = {
     const Name extends string,
     const Result
   >(
-    ..._args:
+    ...args:
       | [
           name: CamelCase<Name>,
           run: ((ctx: TW.Scope<Ctx["scope"]>) => string) | string,
