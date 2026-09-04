@@ -1,6 +1,6 @@
 # TaskWish todo
 
-A stateful Todos actor running on a TaskWish server with Console. Add, list, and complete todos; completing one emits a `Todos::TodoCompleted` event.
+A multi-actor example with Todos and a Codex-powered Motivator running on a TaskWish server with Console. Completing a todo signals Motivator to generate and add your next task.
 
 ```sh
 bun install

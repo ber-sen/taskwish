@@ -6,12 +6,12 @@ import {
   type CodexPromptInput,
   type CodexPromptOptions,
 } from "./codex-agent";
-import { AiSdkAgent, type AiSdkAgentOptions } from "./ai-sdk-agent";
 import { FxAgent, type FxAgentOptions } from "./fx-agent";
 import type { CamelCase } from "./helpers";
-import { isTaskWishTool, type TaskWishTool } from "./tool";
 
-type AgentRuntimeKind = "ai-sdk" | "codex" | "fx";
+type AgentRuntimeKind = "codex" | "fx";
+type AgentName = "agent";
+
 type CodexAgentRuntimeOptions = CodexAgentOptions & {
   runtime: "codex";
   name?: string;
@@ -22,10 +22,7 @@ type FxAgentRuntimeOptions = FxAgentOptions & {
   name?: string;
 };
 
-export type AgentOptions =
-  | AiSdkAgentOptions
-  | CodexAgentRuntimeOptions
-  | FxAgentRuntimeOptions;
+export type AgentOptions = CodexAgentRuntimeOptions | FxAgentRuntimeOptions;
 
 export type AgentOptionsFactory<Scope = any> = (scope: Scope) => AgentOptions;
 
@@ -43,7 +40,7 @@ export type AgentChatThread = {
 export interface AgentRuntime {
   readonly name: string;
   readonly runtime: AgentRuntimeKind;
-  readonly client: AiSdkAgent | CodexAgent | FxAgent;
+  readonly client: CodexAgent | FxAgent;
   ask(input?: string | CodexAskOptions): AsyncGenerator<string, string>;
   chat(): Promise<AgentChatThread>;
   chat(input: AgentChatInput): AsyncGenerator<string, string>;
@@ -69,12 +66,12 @@ export interface AgentRuntime {
   close(): Promise<void>;
 }
 
-type AgentStep<Name extends string, Ctx extends Record<any, any>> = {
+type AgentStep<Ctx extends Record<any, any>> = {
   [TW.Step]: (input: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["steps"];
     step: Ctx["step"];
-    scope: Record<Name, AgentRuntime> & Ctx["scope"];
+    scope: Record<AgentName, AgentRuntime> & Ctx["scope"];
     last: AgentRuntime;
     plugins: Ctx["plugins"];
   };
@@ -82,10 +79,10 @@ type AgentStep<Name extends string, Ctx extends Record<any, any>> = {
 
 export function Agent<Ctx extends Record<any, any>>(
   options: AgentOptions,
-): (() => AgentRuntime) & AgentStep<"agent", Ctx>;
+): (() => AgentRuntime) & AgentStep<Ctx>;
 export function Agent<Ctx extends Record<any, any>>(
   options: AgentOptionsFactory,
-): (() => AgentRuntime) & AgentStep<"agent", Ctx>;
+): (() => AgentRuntime) & AgentStep<Ctx>;
 export function Agent<
   const Name extends string,
   const Tools extends string[],
@@ -95,7 +92,7 @@ export function Agent<
   options: Omit<AgentOptions, "name"> & {
     tools?: Tools;
   },
-): (() => AgentRuntime) & AgentStep<Name, Ctx>;
+): (() => AgentRuntime) & AgentStep<Ctx>;
 export function Agent(first: unknown, second?: unknown) {
   const configuredName = typeof first === "string" ? first : "agent";
   const optionsOrFactory: AgentOptions | AgentOptionsFactory =
@@ -104,55 +101,41 @@ export function Agent(first: unknown, second?: unknown) {
           ...(second as Record<string, unknown> | undefined),
           runtime:
             (second as { runtime?: AgentRuntimeKind } | undefined)?.runtime ??
-            "ai-sdk",
+            "codex",
           name: first,
         } as AgentOptions)
       : (first as AgentOptions | AgentOptionsFactory);
   let runtime: AgentRuntime | null = null;
 
   function agentStep(this: unknown): AgentRuntime {
-    const scope = this as Record<string, unknown>;
-    const override = scope[configuredName];
-    if (override !== undefined) return override as AgentRuntime;
     if (runtime) return runtime;
 
-    const configuredOptions =
+    const scope = this;
+    const options =
       typeof optionsOrFactory === "function"
         ? optionsOrFactory(scope)
         : optionsOrFactory;
 
-    if (!configuredOptions) {
-      throw new Error("Agent options are required.");
+    if (!options || (options.runtime !== "codex" && options.runtime !== "fx")) {
+      throw new Error('Agent runtime must be "codex" or "fx".');
     }
 
-    const options = {
-      ...configuredOptions,
-      runtime: configuredOptions.runtime ?? "ai-sdk",
-      name: configuredOptions.name ?? configuredName,
-    } as AgentOptions;
-
-    if (
-      options.runtime !== "ai-sdk" &&
-      options.runtime !== "codex" &&
-      options.runtime !== "fx"
-    ) {
-      throw new Error('Agent runtime must be "ai-sdk", "codex", or "fx".');
-    }
-
-    runtime = createAgentRuntime(options, scope);
+    runtime = createAgentRuntime({
+      ...options,
+      name: options.name ?? configuredName,
+    });
     return runtime;
   }
 
   return Object.assign(agentStep, {
     [TW.Name]: configuredName,
     [TW.Step]: (input: Record<string, unknown>) => {
-      const scope = input.scope as Record<string, unknown>;
-      const agent = scope[configuredName] ?? agentStep.call(scope);
+      const agent = agentStep.call(input);
       return {
         ...input,
         scope: {
-          ...scope,
-          [configuredName]: agent,
+          ...(input.scope as Record<string, unknown>),
+          agent,
         },
         last: agent,
       };
@@ -160,14 +143,7 @@ export function Agent(first: unknown, second?: unknown) {
   }) as never;
 }
 
-function createAgentRuntime(
-  options: AgentOptions,
-  scope: Record<string, unknown>,
-): AgentRuntime {
-  if (options.runtime === undefined || options.runtime === "ai-sdk") {
-    return createAiSdkAgentRuntime(options, scope);
-  }
-
+function createAgentRuntime(options: AgentOptions): AgentRuntime {
   const createClient =
     options.runtime === "fx"
       ? (opts: AgentOptions) => new FxAgent(opts as FxAgentOptions)
@@ -288,94 +264,6 @@ function createAgentRuntime(
     }
     return next.value.text;
   }
-}
-
-function createAiSdkAgentRuntime(
-  options: AiSdkAgentOptions,
-  scope: Record<string, unknown>,
-): AgentRuntime {
-  const client = new AiSdkAgent(options, resolveTools(options.tools, scope));
-
-  function chat(): Promise<AgentChatThread>;
-  function chat(input: void): Promise<AgentChatThread>;
-  function chat(input: AgentChatInput): AsyncGenerator<string, string>;
-  function chat<const Input extends TW.Union<AgentChatInput | void>>(
-    input: Input,
-  ): Input extends TW.Union<infer Data>
-    ? Data extends void
-      ? TW.Branch<
-          { input: void },
-          AgentChatThread,
-          Promise<AgentChatThread>
-        >
-      : TW.Branch<
-          { input: Data },
-          string,
-          AsyncGenerator<string, string>
-        >
-    : never;
-  function chat(
-    input?: AgentChatInput | TW.Union<AgentChatInput | void> | void,
-  ) {
-    input = input instanceof TW.Union ? input.unwrap() : input;
-    if (!input?.content) return client.createChatSession();
-    return client.streamChatMessage(input);
-  }
-
-  return {
-    name: options.name ?? "agent",
-    runtime: "ai-sdk",
-    client,
-
-    async *ask(input?: string | CodexAskOptions) {
-      return yield* client.streamPrompt(promptText(input));
-    },
-
-    chat,
-
-    async *prompt(input?: CodexPromptInput | CodexPromptOptions) {
-      return yield* client.streamPrompt(promptText(input));
-    },
-
-    generate({ prompt }) {
-      return client.generateText(prompt);
-    },
-
-    close() {
-      return client.close();
-    },
-  };
-}
-
-function resolveTools(
-  names: readonly string[] | undefined,
-  scope: Record<string, unknown>,
-): Record<string, TaskWishTool> {
-  return Object.fromEntries(
-    (names ?? []).map((name) => {
-      const candidate = scope[name];
-      if (!isTaskWishTool(candidate)) {
-        throw new Error(
-          `Agent tool "${name}" was not registered. Add Tool("${name}", ...) before Agent(...).`,
-        );
-      }
-      return [name, candidate];
-    }),
-  );
-}
-
-function promptText(input: unknown): string {
-  const normalized = normalizePrompt(input);
-  if (typeof normalized === "string") return normalized;
-  if (
-    normalized !== null &&
-    typeof normalized === "object" &&
-    "prompt" in normalized &&
-    typeof normalized.prompt === "string"
-  ) {
-    return normalized.prompt;
-  }
-  throw new Error("AI SDK agent prompts must be strings.");
 }
 
 function normalizePrompt<T>(input: T | undefined): T | string {

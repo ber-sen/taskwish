@@ -210,6 +210,5 @@ describe("Wire", () => {
 });
 
 function stripAnsi(value: string): string {
-  // oxlint-disable-next-line no-control-regex -- ANSI escape sequences begin with ESC.
   return value.replace(/\x1b\[[0-9;]*m/g, "");
 }

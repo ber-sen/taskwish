@@ -6,8 +6,8 @@ export function GenerateText<
   const Tools extends string[],
   Ctx extends Record<any, any>,
 >(
-  _name: CamelCase<Name>,
-  _options: {
+  name: CamelCase<Name>,
+  options: {
     model: string;
     instructions?: string;
     tools?: Tools;

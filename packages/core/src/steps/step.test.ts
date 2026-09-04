@@ -36,7 +36,6 @@ describe("Step names", () => {
   });
 
   test("rejects invalid literal names at compile time", () => {
-    // oxlint-disable-next-line no-constant-condition -- This block only verifies compile-time errors.
     if (false) {
       // @ts-expect-error Step names must use lower camelCase.
       Step("create-customer", function () {});

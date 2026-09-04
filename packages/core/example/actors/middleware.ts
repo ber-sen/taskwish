@@ -10,7 +10,7 @@ export default Actor("Slack")
       name: "step middleware",
       type: ["action"],
 
-      async *middleware({ input: _input }, next) {
+      async *middleware({ input }, next) {
         const time = new Date().getTime();
         console.log("running action:", next.name);
 

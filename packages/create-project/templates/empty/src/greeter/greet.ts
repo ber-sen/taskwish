@@ -1,6 +1,6 @@
 import { Step } from "taskwish";
 
-import { actor } from "./greeter";
+import { actor } from "./actor";
 
 export const { greet } = actor()
   .on("Command", "greet")

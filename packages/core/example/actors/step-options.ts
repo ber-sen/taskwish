@@ -2,7 +2,7 @@ import { Actor, Step } from "../../src";
 
 const StepOptions = {
   Retry:
-    (_times: number) =>
+    (times: number) =>
     <T>(R: T) =>
       R,
 };
