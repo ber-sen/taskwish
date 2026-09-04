@@ -198,7 +198,7 @@ footer { border-top: 1px solid var(--line); }
   .shell { width: min(100% - 32px, 1180px); }
   .site-header { height: 64px; padding-inline: 16px; }
   .home-link { left: 16px; }
-  .menu-toggle { display: inline-flex; padding: 8px; }
+  .menu-toggle { display: inline-flex; margin-left: auto; padding: 8px; }
   .main-nav { display: none; position: absolute; top: 64px; left: 0; right: 0; padding: 20px 16px 25px; background: #090d10; border-bottom: 1px solid var(--line); align-items: stretch; flex-direction: column; gap: 7px; }
   .main-nav.open { display: flex; }
   .main-nav a { min-height: 42px; padding: 0 10px; }

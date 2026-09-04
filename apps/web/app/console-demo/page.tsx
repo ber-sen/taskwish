@@ -17,7 +17,11 @@ export default function ConsoleDemoPage() {
         .console-demo-page > main { padding-top: 6rem; }
         body:has(.console-demo-page) { --primary-foreground: 0 0% 100%; color-scheme: light; }
         body:has(.console-demo-page) button.bg-primary,
-        body:has(.console-demo-page) button[type="submit"] { color: #fff !important; }
+        body:has(.console-demo-page) button.bg-black,
+        body:has(.console-demo-page) button[type="submit"],
+        body:has(.console-demo-page) button[data-state="on"] { color: #fff !important; }
+        body:has(.console-demo-page) .is-user .text-primary-foreground { color: #fff !important; }
+        body:has(.console-demo-page) pre { color: #111 !important; }
         body:has(.console-demo-page) select,
         body:has(.console-demo-page) select option { background: #fff !important; color: #111 !important; }
         body:has(.console-demo-page) input[type="checkbox"] { accent-color: #111; background: #fff; }
