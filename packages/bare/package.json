@@ -21,7 +21,6 @@
   "version": "0.0.1",
   "description": "Transform TaskWish actor code into bare TypeScript runners",
   "license": "Elastic-2.0",
-  "author": "Bersen Pajaziti",
   "exports": {
     ".": {
       "source": "./src/index.ts",

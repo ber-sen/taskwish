@@ -14,7 +14,6 @@
   "version": "0.0.2",
   "description": "Typed TaskWish expression helpers",
   "license": "Elastic-2.0",
-  "author": "Bersen Pajaziti",
   "exports": {
     ".": {
       "source": "./src/index.ts",

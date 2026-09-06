@@ -6,7 +6,6 @@
   "version": "0.0.1",
   "description": "Shared TaskWish runtime event wire",
   "license": "Elastic-2.0",
-  "author": "Bersen Pajaziti",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

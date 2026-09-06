@@ -6,7 +6,6 @@
   "version": "0.0.1",
   "description": "TaskWish server",
   "license": "Elastic-2.0",
-  "author": "Bersen Pajaziti",
   "exports": {
     ".": {
       "source": "./src/index.ts",

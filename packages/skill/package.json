@@ -6,7 +6,6 @@
   "version": "0.0.1",
   "description": "Agent skill for building TypeScript TaskWish projects",
   "license": "Elastic-2.0",
-  "author": "Bersen Pajaziti",
   "exports": {
     ".": "./SKILL.md",
     "./SKILL.md": "./SKILL.md"
