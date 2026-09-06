@@ -1,0 +1,4 @@
+[test]
+pathIgnorePatterns = [
+  "packages/create-project/templates/agent-loops/e2e/**",
+]

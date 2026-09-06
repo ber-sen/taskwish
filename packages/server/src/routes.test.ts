@@ -159,6 +159,37 @@ test("exports console config when the app is installed", async () => {
     },
     actions: [
       {
+        id: "Biller::onGreeterMessage",
+        actor: "Biller",
+        action: "onGreeterMessage",
+        label: "On greeter message",
+        mode: "form",
+        route: "/tw/Biller/on-greeter-message",
+        source: "event",
+        input: [
+          {
+            name: "content",
+            required: true,
+            schema: {
+              type: "string",
+            },
+          },
+        ],
+        inputSchema: {
+          $schema: "https://json-schema.org/draft/2020-12/schema",
+          type: "object",
+          properties: {
+            content: {
+              type: "string",
+            },
+          },
+          required: ["content"],
+        },
+        meta: {
+          event: "Greeter::Message",
+        },
+      },
+      {
         id: "Greeter::hello",
         actor: "Greeter",
         action: "hello",

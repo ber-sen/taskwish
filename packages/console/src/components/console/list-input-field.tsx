@@ -23,6 +23,7 @@ import {
 import { sentenceFromIdentifier } from "../../lib/console-text";
 import type { ConsoleInputField } from "../../types";
 import { FieldDescription } from "./field-description";
+import { FormCombobox } from "./form-combobox";
 
 function ObjectPropertyInput({
   field,
@@ -31,6 +32,7 @@ function ObjectPropertyInput({
   disabled,
   autoFocus,
   register,
+  control,
 }: {
   field: ConsoleInputField;
   name: string;
@@ -38,6 +40,7 @@ function ObjectPropertyInput({
   disabled: boolean;
   autoFocus?: boolean;
   register: UseFormRegister<CommandFormValues>;
+  control: Control<CommandFormValues>;
 }) {
   const type = schemaType(field.schema);
   const enumValues = field.schema?.enum;
@@ -52,20 +55,18 @@ function ObjectPropertyInput({
     return (
       <div className="space-y-2">
         {label}
-        <select
+        <FormCombobox
           id={id}
+          name={name}
+          control={control}
+          options={enumValues.map((value) => ({
+            label: enumValue(value),
+            value: enumValue(value),
+          }))}
+          clearable={!field.required}
           disabled={disabled}
           autoFocus={autoFocus}
-          {...register(name)}
-          className="flex h-[38px] w-full rounded-md border border-input bg-transparent px-2 py-1 text-base transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {!field.required ? <option value="">Select...</option> : null}
-          {enumValues.map((value) => (
-            <option key={enumValue(value)} value={enumValue(value)}>
-              {enumValue(value)}
-            </option>
-          ))}
-        </select>
+        />
         <FieldDescription field={field} />
       </div>
     );
@@ -206,27 +207,24 @@ export function ListInputField({
                             autoFocus && index === 0 && propertyIndex === 0
                           }
                           register={register}
+                          control={control}
                         />
                       ))}
                     </div>
                   ) : Array.isArray(enumValues) ? (
-                    <select
+                    <FormCombobox
                       id={itemId}
-                      aria-label={itemLabel}
+                      name={itemName}
+                      ariaLabel={itemLabel}
+                      control={control}
+                      options={enumValues.map((value) => ({
+                        label: enumValue(value),
+                        value: enumValue(value),
+                      }))}
+                      clearable={!field.required}
                       disabled={disabled}
                       autoFocus={autoFocus && index === 0}
-                      {...register(itemName)}
-                      className="flex h-[38px] w-full rounded-md border border-input bg-transparent px-2 py-1 text-base transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {!field.required ? (
-                        <option value="">Select...</option>
-                      ) : null}
-                      {enumValues.map((value) => (
-                        <option key={enumValue(value)} value={enumValue(value)}>
-                          {enumValue(value)}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   ) : itemType === "boolean" ? (
                     <label
                       htmlFor={itemId}

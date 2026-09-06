@@ -20,6 +20,7 @@ import {
   type ActionSuggestionOption,
 } from "../../lib/action-suggestions";
 import { FieldDescription } from "./field-description";
+import { FormCombobox } from "./form-combobox";
 import { ListInputField } from "./list-input-field";
 
 export function ActionInputField({
@@ -125,20 +126,16 @@ export function ActionInputField({
     return (
       <div className="space-y-2">
         {label}
-        <select
+        <FormCombobox
           id={id}
+          name={field.name}
+          control={control}
+          options={suggestionOptions}
+          placeholder={placeholder}
+          emptyText="No options found."
           disabled={disabled || suggestionStatus !== "ready"}
           autoFocus={autoFocus}
-          {...register(field.name)}
-          className="flex h-[38px] w-full rounded-md border border-input bg-transparent px-2 py-1 text-base transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <option value="">{placeholder}</option>
-          {suggestionOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        />
         <FieldDescription field={field} />
       </div>
     );
@@ -148,20 +145,18 @@ export function ActionInputField({
     return (
       <div className="space-y-2">
         {label}
-        <select
+        <FormCombobox
           id={id}
+          name={field.name}
+          control={control}
+          options={enumValues.map((value) => ({
+            label: enumValue(value),
+            value: enumValue(value),
+          }))}
+          clearable={!field.required}
           disabled={disabled}
           autoFocus={autoFocus}
-          {...register(field.name)}
-          className="flex h-[38px] w-full rounded-md border border-input bg-transparent px-2 py-1 text-base transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {!field.required ? <option value="">Select...</option> : null}
-          {enumValues.map((value) => (
-            <option key={enumValue(value)} value={enumValue(value)}>
-              {enumValue(value)}
-            </option>
-          ))}
-        </select>
+        />
         <FieldDescription field={field} />
       </div>
     );
