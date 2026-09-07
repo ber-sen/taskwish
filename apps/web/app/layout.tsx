@@ -4,19 +4,36 @@ import { Footer } from "../src/footer";
 import { Header } from "../src/header";
 import "./globals.css";
 
+const title = "TaskWish — The framework for building autonomous companies";
+const description = "Build autonomous companies from typed actors, tools, state, and AI workflows in TypeScript.";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://taskwish.ai"),
   title: {
-    default: "TaskWish — The framework for building autonomous companies",
+    default: title,
     template: "%s · TaskWish",
   },
-  description: "Build autonomous companies from typed actors, tools, state, and AI workflows in TypeScript.",
+  description,
   openGraph: {
-    title: "TaskWish — The framework for building autonomous companies",
-    description: "Build autonomous companies from typed actors, tools, state, and AI workflows in TypeScript.",
+    title,
+    description,
     url: "https://taskwish.ai",
     siteName: "TaskWish",
     type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "TaskWish — The framework for building autonomous companies",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+    images: ["/og-image.png"],
   },
   icons: { icon: "/favicon.svg" },
 };
