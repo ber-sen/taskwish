@@ -33,7 +33,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@taskwish/core": "^0.0.6",
+    "@taskwish/core": "^0.0.7",
     "jsep": "^1.4.0"
   },
   "devDependencies": {

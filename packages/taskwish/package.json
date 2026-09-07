@@ -3,7 +3,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "The framework for building autonomous companies",
   "license": "Elastic-2.0",
   "exports": {
@@ -24,9 +24,9 @@
     "build": "bun ../../scripts/build-package.ts"
   },
   "dependencies": {
-    "@taskwish/ai": "^0.0.2",
-    "@taskwish/core": "^0.0.6",
-    "@taskwish/expr": "^0.0.2",
+    "@taskwish/ai": "^0.0.3",
+    "@taskwish/core": "^0.0.7",
+    "@taskwish/expr": "^0.0.3",
     "@taskwish/state": "^0.0.1"
   },
   "devDependencies": {

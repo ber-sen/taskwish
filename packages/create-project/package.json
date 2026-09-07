@@ -5,10 +5,10 @@
   },
   "version": "0.0.2",
   "dependencies": {
-    "@taskwish/skill": "workspace:*",
-    "@taskwish/terminal": "workspace:*",
-    "@taskwish/wire": "workspace:*",
-    "taskwish": "^0.0.8"
+    "@taskwish/skill": "^0.0.1",
+    "@taskwish/terminal": "^0.0.1",
+    "@taskwish/wire": "^0.0.1",
+    "taskwish": "^0.0.9"
   },
   "description": "Create a fresh TypeScript TaskWish project",
   "license": "Elastic-2.0",
@@ -43,7 +43,7 @@
   },
   "type": "module",
   "devDependencies": {
-    "@taskwish/bare": "workspace:*",
+    "@taskwish/bare": "^0.0.1",
     "@types/bun": "^1.3.14",
     "typescript": "^5.9.2"
   }

@@ -11,7 +11,7 @@
     "main": "./dist/index.cjs",
     "types": "./dist/index.d.ts"
   },
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "The framework for building autonomous companies",
   "license": "Elastic-2.0",
   "exports": {
@@ -33,7 +33,7 @@
     "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --no-cache"
   },
   "dependencies": {
-    "@taskwish/expr": "^0.0.2",
+    "@taskwish/expr": "^0.0.3",
     "@taskwish/wire": "^0.0.1",
     "@standard-schema/spec": "^1.0.0",
     "arktype": "^2.1.23",
