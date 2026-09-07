@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build:cli": "bun run --cwd ../../packages/create-project build-cli:platforms",
-    "build": "bun run build:cli && next build",
+    "build": "next build",
     "start": "next start",
     "check": "tsc --noEmit"
   },
