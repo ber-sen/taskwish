@@ -58,8 +58,8 @@ chmod +x "${executable}"
 
 # When this installer is piped into bash, stdin belongs to curl rather than the
 # user's terminal. Reattach the downloaded CLI so Terminal.elicit can prompt.
-if [ ! -t 0 ] && [ -t 1 ] && [ -r /dev/tty ]; then
-  "${executable}" "$@" </dev/tty
-else
-  "${executable}" "$@"
+if [ ! -t 0 ] && [ -t 1 ]; then
+  exec "${executable}" "$@" <&1
 fi
+
+"${executable}" "$@"
