@@ -11,6 +11,10 @@ import { join, relative, sep } from "node:path";
 const packageDirectory = join(import.meta.dir, "..");
 const templatesDirectory = join(packageDirectory, "templates");
 const PROJECT_SKILL_PATH = ".agents/skills/taskwish/SKILL.md";
+const templatesPlaceholder =
+  /((?:const|var) EMBEDDED_TEMPLATE_FILES(?:\s*:\s*Readonly<Record<string, string>>)?\s*=\s*)\{\}/;
+const skillPlaceholder =
+  /((?:const|var) EMBEDDED_SKILL(?:\s*:\s*string)?\s*=\s*)["']{2}/;
 const bareAction = join(
   packageDirectory,
   ".bare",
@@ -64,6 +68,24 @@ async function buildNodeEntrypoint(): Promise<void> {
     );
   }
 
+  const embeddedTemplateFiles = await readTemplateFiles(templatesDirectory);
+  const embeddedSkill = await readFile(
+    join(packageDirectory, "..", "skill", "SKILL.md"),
+    "utf8",
+  );
+  await embedAssets(executable, embeddedTemplateFiles, embeddedSkill);
+  await Promise.all([
+    embedAssetsIfPresent(
+      join(packageDirectory, "dist", "index.mjs"),
+      embeddedTemplateFiles,
+      embeddedSkill,
+    ),
+    embedAssetsIfPresent(
+      join(packageDirectory, "dist", "index.cjs"),
+      embeddedTemplateFiles,
+      embeddedSkill,
+    ),
+  ]);
   await chmod(executable, 0o755);
 }
 
@@ -80,37 +102,81 @@ async function prepareStandaloneEntry(): Promise<void> {
   const staticWire = `class Wire {
   trace(_path: string, _data: unknown): void {}
 }`;
-  const embeddedTemplatesDeclaration =
-    "const EMBEDDED_TEMPLATE_FILES: Readonly<Record<string, string>> = {};";
-  const embeddedSkillDeclaration = 'const EMBEDDED_SKILL = "";';
-
-  if (!source.includes(embeddedTemplatesDeclaration)) {
-    throw new Error(`Bare output did not contain the templates placeholder.`);
-  }
-  if (!source.includes(embeddedSkillDeclaration)) {
-    throw new Error(`Bare output did not contain the skill placeholder.`);
-  }
-
   const embeddedTemplateFiles = await readTemplateFiles(templatesDirectory);
   const embeddedSkill = await readFile(
     join(packageDirectory, "..", "skill", "SKILL.md"),
-    "utf8"
+    "utf8",
   );
-  const standaloneSource = source
-    .replace(wireImport, staticWire)
-    .replace(
-      embeddedTemplatesDeclaration,
-      () =>
-        `const EMBEDDED_TEMPLATE_FILES: Readonly<Record<string, string>> = ${JSON.stringify(
-          embeddedTemplateFiles
-        )};`
-    )
-    .replace(
-      embeddedSkillDeclaration,
-      () => `const EMBEDDED_SKILL = ${JSON.stringify(embeddedSkill)};`
-    );
+  const standaloneSource = replaceEmbeddedAssets(
+    source.replace(wireImport, staticWire),
+    embeddedTemplateFiles,
+    embeddedSkill,
+  );
 
   await writeFile(bareAction, standaloneSource);
+}
+
+async function embedAssets(
+  output: string,
+  embeddedTemplateFiles: Readonly<Record<string, string>>,
+  embeddedSkill: string,
+): Promise<void> {
+  const source = await readFile(output, "utf8");
+  await writeFile(
+    output,
+    replaceEmbeddedAssets(source, embeddedTemplateFiles, embeddedSkill),
+  );
+}
+
+async function embedAssetsIfPresent(
+  output: string,
+  embeddedTemplateFiles: Readonly<Record<string, string>>,
+  embeddedSkill: string,
+): Promise<void> {
+  try {
+    const source = await readFile(output, "utf8");
+    if (
+      !templatesPlaceholder.test(source) &&
+      !skillPlaceholder.test(source)
+    ) {
+      return;
+    }
+    await writeFile(
+      output,
+      replaceEmbeddedAssets(source, embeddedTemplateFiles, embeddedSkill),
+    );
+  } catch (error) {
+    if (!isMissingFileError(error)) throw error;
+  }
+}
+
+function replaceEmbeddedAssets(
+  source: string,
+  embeddedTemplateFiles: Readonly<Record<string, string>>,
+  embeddedSkill: string,
+): string {
+  if (!templatesPlaceholder.test(source)) {
+    throw new Error(`Build output did not contain the templates placeholder.`);
+  }
+  if (!skillPlaceholder.test(source)) {
+    throw new Error(`Build output did not contain the skill placeholder.`);
+  }
+
+  return source
+    .replace(
+      templatesPlaceholder,
+      (_, declaration: string) =>
+        `${declaration}${JSON.stringify(embeddedTemplateFiles)}`,
+    )
+    .replace(
+      skillPlaceholder,
+      (_, declaration: string) =>
+        `${declaration}${JSON.stringify(embeddedSkill)}`,
+    );
+}
+
+function isMissingFileError(error: unknown): boolean {
+  return error instanceof Error && "code" in error && error.code === "ENOENT";
 }
 
 async function buildPlatformExecutables(): Promise<void> {

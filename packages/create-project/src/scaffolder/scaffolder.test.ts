@@ -112,6 +112,9 @@ describe("Scaffolder.createProject", () => {
           "utf8"
         )
       );
+      const templateVersions = JSON.parse(
+        await readFile(join(templateDirectory, "versions.json"), "utf8")
+      );
       const templateSource = await readFile(
         join(destination, actionPath),
         "utf8"
@@ -148,9 +151,15 @@ describe("Scaffolder.createProject", () => {
       expect(templatePackageJson.dependencies["@taskwish/server"]).toBe(
         "workspace:*"
       );
-      expect(packageJson.dependencies.taskwish).toBe("^0.0.8");
-      expect(packageJson.dependencies["@taskwish/console"]).toBe("^0.0.1");
-      expect(packageJson.dependencies["@taskwish/server"]).toBe("^0.0.1");
+      expect(packageJson.dependencies.taskwish).toBe(
+        `^${templateVersions.taskwish}`
+      );
+      expect(packageJson.dependencies["@taskwish/console"]).toBe(
+        `^${templateVersions["@taskwish/console"]}`
+      );
+      expect(packageJson.dependencies["@taskwish/server"]).toBe(
+        `^${templateVersions["@taskwish/server"]}`
+      );
       expect(templateSource).toContain(actorSource);
       expect(entrypoint).toContain(
         'import { Console } from "@taskwish/console"'
