@@ -33,7 +33,12 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title,
     description,
-    images: ["/og-image.png"],
+    images: [
+      {
+        url: "/og-image.png",
+        alt: "TaskWish — The framework for building autonomous companies",
+      },
+    ],
   },
   icons: { icon: "/favicon.svg" },
 };
