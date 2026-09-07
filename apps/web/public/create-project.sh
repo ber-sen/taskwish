@@ -56,4 +56,10 @@ echo "Downloading TaskWish create-project for ${platform}..."
 curl -fL --retry 3 --output "${executable}" "${url}"
 chmod +x "${executable}"
 
-"${executable}" "$@"
+# When this installer is piped into bash, stdin belongs to curl rather than the
+# user's terminal. Reattach the downloaded CLI so Terminal.elicit can prompt.
+if [ ! -t 0 ] && [ -t 1 ] && [ -r /dev/tty ]; then
+  "${executable}" "$@" </dev/tty
+else
+  "${executable}" "$@"
+fi
