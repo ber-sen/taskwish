@@ -1,5 +1,5 @@
 {
-  "@taskwish/console": "0.0.1",
+  "@taskwish/console": "0.0.2",
   "@taskwish/server": "0.0.1",
   "taskwish": "0.0.9"
 }

@@ -24,5 +24,8 @@
   },
   "dependencies": {
     "arktype": "^2.1.29"
+  },
+  "overrides": {
+    "linkify-it": "5.0.2"
   }
 }
