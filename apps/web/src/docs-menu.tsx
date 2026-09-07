@@ -10,7 +10,7 @@ export function DocsMenu({ pages, activeSlug }: { pages: Array<{ slug: string; t
     <aside className={open ? "docs-sidebar open" : "docs-sidebar"}>
       <div className="docs-label"><BookOpen size={16} /> Documentation</div>
       <nav>{pages.map((item) => <a key={item.slug} className={item.slug === activeSlug ? "active" : ""} href={`/docs/${item.slug}`}>{item.title}</a>)}</nav>
-      <div className="docs-help"><span>Need a working example?</span><a href="https://github.com/ber-sen/taskwish/tree/main/packages/create-project/templates" target="_blank" rel="noreferrer">Browse the starters ↗</a></div>
+      <div className="docs-help"><span>Need a working example?</span><a href="https://github.com/yama-otoko/taskwish/tree/main/packages/create-project/templates" target="_blank" rel="noreferrer">Browse the starters ↗</a></div>
     </aside>
   </>;
 }
