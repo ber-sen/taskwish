@@ -38,7 +38,7 @@
     },
     "packages/ai": {
       "name": "@taskwish/ai",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "dependencies": {
         "@agentclientprotocol/codex-acp": "^1.3.0",
         "@agentclientprotocol/sdk": "^1.3.0",
@@ -137,7 +137,7 @@
     },
     "packages/core": {
       "name": "@taskwish/core",
-      "version": "0.0.6",
+      "version": "0.0.7",
       "dependencies": {
         "@standard-schema/spec": "^1.0.0",
         "@taskwish/expr": "^0.0.2",
@@ -173,11 +173,19 @@
     },
     "packages/expr": {
       "name": "@taskwish/expr",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "dependencies": {
         "jsep": "^1.4.0",
       },
       "devDependencies": {
+        "typescript": "^5.9.2",
+      },
+    },
+    "packages/node": {
+      "name": "@taskwish/node",
+      "version": "0.0.4",
+      "devDependencies": {
+        "@types/bun": "^1.3.12",
         "typescript": "^5.9.2",
       },
     },
@@ -200,18 +208,6 @@
     "packages/skill": {
       "name": "@taskwish/skill",
       "version": "0.0.1",
-    },
-    "packages/slack": {
-      "name": "@taskwish/slack",
-      "version": "0.0.2",
-      "dependencies": {
-        "@taskwish/core": "workspace:*",
-        "slack-web-api-client": "^1.1.12",
-      },
-      "devDependencies": {
-        "@types/bun": "^1.3.12",
-        "typescript": "^5.9.2",
-      },
     },
     "packages/state": {
       "name": "@taskwish/state",
@@ -242,7 +238,7 @@
     },
     "packages/taskwish": {
       "name": "taskwish",
-      "version": "0.0.8",
+      "version": "0.0.9",
       "dependencies": {
         "@taskwish/ai": "^0.0.2",
         "@taskwish/core": "^0.0.6",
@@ -679,11 +675,11 @@
 
     "@taskwish/expr": ["@taskwish/expr@workspace:packages/expr"],
 
+    "@taskwish/node": ["@taskwish/node@workspace:packages/node"],
+
     "@taskwish/server": ["@taskwish/server@workspace:packages/server"],
 
     "@taskwish/skill": ["@taskwish/skill@workspace:packages/skill"],
-
-    "@taskwish/slack": ["@taskwish/slack@workspace:packages/slack"],
 
     "@taskwish/state": ["@taskwish/state@workspace:packages/state"],
 
@@ -1451,8 +1447,6 @@
 
     "signal-exit": ["signal-exit@4.1.0", "", {}, "sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw=="],
 
-    "slack-web-api-client": ["slack-web-api-client@1.1.12", "", {}, "sha512-ge0B42P38FjozfUp6fhPBYAn0WVgs8wMPI2G2TlgGnm4dJ0bqAeX/vQB/JkUXyO3PdlEaMSfVvJl60YLYvURHA=="],
-
     "slash": ["slash@3.0.0", "", {}, "sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q=="],
 
     "sonner": ["sonner@2.0.8", "", { "peerDependencies": { "@types/react": "^18.0.0 || ^19.0.0", "react": "^18.0.0 || ^19.0.0 || ^19.0.0-rc", "react-dom": "^18.0.0 || ^19.0.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react"] }, "sha512-UM/ByIoFra8yzV75n1o0Puu0bw5U/9UNnDacrJNspekBewIfsQ3D6ez1nvlWpt7aTsO6rujQtifBpycwIivqlg=="],
@@ -1619,6 +1613,8 @@
 
     "@taskwish/create-project/@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
 
+    "@taskwish/node/@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
+
     "@taskwish/server/@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
 
     "@taskwish/state/@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
@@ -1694,6 +1690,8 @@
     "@taskwish/core/@types/bun/bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 
     "@taskwish/create-project/@types/bun/bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
+
+    "@taskwish/node/@types/bun/bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 
     "@taskwish/server/@types/bun/bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 
