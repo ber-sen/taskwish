@@ -16,7 +16,17 @@ Use the platform-aware installer:
 curl -fsSL https://taskwish.ai/create-project.sh | bash
 ```
 
-The installer detects macOS, Linux, or Windows along with the current architecture and downloads the matching native create-project CLI.
+The installer detects the current platform and downloads the matching native create-project CLI.
+
+To compile and stage the installer binaries for a website deployment, run:
+
+```sh
+bun run stage:create-project
+```
+
+This compiles the bare CLI with `scriptc` inside `packages/create-project/platforms`, then copies the macOS, Linux, and Windows binaries to `apps/web/public/cli`. Commit the copied public binaries before pushing the website deployment. Linux ARM64 with musl is not yet supported by `scriptc`.
+
+Platform compilation currently runs from macOS ARM64 and requires Xcode Command Line Tools plus [Zig](https://ziglang.org/).
 
 Alternatively, run the JavaScript CLI through Bun or Node.js:
 

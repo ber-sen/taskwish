@@ -3,6 +3,7 @@ import {
   mkdir,
   readFile,
   readdir,
+  rm,
   stat,
   writeFile,
 } from "node:fs/promises";
@@ -27,15 +28,14 @@ const standaloneEntry = join(
   "create-taskwish-project.ts"
 );
 const platformBuilds = [
-  ["darwin-arm64", "bun-darwin-arm64"],
-  ["darwin-x64", "bun-darwin-x64"],
-  ["linux-arm64", "bun-linux-arm64"],
-  ["linux-x64", "bun-linux-x64-baseline"],
-  ["linux-arm64-musl", "bun-linux-arm64-musl"],
-  ["linux-x64-musl", "bun-linux-x64-baseline-musl"],
-  ["windows-arm64.exe", "bun-windows-arm64"],
-  ["windows-x64.exe", "bun-windows-x64-baseline"],
-] as const satisfies ReadonlyArray<readonly [string, Bun.Build.CompileTarget]>;
+  ["darwin-arm64", undefined],
+  ["darwin-x64", "x86_64-macos"],
+  ["linux-arm64", "aarch64-linux-gnu.2.36"],
+  ["linux-x64", "x86_64-linux-gnu.2.36"],
+  ["linux-x64-musl", "x86_64-linux-musl"],
+  ["windows-arm64.exe", "aarch64-windows-gnu"],
+  ["windows-x64.exe", "x86_64-windows-gnu"],
+] as const satisfies ReadonlyArray<readonly [string, string | undefined]>;
 
 if (process.argv.includes("--platforms")) {
   await prepareStandaloneEntry();
@@ -114,6 +114,34 @@ async function prepareStandaloneEntry(): Promise<void> {
   );
 
   await writeFile(bareAction, standaloneSource);
+
+  const entrySource = await readFile(standaloneEntry, "utf8");
+  const logoImport =
+    /import\s*\{\s*taskwishLogo\s*\}\s*from\s*["']@taskwish\/terminal["'];/;
+
+  if (!logoImport.test(entrySource)) {
+    throw new Error(`Bare output did not contain the expected terminal import.`);
+  }
+
+  await writeFile(
+    standaloneEntry,
+    entrySource.replace(logoImport, standaloneLogoSource()),
+  );
+}
+
+function standaloneLogoSource(): string {
+  return `const TASKWISH_LOGO = \`
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣾⣿⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣷⣄
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣾⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⣿⣿⠟
+⣠⣾⣷⣄⠀⠀⠀⣠⣾⣿⣿⣿⡿⠋⠀⢀⣴⣿⣦⡀⠀⠀⢀⣴⣿⣿⣿⣿⠟⠁⠀
+⠻⣿⣿⣿⣷⣤⣾⣿⣿⣿⡿⠋⠀⠀⠀⠙⢿⣿⣿⣿⣦⣴⣿⣿⣿⣿⠟⠁⠀⠀⠀
+⠀⠈⠻⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠙⢿⣿⣿⣿⣿⣿⠟⠁⠀⠀⠀⠀⠀
+⠀⠀⠀⠈⠻⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⢿⣿⠟
+\`;
+
+function taskwishLogo(_color = true): string {
+  return TASKWISH_LOGO;
+}`;
 }
 
 async function embedAssets(
@@ -180,15 +208,22 @@ function isMissingFileError(error: unknown): boolean {
 }
 
 async function buildPlatformExecutables(): Promise<void> {
-  const outputDirectory = join(
-    packageDirectory,
-    "..",
-    "..",
-    "apps",
-    "web",
-    "public",
-    "cli"
-  );
+  if (process.platform !== "darwin" || process.arch !== "arm64") {
+    throw new Error(
+      `Platform builds currently require a macOS ARM64 host; received ${process.platform}-${process.arch}.`,
+    );
+  }
+  if (!Bun.which("clang")) {
+    throw new Error(
+      `Platform builds require clang from Xcode Command Line Tools.`,
+    );
+  }
+  if (!Bun.which("zig")) {
+    throw new Error(`Platform builds require Zig: brew install zig`);
+  }
+
+  const outputDirectory = join(packageDirectory, "platforms");
+  await rm(outputDirectory, { recursive: true, force: true });
   await mkdir(outputDirectory, { recursive: true });
 
   for (const [platform, target] of platformBuilds) {
@@ -197,15 +232,22 @@ async function buildPlatformExecutables(): Promise<void> {
       `create-taskwish-project-${platform}`
     );
     console.log(`Building create-project for ${platform}...`);
-    const result = await Bun.build({
-      entrypoints: [standaloneEntry],
-      compile: { target, outfile: executable },
-    });
+    const child = Bun.spawn(
+      ["scriptc", "build", standaloneEntry, "--no-keep-c", "-o", executable],
+      {
+        cwd: packageDirectory,
+        env: {
+          ...process.env,
+          ...(target ? { SCRIPTC_CC: "zigcc", SCRIPTC_TARGET: target } : {}),
+        },
+        stdout: "inherit",
+        stderr: "inherit",
+      },
+    );
 
-    if (!result.success) {
-      throw new AggregateError(
-        result.logs,
-        `Could not build the create-project CLI for ${platform}.`
+    if ((await child.exited) !== 0) {
+      throw new Error(
+        `Could not build the create-project CLI for ${platform}.`,
       );
     }
 

@@ -9,7 +9,8 @@
   "license": "Elastic License 2.0",
   "scripts": {
     "build": "turbo build",
-    "dev:web": "bun --cwd apps/web dev"
+    "dev:web": "bun --cwd apps/web dev",
+    "stage:create-project": "bun run --cwd packages/create-project build-cli:platforms && bun run --cwd apps/web stage:create-project"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",

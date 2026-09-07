@@ -3,6 +3,7 @@
 .scriptc/
 .bare/
 packages/create-project/state/
+packages/create-project/platforms/
 packages/create-project/templates/*/state/
 packages/create-project/templates/agent-loops/playwright-report/
 packages/create-project/templates/agent-loops/test-results/

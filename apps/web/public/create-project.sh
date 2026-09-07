@@ -32,6 +32,10 @@ platform="${os}-${arch}"
 if [ "${os}" = "linux" ]; then
   libc="$(ldd --version 2>&1 || true)"
   if printf '%s' "${libc}" | grep -qi musl; then
+    if [ "${arch}" = "arm64" ]; then
+      echo "TaskWish does not yet have a create-project binary for Linux ARM64 with musl." >&2
+      exit 1
+    fi
     platform="${platform}-musl"
   fi
 fi
