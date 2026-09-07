@@ -11,7 +11,7 @@
     "check": "tsc --noEmit"
   },
   "dependencies": {
-    "@taskwish/console": "workspace:*",
+    "@taskwish/console": "^0.0.1",
     "lucide-react": "^0.563.0",
     "next": "^16.1.6",
     "react": "^19.2.7",
