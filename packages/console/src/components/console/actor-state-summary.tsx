@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import type { ConsoleActorState, ConsoleConfig } from "../../types";
+import { Spinner } from "../ui/spinner";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -24,9 +25,11 @@ export function ActorStateSummary({
   refreshToken?: number;
 }) {
   const [actorState, setActorState] = useState<ConsoleActorState | undefined>();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const controller = new AbortController();
+    setIsLoading(true);
     void fetch(`${config.apiPrefix}/console/state`, {
       headers: { Authorization: `Bearer ${config.apiKey}` },
       signal: controller.signal,
@@ -42,6 +45,11 @@ export function ActorStateSummary({
       })
       .catch(() => {
         // State is supplementary to the command form.
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       });
 
     return () => controller.abort();
@@ -54,12 +62,14 @@ export function ActorStateSummary({
     <div
       aria-label={`${actor} state summary`}
       className={
-        hasState
+        isLoading || hasState
           ? "min-h-9 shrink-0 border-y border-dashed bg-muted/20 px-4 py-4 text-xs"
           : "h-px shrink-0 border-b border-dashed"
       }
     >
-      {hasState ? (
+      {isLoading ? (
+        <Spinner className="text-muted-foreground" />
+      ) : hasState ? (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           {Object.entries(displayState!).map(([field, value]) => (
             <span key={field} className="font-mono">
