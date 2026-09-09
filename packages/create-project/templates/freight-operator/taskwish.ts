@@ -1,0 +1,14 @@
+import { Console } from "@taskwish/console";
+import { Server } from "@taskwish/server";
+
+import { Documents } from "./src/documents";
+import { FreightOperator } from "./src/freight-operator";
+import { LoadExtractor } from "./src/load-extractor";
+
+await Server("TaskWish Freight Operator", {
+  port: Number(process.env.PORT ?? 0),
+  apiKey: process.env.TW_API_KEY || undefined,
+  mcp: false,
+  apps: [Console()],
+  workspace: [Documents, LoadExtractor, FreightOperator],
+});

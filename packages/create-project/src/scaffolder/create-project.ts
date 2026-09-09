@@ -14,6 +14,7 @@ export const TEMPLATE_NAMES = [
   "agent-loops",
   "agent-graphs",
   "software-factory",
+  "freight-operator",
 ] as const;
 
 export type TemplateName = (typeof TEMPLATE_NAMES)[number];
@@ -84,10 +85,11 @@ export const { createProject } = actor()
         template !== "todo" &&
         template !== "agent-loops" &&
         template !== "agent-graphs" &&
-        template !== "software-factory"
+        template !== "software-factory" &&
+        template !== "freight-operator"
       ) {
         throw new Error(
-          `Unknown template "${template}". Choose empty, todo, agent-loops, agent-graphs, software-factory.`,
+          `Unknown template "${template}". Choose ${TEMPLATE_NAMES.join(", ")}.`,
         );
       }
 
@@ -303,6 +305,12 @@ export const { createProject } = actor()
               label: "Software factory",
               description:
                 "GitHub and Slack integrations coordinating two AI agents",
+            },
+            {
+              value: "freight-operator",
+              label: "Freight operator",
+              description:
+                "Email and PDF load extraction with OpenAI, human approval, and McLeod PowerBroker",
             },
           ],
         },

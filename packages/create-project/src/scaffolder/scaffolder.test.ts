@@ -87,6 +87,13 @@ describe("Scaffolder.createProject", () => {
       ["GitHub", "Slack", "CodingAgent", "ReviewAgent"],
       "src/github/github.test.ts",
     ],
+    [
+      "freight-operator",
+      "src/freight-operator/receive-load.ts",
+      "receiveLoad",
+      ["Documents", "LoadExtractor", "FreightOperator"],
+      "src/freight-operator/freight-operator.test.ts",
+    ],
   ] as const)(
     "creates the %s TypeScript template",
     async (template, actionPath, actorSource, actorNames, testPath) => {
@@ -135,7 +142,8 @@ describe("Scaffolder.createProject", () => {
       expect(packageJson.scripts.test).toBe(
         template === "agent-loops" ||
         template === "agent-graphs" ||
-        template === "software-factory"
+        template === "software-factory" ||
+        template === "freight-operator"
           ? "bun test src"
           : "bun test"
       );
@@ -377,7 +385,8 @@ describe("Scaffolder.createProject", () => {
       if (
         template === "agent-loops" ||
         template === "agent-graphs" ||
-        template === "software-factory"
+        template === "software-factory" ||
+        template === "freight-operator"
       ) {
         const serviceTests = result.files.filter(
           (file) => file.startsWith("src/") && file.endsWith(".test.ts")
