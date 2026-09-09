@@ -1,5 +1,6 @@
 import type { ConsoleInputField, ConsoleJsonSchema } from "../types";
 import { sentenceFromIdentifier, uppercaseFirst } from "./console-text";
+import { fileInputConfig, parseUploadedFiles } from "./file-input";
 
 export type ActionRunResult = {
   status: number;
@@ -86,6 +87,8 @@ function rawFieldDefaultValue(field: ConsoleInputField): unknown {
 }
 
 function fieldFormDefaultValue(field: ConsoleInputField): unknown {
+  const file = fileInputConfig(field);
+  if (file) return file.multiple ? [] : null;
   const type = schemaType(field.schema);
   const rawValue = rawFieldDefaultValue(field);
 
@@ -217,6 +220,7 @@ function parseCommandFieldValue(
   field: ConsoleInputField,
   value: unknown,
 ): unknown {
+  if (fileInputConfig(field)) return parseUploadedFiles(field, value);
   return schemaType(field.schema) === "array"
     ? parseListValue(field, value)
     : parseFieldValue(field, value);

@@ -14,6 +14,7 @@ export const TEMPLATE_NAMES = [
   "agent-loops",
   "agent-graphs",
   "software-factory",
+  "document-extractor",
   "freight-operator",
 ] as const;
 
@@ -86,6 +87,7 @@ export const { createProject } = actor()
         template !== "agent-loops" &&
         template !== "agent-graphs" &&
         template !== "software-factory" &&
+        template !== "document-extractor" &&
         template !== "freight-operator"
       ) {
         throw new Error(
@@ -305,6 +307,12 @@ export const { createProject } = actor()
               label: "Software factory",
               description:
                 "GitHub and Slack integrations coordinating two AI agents",
+            },
+            {
+              value: "document-extractor",
+              label: "Document extractor",
+              description:
+                "PDF uploads converted to Markdown with Firecrawl Anydoc",
             },
             {
               value: "freight-operator",

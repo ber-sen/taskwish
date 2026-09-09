@@ -436,7 +436,7 @@ export const ActionForm = forwardRef<
       >
         {action.input.map((field, index) => (
           <ActionInputField
-            key={field.name}
+            key={`${action.id}:${resetToken}:${field.name}`}
             field={field}
             disabled={isRunning}
             autoFocus={index === 0}

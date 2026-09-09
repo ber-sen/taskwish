@@ -88,6 +88,13 @@ describe("Scaffolder.createProject", () => {
       "src/github/github.test.ts",
     ],
     [
+      "document-extractor",
+      "src/documents/read-documents.ts",
+      "readDocuments",
+      ["Documents"],
+      "src/documents/documents.test.ts",
+    ],
+    [
       "freight-operator",
       "src/freight-operator/receive-load.ts",
       "receiveLoad",
@@ -143,6 +150,7 @@ describe("Scaffolder.createProject", () => {
         template === "agent-loops" ||
         template === "agent-graphs" ||
         template === "software-factory" ||
+        template === "document-extractor" ||
         template === "freight-operator"
           ? "bun test src"
           : "bun test"
@@ -371,7 +379,9 @@ describe("Scaffolder.createProject", () => {
         }
         actionStepCounts.push(stepNames.length);
       }
-      expect(actionStepCounts.some((count) => count > 1)).toBe(true);
+      if (template !== "document-extractor") {
+        expect(actionStepCounts.some((count) => count > 1)).toBe(true);
+      }
       const actorFiles = result.files.filter((file) => {
         const parts = file.split("/");
         return file.startsWith("src/") && parts.at(-1) === `${parts.at(-2)}.ts`;
@@ -386,6 +396,7 @@ describe("Scaffolder.createProject", () => {
         template === "agent-loops" ||
         template === "agent-graphs" ||
         template === "software-factory" ||
+        template === "document-extractor" ||
         template === "freight-operator"
       ) {
         const serviceTests = result.files.filter(

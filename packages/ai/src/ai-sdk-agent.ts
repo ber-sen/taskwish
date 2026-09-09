@@ -6,6 +6,7 @@ import {
   type TextStreamPart,
   type ToolSet,
   type ToolLoopAgentSettings,
+  type Output,
 } from "ai";
 import {
   AcpStop,
@@ -20,8 +21,10 @@ import { ToolDefinition, type TaskWishTool } from "./tool";
 /** A concrete AI SDK model implementation, excluding its global string catalog. */
 export type TaskWishLanguageModel = Exclude<LanguageModel, string>;
 
-export type AiSdkAgentOptions = Omit<
-  ToolLoopAgentSettings<never, ToolSet>,
+export type AiSdkAgentOptions<
+  OUTPUT extends Output.Output = Output.Output
+> = Omit<
+  ToolLoopAgentSettings<never, ToolSet, any, OUTPUT>,
   "id" | "model" | "tools"
 > & {
   runtime?: "ai-sdk";
@@ -37,15 +40,20 @@ export type AiSdkChatThread = {
 export type AiSdkWireMessage = AcpSessionMessage | AcpStop;
 export type AiSdkWireObserver = (message: AiSdkWireMessage) => void;
 
-export class AiSdkAgent {
+type GeneratedOutput<OUTPUT> = OUTPUT extends Output.Output<infer Value>
+  ? Value
+  : string;
+
+export class AiSdkAgent<OUTPUT extends Output.Output = Output.Output> {
   readonly runtime = "ai-sdk" as const;
   readonly name: string;
-  readonly client: AiSdkToolLoopAgent;
+  readonly client: AiSdkToolLoopAgent<never, ToolSet, any, OUTPUT>;
+  private readonly structuredOutput: boolean;
 
   private readonly sessions = new Map<string, ModelMessage[]>();
 
   constructor(
-    options: AiSdkAgentOptions,
+    options: AiSdkAgentOptions<OUTPUT>,
     tools: Record<string, TaskWishTool> = {},
     private readonly onWireMessage?: AiSdkWireObserver
   ) {
@@ -57,12 +65,32 @@ export class AiSdkAgent {
     } = options;
 
     this.name = name;
-    this.client = new AiSdkToolLoopAgent({
+    this.structuredOutput = options.output !== undefined;
+    this.client = new AiSdkToolLoopAgent<never, ToolSet, any, OUTPUT>({
       ...settings,
       id: name,
       model: options.model as LanguageModel,
       tools: toAiSdkTools(tools),
     } as never);
+  }
+
+  async generate(
+    prompt: string,
+    abortSignal?: AbortSignal
+  ): Promise<GeneratedOutput<OUTPUT>> {
+    const stream = this.stream(
+      { prompt, abortSignal },
+      crypto.randomUUID(),
+      prompt
+    );
+    let next = await stream.next();
+    while (!next.done) next = await stream.next();
+    if (abortSignal?.aborted) throw new Error("Agent generation was aborted.");
+    if (this.structuredOutput && (await next.value.finishReason) !== "stop") {
+      throw new Error("Agent structured output did not complete successfully.");
+    }
+    // Reading output performs the SDK's schema validation, unlike reading text.
+    return (await next.value.output) as GeneratedOutput<OUTPUT>;
   }
 
   async generateText(prompt: string): Promise<string> {
@@ -124,10 +152,17 @@ export class AiSdkAgent {
   }
 
   private async *stream(
-    input: Parameters<AiSdkToolLoopAgent["stream"]>[0],
+    input: Parameters<
+      AiSdkToolLoopAgent<never, ToolSet, any, OUTPUT>["stream"]
+    >[0],
     sessionId: string,
     prompt: string
-  ): AsyncGenerator<string, Awaited<ReturnType<AiSdkToolLoopAgent["stream"]>>> {
+  ): AsyncGenerator<
+    string,
+    Awaited<
+      ReturnType<AiSdkToolLoopAgent<never, ToolSet, any, OUTPUT>["stream"]>
+    >
+  > {
     this.publishUpdate(sessionId, {
       sessionUpdate: "user_message_chunk",
       content: { type: "text", text: prompt },

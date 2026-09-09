@@ -32,7 +32,8 @@ for (const entry of await readdir(templatesDirectory, { withFileTypes: true })) 
 
   const packageJson = await readPackageJson(
     join(templatesDirectory, entry.name, "package.json"),
-  );
+  ).catch(() => null);
+  if (!packageJson) continue;
   for (const dependencies of [
     packageJson.dependencies,
     packageJson.devDependencies,

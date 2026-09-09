@@ -2044,16 +2044,42 @@
   .peer-disabled\:opacity-70:is(:where(.peer):disabled ~ *) {
     opacity: 70%;
   }
+  .file\:mr-3::file-selector-button {
+    margin-right: calc(var(--spacing) * 3);
+  }
+  .file\:rounded-md::file-selector-button {
+    border-radius: calc(var(--radius) - 2px);
+  }
+  .file\:border::file-selector-button {
+    border-style: var(--tw-border-style);
+    border-width: 1px;
+  }
   .file\:border-0::file-selector-button {
     border-style: var(--tw-border-style);
     border-width: 0px;
   }
+  .file\:border-input::file-selector-button {
+    border-color: hsl(var(--input));
+  }
+  .file\:bg-background::file-selector-button {
+    background-color: hsl(var(--background));
+  }
   .file\:bg-transparent::file-selector-button {
     background-color: transparent;
+  }
+  .file\:px-3::file-selector-button {
+    padding-inline: calc(var(--spacing) * 3);
+  }
+  .file\:py-1\.5::file-selector-button {
+    padding-block: calc(var(--spacing) * 1.5);
   }
   .file\:text-base::file-selector-button {
     font-size: var(--text-base);
     line-height: var(--tw-leading, var(--text-base--line-height));
+  }
+  .file\:text-sm::file-selector-button {
+    font-size: var(--text-sm);
+    line-height: var(--tw-leading, var(--text-sm--line-height));
   }
   .file\:font-medium::file-selector-button {
     --tw-font-weight: var(--font-weight-medium);

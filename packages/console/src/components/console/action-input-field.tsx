@@ -22,6 +22,8 @@ import {
 import { FieldDescription } from "./field-description";
 import { FormCombobox } from "./form-combobox";
 import { ListInputField } from "./list-input-field";
+import { FileInputField } from "./file-input-field";
+import { fileInputConfig } from "../../lib/file-input";
 
 export function ActionInputField({
   field,
@@ -99,6 +101,18 @@ export function ActionInputField({
       {field.required ? <span className="text-muted-foreground">*</span> : null}
     </Label>
   );
+
+  if (fileInputConfig(field)) {
+    return (
+      <FileInputField
+        field={field}
+        control={control}
+        disabled={disabled}
+        autoFocus={autoFocus}
+        label={label}
+      />
+    );
+  }
 
   if (type === "array") {
     return (

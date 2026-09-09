@@ -30,7 +30,7 @@
   ],
   "scripts": {
     "check": "bun run check-skill && bun run check-template-versions && tsc --noEmit",
-    "test": "bun run check-skill && bun run check-template-versions && bun test --path-ignore-patterns 'templates/agent-loops/e2e/**'",
+    "test": "bun run check-skill && bun run check-template-versions && bun test --path-ignore-patterns '**/e2e/**'",
     "build": "bun run sync-skill && bun run sync-template-versions && bun ../../scripts/build-package.ts && bun run build-cli",
     "build-cli": "bun scripts/build-cli.ts",
     "build-cli:platforms": "bun scripts/build-cli.ts --platforms",

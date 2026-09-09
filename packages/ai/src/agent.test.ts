@@ -9,6 +9,7 @@ import {
   AcpUsageUpdate,
   AcpUserMessageChunk,
 } from "@taskwish/wire";
+import { Output, jsonSchema } from "ai";
 import { MockLanguageModelV3 } from "ai/test";
 
 import { Agent } from "./agent";
@@ -317,6 +318,50 @@ describe("Agent AI SDK runtime", () => {
     releaseStream?.();
     while (!next.done) next = await stream.next();
     expect(next.value).toBe("Hello");
+  });
+
+  test("returns schema-validated structured output", async () => {
+    const model = new MockLanguageModelV3({
+      doStream: streamResult([
+        { type: "stream-start", warnings: [] },
+        { type: "text-start", id: "text-1" },
+        {
+          type: "text-delta",
+          id: "text-1",
+          delta: JSON.stringify({ reference: "BOL-1042" }),
+        },
+        { type: "text-end", id: "text-1" },
+        {
+          type: "finish",
+          finishReason: { unified: "stop", raw: undefined },
+          usage,
+        },
+      ]),
+    });
+    const { actor } = Actor("StructuredAgent");
+    const { extract } = actor()
+      .on("Command", "extract")
+      .run(
+        Agent({
+          model,
+          output: Output.object({
+            schema: jsonSchema<{ reference: string }>({
+              type: "object",
+              properties: { reference: { type: "string" } },
+              required: ["reference"],
+              additionalProperties: false,
+            }),
+          }),
+        }),
+        Step("result", function () {
+          return this.agent.generate({ prompt: "Extract the reference" });
+        })
+      );
+
+    await expect(extract()).resolves.toEqual({ reference: "BOL-1042" });
+    expect(model.doStreamCalls[0]?.responseFormat).toMatchObject({
+      type: "json",
+    });
   });
 
   test("preserves an explicitly selected Codex runtime", async () => {

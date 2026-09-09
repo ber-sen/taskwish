@@ -1,6 +1,5 @@
-import { Step } from "taskwish";
+import { Input, Step } from "taskwish";
 
-import { intakeDefinition } from "../documents/read-documents";
 import { parseLoad, validateLoad } from "../shared/load";
 import { audit, fingerprint, viewJob, withLoadLock } from "../shared/records";
 import { actor } from "./freight-operator";
@@ -8,7 +7,14 @@ import { actor } from "./freight-operator";
 export const { receiveLoad } = actor()
   .on("Command", "receiveLoad")
 
-  .input({ sourceId: "string", customerId: "string", ...intakeDefinition })
+  .input({
+    sourceId: "string",
+    customerId: "string",
+    "emailText?": "string",
+    "attachments?": Input.List(
+      Input.File({ maxBytes: 10_000_000 }),
+    ),
+  })
 
   .run(
     Step("checkIntake", function () {
@@ -97,7 +103,7 @@ export const { receiveLoad } = actor()
 
   .meta({
     description:
-      "Receive email/PDF content, extract a load, validate it, and stop for human review",
+      "Receive email/document content, extract a load, validate it, and stop for human review",
     input: {
       sourceId: {
         description:
@@ -110,6 +116,8 @@ export const { receiveLoad } = actor()
         example: "1CHC",
       },
       emailText: { description: "Decoded plain-text email body" },
-      attachments: { description: "PDF names and raw base64 contents" },
+      attachments: {
+        description: "Upload documents supported by Anydoc, up to 10 MB total",
+      },
     },
   });

@@ -3,7 +3,7 @@
 A runnable freight intake and approval template using [Firecrawl Anydoc](https://github.com/firecrawl/anydoc), [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs), and [McLeod Order Creation](https://innovationhub.mcleodsoftware.com/OrderCreationDocs) for PowerBroker.
 
 ```text
-Email / PDF
+Email / documents
     │
     ▼
 Anydoc → Markdown → OpenAI → Extract Load
@@ -56,7 +56,7 @@ bun test
 
 ## Intake and review
 
-`receiveLoad` accepts decoded email text, PDF attachments, or both. A mailbox
+`receiveLoad` accepts decoded email text, document attachments, or both. A mailbox
 adapter (Microsoft Graph, Gmail, IMAP, or an inbound-email provider) should decode
 MIME, preserve the Message-ID as `sourceId`, and post this normalized JSON.
 The template does not poll a mailbox or parse raw `.eml` files.
@@ -72,21 +72,21 @@ curl -X POST "http://localhost:YOUR_PORT/tw/FreightOperator/receive-load" \
 
 Supply `customerId` from verified intake configuration: a McLeod bill-to master
 ID or a configured CustomerFusion cross-reference. OpenAI never chooses the
-customer ID. PDF-only intake uses the same command:
+customer ID. Document-only intake uses the same command:
 
 ```json
 {
   "sourceId": "document-1042",
   "customerId": "1CHC",
   "attachments": [
-    { "name": "tender.pdf", "contentBase64": "RAW_BASE64_PDF_BYTES" }
+    { "name": "tender.pdf", "contentBase64": "RAW_BASE64_DOCUMENT_BYTES" }
   ]
 }
 ```
 
 | Action | What to do |
 | --- | --- |
-| `receiveLoad` | Extract one load from email/PDF and stop at review. Repeated source IDs return the existing record; failed extraction can be retried with identical input. |
+| `receiveLoad` | Extract one load from email/documents and stop at review. Repeated source IDs return the existing record; failed extraction can be retried with identical input. |
 | `listLoads` | Inspect the source Markdown, complete load, issues, `id`, `revision`, and audit trail. Optionally filter by `status`. |
 | `reviseLoad` | Supply the complete corrected `load`, current `revision`, reviewer, and correction note. The revision increments and validation runs again. |
 | `reviewLoad` | Supply `id`, current `revision`, `decision: "approve"` or `"reject"`, reviewer, and note. Approval submits exactly the reviewed draft. |
@@ -169,11 +169,11 @@ starter; the OpenAI extraction call receives no tools.
 
 Source text and audit records are retained locally and appear in Console and
 TaskWish traces. OpenAI receives the combined Markdown with `store: false`.
-Anydoc converts text PDFs locally. Set `ANYDOC_OCR=hosted` to opt into sending
+Anydoc converts supported documents locally. Set `ANYDOC_OCR=hosted` to opt into sending
 scanned PDFs to Firecrawl Parse; `FIRECRAWL_API_KEY` is optional. Without OCR,
 unreadable PDFs fail intake rather than silently dropping attachments.
 
-Tests cover real local PDF conversion, malformed inputs, strict extraction,
+Tests cover real local PDF and CSV conversion, malformed inputs, strict extraction,
 validation, review revisions, rejection, concurrent and duplicate submission,
 pending/created states, and reconciliation. OpenAI and McLeod are mocked;
 validate a sandbox order with your tenant's credentials and mappings before

@@ -1,4 +1,5 @@
 import { TW } from "@taskwish/core";
+import type { Output } from "ai";
 import { acpMessage } from "@taskwish/wire";
 import {
   CodexAgent,
@@ -21,11 +22,13 @@ type AgentRuntimeKind = "ai-sdk" | "codex" | "fx";
 type CodexAgentRuntimeOptions = CodexAgentOptions & {
   runtime: "codex";
   name?: string;
+  output?: never;
 };
 
 type FxAgentRuntimeOptions = FxAgentOptions & {
   runtime: "fx";
   name?: string;
+  output?: never;
 };
 
 export type AgentOptions =
@@ -68,7 +71,13 @@ export type AgentChatThread = {
   sessionId: string;
 };
 
-export interface AgentRuntime {
+type AgentOutput<Options> = Options extends {
+  output: Output.Output<infer Value>;
+}
+  ? Value
+  : string;
+
+export interface AgentRuntime<Generated = string> {
   readonly name: string;
   readonly runtime: AgentRuntimeKind;
   readonly client: AiSdkAgent | CodexAgent | FxAgent;
@@ -85,7 +94,10 @@ export interface AgentRuntime {
   prompt(
     input?: CodexPromptInput | CodexPromptOptions
   ): AsyncGenerator<string, string>;
-  generate(options: { prompt: string }): Promise<string>;
+  generate(options: {
+    prompt: string;
+    abortSignal?: AbortSignal;
+  }): Promise<Generated>;
   close(): Promise<void>;
   [TW.ActionObserver]?(
     actionName: string,
@@ -93,31 +105,45 @@ export interface AgentRuntime {
   ): (() => Iterable<unknown>) & { dispose?: () => void };
 }
 
-type AgentStep<Name extends string, Ctx extends Record<any, any>> = {
+type AgentStep<
+  Name extends string,
+  Ctx extends Record<any, any>,
+  Generated = string
+> = {
   [TW.Step]: (input: Ctx) => {
     name: Ctx["name"];
     steps: Ctx["steps"];
     step: Ctx["step"];
-    scope: Record<Name, AgentRuntime> & Ctx["scope"];
-    last: AgentRuntime;
+    scope: Record<Name, AgentRuntime<Generated>> & Ctx["scope"];
+    last: AgentRuntime<Generated>;
     plugins: Ctx["plugins"];
   };
 };
 
-export function Agent<Ctx extends Record<any, any>>(
-  options: AgentOptionsFor<Ctx>
-): (() => AgentRuntime) & AgentStep<"agent", Ctx>;
-export function Agent<Ctx extends Record<any, any>>(
-  options: AgentOptionsFactory
-): (() => AgentRuntime) & AgentStep<"agent", Ctx>;
 export function Agent<
-  const Name extends string,
-  const Tools extends string[],
+  const Options extends AgentOptionsFor<Ctx>,
   Ctx extends Record<any, any>
 >(
+  options: Options
+): (() => AgentRuntime<AgentOutput<Options>>) &
+  AgentStep<"agent", Ctx, AgentOutput<Options>>;
+export function Agent<
+  const Options extends AgentOptions,
+  Ctx extends Record<any, any>
+>(
+  options: (scope: any) => Options
+): (() => AgentRuntime<AgentOutput<Options>>) &
+  AgentStep<"agent", Ctx, AgentOutput<Options>>;
+export function Agent<
+  const Name extends string,
+  const Tools extends readonly string[],
+  Ctx extends Record<any, any>,
+  const Options extends NamedAgentOptionsFor<Ctx, Tools>
+>(
   name: CamelCase<Name>,
-  options: NamedAgentOptionsFor<Ctx, Tools>
-): (() => AgentRuntime) & AgentStep<Name, Ctx>;
+  options: Options
+): (() => AgentRuntime<AgentOutput<Options>>) &
+  AgentStep<Name, Ctx, AgentOutput<Options>>;
 export function Agent(first: unknown, second?: unknown) {
   const configuredName = typeof first === "string" ? first : "agent";
   const optionsOrFactory: AgentOptions | AgentOptionsFactory =
@@ -403,7 +429,7 @@ function createAgentRuntime(
 function createAiSdkAgentRuntime(
   options: AiSdkAgentOptions,
   scope: Record<string, unknown>
-): AgentRuntime {
+): AgentRuntime<any> {
   const actionPublishers = new Set<(event: unknown) => void>();
   const client = new AiSdkAgent(
     options,
@@ -446,8 +472,8 @@ function createAiSdkAgentRuntime(
       return yield* client.streamPrompt(promptText(input));
     },
 
-    generate({ prompt }) {
-      return client.generateText(prompt);
+    generate({ prompt, abortSignal }) {
+      return client.generate(prompt, abortSignal);
     },
 
     [TW.ActionObserver](_actionName, publish) {
