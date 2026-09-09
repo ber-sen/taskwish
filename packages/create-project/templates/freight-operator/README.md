@@ -29,7 +29,8 @@ correction, approval/rejection, and order status. The extractor has no tools and
 never approves a load. Only `FreightOperator.reviewLoad` submits an order request,
 after a human approves the current revision and deterministic validation passes.
 The `Emails` actor converts decoded email bodies to Markdown, while `Documents`
-owns document conversion through Anydoc.
+owns document conversion through Anydoc. The `Gmail` actor reads message bodies
+and attachments from the Gmail API.
 
 ## Run
 
@@ -62,6 +63,23 @@ bun test
 adapter (Microsoft Graph, Gmail, IMAP, or an inbound-email provider) should decode
 MIME, preserve the Message-ID as `sourceId`, and post this normalized JSON.
 The template does not poll a mailbox or parse raw `.eml` files.
+
+To fetch directly from Gmail, set `GMAIL_ACCESS_TOKEN` to an OAuth 2.0 token with
+the `gmail.readonly` scope, then provide the immutable Gmail message ID:
+
+```json
+{
+  "sourceId": "gmail-message-1042",
+  "customerId": "1CHC",
+  "gmailMessageId": "18f123456789abcd",
+  "gmailUserId": "me"
+}
+```
+
+`Gmail.getGmailMessage` calls `users.messages.get` with the full format, walks
+the MIME parts, and downloads attachment bodies through
+`users.messages.attachments.get`. Replace the environment token with your OAuth
+token refresh flow for a deployed service.
 
 Use the included `examples/email-load.json` with the Console or authenticated API:
 

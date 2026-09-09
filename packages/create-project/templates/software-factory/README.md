@@ -41,8 +41,8 @@ bun start
 ```
 
 Configure a GitHub `issues` webhook to send `POST` requests to
-`/integrations/github/issues` with the TaskWish API key printed at startup. An
-`opened` issue starts the complete chain.
+`/integrations/github/issues`. The endpoint does not require a TaskWish API key;
+an `opened` issue starts the complete chain.
 
 Set `OLLAMA_BASE_URL` to use another OpenAI-compatible Ollama endpoint. Unit
 tests inject mock agents and a mock Slack action, so they need no credentials or

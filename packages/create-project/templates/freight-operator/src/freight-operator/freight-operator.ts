@@ -2,6 +2,7 @@ import { Actor, Event, State } from "taskwish";
 
 import { Documents } from "../documents";
 import { Emails } from "../emails";
+import { Gmail } from "../gmail";
 import { LoadExtractor } from "../load-extractor";
 
 const { actor: createActor } = Actor("FreightOperator").scope(
@@ -33,4 +34,4 @@ const { actor: createActor } = Actor("FreightOperator").scope(
 );
 
 export const actor = () =>
-  createActor().use(Documents).use(Emails).use(LoadExtractor);
+  createActor().use(Documents).use(Emails).use(Gmail).use(LoadExtractor);

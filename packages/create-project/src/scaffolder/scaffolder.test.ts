@@ -98,7 +98,7 @@ describe("Scaffolder.createProject", () => {
       "freight-operator",
       "src/freight-operator/receive-load.ts",
       "receiveLoad",
-      ["Documents", "LoadExtractor", "FreightOperator"],
+      ["Documents", "Emails", "Gmail", "LoadExtractor", "FreightOperator"],
       "src/freight-operator/freight-operator.test.ts",
     ],
   ] as const)(

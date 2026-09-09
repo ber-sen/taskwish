@@ -36,8 +36,7 @@ export function HttpActionInstructions({ action }: { action: ConsoleAction }) {
       <div className="space-y-2">
         <h2 className="text-sm font-semibold">HTTP endpoint</h2>
         <p className="text-sm text-muted-foreground">
-          Call this action by sending an authenticated HTTP request to its
-          route.
+          Call this action by sending an HTTP request to its route.
         </p>
         <div className="flex items-center overflow-hidden rounded-md border bg-muted/30 font-mono text-sm">
           <span className="border-r px-3 py-2 font-semibold text-foreground">
@@ -67,10 +66,6 @@ export function HttpActionInstructions({ action }: { action: ConsoleAction }) {
         <pre className="scrollbar-minimal overflow-x-auto rounded-md border bg-muted/30 p-4 text-xs leading-relaxed text-foreground">
           <code>{example ?? "Loading request example…"}</code>
         </pre>
-        <p className="text-xs text-muted-foreground">
-          Set <code className="font-mono">TASKWISH_API_KEY</code> to the API
-          key printed when the server starts.
-        </p>
       </div>
     </div>
   );

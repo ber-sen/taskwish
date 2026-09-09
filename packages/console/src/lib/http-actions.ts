@@ -66,10 +66,7 @@ export function httpRequestExample(
   const route = httpRouteForAction(action);
   if (!route) return null;
 
-  const lines = [
-    `curl --request ${route.method} '${origin}${route.path}'`,
-    '  --header "Authorization: Bearer $TASKWISH_API_KEY"',
-  ];
+  const lines = [`curl --request ${route.method} '${origin}${route.path}'`];
   if (route.body !== undefined) {
     lines.push('  --header "Content-Type: application/json"');
     lines.push(

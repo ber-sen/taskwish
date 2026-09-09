@@ -44,10 +44,19 @@ function setup(load = sampleLoad()) {
   const state = mockState();
   const readDocuments = mock(async () => ({ markdown: "Document tender" }));
   const readEmail = mock(async () => ({ markdown: "Source tender" }));
+  const getGmailMessage = mock(async () => ({
+    id: "gmail-message",
+    threadId: "gmail-thread",
+    subject: "Load tender",
+    from: "shipper@example.com",
+    body: "Gmail tender",
+    attachments: [{ name: "gmail.csv", contentBase64: "YQ==" }],
+  }));
   const extractLoad = mock(async () => load);
   const actions = {
     documents: { readDocuments },
     emails: { readEmail },
+    gmail: { getGmailMessage },
     loadExtractor: { extractLoad },
   };
   const receive = (sourceId = "message-1042") =>
@@ -73,6 +82,7 @@ function setup(load = sampleLoad()) {
     review,
     readDocuments,
     readEmail,
+    getGmailMessage,
     extractLoad,
   };
 }
@@ -131,6 +141,27 @@ test("combines email and document actor output before extraction", async () => {
   expect(context.readEmail).toHaveBeenCalledTimes(1);
   expect(context.readDocuments).toHaveBeenCalledTimes(1);
   expect(context.extractLoad).toHaveBeenCalledWith({ markdown: job.markdown });
+});
+
+test("fetches Gmail content before document and load extraction", async () => {
+  const context = setup();
+  const job = await FreightOperator.receiveLoad
+    .ctx({ state: context.state, actions: context.actions })
+    .run({
+      sourceId: "gmail-message",
+      customerId: "1CHC",
+      gmailMessageId: "18f123456789abcd",
+    });
+
+  expect(context.getGmailMessage).toHaveBeenCalledWith({
+    messageId: "18f123456789abcd",
+    userId: undefined,
+  });
+  expect(context.readEmail).toHaveBeenCalledWith({ body: "Gmail tender" });
+  expect(context.readDocuments).toHaveBeenCalledWith({
+    attachments: [{ name: "gmail.csv", contentBase64: "YQ==" }],
+  });
+  expect(job.markdown).toBe("Source tender\n\n---\n\nDocument tender");
 });
 
 test("validation blocks missing, conflicting, and invalid loads", async () => {

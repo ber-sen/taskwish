@@ -78,9 +78,10 @@ To run the application on Node.js 20+, use `npm install` followed by
 | `HumanInTheLoop`           | Propose → request approval → continue             |
 
 The `GitHub` actor exposes `POST /integrations/github/issues` as a TaskWish HTTP
-endpoint. Send GitHub `issues` webhook payloads to it using the TaskWish API key
-printed at startup; an `opened` payload emits `GitHub::IssueOpened` and invokes
-`EventDrivenLoop.onGitHubIssueOpened`.
+endpoint. Send GitHub `issues` webhook payloads directly to it; an `opened`
+payload emits `GitHub::IssueOpened` and invokes
+`EventDrivenLoop.onGitHubIssueOpened`. TaskWish API keys are only required for
+routes under `/tw/`.
 
 Run `GitHub.pushBranchAndCreatePullRequest` to push a local branch and create a
 pull request with `GITHUB_TOKEN`. Set `GITHUB_API_URL` only when using GitHub

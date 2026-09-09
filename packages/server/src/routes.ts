@@ -172,7 +172,7 @@ export async function createRoutes(
 
       routes[routePath] = {
         ...routes[routePath],
-        [method]: withAuth(options.apiKey, invokeHttpRoute),
+        [method]: invokeHttpRoute,
       };
     }
   }
