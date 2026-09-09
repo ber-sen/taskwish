@@ -6,8 +6,7 @@ export const { readDocuments } = actor()
   .on("Command", "readDocuments")
 
   .input({
-    "emailText?": "string",
-    "attachments?": Input.List(
+    attachments: Input.List(
       Input.File({ maxBytes: 10_000_000 }),
     ),
   })
@@ -15,11 +14,11 @@ export const { readDocuments } = actor()
   .run(
     Step("readSource", async function () {
       const sections: string[] = [];
-      if (this.input.emailText?.trim()) {
-        sections.push(`Email body:\n${this.input.emailText.trim()}`);
+      const attachments = this.input.attachments;
+      if (!attachments.length) {
+        throw new Error("Provide at least one document attachment.");
       }
-      const attachments = this.input.attachments ?? [];
-      let totalBytes = Buffer.byteLength(this.input.emailText ?? "");
+      let totalBytes = 0;
       for (const attachment of attachments) {
         if (
           attachment.contentBase64.length > 14_000_000 ||
@@ -54,9 +53,6 @@ export const { readDocuments } = actor()
         sections.push(`Document attachment: ${attachment.name}\n${markdown}`);
       }
       const markdown = sections.join("\n\n---\n\n");
-      if (!markdown.trim()) {
-        throw new Error("Provide emailText or at least one document attachment.");
-      }
       if (markdown.length > 120_000) {
         throw new Error(
           "Source text exceeds 120,000 characters; split the documents.",
@@ -67,13 +63,8 @@ export const { readDocuments } = actor()
   )
 
   .meta({
-    description:
-      "Read email text and convert uploaded documents to Markdown with Anydoc",
+    description: "Convert uploaded documents to Markdown with Anydoc",
     input: {
-      emailText: {
-        description: "Optional plain-text content to include",
-        example: "Please review the attached document…",
-      },
       attachments: {
         description: "Upload documents supported by Anydoc, up to 10 MB total",
       },

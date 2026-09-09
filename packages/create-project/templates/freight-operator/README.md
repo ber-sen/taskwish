@@ -28,6 +28,8 @@ The Console exposes intake, source text, extracted fields, validation issues,
 correction, approval/rejection, and order status. The extractor has no tools and
 never approves a load. Only `FreightOperator.reviewLoad` submits an order request,
 after a human approves the current revision and deterministic validation passes.
+The `Emails` actor converts decoded email bodies to Markdown, while `Documents`
+owns document conversion through Anydoc.
 
 ## Run
 

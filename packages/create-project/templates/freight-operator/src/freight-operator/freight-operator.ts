@@ -1,6 +1,7 @@
 import { Actor, Event, State } from "taskwish";
 
 import { Documents } from "../documents";
+import { Emails } from "../emails";
 import { LoadExtractor } from "../load-extractor";
 
 const { actor: createActor } = Actor("FreightOperator").scope(
@@ -31,4 +32,5 @@ const { actor: createActor } = Actor("FreightOperator").scope(
   })
 );
 
-export const actor = () => createActor().use(Documents).use(LoadExtractor);
+export const actor = () =>
+  createActor().use(Documents).use(Emails).use(LoadExtractor);

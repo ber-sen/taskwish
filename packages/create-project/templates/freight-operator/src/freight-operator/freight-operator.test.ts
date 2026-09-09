@@ -42,10 +42,12 @@ afterAll(async () => {
 
 function setup(load = sampleLoad()) {
   const state = mockState();
-  const readDocuments = mock(async () => ({ markdown: "Source tender" }));
+  const readDocuments = mock(async () => ({ markdown: "Document tender" }));
+  const readEmail = mock(async () => ({ markdown: "Source tender" }));
   const extractLoad = mock(async () => load);
   const actions = {
     documents: { readDocuments },
+    emails: { readEmail },
     loadExtractor: { extractLoad },
   };
   const receive = (sourceId = "message-1042") =>
@@ -64,7 +66,15 @@ function setup(load = sampleLoad()) {
       reviewer: "dispatcher",
       note: "Verified source and customer mapping.",
     });
-  return { state, actions, receive, review, readDocuments, extractLoad };
+  return {
+    state,
+    actions,
+    receive,
+    review,
+    readDocuments,
+    readEmail,
+    extractLoad,
+  };
 }
 
 function mockMcLeod(
@@ -94,6 +104,8 @@ test("intake extracts once, persists review, and never submits before approval",
   expect(job.status).toBe("awaitingApproval");
   expect(job.revision).toBe(1);
   expect(job.markdown).toBe("Source tender");
+  expect(context.readEmail).toHaveBeenCalledTimes(1);
+  expect(context.readDocuments).not.toHaveBeenCalled();
   expect((await context.receive()).id).toBe(job.id);
   expect(context.extractLoad).toHaveBeenCalledTimes(1);
   expect(remote).not.toHaveBeenCalled();
@@ -102,6 +114,23 @@ test("intake extracts once, persists review, and never submits before approval",
       .ctx({ state: context.state })
       .run({ status: "awaitingApproval" })
   ).toHaveLength(1);
+});
+
+test("combines email and document actor output before extraction", async () => {
+  const context = setup();
+  const job = await FreightOperator.receiveLoad
+    .ctx({ state: context.state, actions: context.actions })
+    .run({
+      sourceId: "mixed-source",
+      customerId: "1CHC",
+      emailText: "Book BOL-1042",
+      attachments: [{ name: "tender.csv", contentBase64: "YQ==" }],
+    });
+
+  expect(job.markdown).toBe("Source tender\n\n---\n\nDocument tender");
+  expect(context.readEmail).toHaveBeenCalledTimes(1);
+  expect(context.readDocuments).toHaveBeenCalledTimes(1);
+  expect(context.extractLoad).toHaveBeenCalledWith({ markdown: job.markdown });
 });
 
 test("validation blocks missing, conflicting, and invalid loads", async () => {

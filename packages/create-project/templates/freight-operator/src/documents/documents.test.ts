@@ -3,9 +3,8 @@ import { expect, test } from "bun:test";
 import { Documents } from ".";
 import { samplePdf } from "../shared/test-helpers";
 
-test("combines email text and real Anydoc document conversion", async () => {
+test("combines real Anydoc document conversions", async () => {
   const result = await Documents.readDocuments({
-    emailText: "Please book this load.",
     attachments: [
       { name: "tender.pdf", contentBase64: samplePdf() },
       {
@@ -16,14 +15,13 @@ test("combines email text and real Anydoc document conversion", async () => {
       },
     ],
   });
-  expect(result.markdown).toContain("Please book this load.");
   expect(result.markdown).toContain("Freight tender BOL-1042");
   expect(result.markdown).toContain("linehaul");
 });
 
-test("rejects missing source, malformed documents, bad base64, and oversized text", async () => {
-  await expect(Documents.readDocuments({})).rejects.toThrow(
-    "Provide emailText"
+test("rejects missing source, malformed documents, and bad base64", async () => {
+  await expect(Documents.readDocuments({ attachments: [] })).rejects.toThrow(
+    "at least one document"
   );
   await expect(
     Documents.readDocuments({
@@ -40,15 +38,11 @@ test("rejects missing source, malformed documents, bad base64, and oversized tex
       attachments: [{ name: "bad.pdf", contentBase64: "???" }],
     })
   ).rejects.toThrow("valid base64");
-  await expect(
-    Documents.readDocuments({ emailText: "a".repeat(120_001) })
-  ).rejects.toThrow("120,000");
 });
 
-test("does not silently extract only email when an attachment fails", async () => {
+test("does not silently skip a malformed attachment", async () => {
   await expect(
     Documents.readDocuments({
-      emailText: "Book it",
       attachments: [
         {
           name: "broken.pdf",

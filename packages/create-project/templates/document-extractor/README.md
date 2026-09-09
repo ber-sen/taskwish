@@ -1,7 +1,7 @@
 # TaskWish document extractor
 
-A focused TaskWish example that accepts email text and document uploads, converts
-them to Markdown with [Firecrawl Anydoc](https://github.com/firecrawl/anydoc),
+A focused TaskWish example that accepts document uploads and converts them to
+Markdown with [Firecrawl Anydoc](https://github.com/firecrawl/anydoc),
 and returns one combined Markdown document.
 
 ## Run
@@ -14,8 +14,7 @@ bun start
 
 Open the Console URL printed at startup, select `Documents.readDocuments`, and
 upload documents totaling up to 10 MB. Word, PowerPoint, Excel, OpenDocument,
-RTF, EPUB, CSV, and PDF formats are supported. You can include a plain-text
-email body with the files.
+RTF, EPUB, CSV, and PDF formats are supported.
 
 Scanned PDFs require hosted OCR. Set `ANYDOC_OCR=hosted` and provide a
 `FIRECRAWL_API_KEY` to opt in. Text PDFs are processed locally by default.

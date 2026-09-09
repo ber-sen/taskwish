@@ -24,6 +24,11 @@ export const { receiveLoad } = actor()
         throw new Error(
           "sourceId and the verified McLeod customerId are required."
         );
+      if (
+        !this.input.emailText?.trim() &&
+        !(this.input.attachments?.length ?? 0)
+      )
+        throw new Error("Provide emailText or at least one document attachment.");
       return {
         sourceId,
         customerId,
@@ -73,14 +78,25 @@ export const { receiveLoad } = actor()
           job.error = "";
           audit(job, "intakeReceived");
           try {
-            const document = await this.actions.documents.readDocuments({
-              emailText: this.input.emailText,
-              attachments: this.input.attachments,
-            });
-            job.markdown = document.markdown;
+            const sources: { markdown: string }[] = [];
+            if (this.input.emailText?.trim())
+              sources.push(
+                await this.actions.emails.readEmail({
+                  body: this.input.emailText,
+                })
+              );
+            if (this.input.attachments?.length)
+              sources.push(
+                await this.actions.documents.readDocuments({
+                  attachments: this.input.attachments,
+                })
+              );
+            job.markdown = sources
+              .map((source) => source.markdown)
+              .join("\n\n---\n\n");
             const load = parseLoad(
               await this.actions.loadExtractor.extractLoad({
-                markdown: document.markdown,
+                markdown: job.markdown,
               })
             );
             const issues = validateLoad(load);
