@@ -427,9 +427,7 @@ test("serves route actions from node fetch handlers", async () => {
   );
 
   const response = await fetch(
-    new Request("http://localhost/invoices/inv-42?page=2", {
-      headers: auth,
-    })
+    new Request("http://localhost/invoices/inv-42?page=2")
   );
 
   expect(response.status).toBe(200);
@@ -457,7 +455,7 @@ test("serves route action JSON body input from node fetch handlers", async () =>
   const response = await fetch(
     new Request("http://localhost/invoices", {
       method: "POST",
-      headers: { ...auth, "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: "inv-42", status: "paid" }),
     })
   );

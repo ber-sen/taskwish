@@ -18,17 +18,15 @@ test("exports the GitHub integration actor", () => {
   expect(route[1]).toBe("/integrations/github/issues");
 });
 
-test("receives an issue webhook and emits GitHub::IssueOpened", async () => {
-  const apiKey = "test-api-key";
+test("receives an issue webhook without TaskWish authentication", async () => {
   const fetchIntegration = createFetchHandler(
     createNodeRegistry([Promise.resolve({ GitHub })]),
-    { apiKey }
+    { apiKey: "test-api-key" }
   );
   const response = await fetchIntegration(
     new Request("http://localhost/integrations/github/issues", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

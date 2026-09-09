@@ -114,20 +114,26 @@ export function ActionDrawerHeader({
           <ActorArtwork name={action.actor} />
         </div>
       )}
-      <div className="flex gap-3">
+      <div className="flex min-w-0 items-start gap-3">
         {collapsed && (
           <div className="-ml-2 shrink-0">
             <ActorArtwork name={action.actor} className="h-[50px] w-[50px] shrink-0" />
           </div>
         )}
-        <div className="flex min-w-0 flex-col gap-0.5">
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <DrawerTitle className="truncate">{actionTitle(action)}</DrawerTitle>
-          <DrawerDescription className="truncate">
+          <DrawerDescription
+            className={
+              collapsed
+                ? "truncate"
+                : "line-clamp-2 whitespace-normal break-words leading-snug"
+            }
+          >
             {collapsed ? action.actor : actionDescription(action)}
           </DrawerDescription>
         </div>
         {showTrace && !collapsed ? (
-          <div className="ml-auto flex h-8 items-center gap-2 mini-app:hidden">
+          <div className="ml-auto flex h-8 shrink-0 items-center gap-2 mini-app:hidden">
             <Label htmlFor={logsId} className="text-xs">
               Trace
             </Label>

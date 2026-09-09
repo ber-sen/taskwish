@@ -11,12 +11,19 @@ const templatesDirectory = join(packageDirectory, "templates");
 const checkOnly = process.argv.includes("--check");
 
 const canonicalSkill = await readFile(canonicalSkillPath, "utf8");
-const templateDirectories = (await readdir(templatesDirectory, {
+const templateEntries = (await readdir(templatesDirectory, {
   withFileTypes: true,
 }))
   .filter((entry) => entry.isDirectory())
-  .map((entry) => entry.name)
-  .sort();
+  .sort((left, right) => left.name.localeCompare(right.name));
+const templateDirectories: string[] = [];
+for (const entry of templateEntries) {
+  const manifest = await readFile(
+    join(templatesDirectory, entry.name, "package.json"),
+    "utf8",
+  ).catch(() => null);
+  if (manifest !== null) templateDirectories.push(entry.name);
+}
 
 const skillTargets = [join(packageDirectory, "../skill/SKILL.md")];
 

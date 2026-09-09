@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  buildPayload,
   fieldPlaceholder,
   formDefaultValues,
   listItemDefaultValue,
@@ -53,6 +54,30 @@ describe("command form values", () => {
 
     expect(formDefaultValues([field])).toEqual({ customers: [] });
     expect(listItemDefaultValue(field)).toEqual({ name: "" });
+  });
+
+  test("uses upload values directly for file fields", () => {
+    const field = {
+      name: "documents",
+      required: true,
+      schema: {
+        type: "array",
+        maxItems: 2,
+        items: {
+          type: "object",
+          format: "taskwish-file",
+          "x-taskwish-accept": ".pdf",
+          "x-taskwish-max-bytes": 100,
+        },
+      },
+    };
+    const documents = [{ name: "load.pdf", contentBase64: "JVBERi0=" }];
+
+    expect(formDefaultValues([field])).toEqual({ documents: [] });
+    expect(buildPayload({ documents }, [field])).toEqual({ documents });
+    expect(() => buildPayload({ documents: [] }, [field])).toThrow(
+      "Choose a file",
+    );
   });
 });
 

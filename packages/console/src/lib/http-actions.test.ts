@@ -38,13 +38,14 @@ describe("HTTP action usage", () => {
     });
   });
 
-  test("creates a curl example with authentication and a sample body", () => {
+  test("creates a curl example without TaskWish authentication", () => {
     const example = httpRequestExample(webhook, "http://localhost:3000");
 
     expect(example).toContain(
       "curl --request POST 'http://localhost:3000/integrations/github/issues'",
     );
-    expect(example).toContain("Authorization: Bearer $TASKWISH_API_KEY");
+    expect(example).not.toContain("Authorization");
+    expect(example).not.toContain("TASKWISH_API_KEY");
     expect(example).toContain('"number": 0');
   });
 });

@@ -55,6 +55,8 @@ The generated service prints its local Console URL and API key at startup.
 | [`agent-loops`](packages/create-project/templates/agent-loops) | ReAct, reflection, planning, tool use, memory, human approval, and other common agent loops |
 | [`agent-graphs`](packages/create-project/templates/agent-graphs) | Sequential, parallel, routing, map-reduce, hierarchical, and fallback graphs |
 | [`software-factory`](packages/create-project/templates/software-factory) | GitHub events coordinating coding and review agents with Slack notifications |
+| [`document-extractor`](packages/create-project/templates/document-extractor) | Document uploads and text extraction with the Documents actor |
+| [`freight-operator`](packages/create-project/templates/freight-operator) | Email/documents → Anydoc and OpenAI extraction → validation → human approval → McLeod PowerBroker order |
 
 Choose a starter directly with `--template`:
 

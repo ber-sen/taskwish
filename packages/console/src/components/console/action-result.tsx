@@ -1,4 +1,9 @@
-import { ArrowUpRightIcon, CheckIcon, CopyIcon } from "lucide-react";
+import {
+  ArrowUpRightIcon,
+  CheckIcon,
+  CopyIcon,
+  FileTextIcon,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useStickToBottomContext } from "use-stick-to-bottom";
 
@@ -814,6 +819,137 @@ function inputBody(input: unknown): string {
   return yamlValue(input);
 }
 
+type DisplayFile = {
+  name: string;
+  contentBase64: string;
+  path: string;
+};
+
+function isUploadedFile(value: unknown): value is {
+  name: string;
+  contentBase64: string;
+} {
+  const record = recordValue(value);
+  return (
+    typeof record?.name === "string" &&
+    typeof record.contentBase64 === "string"
+  );
+}
+
+function extractDisplayFiles(
+  value: unknown,
+  path = "file"
+): { value: unknown; files: DisplayFile[] } {
+  if (isUploadedFile(value)) {
+    return {
+      value: undefined,
+      files: [{ ...value, path }],
+    };
+  }
+
+  if (Array.isArray(value)) {
+    const files: DisplayFile[] = [];
+    const values = value.flatMap((item, index) => {
+      const extracted = extractDisplayFiles(item, `${path}[${index}]`);
+      files.push(...extracted.files);
+      return extracted.value === undefined ? [] : [extracted.value];
+    });
+    return { value: values.length ? values : undefined, files };
+  }
+
+  const record = recordValue(value);
+  if (record) {
+    const files: DisplayFile[] = [];
+    const entries = Object.entries(record).flatMap(([key, item]) => {
+      const extracted = extractDisplayFiles(
+        item,
+        path === "file" ? key : `${path}.${key}`
+      );
+      files.push(...extracted.files);
+      return extracted.value === undefined ? [] : [[key, extracted.value]];
+    });
+    return {
+      value: entries.length ? Object.fromEntries(entries) : undefined,
+      files,
+    };
+  }
+
+  return { value, files: [] };
+}
+
+function uploadedFileSize(contentBase64: string): string {
+  const padding = contentBase64.endsWith("==")
+    ? 2
+    : contentBase64.endsWith("=")
+      ? 1
+      : 0;
+  const bytes = Math.max(
+    0,
+    Math.floor((contentBase64.length * 3) / 4) - padding
+  );
+  if (bytes < 1_000) return `${bytes} B`;
+  if (bytes < 1_000_000) return `${(bytes / 1_000).toFixed(1)} KB`;
+  return `${(bytes / 1_000_000).toFixed(1)} MB`;
+}
+
+export function ActionInputBody({ input }: { input: unknown }) {
+  const display = extractDisplayFiles(input);
+  if (!display.files.length) {
+    return (
+      <MessageContent
+        data-slot="action-input-bubble"
+        style={{ overflowWrap: "anywhere" }}
+      >
+        <MessageResponse className="text-primary-foreground">
+          {inputBody(input)}
+        </MessageResponse>
+      </MessageContent>
+    );
+  }
+
+  return (
+    <>
+      {display.value !== undefined ? (
+        <MessageContent
+          data-slot="action-input-bubble"
+          style={{ overflowWrap: "anywhere" }}
+        >
+          <MessageResponse className="text-primary-foreground">
+            {inputBody(display.value)}
+          </MessageResponse>
+        </MessageContent>
+      ) : null}
+      <div
+        data-slot="action-input-files"
+        className="flex max-w-full flex-col gap-2 self-end"
+      >
+        {display.files.map((file, index) => (
+          <div
+            key={`${file.path}:${file.name}:${index}`}
+            className="flex min-w-0 max-w-full items-center gap-3 rounded-lg border border-border bg-white px-3 py-2 text-black"
+          >
+            <FileTextIcon
+              aria-hidden="true"
+              className="size-5 shrink-0 text-black/60"
+            />
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium">{file.name}</div>
+              <div className="truncate text-xs text-black/60">
+                {uploadedFileSize(file.contentBase64)}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function actionInputHasBubble(input: unknown): boolean {
+  const display = extractDisplayFiles(input);
+  return !display.files.length || display.value !== undefined;
+}
+
 function chatInputBody(input: unknown): string {
   if (
     input === null ||
@@ -1370,14 +1506,7 @@ function ActionCallMessage({
           size={24}
         />
       </div>
-      <MessageContent
-        className="space-y-2"
-        style={{ overflowWrap: "anywhere" }}
-      >
-        <MessageResponse className="text-primary-foreground">
-          {inputBody(bubble.input)}
-        </MessageResponse>
-      </MessageContent>
+      <ActionInputBody input={bubble.input} />
     </Message>
   );
 }
@@ -1522,19 +1651,23 @@ export function ActionResult({
             return [
               chat && !chatInput ? null : (
                 <Message key={`${run.id}-input`} from="user">
-                  {!chat ? (
+                  {!chat && actionInputHasBubble(run.input) ? (
                     <div className="self-end text-[11px] font-semibold text-muted-foreground">
                       Input
                     </div>
                   ) : null}
-                  <MessageContent
-                    className="space-y-2"
-                    style={{ overflowWrap: "anywhere" }}
-                  >
-                    <MessageResponse className="text-primary-foreground">
-                      {chat ? chatInput : inputBody(run.input)}
-                    </MessageResponse>
-                  </MessageContent>
+                  {chat ? (
+                    <MessageContent
+                      className="space-y-2"
+                      style={{ overflowWrap: "anywhere" }}
+                    >
+                      <MessageResponse className="text-primary-foreground">
+                        {chatInput}
+                      </MessageResponse>
+                    </MessageContent>
+                  ) : (
+                    <ActionInputBody input={run.input} />
+                  )}
                 </Message>
               ),
               ...(bubbles.length

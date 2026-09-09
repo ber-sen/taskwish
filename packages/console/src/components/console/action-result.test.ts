@@ -2,7 +2,54 @@ import { describe, expect, test } from "bun:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { buildRunBubbles, signalPayloadLine, TraceLine } from "./action-result";
+import {
+  ActionInputBody,
+  buildRunBubbles,
+  signalPayloadLine,
+  TraceLine,
+} from "./action-result";
+
+describe("action input formatting", () => {
+  test("renders uploaded data as file cards without exposing base64", () => {
+    const markup = renderToStaticMarkup(
+      createElement(ActionInputBody, {
+        input: {
+          sourceId: "message-1042",
+          attachments: [
+            { name: "tender.pdf", contentBase64: "JVBERi0=" },
+          ],
+        },
+      })
+    );
+
+    expect(markup).toContain("sourceId");
+    expect(markup).toContain("tender.pdf");
+    expect(markup).toContain("5 B");
+    expect(markup).not.toContain("attachments[0]");
+    expect(markup).toContain('data-slot="action-input-bubble"');
+    expect(markup).toContain('data-slot="action-input-files"');
+    expect(markup).not.toContain("JVBERi0=");
+    expect(markup).not.toContain("contentBase64");
+  });
+
+  test("renders file-only input without an input bubble", () => {
+    const markup = renderToStaticMarkup(
+      createElement(ActionInputBody, {
+        input: {
+          attachments: [
+            { name: "tender.pdf", contentBase64: "JVBERi0=" },
+          ],
+        },
+      })
+    );
+
+    expect(markup).toContain('data-slot="action-input-files"');
+    expect(markup).not.toContain('data-slot="action-input-bubble"');
+    expect(markup).not.toContain("bg-black");
+    expect(markup).toContain("border-border");
+    expect(markup).toContain("bg-white");
+  });
+});
 
 describe("signal trace formatting", () => {
   test("uses the wire signal marker and unwraps protocol data", () => {
