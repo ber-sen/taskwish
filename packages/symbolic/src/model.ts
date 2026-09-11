@@ -5,7 +5,11 @@ export function parseModel(
   output: string,
   declarations: readonly SmtDeclaration[],
 ): Record<string, unknown> {
-  const wanted = new Set(declarations.map((declaration) => declaration.name));
+  const wanted = new Set(
+    declarations.flatMap((declaration) =>
+      declaration.kind === "function" ? [] : [declaration.name],
+    ),
+  );
   const model: Record<string, unknown> = {};
 
   for (const expr of parseSExpressions(output)) {
@@ -19,10 +23,11 @@ export function modelExclusion(
   model: Record<string, unknown>,
   declarations: readonly SmtDeclaration[],
 ): string | null {
-  const equalities = declarations.flatMap(({ name }) => {
-    const value = model[name];
+  const equalities = declarations.flatMap((declaration) => {
+    if (declaration.kind === "function") return [];
+    const value = model[declaration.name];
     if (value === undefined) return [];
-    return [`(= ${formatSymbol(name)} ${valueToSmt(value)})`];
+    return [`(= ${formatSymbol(declaration.name)} ${valueToSmt(value)})`];
   });
 
   if (equalities.length === 0) return null;

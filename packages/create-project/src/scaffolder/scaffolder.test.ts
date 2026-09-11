@@ -101,6 +101,13 @@ describe("Scaffolder.createProject", () => {
       ["Documents", "Emails", "Gmail", "LoadExtractor", "FreightOperator"],
       "src/freight-operator/freight-operator.test.ts",
     ],
+    [
+      "options-analyst",
+      "src/options-analyst/analyze-call.ts",
+      "analyzeCall",
+      ["OptionsAnalyst"],
+      "src/options-analyst/options-analyst.test.ts",
+    ],
   ] as const)(
     "creates the %s TypeScript template",
     async (template, actionPath, actorSource, actorNames, testPath) => {
@@ -151,7 +158,8 @@ describe("Scaffolder.createProject", () => {
         template === "agent-graphs" ||
         template === "software-factory" ||
         template === "document-extractor" ||
-        template === "freight-operator"
+        template === "freight-operator" ||
+        template === "options-analyst"
           ? "bun test src"
           : "bun test"
       );
@@ -287,6 +295,22 @@ describe("Scaffolder.createProject", () => {
         expect(parallelSource).toContain("Promise.all");
         expect(routingSource).toContain("runSelectedBranch");
         expect(fallbackSource).toContain('path: "fallback"');
+      }
+      if (template === "options-analyst") {
+        const optionsSource = await readFile(
+          join(destination, "src/options-analyst/analyze-call.ts"),
+          "utf8"
+        );
+        const formulaSource = await readFile(
+          join(destination, "src/options-analyst/options-analyst.ts"),
+          "utf8"
+        );
+        expect(packageJson.dependencies["@taskwish/symbolic"]).toBe(
+          `^${templateVersions["@taskwish/symbolic"]}`
+        );
+        expect(formulaSource).toContain('"greeksFormula"');
+        expect(optionsSource).toContain("this.greeksFormula.solve(");
+        expect(optionsSource).toContain("this.agent.generate(");
       }
       if (template === "software-factory") {
         const codingSource = await readFile(

@@ -3,11 +3,37 @@ import { describe, expect, test } from "bun:test";
 import { Actor, Step, TW } from "@taskwish/core";
 import { messageLogData } from "@taskwish/wire";
 
-import { Int, Model, Real } from "./steps";
+import { Function, Int, Model, Real, RealSort } from "./steps";
 
 const eventDataList = (values: unknown[]) => values.map(messageLogData);
 
 describe("Symbolic", () => {
+  test("Model supports declared symbolic functions", async () => {
+    const { actor } = Actor("Functions");
+
+    const { solve } = actor()
+      .on("Command", "solve")
+
+      .run(
+        Real("x", "y"),
+
+        Function("squareRoot", RealSort(), RealSort()),
+
+        Model(
+          "functionModel",
+          ({ squareRoot, x, y }) => y == squareRoot(x),
+          ({ x }) => x == 4,
+          ({ y }) => y == 2,
+        ),
+
+        Step("result", function () {
+          return this.functionModel.solve();
+        }),
+      );
+
+    await expect(solve()).resolves.toEqual({ x: 4, y: 2 });
+  });
+
   test("Model.prove runs as an actor step and returns status with model", async () => {
     const { actor } = Actor("Solver");
 

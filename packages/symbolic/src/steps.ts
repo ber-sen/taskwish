@@ -1,16 +1,23 @@
 import { TW } from "@taskwish/core";
 
-import { collectDeclarations, declareSort } from "./declarations";
+import {
+  collectDeclarations,
+  declareFunction,
+  declareSort,
+} from "./declarations";
 import { constraintToSmt } from "./expression";
 import { buildSmtScript } from "./script";
 import { formatSymbol, valueToSmt } from "./symbols";
 import type {
+  AddSmtFunctionScope,
   AddSmtScope,
   Constraint,
   ModelInput,
-  SmtDeclarations,
+  SmtConstantDeclaration,
   SmtDeclaration,
+  SmtDeclarations,
   SmtModelScope,
+  SmtSort,
   StepResult,
   SymbolicModel,
   UserScope,
@@ -40,6 +47,50 @@ export function Bool<
   ...names: Names
 ): StepResult<Ctx, AddSmtScope<"Bool", Names>, SmtDeclarations> {
   return declareSort("Bool", names) as never;
+}
+
+export function IntSort(): "Int" {
+  return "Int";
+}
+
+export function RealSort(): "Real" {
+  return "Real";
+}
+
+export function BoolSort(): "Bool" {
+  return "Bool";
+}
+
+type FunctionDomain<Signature extends readonly SmtSort[]> = Signature extends readonly [
+  ...infer Domain extends SmtSort[],
+  SmtSort,
+]
+    ? Domain
+    : never;
+
+type FunctionRange<Signature extends readonly SmtSort[]> =
+  Signature extends readonly [...SmtSort[], infer Range extends SmtSort]
+    ? Range
+    : never;
+
+export function Function<
+  Ctx extends Record<string, any>,
+  const Name extends string,
+  const Signature extends readonly [SmtSort, ...SmtSort[]],
+>(
+  name: Name,
+  ...signature: Signature
+): StepResult<
+  Ctx,
+  AddSmtFunctionScope<
+    Name,
+    FunctionDomain<Signature>,
+    FunctionRange<Signature>
+  >,
+  SmtDeclarations
+> {
+  const range = signature.at(-1) as SmtSort;
+  return declareFunction(name, signature.slice(0, -1), range) as never;
 }
 
 export function Model<
@@ -107,9 +158,12 @@ function fixedInputAssertions(
     throw new Error("Symbolic model inputs must be an object");
   }
 
-  const declarationsByName = new Map(
-    declarations.map((declaration) => [declaration.name, declaration]),
-  );
+  const declarationsByName = new Map<string, SmtConstantDeclaration>();
+  for (const declaration of declarations) {
+    if (declaration.kind !== "function") {
+      declarationsByName.set(declaration.name, declaration);
+    }
+  }
 
   return Object.entries(input).flatMap(([name, value]) => {
     if (value === undefined) return [];
@@ -125,7 +179,10 @@ function fixedInputAssertions(
   });
 }
 
-function fixedValueToSmt(value: unknown, declaration: SmtDeclaration): string {
+function fixedValueToSmt(
+  value: unknown,
+  declaration: SmtConstantDeclaration,
+): string {
   if (declaration.sort === "Bool") {
     if (typeof value !== "boolean") {
       throw new Error(

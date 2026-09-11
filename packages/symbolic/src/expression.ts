@@ -1,6 +1,6 @@
 import jsep from "jsep";
 
-import { formatSymbol, required } from "./symbols";
+import { formatSymbol, numberToSmt, required } from "./symbols";
 import type { AstNode } from "./types";
 
 export function constraintToSmt(constraint: Function): string {
@@ -121,6 +121,11 @@ function callToSmt(node: AstNode): string {
   const callee = node.callee;
   const args = node.arguments?.map(astToSmt) ?? [];
 
+  if (callee?.type === "Identifier") {
+    const name = formatSymbol(required(callee.name, "function name"));
+    return args.length === 0 ? name : `(${name} ${args.join(" ")})`;
+  }
+
   if (callee?.type === "MemberExpression") {
     const object = callee.object;
     const property = callee.property;
@@ -135,7 +140,9 @@ function callToSmt(node: AstNode): string {
     }
   }
 
-  throw new Error("Only Math.abs(...) calls are supported in SMT expressions");
+  throw new Error(
+    "Only symbolic function and Math.abs(...) calls are supported in SMT expressions",
+  );
 }
 
 function smtOperator(operator: string): string {
@@ -170,7 +177,7 @@ function smtOperator(operator: string): string {
 
 function literalToSmt(value: unknown): string {
   if (typeof value === "number") {
-    return Number.isInteger(value) ? String(value) : value.toString();
+    return numberToSmt(value);
   }
   if (typeof value === "boolean") return value ? "true" : "false";
   throw new Error(`Unsupported SMT literal ${JSON.stringify(value)}`);
