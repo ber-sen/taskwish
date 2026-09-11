@@ -8,10 +8,22 @@ declare const SmtValueTag: unique symbol;
 
 export type SmtSort = "Int" | "Real" | "Bool";
 
-export type SmtDeclaration = {
+export type SmtConstantDeclaration = {
+  kind?: "constant";
   name: string;
   sort: SmtSort;
 };
+
+export type SmtFunctionDeclaration = {
+  kind: "function";
+  name: string;
+  domain: SmtSort[];
+  range: SmtSort;
+};
+
+export type SmtDeclaration =
+  | SmtConstantDeclaration
+  | SmtFunctionDeclaration;
 
 export type SmtDeclarations = {
   [SmtDeclarationsTag]: true;
@@ -90,6 +102,22 @@ export type AddSmtScope<
 > = {
   [Name in Names[number]]: SmtValue<Sort, SmtSortValue<Sort>>;
 };
+
+type SmtFunctionArguments<Domain extends readonly SmtSort[]> = {
+  [Index in keyof Domain]: Domain[Index] extends SmtSort
+    ? SmtSortValue<Domain[Index]>
+    : never;
+};
+
+export type AddSmtFunctionScope<
+  Name extends string,
+  Domain extends readonly SmtSort[],
+  Range extends SmtSort,
+> = Record<
+  Name,
+  (...args: SmtFunctionArguments<Domain>) =>
+    SmtValue<Range, SmtSortValue<Range>>
+>;
 
 export type StepScopeAdd<ScopeAdd> = {
   [Name in keyof ScopeAdd]: RawEntry<ScopeAdd[Name]>;

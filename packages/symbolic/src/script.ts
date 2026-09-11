@@ -7,7 +7,14 @@ export function buildSmtScript(input: {
   assertions: string[];
 }): string {
   const declarationLines = dedupeDeclarations(input.declarations).map(
-    ({ name, sort }) => `(declare-const ${formatSymbol(name)} ${sort})`,
+    (declaration) => {
+      if (declaration.kind === "function") {
+        const name = formatSymbol(declaration.name);
+        return `(declare-fun ${name} (${declaration.domain.join(" ")}) ${declaration.range})`;
+      }
+      const name = formatSymbol(declaration.name);
+      return `(declare-const ${name} ${declaration.sort})`;
+    },
   );
   const assertionLines = input.assertions.map((assertion) => {
     return `(assert ${assertion})`;
